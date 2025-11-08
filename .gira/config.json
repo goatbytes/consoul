@@ -68,57 +68,21 @@
     "cache_max_size_mb": 100
   },
   "storage": {
-    "enabled": false,
     "max_file_size_mb": 100,
-    "allowed_extensions": [
-      ".jpg",
-      ".jpeg",
-      ".png",
-      ".gif",
-      ".bmp",
-      ".svg",
-      ".pdf",
-      ".doc",
-      ".docx",
-      ".xls",
-      ".xlsx",
-      ".ppt",
-      ".pptx",
-      ".txt",
-      ".md",
-      ".csv",
-      ".json",
-      ".xml",
-      ".yaml",
-      ".yml",
-      ".zip",
-      ".tar",
-      ".gz",
-      ".7z",
-      ".rar",
-      ".mp4",
-      ".avi",
-      ".mov",
-      ".webm",
-      ".mp3",
-      ".wav",
-      ".ogg",
-      ".log",
-      ".dat",
-      ".bin"
-    ],
-    "credential_source": "environment"
+    "provider": "s3"
   },
   "custom_fields": {
     "fields": []
   },
   "hooks": {
-    "enabled": true,
     "timeout": 30,
-    "silent": false,
     "on_failure": "warn"
   },
   "git": {
     "auto_stage_moves": true
+  },
+  "default_assignee": null,
+  "working_hours": {
+    "timezone": "America/Los_Angeles"
   }
 }

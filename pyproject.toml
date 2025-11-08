@@ -43,11 +43,11 @@ classifiers = [
 ]
 
 dependencies = [
-    "textual>=0.47.0",
-    "langchain>=0.1.0",
-    "langchain-openai>=0.0.5",
-    "langchain-anthropic>=0.1.0",
-    "langchain-google-genai>=0.0.5",
+    "textual>=6.5.0",
+    "langchain>=1.0.0",
+    "langchain-openai>=1.0.0",
+    "langchain-anthropic>=1.0.0",
+    "langchain-google-genai>=3.0.0",
     "click>=8.1.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
@@ -96,32 +96,33 @@ packages = [{include = "consoul", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-textual = "^0.47.0"
-langchain = "^0.1.0"
-langchain-openai = "^0.0.5"
-langchain-anthropic = "^0.1.0"
-langchain-google-genai = "^0.0.5"
+textual = "^6.5.0"
+langchain = "^1.0.0"
+langchain-openai = "^1.0.0"
+langchain-anthropic = "^1.0.0"
+langchain-google-genai = "^3.0.0"
 click = "^8.1.0"
 pydantic = "^2.0.0"
 pydantic-settings = "^2.0.0"
 python-dotenv = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
-pytest-cov = "^4.1.0"
-pytest-asyncio = "^0.21.0"
+pytest = "^8.2.0"
+pytest-cov = "^7.0.0"
+pytest-asyncio = "^1.0.0"
 pytest-mock = "^3.12.0"
-ruff = "^0.1.0"
+ruff = "^0.14.0"
 mypy = "^1.7.0"
-pre-commit = "^3.5.0"
+pre-commit = "^4.0.0"
+attrs = "^25.4.0"
 
 [tool.poetry.group.docs.dependencies]
-sphinx = "^7.2.0"
-sphinx-rtd-theme = "^2.0.0"
-sphinx-autodoc-typehints = "^1.25.0"
+sphinx = "^8.0.0"
+sphinx-rtd-theme = "^3.0.0"
+sphinx-autodoc-typehints = "^3.0.0"
 
 [tool.poetry.group.security.dependencies]
-safety = "^2.3.0"
+safety = "^3.0.0"
 bandit = {extras = ["toml"], version = "^1.7.0"}
 
 [tool.poetry.scripts]

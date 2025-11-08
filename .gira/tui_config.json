@@ -1,0 +1,33 @@
+{
+  "theme": "gira-dark",
+  "sidebar_width": 15,
+  "auto_refresh": true,
+  "refresh_interval": 5,
+  "external_refresh_enabled": true,
+  "preserve_selection_on_refresh": true,
+  "auto_install_hooks": true,
+  "auto_open_active_project": true,
+  "group_by_version": false,
+  "show_version_labels": true,
+  "collapse_empty_versions": false,
+  "max_search_results": 25,
+  "use_compact_create_modal": true,
+  "markdown_renderer": "auto",
+  "markdown_size_threshold": 5000,
+  "enable_mouse_drag": true,
+  "force_keyboard_mode": false,
+  "show_mouse_hints": true,
+  "auto_detect_terminal": true,
+  "keyboard_shortcuts": {
+    "quit": "ctrl+c,q",
+    "help": "f1,h",
+    "refresh": "f5,r",
+    "board": "b",
+    "tickets": "t",
+    "epics": "e",
+    "sprints": "s",
+    "toggle_version_view": "v"
+  },
+  "debug_mode": false,
+  "log_file": null
+}
