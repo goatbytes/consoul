@@ -1,4 +1,5 @@
 {
-  "next_ticket_number": 1,
-  "active_sprint": "SPRINT-2025-11-08"
+  "next_ticket_number": 16,
+  "active_sprint": "SPRINT-2025-11-08",
+  "next_epic_number": 2
 }

@@ -1,0 +1,22 @@
+{
+  "created_at": "2025-11-08T14:19:52.009066",
+  "updated_at": "2025-11-08T14:19:52.009084",
+  "id": "SOUL-10",
+  "uuid": "a730b0af-4a12-47e6-9193-427284639d54",
+  "title": "Create LICENSE and CONTRIBUTING.md",
+  "description": "Add open-source LICENSE file (MIT or Apache-2.0) and CONTRIBUTING.md with guidelines for: code style, testing requirements, PR process, code of conduct, and development setup instructions.",
+  "status": "todo",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-001",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

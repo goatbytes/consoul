@@ -1,0 +1,22 @@
+{
+  "created_at": "2025-11-08T14:19:55.460780",
+  "updated_at": "2025-11-08T14:19:55.460790",
+  "id": "SOUL-12",
+  "uuid": "5129f063-7ce3-45a0-aef8-6b2c8abd6169",
+  "title": "Create Makefile/Justfile for common tasks",
+  "description": "Create Makefile or Justfile with commands for: install, test, lint, format, type-check, clean, build, publish-test, publish, docs, and dev setup. Simplify common development workflows.",
+  "status": "todo",
+  "type": "task",
+  "priority": "low",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-001",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

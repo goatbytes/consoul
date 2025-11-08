@@ -117,5 +117,8 @@
     "timeout": 30,
     "silent": false,
     "on_failure": "warn"
+  },
+  "git": {
+    "auto_stage_moves": true
   }
 }
