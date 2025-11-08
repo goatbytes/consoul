@@ -1,0 +1,36 @@
+{
+  "created_at": "2025-11-08T14:19:37.133941",
+  "updated_at": "2025-11-08T14:29:35.852204",
+  "id": "SOUL-2",
+  "uuid": "8866c404-7aa3-4697-b4e9-42d092aac768",
+  "title": "Setup pyproject.toml with project metadata",
+  "description": "Create comprehensive pyproject.toml with project metadata, dependencies, build system (hatchling/setuptools), entry points, and tool configurations. Include proper versioning, author info, license (MIT/Apache-2.0), and URLs for open-source project.",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-001",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-08T14:29:35.852050",
+      "updated_at": "2025-11-08T14:29:35.852051",
+      "id": "20251108142935-322fe48d",
+      "ticket_id": "SOUL-2",
+      "author": "jared@goatbytes.io",
+      "content": "Created comprehensive pyproject.toml with:\n\n**Build System:**\n- Hatchling build backend\n- Proper package discovery for src/ layout\n\n**Project Metadata:**\n- Version 0.1.0 with PyPI classifiers\n- Python 3.10+ requirement\n- MIT license\n- Complete URLs (homepage, docs, repository, issues)\n\n**Dependencies:**\n- Core: textual, langchain, click, pydantic\n- AI providers: langchain-openai, langchain-anthropic, langchain-google-genai\n- Config: pydantic-settings, python-dotenv\n\n**Optional Dependencies:**\n- dev: pytest, ruff, mypy, pre-commit\n- test: pytest suite with coverage\n- docs: sphinx with RTD theme\n- security: safety, bandit\n\n**CLI Entry Point:**\n- consoul command → consoul.__main__:main\n\n**Tool Configurations:**\n- Pytest: strict mode, coverage reporting, test markers\n- Coverage: 80%+ target, branch coverage\n- Ruff: modern linting/formatting rules\n- Mypy: strict type checking\n- Bandit: security scanning config",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {}
+}
