@@ -1,0 +1,36 @@
+{
+  "created_at": "2025-11-08T14:19:46.675685",
+  "updated_at": "2025-11-08T14:49:05.317018",
+  "id": "SOUL-7",
+  "uuid": "a7fcb046-c7a4-4cf2-ab8e-b887500f0fb7",
+  "title": "Setup pre-commit hooks",
+  "description": "Configure pre-commit with hooks for Ruff, mypy, trailing whitespace, YAML/JSON validation, and merge conflict detection. Create .pre-commit-config.yaml with all quality checks to run before commits.",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-001",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-08T14:49:05.316914",
+      "updated_at": "2025-11-08T14:49:05.316915",
+      "id": "20251108144905-e14bbfd8",
+      "ticket_id": "SOUL-7",
+      "author": "jared@goatbytes.io",
+      "content": "Setup pre-commit hooks:\n\n**Configuration (.pre-commit-config.yaml):**\n- pre-commit-hooks (v5.0.0):\n  - trailing-whitespace: Remove trailing whitespace\n  - end-of-file-fixer: Ensure files end with newline\n  - check-yaml: Validate YAML syntax\n  - check-toml: Validate TOML syntax\n  - check-json: Validate JSON syntax\n  - check-merge-conflict: Detect merge conflicts\n  - check-added-large-files: Prevent large files (>1MB)\n\n- Ruff (v0.14.4):\n  - ruff: Linting with auto-fix\n  - ruff-format: Code formatting\n\n- Mypy (v1.18.2):\n  - Type checking on src/ files only\n  - Additional dependencies: types-setuptools\n\n**Installation:**\n- Hooks installed at .git/hooks/pre-commit\n\n**Verification:**\n- Ran on all files: Fixed trailing whitespace and EOF issues\n- All checks passing: YAML, TOML, JSON, Ruff, Mypy\n- Ready for automatic pre-commit validation",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {}
+}

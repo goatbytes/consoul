@@ -376,7 +376,7 @@ After each operation, verify success:
 # After creating ticket
 gira ticket show TICKET-ID
 
-# After moving ticket  
+# After moving ticket
 gira board
 
 # After adding comment

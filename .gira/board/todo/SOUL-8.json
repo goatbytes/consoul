@@ -1,10 +1,10 @@
 {
   "created_at": "2025-11-08T14:19:48.393620",
-  "updated_at": "2025-11-08T14:19:48.393633",
+  "updated_at": "2025-11-08T22:44:55.072348Z",
   "id": "SOUL-8",
   "uuid": "8deef0f0-20ab-47d7-b4ad-71c6a3670750",
   "title": "Create GitHub Actions CI/CD pipeline",
-  "description": "Setup GitHub Actions workflows for: 1) CI - run tests, linting, type checking on PRs/pushes, 2) CD - build and publish to PyPI on releases, 3) Test matrix for Python 3.10, 3.11, 3.12, 3.13 across OS (Linux, macOS, Windows).",
+  "description": "Setup GitHub Actions workflows for: 1) CI - run tests, linting, type checking on PRs/pushes, 2) CD - build and publish to PyPI on releases, 3) Test matrix for Python 3.10, 3.13 across OS (Linux, macOS, Windows).",
   "status": "todo",
   "type": "task",
   "priority": "high",
