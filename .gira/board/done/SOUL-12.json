@@ -1,0 +1,36 @@
+{
+  "created_at": "2025-11-08T14:19:55.460780",
+  "updated_at": "2025-11-08T15:03:07.833236",
+  "id": "SOUL-12",
+  "uuid": "5129f063-7ce3-45a0-aef8-6b2c8abd6169",
+  "title": "Create Makefile/Justfile for common tasks",
+  "description": "Create Makefile or Justfile with commands for: install, test, lint, format, type-check, clean, build, publish-test, publish, docs, and dev setup. Simplify common development workflows.",
+  "status": "done",
+  "type": "task",
+  "priority": "low",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-001",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-08T15:03:07.833140",
+      "updated_at": "2025-11-08T15:03:07.833141",
+      "id": "20251108150307-36dde817",
+      "ticket_id": "SOUL-12",
+      "author": "jared@goatbytes.io",
+      "content": "Created Makefile for common development tasks:\n\n**Installation:**\n- install: Install dependencies\n- install-dev: Install with dev/docs/security groups\n\n**Testing:**\n- test: Run pytest with coverage\n- test-fast: Run pytest without coverage\n\n**Code Quality:**\n- lint: Run Ruff linting checks\n- lint-fix: Run Ruff with auto-fix\n- format: Format code with Ruff\n- format-check: Check code formatting\n- type-check: Run mypy type checking\n- quality: Run all quality checks (lint + format-check + type-check)\n\n**Maintenance:**\n- clean: Remove build artifacts and caches\n- build: Build distribution packages with Poetry\n- docs: Build documentation (placeholder)\n- pre-commit: Run pre-commit hooks on all files\n- update: Update dependencies\n\n**Help:**\n- help: Show help message with all available commands\n\nAll commands use Poetry for dependency isolation.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {}
+}

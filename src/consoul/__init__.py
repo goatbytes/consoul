@@ -7,7 +7,7 @@ abstraction.
 
 __version__ = "0.1.0"
 __author__ = "GoatBytes.IO"
-__license__ = "MIT"
+__license__ = "Apache-2.0"
 
 __all__ = [
     "__author__",

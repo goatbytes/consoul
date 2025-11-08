@@ -24,7 +24,7 @@ class TestPackageMetadata:
         """Test that __license__ is defined."""
         assert hasattr(consoul, "__license__")
         assert isinstance(consoul.__license__, str)
-        assert consoul.__license__ == "MIT"
+        assert consoul.__license__ == "Apache-2.0"
 
     def test_all_exports(self) -> None:
         """Test that __all__ contains expected exports."""

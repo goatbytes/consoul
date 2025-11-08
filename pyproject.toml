@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "AI-powered terminal assistant with rich TUI - brings ChatGPT/Claude to your command line"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 authors = [
     {name = "GoatBytes.IO", email = "jared@goatbytes.io"}
 ]
@@ -29,7 +29,7 @@ keywords = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -71,7 +71,7 @@ name = "consoul"
 version = "0.1.0"
 description = "AI-powered terminal assistant with rich TUI - brings ChatGPT/Claude to your command line"
 authors = ["GoatBytes.IO <jared@goatbytes.io>"]
-license = "MIT"
+license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/goatbytes/consoul"
 repository = "https://github.com/goatbytes/consoul"
@@ -80,7 +80,7 @@ keywords = ["ai", "assistant", "terminal", "tui", "cli", "chatgpt", "claude", "l
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
