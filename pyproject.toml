@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "consoul"
@@ -54,34 +54,6 @@ dependencies = [
     "python-dotenv>=1.0.0",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-mock>=3.12.0",
-    "ruff>=0.1.0",
-    "mypy>=1.7.0",
-    "pre-commit>=3.5.0",
-]
-test = [
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-mock>=3.12.0",
-]
-docs = [
-    "sphinx>=7.2.0",
-    "sphinx-rtd-theme>=2.0.0",
-    "sphinx-autodoc-typehints>=1.25.0",
-]
-security = [
-    "safety>=2.3.0",
-    "bandit[toml]>=1.7.0",
-]
-all = [
-    "consoul[dev,test,docs,security]",
-]
 
 [project.urls]
 Homepage = "https://github.com/goatbytes/consoul"
@@ -93,20 +65,67 @@ Changelog = "https://github.com/goatbytes/consoul/blob/main/CHANGELOG.md"
 [project.scripts]
 consoul = "consoul.__main__:main"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/consoul"]
-
-[tool.hatch.build.targets.sdist]
-include = [
-    "/src",
-    "/tests",
-    "/README.md",
-    "/LICENSE",
-    "/pyproject.toml",
+# Poetry configuration
+[tool.poetry]
+name = "consoul"
+version = "0.1.0"
+description = "AI-powered terminal assistant with rich TUI - brings ChatGPT/Claude to your command line"
+authors = ["GoatBytes.IO <jared@goatbytes.io>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/goatbytes/consoul"
+repository = "https://github.com/goatbytes/consoul"
+documentation = "https://consoul.readthedocs.io"
+keywords = ["ai", "assistant", "terminal", "tui", "cli", "chatgpt", "claude", "langchain", "textual"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Terminals",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
 ]
+packages = [{include = "consoul", from = "src"}]
 
-[tool.hatch.version]
-path = "src/consoul/__init__.py"
+[tool.poetry.dependencies]
+python = "^3.10"
+textual = "^0.47.0"
+langchain = "^0.1.0"
+langchain-openai = "^0.0.5"
+langchain-anthropic = "^0.1.0"
+langchain-google-genai = "^0.0.5"
+click = "^8.1.0"
+pydantic = "^2.0.0"
+pydantic-settings = "^2.0.0"
+python-dotenv = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+pytest-asyncio = "^0.21.0"
+pytest-mock = "^3.12.0"
+ruff = "^0.1.0"
+mypy = "^1.7.0"
+pre-commit = "^3.5.0"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^7.2.0"
+sphinx-rtd-theme = "^2.0.0"
+sphinx-autodoc-typehints = "^1.25.0"
+
+[tool.poetry.group.security.dependencies]
+safety = "^2.3.0"
+bandit = {extras = ["toml"], version = "^1.7.0"}
+
+[tool.poetry.scripts]
+consoul = "consoul.__main__:main"
 
 # Pytest configuration
 [tool.pytest.ini_options]
