@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T14:19:44.810685",
-  "updated_at": "2025-11-08T14:45:32.814810",
+  "updated_at": "2025-11-09T00:02:44.895212Z",
   "id": "SOUL-6",
   "uuid": "463cfd3b-9a41-4789-931f-595e988003b0",
   "title": "Setup mypy for static type checking",
@@ -9,6 +9,7 @@
   "type": "task",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-001",
   "blocked_by": [],

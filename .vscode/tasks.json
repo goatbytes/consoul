@@ -1,0 +1,124 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install Dependencies",
+      "type": "shell",
+      "command": "poetry install --with dev,docs,security",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "make test",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Run Tests (Fast)",
+      "type": "shell",
+      "command": "make test-fast",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Lint",
+      "type": "shell",
+      "command": "make lint",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Lint & Fix",
+      "type": "shell",
+      "command": "make lint-fix",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Format Code",
+      "type": "shell",
+      "command": "make format",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Type Check",
+      "type": "shell",
+      "command": "make type-check",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Quality Check (All)",
+      "type": "shell",
+      "command": "make quality",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Build Package",
+      "type": "shell",
+      "command": "make build",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Build Documentation",
+      "type": "shell",
+      "command": "make docs",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Serve Documentation",
+      "type": "shell",
+      "command": "make docs-serve",
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": "none"
+    },
+    {
+      "label": "Clean Build Artifacts",
+      "type": "shell",
+      "command": "make clean",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Run Pre-commit Hooks",
+      "type": "shell",
+      "command": "make pre-commit",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Update Dependencies",
+      "type": "shell",
+      "command": "make update",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Security Scan",
+      "type": "shell",
+      "command": "make security",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Security Audit (Full Report)",
+      "type": "shell",
+      "command": "make security-audit",
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
+}

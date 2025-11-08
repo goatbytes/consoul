@@ -138,6 +138,20 @@ make update
 poetry update
 ```
 
+### Security Scanning
+
+```bash
+# Run security checks (Bandit + Safety)
+make security
+
+# Generate detailed security audit reports
+make security-audit
+
+# This creates:
+# - bandit-report.json (code security issues)
+# - safety-report.json (dependency vulnerabilities)
+```
+
 ### Cleaning Build Artifacts
 
 ```bash

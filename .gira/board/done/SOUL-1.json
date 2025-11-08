@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T14:19:35.372675",
-  "updated_at": "2025-11-08T14:24:51.984259",
+  "updated_at": "2025-11-09T00:02:44.894207Z",
   "id": "SOUL-1",
   "uuid": "678986aa-2c8f-48b9-8996-82c112995020",
   "title": "Setup Python package structure with src layout",
@@ -9,6 +9,7 @@
   "type": "task",
   "priority": "high",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-001",
   "blocked_by": [],

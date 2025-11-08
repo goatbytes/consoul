@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T14:19:57.155034",
-  "updated_at": "2025-11-08T23:07:41.862648Z",
+  "updated_at": "2025-11-09T00:02:44.895642Z",
   "id": "SOUL-13",
   "uuid": "52345ae7-4551-4f7d-939b-d8207f96fb36",
   "title": "Setup development environment documentation",
@@ -9,6 +9,7 @@
   "type": "task",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-001",
   "blocked_by": [],

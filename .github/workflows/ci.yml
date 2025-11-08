@@ -80,3 +80,28 @@ jobs:
 
       - name: Run mypy
         run: poetry run mypy src/
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Install dependencies
+        run: poetry install --with security --no-interaction
+
+      - name: Run Bandit
+        run: poetry run bandit -r src/ -c pyproject.toml
+
+      - name: Run Safety
+        run: poetry run safety check --json
+        continue-on-error: true

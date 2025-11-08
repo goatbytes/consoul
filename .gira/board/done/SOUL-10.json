@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T14:19:52.009066",
-  "updated_at": "2025-11-08T14:57:39.359141",
+  "updated_at": "2025-11-09T00:02:44.893079Z",
   "id": "SOUL-10",
   "uuid": "a730b0af-4a12-47e6-9193-427284639d54",
   "title": "Create LICENSE and CONTRIBUTING.md",
@@ -9,6 +9,7 @@
   "type": "task",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-001",
   "blocked_by": [],

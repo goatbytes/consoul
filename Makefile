@@ -35,6 +35,15 @@ quality:  ## Run all quality checks (lint, format-check, type-check)
 	poetry run ruff format --check src/ tests/
 	poetry run mypy src/
 
+security:  ## Run security checks (bandit, safety)
+	poetry run bandit -r src/ -c pyproject.toml
+	poetry run safety check --json
+
+security-audit:  ## Run comprehensive security audit
+	poetry run bandit -r src/ -c pyproject.toml -f json -o bandit-report.json
+	poetry run safety check --save-json safety-report.json
+	@echo "Security reports generated: bandit-report.json, safety-report.json"
+
 clean:  ## Remove build artifacts and caches
 	rm -rf build/
 	rm -rf dist/
@@ -44,6 +53,8 @@ clean:  ## Remove build artifacts and caches
 	rm -rf .ruff_cache
 	rm -rf htmlcov
 	rm -rf .coverage
+	rm -rf bandit-report.json
+	rm -rf safety-report.json
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name '*.pyc' -delete
 

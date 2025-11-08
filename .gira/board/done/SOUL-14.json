@@ -1,0 +1,37 @@
+{
+  "created_at": "2025-11-08T14:19:58.923807",
+  "updated_at": "2025-11-09T00:02:44.895424Z",
+  "id": "SOUL-14",
+  "uuid": "404741d6-71c3-4044-b1fe-9e7484f45938",
+  "title": "Configure VS Code workspace settings",
+  "description": "Create .vscode/ directory with settings.json (Python path, formatters, linters), extensions.json (recommended extensions), and launch.json (debug configurations) for optimal development experience.",
+  "status": "done",
+  "type": "task",
+  "priority": "low",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-001",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-08T15:55:10.853930",
+      "updated_at": "2025-11-08T15:55:10.853931",
+      "id": "20251108155510-e5e34222",
+      "ticket_id": "SOUL-14",
+      "author": "jared@goatbytes.io",
+      "content": "Configured VS Code workspace settings:\n\n**settings.json:**\n- Python interpreter: .venv/bin/python\n- Testing: pytest with coverage enabled\n- Linting: mypy with strict mode (disabled pylint/flake8)\n- Formatting: Ruff as default formatter with format-on-save\n- Editor: 88 char ruler, organize imports on save\n- File exclusions: __pycache__, .pytest_cache, .mypy_cache, .ruff_cache\n- IntelliSense: strict type checking, auto-imports\n- PYTHONPATH: src/ directory\n\n**extensions.json:**\n- Recommended: Python, Pylance, Ruff, mypy, Markdown, YAML, TOML, GitLens, EditorConfig\n- Unwanted: pylint, flake8 (using Ruff instead)\n\n**launch.json:**\n- Debug configurations:\n  - Current file\n  - Consoul CLI module\n  - Current test file\n  - All tests (with/without coverage)\n  - Debug specific test function\n  - MkDocs serve\n\n**tasks.json:**\n- Install dependencies\n- Run tests (default test task)\n- Lint, format, type-check\n- Quality check (all)\n- Build package (default build task)\n- Build/serve documentation\n- Clean artifacts\n- Pre-commit hooks\n- Update dependencies\n\nAll tasks use Makefile targets for consistency.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {}
+}

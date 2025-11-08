@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T14:19:42.687243",
-  "updated_at": "2025-11-08T14:39:09.697377",
+  "updated_at": "2025-11-09T00:02:44.893770Z",
   "id": "SOUL-5",
   "uuid": "d6007a81-e58c-421b-b05e-cc536e29c0b2",
   "title": "Setup pytest with coverage reporting",
@@ -9,6 +9,7 @@
   "type": "task",
   "priority": "high",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-001",
   "blocked_by": [],

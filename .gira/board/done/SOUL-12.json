@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T14:19:55.460780",
-  "updated_at": "2025-11-08T15:03:07.833236",
+  "updated_at": "2025-11-09T00:02:44.896910Z",
   "id": "SOUL-12",
   "uuid": "5129f063-7ce3-45a0-aef8-6b2c8abd6169",
   "title": "Create Makefile/Justfile for common tasks",
@@ -9,6 +9,7 @@
   "type": "task",
   "priority": "low",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-001",
   "blocked_by": [],

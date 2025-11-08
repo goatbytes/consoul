@@ -1,0 +1,39 @@
+{
+  "recommendations": [
+    // Python Development
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+
+    // Linting & Formatting
+    "charliermarsh.ruff",
+    "ms-python.mypy-type-checker",
+
+    // Testing
+    "littlefoxteam.vscode-python-test-adapter",
+
+    // Markdown & Documentation
+    "yzhang.markdown-all-in-one",
+    "DavidAnson.vscode-markdownlint",
+
+    // YAML & TOML
+    "redhat.vscode-yaml",
+    "tamasfe.even-better-toml",
+
+    // Git
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Docker (for containerized development)
+    "ms-azuretools.vscode-docker",
+
+    // General Productivity
+    "editorconfig.editorconfig",
+    "streetsidesoftware.code-spell-checker",
+    "gruntfuggly.todo-tree"
+  ],
+  "unwantedRecommendations": [
+    "ms-python.pylint",
+    "ms-python.flake8"
+  ]
+}
