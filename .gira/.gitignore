@@ -1,0 +1,6 @@
+# Gira internal files
+.index.json
+*.tmp
+
+# Cache directory
+cache/

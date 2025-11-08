@@ -1,0 +1,121 @@
+{
+  "created_at": "2025-11-08T14:14:10.278321",
+  "updated_at": "2025-11-08T14:14:10.278341",
+  "name": "Consoul",
+  "description": "",
+  "ticket_id_prefix": "SOUL",
+  "gira_version": "0.2.0",
+  "workflow_type": "scrum",
+  "statuses": [
+    "todo",
+    "in_progress",
+    "review",
+    "done"
+  ],
+  "priorities": [
+    "low",
+    "medium",
+    "high",
+    "critical"
+  ],
+  "types": [
+    "story",
+    "task",
+    "bug",
+    "epic"
+  ],
+  "strict_workflow": false,
+  "skip_confirmations": false,
+  "default_priority": "medium",
+  "default_type": "task",
+  "commit_id_patterns": [
+    "^\\w+\\(([^)]+)\\):",
+    "Gira:\\s*([\\w-]+(?:,\\s*[\\w-]+)*)"
+  ],
+  "commit_scan_depth": 500,
+  "commit_cache_enabled": true,
+  "hooks_commit_msg_enabled": true,
+  "hooks_commit_msg_strict": false,
+  "hooks_prepare_commit_msg_enabled": true,
+  "hooks_auto_ticket_from_branch": true,
+  "hooks_allowed_commit_types": [
+    "feat",
+    "fix",
+    "docs",
+    "style",
+    "refactor",
+    "test",
+    "chore"
+  ],
+  "blame_config": {
+    "ticket_patterns": [
+      "^\\w+\\(([A-Z]{2,5}-\\d+)\\):",
+      "(?:Gira|Ticket):\\s*([A-Z]{2,5}-\\d+(?:,\\s*[A-Z]{2,5}-\\d+)*)",
+      "(?:Closes|Fixes|Resolves):\\s*([A-Z]{2,5}-\\d+)",
+      "#([A-Z]{2,5}-\\d+)"
+    ],
+    "cache_enabled": true,
+    "history_depth": 100,
+    "exclude_patterns": [
+      "*.md",
+      "test_*",
+      "*.json",
+      "*.yml",
+      "*.yaml",
+      "*.txt"
+    ],
+    "cache_ttl_seconds": 900,
+    "cache_max_size_mb": 100
+  },
+  "storage": {
+    "enabled": false,
+    "max_file_size_mb": 100,
+    "allowed_extensions": [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".bmp",
+      ".svg",
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".xls",
+      ".xlsx",
+      ".ppt",
+      ".pptx",
+      ".txt",
+      ".md",
+      ".csv",
+      ".json",
+      ".xml",
+      ".yaml",
+      ".yml",
+      ".zip",
+      ".tar",
+      ".gz",
+      ".7z",
+      ".rar",
+      ".mp4",
+      ".avi",
+      ".mov",
+      ".webm",
+      ".mp3",
+      ".wav",
+      ".ogg",
+      ".log",
+      ".dat",
+      ".bin"
+    ],
+    "credential_source": "environment"
+  },
+  "custom_fields": {
+    "fields": []
+  },
+  "hooks": {
+    "enabled": true,
+    "timeout": 30,
+    "silent": false,
+    "on_failure": "warn"
+  }
+}

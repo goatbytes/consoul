@@ -1,0 +1,43 @@
+{
+  "swimlanes": [
+    {
+      "id": "todo",
+      "name": "To Do",
+      "auto_populate": false
+    },
+    {
+      "id": "in_progress",
+      "name": "In Progress",
+      "limit": 5,
+      "auto_populate": false
+    },
+    {
+      "id": "review",
+      "name": "Review",
+      "limit": 5,
+      "auto_populate": false
+    },
+    {
+      "id": "done",
+      "name": "Done",
+      "auto_populate": false
+    }
+  ],
+  "transitions": {
+    "todo": [
+      "in_progress",
+      "done"
+    ],
+    "in_progress": [
+      "review",
+      "todo"
+    ],
+    "review": [
+      "done",
+      "in_progress"
+    ],
+    "done": [
+      "todo"
+    ]
+  }
+}
