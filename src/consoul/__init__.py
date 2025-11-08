@@ -10,7 +10,7 @@ __author__ = "GoatBytes.IO"
 __license__ = "MIT"
 
 __all__ = [
-    "__version__",
     "__author__",
     "__license__",
+    "__version__",
 ]
