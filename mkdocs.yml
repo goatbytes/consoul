@@ -1,0 +1,173 @@
+site_name: Consoul Documentation
+site_description: AI-powered terminal assistant with rich interactive TUI built on Textual and LangChain
+site_author: GoatBytes.IO
+site_url: https://goatbytes.github.io/consoul/
+
+# Repository
+repo_name: goatbytes/consoul
+repo_url: https://github.com/goatbytes/consoul
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2025 GoatBytes.IO
+
+# Configuration
+theme:
+  name: material
+  favicon: assets/img/favicon.png
+  logo: assets/img/logo.svg
+
+  # Color scheme and branding
+  palette:
+    # Palette toggle for light mode (default)
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: cyan
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: cyan
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  # Typography
+  font:
+    heading: 'Inter'
+    text: 'Inter'
+    code: 'JetBrains Mono'
+
+  # Features
+  features:
+    - announce.dismiss
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - content.tabs.link
+    - content.tooltips
+    - header.autohide
+    - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+  # Icons
+  icon:
+    repo: fontawesome/brands/github
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+      lang: en
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            heading_level: 2
+            inherited_members: true
+            merge_init_into_class: true
+            separate_signature: true
+            show_root_heading: true
+            show_root_toc_entry: false
+            show_signature_annotations: true
+            show_source: false
+            show_submodules: false
+
+# Customization
+extra_css:
+  - assets/css/consoul.css
+
+extra:
+  homepage: https://goatbytes.io
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/goatbytes/consoul
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/consoul/
+    - icon: fontawesome/solid/globe
+      link: https://goatbytes.io
+  generator: false
+
+# Extensions
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: goatbytes
+      repo: consoul
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Page tree
+nav:
+  - Home:
+    - Overview: index.md
+    - Installation: installation.md
+    - Quick Start: quickstart.md
+  - User Guide:
+    - Getting Started: user-guide/getting-started.md
+    - Configuration: user-guide/configuration.md
+    - Usage: user-guide/usage.md
+  - Development:
+    - Setup: development.md
+    - Contributing: contributing.md
+  - API Reference:
+    - Overview: api/index.md

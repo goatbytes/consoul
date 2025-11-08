@@ -117,9 +117,9 @@ pre-commit = "^4.0.0"
 attrs = "^25.4.0"
 
 [tool.poetry.group.docs.dependencies]
-sphinx = "^8.0.0"
-sphinx-rtd-theme = "^3.0.0"
-sphinx-autodoc-typehints = "^3.0.0"
+mkdocs = "^1.6.1"
+mkdocs-material = "^9.5.50"
+mkdocstrings = {extras = ["python"], version = "^0.27.0"}
 
 [tool.poetry.group.security.dependencies]
 safety = "^3.0.0"

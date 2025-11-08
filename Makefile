@@ -50,8 +50,11 @@ clean:  ## Remove build artifacts and caches
 build:  ## Build distribution packages
 	poetry build
 
-docs:  ## Build documentation
-	@echo "Documentation build not yet configured"
+docs:  ## Build documentation with MkDocs
+	.venv/bin/mkdocs build
+
+docs-serve:  ## Serve documentation locally
+	.venv/bin/mkdocs serve
 
 pre-commit:  ## Run pre-commit hooks on all files
 	poetry run pre-commit run --all-files

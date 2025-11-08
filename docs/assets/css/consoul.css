@@ -1,0 +1,233 @@
+/* Consoul Brand Colors and Custom Styling */
+
+:root {
+  /* Primary brand colors - terminal/console theme */
+  --consoul-primary: #00d9ff;
+  --consoul-secondary: #7c3aed;
+  --consoul-accent: #a78bfa;
+  --consoul-text: #e0e7ff;
+
+  /* Material Design color overrides */
+  --md-primary-fg-color: #424242;
+  --md-primary-fg-color--light: #6d6d6d;
+  --md-primary-fg-color--dark: #1d1d1d;
+  --md-accent-fg-color: #00d9ff;
+  --md-accent-fg-color--transparent: #00d9ff1a;
+
+  /* Custom gradients */
+  --consoul-gradient-primary: linear-gradient(135deg, #7c3aed 0%, #00d9ff 100%);
+  --consoul-gradient-secondary: linear-gradient(135deg, #00d9ff 0%, #a78bfa 100%);
+}
+
+/* Dark mode color adjustments */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #424242;
+  --md-primary-fg-color--light: #6d6d6d;
+  --md-primary-fg-color--dark: #212121;
+  --md-accent-fg-color: #00d9ff;
+  --md-accent-fg-color--transparent: #00d9ff1a;
+}
+
+/* Logo styling */
+.md-header__button.md-logo {
+  padding: 0.2rem;
+}
+
+.md-header__button.md-logo img {
+  height: 2rem;
+  width: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Enhanced navigation styling */
+.md-nav__title {
+  font-weight: 600;
+}
+
+/* Main navigation active links */
+.md-nav--primary .md-nav__link--active {
+  background: var(--consoul-gradient-primary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+}
+
+/* Code block enhancements - terminal style */
+.md-typeset .highlight {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-left: 3px solid var(--consoul-primary);
+}
+
+.md-typeset .highlight code {
+  border-radius: 0;
+}
+
+/* Terminal-style code blocks */
+.md-typeset pre {
+  background-color: #1e1e2e;
+  border-radius: 0.5rem;
+}
+
+/* Custom admonition styles */
+.md-typeset .admonition.consoul-tip {
+  border-left: 0.25rem solid var(--consoul-primary);
+}
+
+.md-typeset .admonition.consoul-tip > .admonition-title {
+  background-color: var(--consoul-primary);
+  color: white;
+}
+
+.md-typeset .admonition.consoul-info {
+  border-left: 0.25rem solid var(--consoul-secondary);
+}
+
+.md-typeset .admonition.consoul-info > .admonition-title {
+  background-color: var(--consoul-secondary);
+  color: white;
+}
+
+/* Enhanced search styling */
+.md-search__input {
+  border-radius: 1.5rem;
+}
+
+.md-search__input:focus {
+  box-shadow: 0 0 0 2px var(--consoul-primary);
+}
+
+/* Gradient text for headings */
+.md-typeset h1 {
+  background: var(--consoul-gradient-primary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+
+/* Button enhancements */
+.md-button--primary {
+  background: var(--consoul-gradient-primary);
+  border: none;
+  color: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.md-button--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+/* Table of contents styling */
+.md-nav--secondary .md-nav__link--active {
+  border-left: 1px solid rgba(0, 217, 255, 0.4);
+  padding-left: calc(1rem - 1px);
+}
+
+/* Integrated TOC styling */
+.md-nav--integrated .md-nav__link--active {
+  border-left: 1px solid rgba(0, 217, 255, 0.4);
+  padding-left: calc(1rem - 1px);
+}
+
+/* Fix TOC active state visibility */
+.md-nav--secondary .md-nav__link--active,
+.md-nav--integrated .md-nav__link--active {
+  background: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  color: var(--consoul-primary) !important;
+  font-weight: 600;
+}
+
+.md-nav--secondary .md-nav__link--active .md-ellipsis,
+.md-nav--integrated .md-nav__link--active .md-ellipsis {
+  color: var(--consoul-primary) !important;
+}
+
+/* Dark mode TOC fixes */
+[data-md-color-scheme="slate"] .md-nav--secondary .md-nav__link--active,
+[data-md-color-scheme="slate"] .md-nav--integrated .md-nav__link--active {
+  color: var(--consoul-primary) !important;
+  border-left-color: rgba(0, 217, 255, 0.4);
+}
+
+[data-md-color-scheme="slate"] .md-nav--secondary .md-nav__link--active .md-ellipsis,
+[data-md-color-scheme="slate"] .md-nav--integrated .md-nav__link--active .md-ellipsis {
+  color: var(--consoul-primary) !important;
+}
+
+/* Thin TOC vertical line */
+.md-nav--secondary {
+  border-left: 0.5px solid rgba(128, 128, 128, 0.3) !important;
+}
+
+.md-nav--integrated {
+  border-left: 0.5px solid rgba(128, 128, 128, 0.3) !important;
+}
+
+/* Footer enhancements */
+.md-footer {
+  background: var(--consoul-gradient-primary);
+}
+
+.md-footer-meta {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile responsiveness */
+@media screen and (max-width: 76.1875em) {
+  .md-header__button.md-logo img {
+    height: 1.6rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .md-typeset h1 {
+    background: none;
+    -webkit-text-fill-color: initial;
+    color: #333;
+  }
+
+  .md-nav__link--active {
+    background: none;
+    -webkit-text-fill-color: initial;
+    color: #333;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .md-button--primary {
+    transition: none;
+  }
+
+  .md-button--primary:hover {
+    transform: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --md-primary-fg-color: #5a21b6;
+    --md-accent-fg-color: #0099cc;
+  }
+
+  .md-typeset h1 {
+    background: none;
+    -webkit-text-fill-color: initial;
+    color: var(--md-primary-fg-color);
+  }
+
+  .md-nav__link--active {
+    background: none;
+    -webkit-text-fill-color: initial;
+    color: var(--md-primary-fg-color);
+  }
+}
