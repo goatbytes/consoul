@@ -736,6 +736,43 @@ class TestFullTextSearch:
 
         assert len(context) == 0
 
+    def test_get_message_context_with_non_contiguous_ids(self, tmp_path):
+        """Test context retrieval when IDs are not contiguous (interleaved conversations)."""
+        db = ConversationDatabase(tmp_path / "test.db")
+
+        # Create two conversations and interleave messages to create non-contiguous IDs
+        session1 = db.create_conversation("gpt-4o")
+        session2 = db.create_conversation("claude-3-5-sonnet")
+
+        # Interleave messages from both conversations to create non-contiguous IDs
+        _ = db.save_message(session1, "user", "Session1 Message1", 5)
+        _ = db.save_message(session2, "user", "Session2 Message1", 5)
+        msg1_2 = db.save_message(session1, "user", "Session1 Message2", 5)
+        _ = db.save_message(session2, "user", "Session2 Message2", 5)
+        msg1_3 = db.save_message(session1, "user", "Session1 Message3", 5)
+        _ = db.save_message(session2, "user", "Session2 Message3", 5)
+        msg1_4 = db.save_message(session1, "user", "Session1 Message4", 5)
+        _ = db.save_message(session1, "user", "Session1 Message5", 5)
+
+        # Session1 has IDs: msg1_1, msg1_2, msg1_3, msg1_4, msg1_5 (non-contiguous!)
+        # Session2 has IDs: msg2_1, msg2_2, msg2_3 (non-contiguous!)
+
+        # Get context around msg1_3 (middle message in session1) with context_size=1
+        context = db.get_message_context(msg1_3, context_size=1)
+
+        # Should get exactly 3 messages: msg1_2, msg1_3, msg1_4
+        assert len(context) == 3
+        assert context[0]["id"] == msg1_2
+        assert context[1]["id"] == msg1_3
+        assert context[2]["id"] == msg1_4
+
+        # Verify content is correct (no messages from session2)
+        contents = [msg["content"] for msg in context]
+        assert "Session1 Message2" in contents
+        assert "Session1 Message3" in contents
+        assert "Session1 Message4" in contents
+        assert all("Session2" not in c for c in contents)
+
     def test_fts_triggers_on_update(self, tmp_path):
         """Test that FTS index updates when messages are updated."""
         db = ConversationDatabase(tmp_path / "test.db")

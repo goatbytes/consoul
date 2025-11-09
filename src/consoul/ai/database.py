@@ -507,19 +507,34 @@ class ConversationDatabase:
                 if not target:
                     return []
 
-                # Get context window (messages before and after)
+                # Use a window query to get N messages before and after the target
+                # This correctly handles non-contiguous IDs within a conversation
                 cursor = conn.execute(
                     """
+                    WITH ranked_messages AS (
+                        SELECT
+                            id,
+                            role,
+                            content,
+                            timestamp,
+                            ROW_NUMBER() OVER (ORDER BY id) as rn
+                        FROM messages
+                        WHERE conversation_id = ?
+                    ),
+                    target_msg AS (
+                        SELECT rn FROM ranked_messages WHERE id = ?
+                    )
                     SELECT id, role, content, timestamp
-                    FROM messages
-                    WHERE conversation_id = ?
-                      AND id BETWEEN ? AND ?
-                    ORDER BY id
-                """,
+                    FROM ranked_messages
+                    WHERE rn BETWEEN (SELECT rn FROM target_msg) - ?
+                                 AND (SELECT rn FROM target_msg) + ?
+                    ORDER BY rn
+                    """,
                     (
                         target["conversation_id"],
-                        message_id - context_size,
-                        message_id + context_size,
+                        message_id,
+                        context_size,
+                        context_size,
                     ),
                 )
 
