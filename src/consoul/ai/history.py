@@ -9,6 +9,7 @@ Key Features:
     - Automatic token counting per provider
     - Intelligent message trimming with system message preservation
     - Conversion between dict and LangChain message formats
+    - Optional SQLite persistence for conversation resumption
     - Compatible with existing example code
 
 Example:
@@ -19,10 +20,17 @@ Example:
     >>> print(f"Messages: {len(history)}, Tokens: {history.count_tokens()}")
     Messages: 3, Tokens: 28
     >>> trimmed = history.get_trimmed_messages(reserve_tokens=1000)
+
+    # With persistence
+    >>> history = ConversationHistory("gpt-4o", persist=True)
+    >>> print(f"Session: {history.session_id}")
+    >>> # Later, resume the conversation
+    >>> history2 = ConversationHistory("gpt-4o", persist=True, session_id=history.session_id)
 """
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from langchain_core.messages import (
@@ -40,7 +48,13 @@ from consoul.ai.context import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from langchain_core.language_models.chat_models import BaseChatModel
+
+    from consoul.ai.database import ConversationDatabase
+
+logger = logging.getLogger(__name__)
 
 
 def to_langchain_message(role: str, content: str) -> BaseMessage:
@@ -133,6 +147,9 @@ class ConversationHistory:
         model_name: str,
         max_tokens: int | None = None,
         model: BaseChatModel | None = None,
+        persist: bool = False,
+        session_id: str | None = None,
+        db_path: Path | str | None = None,
     ):
         """Initialize conversation history.
 
@@ -140,12 +157,112 @@ class ConversationHistory:
             model_name: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet")
             max_tokens: Optional override for context limit (uses model default if None)
             model: Optional LangChain model instance for provider-specific token counting
+            persist: Enable SQLite persistence (default: False)
+            session_id: Optional session ID to resume existing conversation
+            db_path: Optional custom database path (default: ~/.consoul/history.db)
+
+        Example:
+            >>> # In-memory (default)
+            >>> history = ConversationHistory("gpt-4o")
+
+            >>> # With persistence - new session
+            >>> history = ConversationHistory("gpt-4o", persist=True)
+            >>> session = history.session_id
+
+            >>> # With persistence - resume session
+            >>> history = ConversationHistory("gpt-4o", persist=True, session_id=session)
         """
         self.model_name = model_name
         self.max_tokens = max_tokens or get_model_token_limit(model_name)
         self.messages: list[BaseMessage] = []
         self._token_counter = create_token_counter(model_name, model)
         self._model = model
+
+        # Persistence setup
+        self.persist = persist
+        self.session_id = session_id
+        self._db: ConversationDatabase | None = None
+
+        if persist:
+            try:
+                from consoul.ai.database import ConversationDatabase
+
+                self._db = ConversationDatabase(db_path or "~/.consoul/history.db")
+
+                if session_id:
+                    # Resume existing conversation
+                    self._load_from_db(session_id)
+                else:
+                    # Create new session
+                    self.session_id = self._db.create_conversation(model_name)
+                    logger.info(f"Created new conversation session: {self.session_id}")
+
+            except Exception as e:
+                # Graceful fallback to in-memory mode
+                logger.warning(
+                    f"Failed to initialize database persistence: {e}. "
+                    "Falling back to in-memory mode."
+                )
+                self.persist = False
+                self._db = None
+
+    def _load_from_db(self, session_id: str) -> None:
+        """Load conversation from database.
+
+        Args:
+            session_id: Session ID to load
+
+        Raises:
+            ValueError: If session doesn't exist or database not initialized
+        """
+        if not self._db:
+            raise ValueError("Database not initialized")
+
+        try:
+            messages_data = self._db.load_conversation(session_id)
+
+            # Convert dict messages to LangChain BaseMessage objects
+            for msg_data in messages_data:
+                role = msg_data["role"]
+                content = msg_data["content"]
+                message = to_langchain_message(role, content)
+                self.messages.append(message)
+
+            logger.info(
+                f"Loaded {len(self.messages)} messages from session {session_id}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to load conversation from database: {e}")
+            raise ValueError(f"Failed to load session {session_id}: {e}") from e
+
+    def _persist_message(self, message: BaseMessage) -> None:
+        """Persist a message to database.
+
+        Args:
+            message: Message to persist
+        """
+        if not self.persist or not self._db or not self.session_id:
+            return
+
+        try:
+            # Get role from message
+            role_map = {
+                SystemMessage: "system",
+                HumanMessage: "user",
+                AIMessage: "assistant",
+            }
+            role = role_map.get(type(message), message.type)
+
+            # Count tokens for this message
+            tokens = self._token_counter([message])
+
+            # Save to database
+            self._db.save_message(self.session_id, role, message.content, tokens)
+
+        except Exception as e:
+            # Don't fail the operation if persistence fails, just log
+            logger.warning(f"Failed to persist message: {e}")
 
     def add_system_message(self, content: str) -> None:
         """Add or replace system message.
@@ -172,6 +289,9 @@ class ConversationHistory:
             # Insert at beginning
             self.messages.insert(0, system_message)
 
+        # Persist if enabled
+        self._persist_message(system_message)
+
     def add_user_message(self, content: str) -> None:
         """Add user message to conversation history.
 
@@ -184,7 +304,11 @@ class ConversationHistory:
             >>> len(history)
             1
         """
-        self.messages.append(HumanMessage(content=content))
+        message = HumanMessage(content=content)
+        self.messages.append(message)
+
+        # Persist if enabled
+        self._persist_message(message)
 
     def add_assistant_message(self, content: str) -> None:
         """Add assistant message to conversation history.
@@ -198,7 +322,11 @@ class ConversationHistory:
             >>> len(history)
             1
         """
-        self.messages.append(AIMessage(content=content))
+        message = AIMessage(content=content)
+        self.messages.append(message)
+
+        # Persist if enabled
+        self._persist_message(message)
 
     def add_message(self, role: str, content: str) -> None:
         """Add message to history with specified role.
