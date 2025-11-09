@@ -819,6 +819,53 @@ class TestGetChatModel:
         assert call_kwargs["response_format"] == {"type": "json_object"}
 
     @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_string_with_anthropic_exclusive_params(self, mock_init):
+        """Test string mode with Anthropic-exclusive parameters."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        thinking_config = {"type": "enabled", "budget_tokens": 2000}
+        betas = ["files-api-2025-04-14"]
+        metadata = {"user_id": "test-user"}
+
+        result = get_chat_model(
+            "claude-3-5-sonnet-20241022",
+            api_key=SecretStr("sk-ant-test"),
+            thinking=thinking_config,
+            betas=betas,
+            metadata=metadata,
+        )
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["thinking"] == thinking_config
+        assert call_kwargs["betas"] == betas
+        assert call_kwargs["metadata"] == metadata
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_string_with_google_exclusive_params(self, mock_init):
+        """Test string mode with Google-exclusive parameters."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        safety_settings = {"HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_NONE"}
+        generation_config = {"response_modalities": ["TEXT"]}
+
+        result = get_chat_model(
+            "gemini-2.5-pro",
+            api_key=SecretStr("test-google-key"),
+            candidate_count=2,
+            safety_settings=safety_settings,
+            generation_config=generation_config,
+        )
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["candidate_count"] == 2
+        assert call_kwargs["safety_settings"] == safety_settings
+        assert call_kwargs["generation_config"] == generation_config
+
+    @patch("consoul.ai.providers.init_chat_model")
     def test_get_chat_model_openai_all_new_params(self, mock_init):
         """Test OpenAI model with all new parameters combined."""
         mock_chat_model = MagicMock()

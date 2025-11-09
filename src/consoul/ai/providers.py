@@ -297,11 +297,23 @@ def get_chat_model(
         # These will only be used if the provider supports them
         top_p = kwargs.pop("top_p", None)
         top_k = kwargs.pop("top_k", None)
+
+        # OpenAI-specific parameters
         frequency_penalty = kwargs.pop("frequency_penalty", None)
         presence_penalty = kwargs.pop("presence_penalty", None)
         seed = kwargs.pop("seed", None)
         logit_bias = kwargs.pop("logit_bias", None)
         response_format = kwargs.pop("response_format", None)
+
+        # Anthropic-specific parameters
+        thinking = kwargs.pop("thinking", None)
+        betas = kwargs.pop("betas", None)
+        metadata = kwargs.pop("metadata", None)
+
+        # Google-specific parameters
+        candidate_count = kwargs.pop("candidate_count", None)
+        safety_settings = kwargs.pop("safety_settings", None)
+        generation_config = kwargs.pop("generation_config", None)
 
         # Build appropriate config based on provider
         if provider == Provider.OPENAI:
@@ -325,6 +337,9 @@ def get_chat_model(
                 stop_sequences=stop_sequences,
                 top_p=top_p,
                 top_k=top_k,
+                thinking=thinking,
+                betas=betas,
+                metadata=metadata,
             )
         elif provider == Provider.GOOGLE:
             model_config = GoogleModelConfig(
@@ -334,6 +349,9 @@ def get_chat_model(
                 stop_sequences=stop_sequences,
                 top_p=top_p,
                 top_k=top_k,
+                candidate_count=candidate_count,
+                safety_settings=safety_settings,
+                generation_config=generation_config,
             )
         elif provider == Provider.OLLAMA:
             model_config = OllamaModelConfig(
