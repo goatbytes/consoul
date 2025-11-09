@@ -26,9 +26,8 @@ import argparse
 from typing import Any
 
 from consoul.ai import get_chat_model, stream_response
-from consoul.ai.context import count_message_tokens, get_model_token_limit
 from consoul.ai.exceptions import StreamingError
-from consoul.ai.history import to_langchain_message
+from consoul.ai.history import ConversationHistory
 from consoul.config import load_config
 
 
@@ -37,6 +36,7 @@ def print_banner() -> None:
     print("\n" + "=" * 60)
     print("  Consoul Interactive Chat Example")
     print("=" * 60)
+    print("\nFeatures: Intelligent context trimming, token tracking")
     print("\nType 'exit' or 'quit' to end the session")
     print("Type 'help' for available commands\n")
 
@@ -48,6 +48,9 @@ def print_help() -> None:
     print("  help        - Show this help message")
     print("  clear       - Clear conversation history")
     print("  config      - Show current configuration")
+    print()
+    print("Note: Conversations are automatically trimmed to fit within")
+    print("      the model's context window, preserving recent messages.")
     print()
 
 
@@ -126,8 +129,11 @@ def interactive_chat(
         else:
             print_config(profile.model, provider_name)
 
-        # Conversation history
-        messages: list[dict[str, str]] = []
+        # Initialize conversation history with intelligent trimming
+        history = ConversationHistory(
+            model_name=model_name or profile.model.model,
+            model=chat_model,  # Pass model instance for accurate token counting
+        )
 
         # Main chat loop
         while True:
@@ -148,7 +154,7 @@ def interactive_chat(
                     continue
 
                 if user_input.lower() == "clear":
-                    messages.clear()
+                    history.clear()
                     print("🗑️  Conversation history cleared\n")
                     continue
 
@@ -162,33 +168,38 @@ def interactive_chat(
                     continue
 
                 # Add user message to history
-                messages.append({"role": "user", "content": user_input})
+                history.add_user_message(user_input)
+
+                # Get trimmed messages (intelligent context window management)
+                # This ensures we stay within the model's context limits
+                trimmed_messages = history.get_trimmed_messages(reserve_tokens=1000)
+
+                # Convert trimmed messages to dict format for streaming
+                messages_dict = [
+                    {
+                        "role": msg.type if msg.type != "human" else "user",
+                        "content": msg.content,
+                    }
+                    for msg in trimmed_messages
+                ]
 
                 # Stream AI response
                 print()  # Newline before streaming starts
 
                 try:
-                    assistant_message = stream_response(chat_model, messages)
+                    assistant_message = stream_response(chat_model, messages_dict)
 
                     # Add assistant message to history
-                    messages.append({"role": "assistant", "content": assistant_message})
+                    history.add_assistant_message(assistant_message)
 
                     # Display token count if requested
                     if show_tokens:
-                        # Convert dict messages to LangChain format for counting
-                        lc_messages = [
-                            to_langchain_message(msg["role"], msg["content"])
-                            for msg in messages
-                        ]
-                        current_tokens = count_message_tokens(
-                            lc_messages, model_name or profile.model.model
-                        )
-                        max_tokens = get_model_token_limit(
-                            model_name or profile.model.model
-                        )
+                        current_tokens = history.count_tokens()
+                        max_tokens = history.max_tokens
                         percentage = (current_tokens / max_tokens) * 100
+                        msg_count = len(history)
                         print(
-                            f"\n📊 Tokens: {current_tokens:,} / {max_tokens:,} ({percentage:.1f}%)\n"
+                            f"\n📊 Messages: {msg_count} | Tokens: {current_tokens:,} / {max_tokens:,} ({percentage:.1f}%)\n"
                         )
 
                 except StreamingError as e:
@@ -202,19 +213,26 @@ def interactive_chat(
 
                     # Always save partial response if available
                     if e.partial_response:
-                        messages.append(
-                            {"role": "assistant", "content": e.partial_response}
-                        )
+                        history.add_assistant_message(e.partial_response)
                     else:
                         # Remove user message if we got no response at all
-                        if messages and messages[-1]["role"] == "user":
-                            messages.pop()
+                        if (
+                            len(history) > 0
+                            and isinstance(history.messages[-1].__class__.__name__, str)
+                            and history.messages[-1].type == "human"
+                        ):
+                            # Remove last message if it was the user's unanswered question
+                            history.messages.pop()
 
                 except Exception as e:
                     print(f"\n❌ Unexpected error: {e}\n")
                     # Remove the user message since we couldn't get a response
-                    if messages and messages[-1]["role"] == "user":
-                        messages.pop()
+                    if (
+                        len(history) > 0
+                        and history.messages
+                        and history.messages[-1].type == "human"
+                    ):
+                        history.messages.pop()
 
             except KeyboardInterrupt:
                 print("\n\n👋 Goodbye!\n")
