@@ -271,6 +271,15 @@ class ConversationHistory:
                 message = to_langchain_message(role, content)
                 self.messages.append(message)
 
+            # Load summary if it exists
+            try:
+                summary = self._db.load_summary(session_id)
+                if summary:
+                    self.conversation_summary = summary
+                    logger.debug(f"Loaded summary: {len(summary)} chars")
+            except Exception as e:
+                logger.debug(f"No summary found or error loading summary: {e}")
+
             logger.info(
                 f"Loaded {len(self.messages)} messages from session {session_id}"
             )
@@ -516,6 +525,16 @@ class ConversationHistory:
                     self.conversation_summary = self._summarizer.create_summary(
                         messages_to_summarize, self.conversation_summary
                     )
+
+                    # Persist summary to database if enabled
+                    if self.persist and self._db and self.session_id:
+                        try:
+                            self._db.save_summary(
+                                self.session_id, self.conversation_summary
+                            )
+                            logger.debug("Saved summary to database")
+                        except Exception as e:
+                            logger.warning(f"Failed to save summary to database: {e}")
 
                     # Build context with summary + recent messages
                     result = self._summarizer.get_summarized_context(

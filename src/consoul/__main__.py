@@ -225,6 +225,56 @@ def show_history(session_id: str, db_path: Path | None) -> None:
         sys.exit(1)
 
 
+@history.command("summary")  # type: ignore[misc]
+@click.argument("session_id")  # type: ignore[misc]
+@click.option(  # type: ignore[misc]
+    "--db-path",
+    type=click.Path(path_type=Path),
+    help="Path to history database (default: ~/.consoul/history.db)",
+)
+def summary_history(session_id: str, db_path: Path | None) -> None:
+    """Show conversation summary for a specific session."""
+    from consoul.ai.database import (
+        ConversationDatabase,
+        ConversationNotFoundError,
+        DatabaseError,
+    )
+
+    try:
+        db = ConversationDatabase(db_path or "~/.consoul/history.db")
+
+        # Get metadata
+        meta = db.get_conversation_metadata(session_id)
+
+        click.echo(f"\nConversation: {session_id}\n")
+        click.echo(f"Model:    {meta['model']}")
+        click.echo(f"Messages: {meta['message_count']}")
+        click.echo(f"Created:  {meta['created_at']}")
+        click.echo(f"Updated:  {meta['updated_at']}")
+        click.echo()
+
+        # Get summary
+        summary = db.load_summary(session_id)
+
+        if summary:
+            click.echo("Summary:")
+            click.echo("-" * 60)
+            click.echo(summary)
+            click.echo()
+        else:
+            click.echo("No summary available for this conversation.")
+            click.echo(
+                "Summaries are created automatically when using --summarize flag.\n"
+            )
+
+    except ConversationNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except DatabaseError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
 @history.command("delete")  # type: ignore[misc]
 @click.argument("session_id")  # type: ignore[misc]
 @click.option(  # type: ignore[misc]

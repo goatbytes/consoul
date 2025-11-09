@@ -60,7 +60,7 @@ class ConversationDatabase:
         >>> conversations = db.list_conversations(limit=10)
     """
 
-    SCHEMA_VERSION = 1
+    SCHEMA_VERSION = 2  # Updated for conversation summary support
 
     def __init__(self, db_path: Path | str = "~/.consoul/history.db"):
         """Initialize database connection and schema.
@@ -103,7 +103,8 @@ class ConversationDatabase:
                     model TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
-                    metadata TEXT DEFAULT '{}'
+                    metadata TEXT DEFAULT '{}',
+                    summary TEXT DEFAULT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS messages (
@@ -125,13 +126,44 @@ class ConversationDatabase:
                     ON conversations(updated_at DESC);
             """)
 
-            # Set schema version if not set
+            # Check and run migrations
             cursor = conn.execute("SELECT version FROM schema_version")
-            if cursor.fetchone() is None:
+            result = cursor.fetchone()
+            current_version = result[0] if result else 0
+
+            if current_version == 0:
+                # Fresh database, set current version
                 conn.execute(
                     "INSERT INTO schema_version (version) VALUES (?)",
                     (self.SCHEMA_VERSION,),
                 )
+            elif current_version < self.SCHEMA_VERSION:
+                # Run migrations
+                self._run_migrations(conn, current_version)
+                conn.execute(
+                    "UPDATE schema_version SET version = ?", (self.SCHEMA_VERSION,)
+                )
+
+    def _run_migrations(self, conn: sqlite3.Connection, from_version: int) -> None:
+        """Run database migrations from current version to latest.
+
+        Args:
+            conn: Active database connection
+            from_version: Current schema version
+        """
+        # Migration from v1 to v2: Add summary column
+        if from_version < 2:
+            try:
+                # Check if column already exists (handles reruns)
+                cursor = conn.execute("PRAGMA table_info(conversations)")
+                columns = [row[1] for row in cursor.fetchall()]
+                if "summary" not in columns:
+                    conn.execute(
+                        "ALTER TABLE conversations ADD COLUMN summary TEXT DEFAULT NULL"
+                    )
+            except sqlite3.OperationalError:
+                # Column might already exist, ignore
+                pass
 
     def create_conversation(
         self,
@@ -272,6 +304,81 @@ class ConversationDatabase:
             raise
         except Exception as e:
             raise DatabaseError(f"Failed to load conversation: {e}") from e
+
+    def save_summary(self, session_id: str, summary: str) -> None:
+        """Save or update conversation summary.
+
+        Args:
+            session_id: Conversation session ID
+            summary: Summary text to save
+
+        Raises:
+            ConversationNotFoundError: If session_id doesn't exist
+            DatabaseError: If save operation fails
+
+        Example:
+            >>> db = ConversationDatabase()
+            >>> session_id = db.create_conversation("gpt-4o")
+            >>> db.save_summary(session_id, "Summary of conversation")
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Check if conversation exists
+                cursor = conn.execute(
+                    "SELECT id FROM conversations WHERE session_id = ?", (session_id,)
+                )
+                if cursor.fetchone() is None:
+                    raise ConversationNotFoundError(
+                        f"Conversation not found: {session_id}"
+                    )
+
+                # Update summary
+                conn.execute(
+                    "UPDATE conversations SET summary = ?, updated_at = ? WHERE session_id = ?",
+                    (summary, datetime.utcnow().isoformat(), session_id),
+                )
+        except ConversationNotFoundError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to save summary: {e}") from e
+
+    def load_summary(self, session_id: str) -> str | None:
+        """Load conversation summary.
+
+        Args:
+            session_id: Conversation session ID
+
+        Returns:
+            Summary text if exists, None otherwise
+
+        Raises:
+            ConversationNotFoundError: If session_id doesn't exist
+            DatabaseError: If load operation fails
+
+        Example:
+            >>> db = ConversationDatabase()
+            >>> session_id = db.create_conversation("gpt-4o")
+            >>> db.save_summary(session_id, "Summary text")
+            >>> summary = db.load_summary(session_id)
+            >>> summary
+            'Summary text'
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute(
+                    "SELECT summary FROM conversations WHERE session_id = ?",
+                    (session_id,),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    raise ConversationNotFoundError(
+                        f"Conversation not found: {session_id}"
+                    )
+                return row[0]
+        except ConversationNotFoundError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to load summary: {e}") from e
 
     def list_conversations(
         self, limit: int = 50, offset: int = 0
