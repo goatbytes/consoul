@@ -440,8 +440,8 @@ class ConversationDatabase:
                         m.timestamp,
                         snippet(messages_fts, 3, '<mark>', '</mark>', '...', 30) as snippet,
                         bm25(messages_fts) as rank
-                    FROM messages_fts fts
-                    JOIN messages m ON fts.message_id = m.id
+                    FROM messages_fts
+                    JOIN messages m ON messages_fts.message_id = m.id
                     JOIN conversations c ON m.conversation_id = c.session_id
                     WHERE messages_fts MATCH ?
                 """
