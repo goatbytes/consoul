@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from langchain_core.language_models.chat_models import BaseChatModel
 
     from consoul.ai.database import ConversationDatabase
+    from consoul.ai.summarization import ConversationSummarizer
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +151,10 @@ class ConversationHistory:
         persist: bool = True,
         session_id: str | None = None,
         db_path: Path | str | None = None,
+        summarize: bool = False,
+        summarize_threshold: int = 20,
+        keep_recent: int = 10,
+        summary_model: BaseChatModel | None = None,
     ):
         """Initialize conversation history.
 
@@ -160,6 +165,10 @@ class ConversationHistory:
             persist: Enable SQLite persistence (default: True)
             session_id: Optional session ID to resume existing conversation
             db_path: Optional custom database path (default: ~/.consoul/history.db)
+            summarize: Enable conversation summarization for long conversations (default: False)
+            summarize_threshold: Trigger summarization after N messages (default: 20)
+            keep_recent: Keep last N messages verbatim when summarizing (default: 10)
+            summary_model: Optional cheaper model for generating summaries (default: use main model)
 
         Example:
             >>> # In-memory (default)
@@ -171,6 +180,14 @@ class ConversationHistory:
 
             >>> # With persistence - resume session
             >>> history = ConversationHistory("gpt-4o", persist=True, session_id=session)
+
+            >>> # With summarization for cost savings
+            >>> history = ConversationHistory(
+            ...     "gpt-4o",
+            ...     model=chat_model,
+            ...     summarize=True,
+            ...     summarize_threshold=20
+            ... )
         """
         self.model_name = model_name
         self.max_tokens = max_tokens or get_model_token_limit(model_name)
@@ -205,6 +222,32 @@ class ConversationHistory:
                 )
                 self.persist = False
                 self._db = None
+
+        # Summarization setup
+        self.summarize = summarize
+        self.conversation_summary = ""
+        self._summarizer: ConversationSummarizer | None = None
+
+        if summarize:
+            if not model:
+                logger.warning(
+                    "Summarization requires a model instance. "
+                    "Summarization will be disabled."
+                )
+                self.summarize = False
+            else:
+                from consoul.ai.summarization import ConversationSummarizer
+
+                self._summarizer = ConversationSummarizer(
+                    llm=model,
+                    threshold=summarize_threshold,
+                    keep_recent=keep_recent,
+                    summary_model=summary_model,
+                )
+                logger.info(
+                    f"Initialized summarization: threshold={summarize_threshold}, "
+                    f"keep_recent={keep_recent}"
+                )
 
     def _load_from_db(self, session_id: str) -> None:
         """Load conversation from database.
@@ -392,12 +435,18 @@ class ConversationHistory:
         Uses LangChain's trim_messages to intelligently trim the conversation
         while preserving the system message and ensuring valid message sequences.
 
+        If summarization is enabled and the conversation exceeds the threshold,
+        older messages are summarized and recent messages are kept verbatim,
+        providing significant token savings while preserving context.
+
         Args:
             reserve_tokens: Tokens to reserve for response (default 1000)
             strategy: Trimming strategy - "last" keeps recent messages (default)
 
         Returns:
-            Trimmed list of messages that fit within token limit
+            Trimmed list of messages that fit within token limit.
+            With summarization: [system_msg, summary_msg, recent_messages]
+            Without: standard LangChain trim_messages result
 
         Raises:
             TokenLimitExceededError: If reserve_tokens >= max_tokens, preventing
@@ -409,6 +458,16 @@ class ConversationHistory:
             >>> # ... add many messages ...
             >>> trimmed = history.get_trimmed_messages(reserve_tokens=1000)
             >>> # System message is always preserved
+
+            >>> # With summarization enabled
+            >>> history = ConversationHistory(
+            ...     "gpt-4o",
+            ...     model=chat_model,
+            ...     summarize=True
+            ... )
+            >>> # ... add 30 messages ...
+            >>> trimmed = history.get_trimmed_messages()
+            >>> # Returns: [system, summary, last_10_messages] instead of 30
         """
         if not self.messages:
             return []
@@ -428,7 +487,58 @@ class ConversationHistory:
                 max_tokens=self.max_tokens,
             )
 
-        # Use LangChain's trim_messages
+        # Try summarization if enabled and threshold exceeded
+        if (
+            self.summarize
+            and self._summarizer
+            and self._summarizer.should_summarize(len(self.messages))
+        ):
+            try:
+                from consoul.ai.summarization import SummarizationError
+
+                # Separate system message if present
+                messages_to_process = self.messages
+                if messages_to_process and isinstance(
+                    messages_to_process[0], SystemMessage
+                ):
+                    messages_to_process = messages_to_process[1:]
+
+                # Determine which messages to summarize
+                num_to_keep = self._summarizer.keep_recent
+                if len(messages_to_process) > num_to_keep:
+                    messages_to_summarize = messages_to_process[:-num_to_keep]
+
+                    # Generate/update summary
+                    logger.info(
+                        f"Generating summary for {len(messages_to_summarize)} messages "
+                        f"(keeping {num_to_keep} recent)"
+                    )
+                    self.conversation_summary = self._summarizer.create_summary(
+                        messages_to_summarize, self.conversation_summary
+                    )
+
+                    # Build context with summary + recent messages
+                    result = self._summarizer.get_summarized_context(
+                        self.messages, self.conversation_summary
+                    )
+
+                    logger.info(
+                        f"Summarization reduced {len(self.messages)} messages to {len(result)}"
+                    )
+                    return result
+
+            except SummarizationError as e:
+                # Log error but continue with standard trimming
+                logger.warning(
+                    f"Summarization failed, falling back to standard trimming: {e}"
+                )
+            except Exception as e:
+                # Catch any unexpected errors
+                logger.error(
+                    f"Unexpected error during summarization: {e}", exc_info=True
+                )
+
+        # Standard LangChain trim_messages (no summarization or summarization failed)
         try:
             trimmed = trim_messages(
                 self.messages,
@@ -442,8 +552,8 @@ class ConversationHistory:
                 # Don't split messages
                 allow_partial=False,
             )
-            result: list[BaseMessage] = trimmed
-            return result
+            trimmed_result: list[BaseMessage] = trimmed
+            return trimmed_result
         except Exception:
             # Fallback: return all messages if trimming fails
             # (Better to send too much than lose context)

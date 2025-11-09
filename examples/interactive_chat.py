@@ -98,6 +98,10 @@ def interactive_chat(
     show_tokens: bool = False,
     persist: bool = True,
     resume_session: str | None = None,
+    summarize: bool | None = None,
+    summarize_threshold: int | None = None,
+    keep_recent: int | None = None,
+    summary_model: str | None = None,
 ) -> None:
     """Run interactive chat session.
 
@@ -108,6 +112,10 @@ def interactive_chat(
         show_tokens: Whether to display token counts (default: False)
         persist: Enable SQLite persistence (default: True)
         resume_session: Session ID to resume (if provided, must exist in database)
+        summarize: Enable conversation summarization (default: from config/profile)
+        summarize_threshold: Trigger summarization after N messages (default: 20)
+        keep_recent: Keep N recent messages verbatim (default: 10)
+        summary_model: Model to use for summarization (default: main model)
     """
 
     try:
@@ -156,13 +164,45 @@ def interactive_chat(
         else:
             print_config(profile.model, provider_name)
 
+        # Get summarization settings from config/profile or CLI overrides
+        use_summarize = (
+            summarize if summarize is not None else profile.conversation.summarize
+        )
+        use_threshold = (
+            summarize_threshold
+            if summarize_threshold is not None
+            else profile.conversation.summarize_threshold
+        )
+        use_keep_recent = (
+            keep_recent if keep_recent is not None else profile.conversation.keep_recent
+        )
+
+        # Initialize summary model if specified
+        summary_chat_model = None
+        if summary_model:
+            summary_chat_model = get_chat_model(summary_model, config=config)
+        elif profile.conversation.summary_model:
+            summary_chat_model = get_chat_model(
+                profile.conversation.summary_model, config=config
+            )
+
         # Initialize conversation history with intelligent trimming and persistence
         history = ConversationHistory(
             model_name=model_name or profile.model.model,
             model=chat_model,  # Pass model instance for accurate token counting
             persist=persist,
             session_id=resume_session,  # Resume existing session if provided
+            summarize=use_summarize,
+            summarize_threshold=use_threshold,
+            keep_recent=use_keep_recent,
+            summary_model=summary_chat_model,
         )
+
+        # Show summarization status if enabled
+        if use_summarize:
+            print(
+                f"📊 Summarization enabled: threshold={use_threshold}, keep_recent={use_keep_recent}"
+            )
 
         # Print banner with session info
         print_banner(
@@ -319,10 +359,21 @@ Examples:
   # Disable persistence (in-memory only)
   python examples/interactive_chat.py --no-persist
 
+  # Enable conversation summarization (reduces token usage by 70-90%)
+  python examples/interactive_chat.py --summarize
+  python examples/interactive_chat.py --summarize --summarize-threshold 15
+  python examples/interactive_chat.py --summarize --summary-model gpt-4o-mini
+
 Persistence:
   Conversations are automatically saved to ~/.consoul/history.db by default.
   Type 'session' in the chat to see the current session ID.
   Use --resume SESSION_ID to continue a previous conversation.
+
+Summarization:
+  Enable with --summarize to automatically compress long conversations.
+  Older messages are summarized while recent messages are kept verbatim.
+  This reduces token usage by 70-90% in long conversations.
+  Use --summary-model to specify a cheaper model for summarization.
 
 Supported providers:
   OpenAI    - gpt-4o, gpt-3.5-turbo, o1-preview (requires OPENAI_API_KEY)
@@ -370,6 +421,33 @@ For Ollama:
         metavar="SESSION_ID",
         help="Resume a previous conversation by session ID",
     )
+    parser.add_argument(
+        "--summarize",
+        action="store_true",
+        help="Enable conversation summarization for context compression",
+    )
+    parser.add_argument(
+        "--no-summarize",
+        action="store_true",
+        help="Disable conversation summarization (override profile setting)",
+    )
+    parser.add_argument(
+        "--summarize-threshold",
+        type=int,
+        metavar="N",
+        help="Trigger summarization after N messages (default: 20)",
+    )
+    parser.add_argument(
+        "--keep-recent",
+        type=int,
+        metavar="N",
+        help="Keep N recent messages verbatim when summarizing (default: 10)",
+    )
+    parser.add_argument(
+        "--summary-model",
+        metavar="MODEL",
+        help="Model to use for summarization (e.g., gpt-4o-mini for cost savings)",
+    )
 
     args = parser.parse_args()
 
@@ -384,6 +462,28 @@ For Ollama:
         print("   (Resuming requires persistence to be enabled)")
         sys.exit(1)
 
+    # Validate --summarize and --no-summarize are not used together
+    if args.summarize and args.no_summarize:
+        print("❌ Error: Cannot use --summarize and --no-summarize together")
+        sys.exit(1)
+
+    # Validate summarization threshold
+    if args.summarize_threshold is not None and args.summarize_threshold <= 0:
+        print("❌ Error: --summarize-threshold must be positive")
+        sys.exit(1)
+
+    # Validate keep_recent
+    if args.keep_recent is not None and args.keep_recent <= 0:
+        print("❌ Error: --keep-recent must be positive")
+        sys.exit(1)
+
+    # Determine summarize value (None means use config default)
+    summarize_value = None
+    if args.summarize:
+        summarize_value = True
+    elif args.no_summarize:
+        summarize_value = False
+
     interactive_chat(
         model_name=args.model,
         profile_name=args.profile,
@@ -391,6 +491,10 @@ For Ollama:
         show_tokens=args.show_tokens,
         persist=not args.no_persist,
         resume_session=args.resume,
+        summarize=summarize_value,
+        summarize_threshold=args.summarize_threshold,
+        keep_recent=args.keep_recent,
+        summary_model=args.summary_model,
     )
 
 

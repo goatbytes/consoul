@@ -219,6 +219,26 @@ class ConversationConfig(BaseModel):
         description="Auto-delete conversations older than N days (0 = keep forever)",
     )
 
+    # Summarization settings
+    summarize: bool = Field(
+        default=False,
+        description="Enable automatic conversation summarization for context compression",
+    )
+    summarize_threshold: int = Field(
+        default=20,
+        gt=0,
+        description="Trigger summarization after this many messages",
+    )
+    keep_recent: int = Field(
+        default=10,
+        gt=0,
+        description="Number of recent messages to keep verbatim when summarizing",
+    )
+    summary_model: str | None = Field(
+        default=None,
+        description="Optional separate model name for summarization (use cheaper model)",
+    )
+
     @field_validator("db_path", mode="before")
     @classmethod
     def expand_path(cls, v: Any) -> Path:
