@@ -194,32 +194,32 @@ ModelConfig = ModelConfigUnion
 
 
 class ConversationConfig(BaseModel):
-    """Configuration for conversation management."""
+    """Configuration for conversation management and persistence."""
 
     model_config = ConfigDict(
         extra="forbid",
         validate_assignment=True,
     )
 
-    save_history: bool = Field(
+    persist: bool = Field(
         default=True,
-        description="Whether to save conversation history",
+        description="Enable SQLite persistence for conversation history",
     )
-    history_file: Path = Field(
-        default=Path.home() / ".consoul" / "history.json",
-        description="Path to history file",
+    db_path: Path = Field(
+        default=Path.home() / ".consoul" / "history.db",
+        description="Path to SQLite database file for conversation history",
     )
-    max_history_length: int = Field(
-        default=100,
-        gt=0,
-        description="Maximum number of messages to retain in history",
+    auto_resume: bool = Field(
+        default=False,
+        description="Automatically resume the last conversation on startup",
     )
-    auto_save: bool = Field(
-        default=True,
-        description="Automatically save history after each message",
+    retention_days: int = Field(
+        default=0,
+        ge=0,
+        description="Auto-delete conversations older than N days (0 = keep forever)",
     )
 
-    @field_validator("history_file", mode="before")
+    @field_validator("db_path", mode="before")
     @classmethod
     def expand_path(cls, v: Any) -> Path:
         """Expand user path and convert to Path object."""

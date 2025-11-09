@@ -147,7 +147,7 @@ class ConversationHistory:
         model_name: str,
         max_tokens: int | None = None,
         model: BaseChatModel | None = None,
-        persist: bool = False,
+        persist: bool = True,
         session_id: str | None = None,
         db_path: Path | str | None = None,
     ):
@@ -157,7 +157,7 @@ class ConversationHistory:
             model_name: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet")
             max_tokens: Optional override for context limit (uses model default if None)
             model: Optional LangChain model instance for provider-specific token counting
-            persist: Enable SQLite persistence (default: False)
+            persist: Enable SQLite persistence (default: True)
             session_id: Optional session ID to resume existing conversation
             db_path: Optional custom database path (default: ~/.consoul/history.db)
 

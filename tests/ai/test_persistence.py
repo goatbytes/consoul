@@ -8,13 +8,14 @@ from consoul.ai.history import ConversationHistory
 class TestPersistenceBasics:
     """Tests for basic persistence functionality."""
 
-    def test_persistence_disabled_by_default(self):
-        """Test that persistence is disabled by default."""
-        history = ConversationHistory("gpt-4o")
+    def test_persistence_enabled_by_default(self, tmp_path):
+        """Test that persistence is enabled by default."""
+        db_path = tmp_path / "test.db"
+        history = ConversationHistory("gpt-4o", db_path=db_path)
 
-        assert history.persist is False
-        assert history._db is None
-        assert history.session_id is None
+        assert history.persist is True
+        assert history._db is not None
+        assert history.session_id is not None
 
     def test_persistence_enabled_creates_session(self, tmp_path):
         """Test that enabling persistence creates a new session."""

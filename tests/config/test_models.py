@@ -142,38 +142,34 @@ class TestConversationConfig:
     def test_default_values(self):
         """Test default conversation configuration."""
         config = ConversationConfig()
-        assert config.save_history is True
-        assert config.history_file == Path.home() / ".consoul" / "history.json"
-        assert config.max_history_length == 100
-        assert config.auto_save is True
+        assert config.persist is True
+        assert config.db_path == Path.home() / ".consoul" / "history.db"
+        assert config.auto_resume is False
+        assert config.retention_days == 0
 
     def test_custom_values(self):
         """Test custom conversation configuration."""
         config = ConversationConfig(
-            save_history=False,
-            history_file=Path("/tmp/history.json"),
-            max_history_length=50,
-            auto_save=False,
+            persist=False,
+            db_path=Path("/tmp/history.db"),
+            auto_resume=True,
+            retention_days=30,
         )
-        assert config.save_history is False
-        assert config.history_file == Path("/tmp/history.json")
-        assert config.max_history_length == 50
-        assert config.auto_save is False
+        assert config.persist is False
+        assert config.db_path == Path("/tmp/history.db")
+        assert config.auto_resume is True
+        assert config.retention_days == 30
 
     def test_path_expansion(self):
         """Test that paths are expanded properly."""
-        config = ConversationConfig(history_file="~/custom/history.json")
-        assert config.history_file == Path.home() / "custom" / "history.json"
+        config = ConversationConfig(db_path="~/custom/history.db")
+        assert config.db_path == Path.home() / "custom" / "history.db"
 
     def test_max_history_validation(self):
-        """Test max_history_length must be positive."""
+        """Test retention_days must be non-negative."""
         with pytest.raises(ValidationError) as exc_info:
-            ConversationConfig(max_history_length=0)
-        assert "greater than 0" in str(exc_info.value)
-
-        with pytest.raises(ValidationError) as exc_info:
-            ConversationConfig(max_history_length=-1)
-        assert "greater than 0" in str(exc_info.value)
+            ConversationConfig(retention_days=-1)
+        assert "greater than or equal to 0" in str(exc_info.value)
 
 
 class TestContextConfig:
@@ -286,10 +282,10 @@ class TestProfileConfig:
             name="custom",
             description="Custom profile",
             model=OpenAIModelConfig(model="gpt-4o"),
-            conversation=ConversationConfig(save_history=False),
+            conversation=ConversationConfig(persist=False),
             context=ContextConfig(max_context_tokens=8192),
         )
-        assert profile.conversation.save_history is False
+        assert profile.conversation.persist is False
         assert profile.context.max_context_tokens == 8192
 
 

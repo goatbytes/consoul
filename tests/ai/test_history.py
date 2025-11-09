@@ -82,7 +82,7 @@ class TestConversationHistoryBasics:
 
     def test_initialization_default_token_limit(self):
         """Test history initializes with model's default token limit."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
 
         assert history.model_name == "gpt-4o"
         assert history.max_tokens == 128_000  # gpt-4o's limit
@@ -90,13 +90,13 @@ class TestConversationHistoryBasics:
 
     def test_initialization_custom_token_limit(self):
         """Test history with custom token limit override."""
-        history = ConversationHistory("gpt-4o", max_tokens=4000)
+        history = ConversationHistory("gpt-4o", max_tokens=4000, persist=False)
 
         assert history.max_tokens == 4000
 
     def test_add_system_message(self):
         """Test adding system message."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_system_message("You are helpful")
 
         assert len(history) == 1
@@ -105,7 +105,7 @@ class TestConversationHistoryBasics:
 
     def test_add_system_message_replaces_existing(self):
         """Test that adding system message replaces previous one."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_system_message("First")
         history.add_system_message("Second")
 
@@ -115,7 +115,7 @@ class TestConversationHistoryBasics:
 
     def test_add_user_message(self):
         """Test adding user message."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_user_message("Hello!")
 
         assert len(history) == 1
@@ -124,7 +124,7 @@ class TestConversationHistoryBasics:
 
     def test_add_assistant_message(self):
         """Test adding assistant message."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_assistant_message("Hi there!")
 
         assert len(history) == 1
@@ -133,7 +133,7 @@ class TestConversationHistoryBasics:
 
     def test_add_message_generic(self):
         """Test generic add_message method with different roles."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
 
         history.add_message("system", "System message")
         history.add_message("user", "User message")
@@ -146,7 +146,7 @@ class TestConversationHistoryBasics:
 
     def test_add_message_invalid_role(self):
         """Test error when adding message with invalid role."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
 
         with pytest.raises(ValueError, match="Unknown role"):
             history.add_message("invalid", "test")
@@ -157,7 +157,7 @@ class TestConversationHistoryRetrieval:
 
     def test_get_messages_returns_copy(self):
         """Test get_messages returns a copy, not reference."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_user_message("Hello")
 
         messages1 = history.get_messages()
@@ -169,7 +169,7 @@ class TestConversationHistoryRetrieval:
 
     def test_get_messages_as_dicts(self):
         """Test converting messages to dict format."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_system_message("System")
         history.add_user_message("User")
         history.add_assistant_message("Assistant")
@@ -183,7 +183,7 @@ class TestConversationHistoryRetrieval:
 
     def test_get_messages_preserves_order(self):
         """Test that message order is preserved."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
 
         for i in range(5):
             history.add_user_message(f"Message {i}")
@@ -203,7 +203,7 @@ class TestConversationHistoryTokenCounting:
             mock_counter = MagicMock(return_value=42)
             mock_create_counter.return_value = mock_counter
 
-            history = ConversationHistory("gpt-4o")
+            history = ConversationHistory("gpt-4o", persist=False)
             history.add_user_message("Hello")
 
             tokens = history.count_tokens()
@@ -213,7 +213,7 @@ class TestConversationHistoryTokenCounting:
 
     def test_count_tokens_empty_history(self):
         """Test counting tokens in empty history."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
 
         tokens = history.count_tokens()
 
@@ -229,7 +229,7 @@ class TestConversationHistoryTokenCounting:
         with patch("consoul.ai.context.create_token_counter") as mock_create_counter:
             mock_create_counter.return_value = mock_counter
 
-            history = ConversationHistory("gpt-4o")
+            history = ConversationHistory("gpt-4o", persist=False)
             history.add_user_message("Message 1")
             history.add_assistant_message("Message 2")
             history.add_user_message("Message 3")
@@ -254,7 +254,7 @@ class TestConversationHistoryTrimming:
         mock_trimmed = [HumanMessage(content="trimmed")]
         mock_trim_messages.return_value = mock_trimmed
 
-        history = ConversationHistory("gpt-4o", max_tokens=1000)
+        history = ConversationHistory("gpt-4o", max_tokens=1000, persist=False)
         history.add_system_message("System")
         history.add_user_message("User")
 
@@ -288,7 +288,7 @@ class TestConversationHistoryTrimming:
         # Simulate trim_messages failing
         mock_trim_messages.side_effect = Exception("Trimming error")
 
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_user_message("Message")
 
         result = history.get_trimmed_messages()
@@ -306,7 +306,9 @@ class TestConversationHistoryTrimming:
         mock_create_counter.return_value = mock_counter
 
         # Create history with small context window
-        history = ConversationHistory("phi", max_tokens=512)  # phi has 4K limit
+        history = ConversationHistory(
+            "phi", max_tokens=512, persist=False
+        )  # phi has 4K limit
         history.add_user_message("Hello")
 
         # Try to reserve more tokens than available
@@ -325,7 +327,7 @@ class TestConversationHistoryTrimming:
 
     def test_get_trimmed_messages_empty_history(self):
         """Test trimming empty history returns empty list."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
 
         result = history.get_trimmed_messages()
 
@@ -341,7 +343,7 @@ class TestConversationHistoryTrimming:
         mock_create_counter.return_value = mock_counter
         mock_trim_messages.return_value = []
 
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_user_message("Test")
 
         history.get_trimmed_messages(reserve_tokens=500, strategy="first")
@@ -357,7 +359,7 @@ class TestConversationHistoryClear:
 
     def test_clear_preserves_system_message_by_default(self):
         """Test that clear() preserves system message by default."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_system_message("System")
         history.add_user_message("User 1")
         history.add_assistant_message("Assistant 1")
@@ -371,7 +373,7 @@ class TestConversationHistoryClear:
 
     def test_clear_without_preserving_system(self):
         """Test clearing all messages including system."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_system_message("System")
         history.add_user_message("User")
 
@@ -381,7 +383,7 @@ class TestConversationHistoryClear:
 
     def test_clear_no_system_message(self):
         """Test clearing when there's no system message."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
         history.add_user_message("User")
         history.add_assistant_message("Assistant")
 
@@ -392,7 +394,7 @@ class TestConversationHistoryClear:
 
     def test_clear_empty_history(self):
         """Test clearing already empty history."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
 
         history.clear()
 
@@ -404,7 +406,7 @@ class TestConversationHistoryMagicMethods:
 
     def test_len_returns_message_count(self):
         """Test __len__ returns number of messages."""
-        history = ConversationHistory("gpt-4o")
+        history = ConversationHistory("gpt-4o", persist=False)
 
         assert len(history) == 0
 
@@ -420,7 +422,7 @@ class TestConversationHistoryMagicMethods:
             mock_counter = MagicMock(return_value=100)
             mock_create_counter.return_value = mock_counter
 
-            history = ConversationHistory("gpt-4o")
+            history = ConversationHistory("gpt-4o", persist=False)
             history.add_user_message("Test")
 
             repr_str = repr(history)
@@ -439,7 +441,9 @@ class TestConversationHistoryWithModel:
         mock_model = MagicMock()
         mock_model.get_num_tokens_from_messages.return_value = 50
 
-        history = ConversationHistory("claude-3-5-sonnet", model=mock_model)
+        history = ConversationHistory(
+            "claude-3-5-sonnet", model=mock_model, persist=False
+        )
         history.add_user_message("Test")
 
         tokens = history.count_tokens()
