@@ -189,6 +189,7 @@ directory = "htmlcov"
 target-version = "py310"
 line-length = 88
 indent-width = 4
+extend-exclude = [".claude"]  # Exclude .claude directory from linting
 
 [tool.ruff.lint]
 select = [
@@ -233,6 +234,9 @@ warn_unused_ignores = true
 warn_no_return = true
 follow_imports = "normal"
 ignore_missing_imports = false
+exclude = [
+    "^\\.claude/",  # Exclude .claude directory from type checking
+]
 
 [[tool.mypy.overrides]]
 module = [

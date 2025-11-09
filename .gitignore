@@ -206,6 +206,10 @@ safety-report.json
 .cursorignore
 .cursorindexingignore
 
+# Claude Code
+#  Local settings with user-specific permissions and preferences
+.claude/settings.local.json
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
