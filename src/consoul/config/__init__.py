@@ -14,20 +14,30 @@ from consoul.config.loader import (
     save_config,
 )
 from consoul.config.models import (
+    AnthropicModelConfig,
+    BaseModelConfig,
     ConsoulConfig,
     ContextConfig,
     ConversationConfig,
+    GoogleModelConfig,
     ModelConfig,
+    OllamaModelConfig,
+    OpenAIModelConfig,
     ProfileConfig,
     Provider,
 )
 
 __all__ = [
     # Models
+    "AnthropicModelConfig",
+    "BaseModelConfig",
     "ConsoulConfig",
     "ContextConfig",
     "ConversationConfig",
+    "GoogleModelConfig",
     "ModelConfig",
+    "OllamaModelConfig",
+    "OpenAIModelConfig",
     "ProfileConfig",
     "Provider",
     # Loader functions

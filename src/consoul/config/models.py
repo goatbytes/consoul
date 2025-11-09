@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -30,30 +30,16 @@ class Provider(str, Enum):
     OLLAMA = "ollama"
 
 
-class ModelConfig(BaseModel):
-    """Configuration for AI model parameters.
-
-    Supports multiple providers with provider-specific parameters.
-    """
+class BaseModelConfig(BaseModel):
+    """Base configuration for AI model parameters shared across all providers."""
 
     model_config = ConfigDict(
         extra="forbid",
         validate_assignment=True,
-        use_enum_values=True,
     )
 
-    provider: Provider = Field(
-        description="AI provider to use",
-        examples=["openai", "anthropic", "google", "ollama"],
-    )
     model: str = Field(
         description="Model name/ID",
-        examples=[
-            "gpt-4o",
-            "claude-3-5-sonnet-20241022",
-            "gemini-2.0-flash-exp",
-            "llama3",
-        ],
     )
     temperature: float = Field(
         default=1.0,
@@ -65,29 +51,6 @@ class ModelConfig(BaseModel):
         default=None,
         gt=0,
         description="Maximum tokens to generate",
-    )
-    top_p: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Nucleus sampling parameter (0.0-1.0)",
-    )
-    top_k: int | None = Field(
-        default=None,
-        gt=0,
-        description="Top-k sampling parameter (for some providers)",
-    )
-    frequency_penalty: float | None = Field(
-        default=None,
-        ge=-2.0,
-        le=2.0,
-        description="Frequency penalty (-2.0 to 2.0)",
-    )
-    presence_penalty: float | None = Field(
-        default=None,
-        ge=-2.0,
-        le=2.0,
-        description="Presence penalty (-2.0 to 2.0)",
     )
     stop_sequences: list[str] | None = Field(
         default=None,
@@ -102,24 +65,90 @@ class ModelConfig(BaseModel):
             raise ValueError("Model name cannot be empty")
         return v.strip()
 
-    @model_validator(mode="after")
-    def validate_provider_params(self) -> ModelConfig:
-        """Validate provider-specific parameters."""
-        # Ollama typically doesn't use penalties
-        if self.provider == Provider.OLLAMA and (
-            self.frequency_penalty is not None or self.presence_penalty is not None
-        ):
-            raise ValueError(
-                "Ollama provider does not support frequency_penalty or presence_penalty"
-            )
 
-        # Anthropic uses top_k, others typically don't
-        if self.provider != Provider.ANTHROPIC and self.top_k is not None:
-            raise ValueError(
-                f"Provider {self.provider} does not support top_k parameter"
-            )
+class OpenAIModelConfig(BaseModelConfig):
+    """OpenAI-specific model configuration."""
 
-        return self
+    provider: Literal[Provider.OPENAI] = Provider.OPENAI
+    top_p: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Nucleus sampling parameter (0.0-1.0)",
+    )
+    frequency_penalty: float | None = Field(
+        default=None,
+        ge=-2.0,
+        le=2.0,
+        description="Frequency penalty (-2.0 to 2.0)",
+    )
+    presence_penalty: float | None = Field(
+        default=None,
+        ge=-2.0,
+        le=2.0,
+        description="Presence penalty (-2.0 to 2.0)",
+    )
+
+
+class AnthropicModelConfig(BaseModelConfig):
+    """Anthropic-specific model configuration."""
+
+    provider: Literal[Provider.ANTHROPIC] = Provider.ANTHROPIC
+    top_p: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Nucleus sampling parameter (0.0-1.0)",
+    )
+    top_k: int | None = Field(
+        default=None,
+        gt=0,
+        description="Top-k sampling parameter (Anthropic-specific)",
+    )
+
+
+class GoogleModelConfig(BaseModelConfig):
+    """Google Gemini-specific model configuration."""
+
+    provider: Literal[Provider.GOOGLE] = Provider.GOOGLE
+    top_p: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Nucleus sampling parameter (0.0-1.0)",
+    )
+    top_k: int | None = Field(
+        default=None,
+        gt=0,
+        description="Top-k sampling parameter",
+    )
+
+
+class OllamaModelConfig(BaseModelConfig):
+    """Ollama-specific model configuration for local models."""
+
+    provider: Literal[Provider.OLLAMA] = Provider.OLLAMA
+    top_p: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Nucleus sampling parameter (0.0-1.0)",
+    )
+    top_k: int | None = Field(
+        default=None,
+        gt=0,
+        description="Top-k sampling parameter",
+    )
+
+
+# Type alias for discriminated union of all model configs
+ModelConfigUnion = Annotated[
+    OpenAIModelConfig | AnthropicModelConfig | GoogleModelConfig | OllamaModelConfig,
+    Field(discriminator="provider"),
+]
+
+# For backward compatibility in tests and simpler usage
+ModelConfig = ModelConfigUnion
 
 
 class ConversationConfig(BaseModel):
@@ -186,12 +215,28 @@ class ContextConfig(BaseModel):
     @field_validator("custom_context_files", mode="before")
     @classmethod
     def expand_paths(cls, v: Any) -> list[Path]:
-        """Expand user paths and convert to Path objects."""
+        """Expand user paths and convert to Path objects.
+
+        Accepts:
+        - List or tuple of strings/Paths
+        - Single string (converted to single-item list)
+        - Single Path (converted to single-item list)
+        - None or empty (returns empty list)
+        """
         if not v:
             return []
+        # Handle single string or Path
+        if isinstance(v, (str, Path)):
+            path = Path(v).expanduser() if isinstance(v, str) else v.expanduser()
+            return [path]
+        # Handle list/tuple
         if isinstance(v, (list, tuple)):
             return [Path(p).expanduser() if isinstance(p, str) else p for p in v]
-        return []
+        # Invalid type
+        raise ValueError(
+            f"custom_context_files must be a string, Path, or list/tuple of strings/Paths, "
+            f"got {type(v).__name__}"
+        )
 
 
 class ProfileConfig(BaseModel):
@@ -242,7 +287,7 @@ class ConsoulConfig(BaseModel):
     """
 
     model_config = ConfigDict(
-        extra="allow",  # Allow extra fields for extensibility
+        extra="forbid",  # Reject unknown fields to catch typos and enforce schema
         validate_assignment=True,
     )
 
@@ -280,9 +325,13 @@ class ConsoulConfig(BaseModel):
             )
         return self
 
-    @model_serializer(mode="wrap", when_used="json")
+    @model_serializer(mode="wrap")
     def serialize_model(self, serializer: Any) -> dict[str, Any]:
-        """Custom serializer to exclude API keys from JSON output."""
+        """Custom serializer to exclude API keys from all serialization modes.
+
+        This ensures API keys are never leaked via model_dump(), YAML export,
+        or any other serialization path.
+        """
         data: dict[str, Any] = serializer(self)
         # Remove api_keys from serialized output for security
         data.pop("api_keys", None)

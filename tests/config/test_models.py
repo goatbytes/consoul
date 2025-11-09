@@ -7,10 +7,12 @@ import pytest
 from pydantic import ValidationError
 
 from consoul.config.models import (
+    AnthropicModelConfig,
     ConsoulConfig,
     ContextConfig,
     ConversationConfig,
-    ModelConfig,
+    OllamaModelConfig,
+    OpenAIModelConfig,
     ProfileConfig,
     Provider,
 )
@@ -28,12 +30,11 @@ class TestProvider:
 
 
 class TestModelConfig:
-    """Tests for ModelConfig."""
+    """Tests for provider-specific model configs."""
 
-    def test_valid_model_config(self):
-        """Test creating a valid ModelConfig."""
-        config = ModelConfig(
-            provider=Provider.OPENAI,
+    def test_valid_openai_model_config(self):
+        """Test creating a valid OpenAI ModelConfig."""
+        config = OpenAIModelConfig(
             model="gpt-4o",
             temperature=0.7,
             max_tokens=2048,
@@ -45,32 +46,31 @@ class TestModelConfig:
 
     def test_default_temperature(self):
         """Test default temperature value."""
-        config = ModelConfig(provider=Provider.OPENAI, model="gpt-4o")
+        config = OpenAIModelConfig(model="gpt-4o")
         assert config.temperature == 1.0
 
     def test_temperature_validation(self):
         """Test temperature must be between 0.0 and 2.0."""
         with pytest.raises(ValidationError) as exc_info:
-            ModelConfig(provider=Provider.OPENAI, model="gpt-4o", temperature=-0.1)
+            OpenAIModelConfig(model="gpt-4o", temperature=-0.1)
         assert "greater than or equal to 0" in str(exc_info.value)
 
         with pytest.raises(ValidationError) as exc_info:
-            ModelConfig(provider=Provider.OPENAI, model="gpt-4o", temperature=2.1)
+            OpenAIModelConfig(model="gpt-4o", temperature=2.1)
         assert "less than or equal to 2" in str(exc_info.value)
 
     def test_top_p_validation(self):
         """Test top_p must be between 0.0 and 1.0."""
-        config = ModelConfig(provider=Provider.OPENAI, model="gpt-4o", top_p=0.9)
+        config = OpenAIModelConfig(model="gpt-4o", top_p=0.9)
         assert config.top_p == 0.9
 
         with pytest.raises(ValidationError) as exc_info:
-            ModelConfig(provider=Provider.OPENAI, model="gpt-4o", top_p=1.1)
+            OpenAIModelConfig(model="gpt-4o", top_p=1.1)
         assert "less than or equal to 1" in str(exc_info.value)
 
     def test_penalty_validation(self):
         """Test frequency and presence penalties must be between -2.0 and 2.0."""
-        config = ModelConfig(
-            provider=Provider.OPENAI,
+        config = OpenAIModelConfig(
             model="gpt-4o",
             frequency_penalty=1.5,
             presence_penalty=-1.5,
@@ -79,61 +79,48 @@ class TestModelConfig:
         assert config.presence_penalty == -1.5
 
         with pytest.raises(ValidationError) as exc_info:
-            ModelConfig(provider=Provider.OPENAI, model="gpt-4o", frequency_penalty=2.5)
+            OpenAIModelConfig(model="gpt-4o", frequency_penalty=2.5)
         assert "less than or equal to 2" in str(exc_info.value)
 
     def test_empty_model_name_validation(self):
         """Test that empty model name is rejected."""
         with pytest.raises(ValidationError) as exc_info:
-            ModelConfig(provider=Provider.OPENAI, model="")
+            OpenAIModelConfig(model="")
         assert "Model name cannot be empty" in str(exc_info.value)
 
         with pytest.raises(ValidationError) as exc_info:
-            ModelConfig(provider=Provider.OPENAI, model="   ")
+            OpenAIModelConfig(model="   ")
         assert "Model name cannot be empty" in str(exc_info.value)
 
     def test_model_name_stripped(self):
         """Test that model name is stripped of whitespace."""
-        config = ModelConfig(provider=Provider.OPENAI, model="  gpt-4o  ")
+        config = OpenAIModelConfig(model="  gpt-4o  ")
         assert config.model == "gpt-4o"
 
-    def test_ollama_penalty_validation(self):
-        """Test that Ollama provider rejects penalty parameters."""
-        with pytest.raises(ValidationError) as exc_info:
-            ModelConfig(
-                provider=Provider.OLLAMA,
-                model="llama3",
-                frequency_penalty=1.0,
-            )
-        assert "does not support frequency_penalty" in str(exc_info.value)
+    def test_ollama_no_penalties(self):
+        """Test that Ollama config doesn't have penalty parameters."""
+        # Ollama config shouldn't have penalty fields
+        config = OllamaModelConfig(model="llama3")
+        assert not hasattr(config, "frequency_penalty")
+        assert not hasattr(config, "presence_penalty")
 
-        with pytest.raises(ValidationError) as exc_info:
-            ModelConfig(
-                provider=Provider.OLLAMA,
-                model="llama3",
-                presence_penalty=1.0,
-            )
-        assert "does not support" in str(exc_info.value)
-
-    def test_top_k_validation(self):
-        """Test that top_k is only allowed for Anthropic."""
-        # Should work for Anthropic
-        config = ModelConfig(
-            provider=Provider.ANTHROPIC,
+    def test_anthropic_has_top_k(self):
+        """Test that Anthropic config has top_k parameter."""
+        config = AnthropicModelConfig(
             model="claude-3-5-sonnet-20241022",
             top_k=40,
         )
         assert config.top_k == 40
 
-        # Should fail for other providers
-        with pytest.raises(ValidationError) as exc_info:
-            ModelConfig(provider=Provider.OPENAI, model="gpt-4o", top_k=40)
-        assert "does not support top_k" in str(exc_info.value)
+    def test_openai_no_top_k(self):
+        """Test that OpenAI config doesn't have top_k parameter."""
+        # OpenAI config shouldn't have top_k field
+        config = OpenAIModelConfig(model="gpt-4o")
+        assert not hasattr(config, "top_k")
 
     def test_stop_sequences(self):
         """Test stop sequences configuration."""
-        config = ModelConfig(
-            provider=Provider.OPENAI,
+        config = OpenAIModelConfig(
             model="gpt-4o",
             stop_sequences=["END", "STOP"],
         )
@@ -142,8 +129,7 @@ class TestModelConfig:
     def test_extra_fields_forbidden(self):
         """Test that extra fields are rejected."""
         with pytest.raises(ValidationError) as exc_info:
-            ModelConfig(
-                provider=Provider.OPENAI,
+            OpenAIModelConfig(
                 model="gpt-4o",
                 invalid_field="value",
             )
@@ -223,6 +209,24 @@ class TestContextConfig:
         assert config.custom_context_files[0] == Path.home() / "context1.txt"
         assert config.custom_context_files[1] == Path.home() / "context2.txt"
 
+    def test_context_files_single_string(self):
+        """Test that a single string is converted to a list."""
+        config = ContextConfig(custom_context_files="~/context.txt")
+        assert len(config.custom_context_files) == 1
+        assert config.custom_context_files[0] == Path.home() / "context.txt"
+
+    def test_context_files_single_path(self):
+        """Test that a single Path is converted to a list."""
+        config = ContextConfig(custom_context_files=Path("~/context.txt"))
+        assert len(config.custom_context_files) == 1
+        assert config.custom_context_files[0] == Path.home() / "context.txt"
+
+    def test_context_files_invalid_type(self):
+        """Test that invalid types raise an error."""
+        with pytest.raises(ValidationError) as exc_info:
+            ContextConfig(custom_context_files=123)
+        assert "must be a string, Path, or list/tuple" in str(exc_info.value)
+
     def test_max_context_tokens_validation(self):
         """Test max_context_tokens must be positive."""
         with pytest.raises(ValidationError) as exc_info:
@@ -238,7 +242,7 @@ class TestProfileConfig:
         profile = ProfileConfig(
             name="default",
             description="Default profile",
-            model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+            model=OpenAIModelConfig(model="gpt-4o"),
         )
         assert profile.name == "default"
         assert profile.description == "Default profile"
@@ -252,7 +256,7 @@ class TestProfileConfig:
         profile = ProfileConfig(
             name="Default",
             description="Test",
-            model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+            model=OpenAIModelConfig(model="gpt-4o"),
         )
         assert profile.name == "default"
 
@@ -263,7 +267,7 @@ class TestProfileConfig:
             ProfileConfig(
                 name="",
                 description="Test",
-                model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+                model=OpenAIModelConfig(model="gpt-4o"),
             )
         assert "cannot be empty" in str(exc_info.value)
 
@@ -272,7 +276,7 @@ class TestProfileConfig:
             ProfileConfig(
                 name="my profile!",
                 description="Test",
-                model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+                model=OpenAIModelConfig(model="gpt-4o"),
             )
         assert "alphanumeric" in str(exc_info.value)
 
@@ -281,7 +285,7 @@ class TestProfileConfig:
         profile = ProfileConfig(
             name="custom",
             description="Custom profile",
-            model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+            model=OpenAIModelConfig(model="gpt-4o"),
             conversation=ConversationConfig(save_history=False),
             context=ContextConfig(max_context_tokens=8192),
         )
@@ -299,7 +303,7 @@ class TestConsoulConfig:
                 "default": ProfileConfig(
                     name="default",
                     description="Default profile",
-                    model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+                    model=OpenAIModelConfig(model="gpt-4o"),
                 )
             },
             active_profile="default",
@@ -316,7 +320,7 @@ class TestConsoulConfig:
                     "default": ProfileConfig(
                         name="default",
                         description="Default",
-                        model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+                        model=OpenAIModelConfig(model="gpt-4o"),
                     )
                 },
                 active_profile="nonexistent",
@@ -330,25 +334,27 @@ class TestConsoulConfig:
                 "default": ProfileConfig(
                     name="default",
                     description="Default",
-                    model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+                    model=OpenAIModelConfig(model="gpt-4o"),
                 )
             },
             active_profile="Default",
         )
         assert config.active_profile == "default"
 
-    def test_api_keys_not_serialized(self):
+    def test_api_keys_not_serialized_json(self):
         """Test that API keys are not included in JSON serialization."""
+        from pydantic import SecretStr
+
         config = ConsoulConfig(
             profiles={
                 "default": ProfileConfig(
                     name="default",
                     description="Default",
-                    model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+                    model=OpenAIModelConfig(model="gpt-4o"),
                 )
             },
             active_profile="default",
-            api_keys={"openai": "sk-test-key"},
+            api_keys={"openai": SecretStr("sk-test-key")},
         )
 
         # Serialize to JSON
@@ -358,6 +364,28 @@ class TestConsoulConfig:
         # API keys should not be in serialized output
         assert "api_keys" not in data
 
+    def test_api_keys_not_serialized_python(self):
+        """Test that API keys are not included in Python dict serialization."""
+        from pydantic import SecretStr
+
+        config = ConsoulConfig(
+            profiles={
+                "default": ProfileConfig(
+                    name="default",
+                    description="Default",
+                    model=OpenAIModelConfig(model="gpt-4o"),
+                )
+            },
+            active_profile="default",
+            api_keys={"openai": SecretStr("sk-test-key")},
+        )
+
+        # Serialize to Python dict
+        data = config.model_dump()
+
+        # API keys should not be in serialized output (mode="wrap" excludes in all modes)
+        assert "api_keys" not in data
+
     def test_global_settings_extensibility(self):
         """Test that global_settings allows arbitrary data."""
         config = ConsoulConfig(
@@ -365,7 +393,7 @@ class TestConsoulConfig:
                 "default": ProfileConfig(
                     name="default",
                     description="Default",
-                    model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+                    model=OpenAIModelConfig(model="gpt-4o"),
                 )
             },
             active_profile="default",
@@ -374,17 +402,33 @@ class TestConsoulConfig:
         assert config.global_settings["custom_key"] == "custom_value"
         assert config.global_settings["number"] == 42
 
+    def test_extra_fields_forbidden(self):
+        """Test that unknown top-level fields are rejected (extra='forbid')."""
+        with pytest.raises(ValidationError) as exc_info:
+            ConsoulConfig(
+                profiles={
+                    "default": ProfileConfig(
+                        name="default",
+                        description="Default",
+                        model=OpenAIModelConfig(model="gpt-4o"),
+                    )
+                },
+                active_profile="default",
+                unknown_field="should_fail",
+            )
+        assert "Extra inputs are not permitted" in str(exc_info.value)
+
     def test_get_active_profile(self):
         """Test getting the active profile."""
         default_profile = ProfileConfig(
             name="default",
             description="Default",
-            model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+            model=OpenAIModelConfig(model="gpt-4o"),
         )
         fast_profile = ProfileConfig(
             name="fast",
             description="Fast responses",
-            model=ModelConfig(provider=Provider.OPENAI, model="gpt-3.5-turbo"),
+            model=OpenAIModelConfig(model="gpt-3.5-turbo"),
         )
 
         config = ConsoulConfig(
@@ -403,13 +447,12 @@ class TestConsoulConfig:
                 "default": ProfileConfig(
                     name="default",
                     description="Default",
-                    model=ModelConfig(provider=Provider.OPENAI, model="gpt-4o"),
+                    model=OpenAIModelConfig(model="gpt-4o"),
                 ),
                 "creative": ProfileConfig(
                     name="creative",
                     description="Creative writing",
-                    model=ModelConfig(
-                        provider=Provider.ANTHROPIC,
+                    model=AnthropicModelConfig(
                         model="claude-3-5-sonnet-20241022",
                         temperature=1.5,
                     ),
@@ -417,8 +460,7 @@ class TestConsoulConfig:
                 "code": ProfileConfig(
                     name="code",
                     description="Code review",
-                    model=ModelConfig(
-                        provider=Provider.OPENAI,
+                    model=OpenAIModelConfig(
                         model="gpt-4o",
                         temperature=0.3,
                     ),
