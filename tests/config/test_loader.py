@@ -1,16 +1,18 @@
 """Tests for configuration loader."""
 
+import os
 from pathlib import Path
 
 import pytest
 import yaml
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from consoul.config.loader import (
     create_default_config,
     deep_merge,
     find_project_config,
     load_config,
+    load_env_config,
     load_yaml_config,
     merge_configs,
     save_config,
@@ -437,9 +439,7 @@ class TestSaveConfig:
         assert "active_profile" in loaded
 
     def test_save_config_excludes_api_keys(self, tmp_path: Path):
-        """Test that API keys are not saved to file."""
-        from pydantic import SecretStr
-
+        """Test that API keys are not saved to file by default."""
         config = load_config(
             global_config_path=Path("/nonexistent/global.yaml"),
             project_config_path=Path("/nonexistent/project.yaml"),
@@ -455,6 +455,149 @@ class TestSaveConfig:
             saved_data = yaml.safe_load(f)
 
         assert "api_keys" not in saved_data
+
+    def test_save_config_includes_api_keys_when_requested(self, tmp_path: Path):
+        """Test that API keys are included when include_api_keys=True."""
+        config = load_config(
+            global_config_path=Path("/nonexistent/global.yaml"),
+            project_config_path=Path("/nonexistent/project.yaml"),
+        )
+        # Add API keys
+        config.api_keys["openai"] = SecretStr("sk-test-key-123")
+        config.api_keys["anthropic"] = SecretStr("sk-ant-456")
+
+        save_path = tmp_path / "config.yaml"
+        save_config(config, save_path, include_api_keys=True)
+
+        # Load and verify API keys are present
+        with save_path.open("r") as f:
+            saved_data = yaml.safe_load(f)
+
+        assert "api_keys" in saved_data
+        assert saved_data["api_keys"]["openai"] == "sk-test-key-123"
+        assert saved_data["api_keys"]["anthropic"] == "sk-ant-456"
+
+
+class TestLoadEnvConfig:
+    """Tests for load_env_config function."""
+
+    def test_load_env_config_empty(self, monkeypatch: pytest.MonkeyPatch):
+        """Test loading env config with no environment variables set."""
+        # Clear any CONSOUL_* env vars
+        for key in list(os.environ.keys()):
+            if key.startswith("CONSOUL_"):
+                monkeypatch.delenv(key)
+
+        env_config = load_env_config()
+        assert env_config == {}
+
+    def test_load_env_config_active_profile(self, monkeypatch: pytest.MonkeyPatch):
+        """Test loading active profile from environment."""
+        monkeypatch.setenv("CONSOUL_ACTIVE_PROFILE", "creative")
+
+        env_config = load_env_config()
+        assert env_config["active_profile"] == "creative"
+
+    def test_load_env_config_model_overrides(self, monkeypatch: pytest.MonkeyPatch):
+        """Test loading model overrides from environment."""
+        monkeypatch.setenv("CONSOUL_PROVIDER", "openai")
+        monkeypatch.setenv("CONSOUL_MODEL", "gpt-4o")
+        monkeypatch.setenv("CONSOUL_TEMPERATURE", "0.5")
+        monkeypatch.setenv("CONSOUL_MAX_TOKENS", "2048")
+
+        env_config = load_env_config()
+        assert "_model_overrides" in env_config
+        overrides = env_config["_model_overrides"]
+        assert overrides["provider"] == "openai"
+        assert overrides["model"] == "gpt-4o"
+        assert overrides["temperature"] == 0.5
+        assert overrides["max_tokens"] == 2048
+
+    def test_load_env_config_invalid_numeric_values(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test that invalid numeric values are ignored."""
+        monkeypatch.setenv("CONSOUL_TEMPERATURE", "not-a-number")
+        monkeypatch.setenv("CONSOUL_MAX_TOKENS", "invalid")
+
+        env_config = load_env_config()
+        # Invalid values should be silently ignored
+        assert "_model_overrides" not in env_config
+
+    def test_load_env_config_combined(self, monkeypatch: pytest.MonkeyPatch):
+        """Test loading both profile and model overrides."""
+        monkeypatch.setenv("CONSOUL_ACTIVE_PROFILE", "code-review")
+        monkeypatch.setenv("CONSOUL_TEMPERATURE", "0.3")
+
+        env_config = load_env_config()
+        assert env_config["active_profile"] == "code-review"
+        assert "_model_overrides" in env_config
+        assert env_config["_model_overrides"]["temperature"] == 0.3
+
+
+class TestLoadConfigWithEnvVars:
+    """Tests for load_config with environment variable support."""
+
+    def test_env_vars_override_config_files(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test that environment variables override config files."""
+        # Create global config
+        global_config = tmp_path / "global.yaml"
+        global_config.write_text(
+            yaml.safe_dump(
+                {
+                    "profiles": {
+                        "default": {
+                            "name": "default",
+                            "description": "Default",
+                            "model": {
+                                "provider": "anthropic",
+                                "model": "claude-3-5-sonnet-20241022",
+                                "temperature": 1.0,
+                            },
+                        }
+                    },
+                    "active_profile": "default",
+                }
+            )
+        )
+
+        # Set env var to override temperature
+        monkeypatch.setenv("CONSOUL_TEMPERATURE", "0.7")
+        monkeypatch.chdir(tmp_path)
+
+        config = load_config(
+            global_config_path=global_config,
+            project_config_path=Path("/nonexistent/project.yaml"),
+        )
+
+        # Env var should override config file
+        assert config.get_active_profile().model.temperature == 0.7
+
+    def test_env_var_active_profile(self, monkeypatch: pytest.MonkeyPatch):
+        """Test that CONSOUL_ACTIVE_PROFILE overrides config files."""
+        monkeypatch.setenv("CONSOUL_ACTIVE_PROFILE", "creative")
+
+        config = load_config(
+            global_config_path=Path("/nonexistent/global.yaml"),
+            project_config_path=Path("/nonexistent/project.yaml"),
+        )
+
+        assert config.active_profile == "creative"
+
+    def test_cli_overrides_env_vars(self, monkeypatch: pytest.MonkeyPatch):
+        """Test that CLI overrides have highest precedence."""
+        monkeypatch.setenv("CONSOUL_ACTIVE_PROFILE", "creative")
+
+        config = load_config(
+            global_config_path=Path("/nonexistent/global.yaml"),
+            project_config_path=Path("/nonexistent/project.yaml"),
+            profile_name="code-review",  # CLI override
+        )
+
+        # CLI should win over env var
+        assert config.active_profile == "code-review"
 
 
 class TestFindProjectConfig:

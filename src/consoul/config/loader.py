@@ -6,6 +6,8 @@ configuration from multiple sources with clear precedence rules.
 
 from __future__ import annotations
 
+import contextlib
+import os
 from pathlib import Path
 from typing import Any
 
@@ -148,6 +150,46 @@ def merge_configs(*configs: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def load_env_config() -> dict[str, Any]:
+    """Load configuration from CONSOUL_* environment variables.
+
+    Supports the following environment variables:
+    - CONSOUL_ACTIVE_PROFILE: Set active profile
+    - CONSOUL_MODEL: Override model name
+    - CONSOUL_TEMPERATURE: Override temperature (float)
+    - CONSOUL_MAX_TOKENS: Override max tokens (int)
+    - CONSOUL_PROVIDER: Override provider
+
+    Returns:
+        Configuration dictionary parsed from environment variables.
+    """
+    env_config: dict[str, Any] = {}
+
+    # Active profile
+    if active_profile := os.getenv("CONSOUL_ACTIVE_PROFILE"):
+        env_config["active_profile"] = active_profile
+
+    # Model configuration overrides
+    model_overrides: dict[str, Any] = {}
+    if provider := os.getenv("CONSOUL_PROVIDER"):
+        model_overrides["provider"] = provider
+    if model := os.getenv("CONSOUL_MODEL"):
+        model_overrides["model"] = model
+    if temperature := os.getenv("CONSOUL_TEMPERATURE"):
+        with contextlib.suppress(ValueError):
+            model_overrides["temperature"] = float(temperature)
+    if max_tokens := os.getenv("CONSOUL_MAX_TOKENS"):
+        with contextlib.suppress(ValueError):
+            model_overrides["max_tokens"] = int(max_tokens)
+
+    # If we have model overrides, we need to apply them to the active profile
+    # This requires knowing the active profile, which we'll handle in load_config
+    if model_overrides:
+        env_config["_model_overrides"] = model_overrides
+
+    return env_config
+
+
 def create_default_config() -> dict[str, Any]:
     """Create default configuration with all built-in profiles.
 
@@ -203,7 +245,8 @@ def load_config(
     1. Defaults (built-in profiles + default settings)
     2. Global config (~/.consoul/config.yaml)
     3. Project config (.consoul/config.yaml)
-    4. CLI overrides (passed as argument)
+    4. Environment variables (CONSOUL_*)
+    5. CLI overrides (passed as argument)
 
     Args:
         global_config_path: Optional path to global config file.
@@ -232,25 +275,45 @@ def load_config(
         if project_config_path is None:
             project_config_path = found_project
 
-    # 3. Load each config file
+    # 3. Load each config source
     global_config = load_yaml_config(global_config_path) if global_config_path else {}
     project_config = (
         load_yaml_config(project_config_path) if project_config_path else {}
     )
+    env_config = load_env_config()
 
-    # 4. Merge in precedence order
+    # 4. Determine active profile from precedence chain
+    active = (
+        profile_name  # CLI has highest precedence
+        or env_config.get("active_profile")
+        or project_config.get("active_profile")
+        or global_config.get("active_profile")
+        or default_config.get("active_profile", "default")
+    )
+
+    # 5. Apply model overrides from env vars to the active profile
+    env_overrides: dict[str, Any] = {}
+    if "_model_overrides" in env_config:
+        model_overrides = env_config.pop("_model_overrides")
+        env_overrides = {"profiles": {active: {"model": model_overrides}}}
+        if "active_profile" not in env_config:
+            env_overrides["active_profile"] = active
+
+    # 6. Merge in precedence order
     merged = merge_configs(
         default_config,
         global_config,
         project_config,
+        env_config,
+        env_overrides,
         cli_overrides or {},
     )
 
-    # 5. Set active profile if specified
+    # 7. Set active profile if specified via CLI (highest precedence)
     if profile_name is not None:
         merged["active_profile"] = profile_name
 
-    # 6. Validate with Pydantic and return
+    # 8. Validate with Pydantic and return
     return ConsoulConfig(**merged)
 
 
@@ -263,7 +326,8 @@ def save_config(
         config: ConsoulConfig instance to save.
         path: Path where config file should be saved.
         include_api_keys: Whether to include API keys in output.
-            Default False for security.
+            Default False for security. WARNING: Setting this to True
+            will expose sensitive API keys in the config file.
 
     Raises:
         OSError: If file cannot be written.
@@ -271,8 +335,15 @@ def save_config(
     # Ensure directory exists
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Convert to dict (automatically excludes api_keys via serializer)
+    # Convert to dict
     config_dict = config.model_dump(mode="json")
+
+    # The serializer removes api_keys, so we need to add them back if requested
+    # Warning: This exposes sensitive data!
+    if include_api_keys and config.api_keys:
+        config_dict["api_keys"] = {
+            key: value.get_secret_value() for key, value in config.api_keys.items()
+        }
 
     # Write YAML
     try:
