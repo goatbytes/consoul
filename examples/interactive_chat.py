@@ -25,7 +25,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 import argparse
 from typing import Any
 
-from consoul.ai import get_chat_model
+from consoul.ai import get_chat_model, stream_response
+from consoul.ai.exceptions import StreamingError
 from consoul.config import load_config
 
 
@@ -159,23 +160,39 @@ def interactive_chat(
                 # Add user message to history
                 messages.append({"role": "user", "content": user_input})
 
-                # Get AI response
-                print("\nAssistant: ", end="", flush=True)
+                # Stream AI response
+                print()  # Newline before streaming starts
 
                 try:
-                    response = chat_model.invoke(messages)
-                    assistant_message = response.content
-
-                    print(assistant_message)
-                    print()  # New line after response
+                    assistant_message = stream_response(chat_model, messages)
 
                     # Add assistant message to history
                     messages.append({"role": "assistant", "content": assistant_message})
 
+                except StreamingError as e:
+                    # Handle both interrupts and errors - partial response is always available
+                    if "interrupted by user" in str(e).lower():
+                        # User pressed Ctrl+C
+                        print("\n⚠️  Streaming interrupted\n")
+                    else:
+                        # Actual streaming error
+                        print(f"\n❌ Error getting response: {e}\n")
+
+                    # Always save partial response if available
+                    if e.partial_response:
+                        messages.append(
+                            {"role": "assistant", "content": e.partial_response}
+                        )
+                    else:
+                        # Remove user message if we got no response at all
+                        if messages and messages[-1]["role"] == "user":
+                            messages.pop()
+
                 except Exception as e:
-                    print(f"\n❌ Error getting response: {e}\n")
+                    print(f"\n❌ Unexpected error: {e}\n")
                     # Remove the user message since we couldn't get a response
-                    messages.pop()
+                    if messages and messages[-1]["role"] == "user":
+                        messages.pop()
 
             except KeyboardInterrupt:
                 print("\n\n👋 Goodbye!\n")

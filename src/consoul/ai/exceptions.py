@@ -46,3 +46,35 @@ class OllamaServiceError(ProviderInitializationError):
     or the specified model is not available. Users should start Ollama
     with 'ollama serve' or pull the model with 'ollama pull {model}'.
     """
+
+
+class ConsoulAIError(Exception):
+    """Base exception for Consoul AI operations."""
+
+
+class StreamingError(ConsoulAIError):
+    """Exception raised when response streaming fails.
+
+    This error is raised when streaming tokens from an AI model fails
+    mid-stream. The partial response received before the error is
+    preserved in the partial_response attribute for debugging or recovery.
+
+    Attributes:
+        partial_response: Text received before the error occurred.
+
+    Example:
+        >>> try:
+        ...     response = stream_response(model, messages)
+        ... except StreamingError as e:
+        ...     print(f"Failed after: {e.partial_response}")
+    """
+
+    def __init__(self, message: str, partial_response: str = ""):
+        """Initialize StreamingError with message and partial response.
+
+        Args:
+            message: Error description.
+            partial_response: Partial response received before error.
+        """
+        super().__init__(message)
+        self.partial_response = partial_response
