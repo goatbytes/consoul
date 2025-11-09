@@ -351,24 +351,26 @@ class TestLoadConfig:
         assert "provider" in str(exc_info.value).lower()
 
     def test_load_with_multiple_profiles(self, tmp_path: Path):
-        """Test loading config with multiple profiles."""
+        """Test loading config with multiple profiles including custom ones."""
         global_config = tmp_path / "global.yaml"
         global_config.write_text(
             yaml.safe_dump(
                 {
                     "profiles": {
+                        # Override built-in default profile
                         "default": {
                             "name": "default",
-                            "description": "Default profile",
+                            "description": "Overridden default profile",
                             "model": {
                                 "provider": "anthropic",
                                 "model": "claude-3-5-sonnet-20241022",
-                                "temperature": 1.0,
+                                "temperature": 0.8,  # Different from built-in
                             },
                         },
-                        "fast": {
-                            "name": "fast",
-                            "description": "Fast responses",
+                        # Add custom profile
+                        "custom-fast": {
+                            "name": "custom-fast",
+                            "description": "Custom fast profile",
                             "model": {
                                 "provider": "openai",
                                 "model": "gpt-3.5-turbo",
@@ -376,7 +378,7 @@ class TestLoadConfig:
                             },
                         },
                     },
-                    "active_profile": "fast",
+                    "active_profile": "custom-fast",
                 }
             )
         )
@@ -386,10 +388,18 @@ class TestLoadConfig:
             project_config_path=Path("/nonexistent/project.yaml"),
         )
 
-        assert len(config.profiles) == 2
+        # Should have all 4 built-in profiles plus custom-fast (5 total)
+        # default is overridden but still counts as 1
+        assert len(config.profiles) == 5
         assert "default" in config.profiles
+        assert "code-review" in config.profiles
+        assert "creative" in config.profiles
         assert "fast" in config.profiles
-        assert config.active_profile == "fast"
+        assert "custom-fast" in config.profiles
+        assert config.active_profile == "custom-fast"
+
+        # Verify default was overridden
+        assert config.profiles["default"].model.temperature == 0.8
 
 
 class TestSaveConfig:

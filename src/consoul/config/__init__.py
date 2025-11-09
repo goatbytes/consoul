@@ -9,6 +9,7 @@ from consoul.config.loader import (
     find_config_files,
     find_project_config,
     load_config,
+    load_profile,
     load_yaml_config,
     merge_configs,
     save_config,
@@ -26,9 +27,13 @@ from consoul.config.models import (
     ProfileConfig,
     Provider,
 )
+from consoul.config.profiles import (
+    get_builtin_profiles,
+    get_profile_description,
+    list_available_profiles,
+)
 
 __all__ = [
-    # Models
     "AnthropicModelConfig",
     "BaseModelConfig",
     "ConsoulConfig",
@@ -40,12 +45,15 @@ __all__ = [
     "OpenAIModelConfig",
     "ProfileConfig",
     "Provider",
-    # Loader functions
     "create_default_config",
     "deep_merge",
     "find_config_files",
     "find_project_config",
+    "get_builtin_profiles",
+    "get_profile_description",
+    "list_available_profiles",
     "load_config",
+    "load_profile",
     "load_yaml_config",
     "merge_configs",
     "save_config",

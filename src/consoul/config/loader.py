@@ -11,7 +11,8 @@ from typing import Any
 
 import yaml
 
-from consoul.config.models import ConsoulConfig
+from consoul.config.models import ConsoulConfig, ProfileConfig
+from consoul.config.profiles import get_builtin_profiles
 
 
 def find_config_files() -> tuple[Path | None, Path | None]:
@@ -148,49 +149,58 @@ def merge_configs(*configs: dict[str, Any]) -> dict[str, Any]:
 
 
 def create_default_config() -> dict[str, Any]:
-    """Create default configuration with sensible defaults.
+    """Create default configuration with all built-in profiles.
 
     Returns:
-        Default configuration dictionary.
+        Default configuration dictionary with all built-in profiles.
     """
     return {
-        "profiles": {
-            "default": {
-                "name": "default",
-                "description": "Default profile with balanced settings",
-                "model": {
-                    "provider": "anthropic",
-                    "model": "claude-3-5-sonnet-20241022",
-                    "temperature": 1.0,
-                },
-                "conversation": {
-                    "save_history": True,
-                    "history_file": str(Path.home() / ".consoul" / "history.json"),
-                    "max_history_length": 100,
-                    "auto_save": True,
-                },
-                "context": {
-                    "max_context_tokens": 4096,
-                    "include_system_info": True,
-                    "include_git_info": True,
-                    "custom_context_files": [],
-                },
-            }
-        },
+        "profiles": get_builtin_profiles(),
         "active_profile": "default",
         "global_settings": {},
     }
+
+
+def load_profile(profile_name: str, config: ConsoulConfig) -> ProfileConfig:
+    """Load a profile by name from custom or built-in profiles.
+
+    Args:
+        profile_name: Name of the profile to load.
+        config: ConsoulConfig instance to check for custom profiles.
+
+    Returns:
+        ProfileConfig instance.
+
+    Raises:
+        KeyError: If the profile doesn't exist.
+    """
+    # Check custom profiles first (they override built-in)
+    if profile_name in config.profiles:
+        return config.profiles[profile_name]
+
+    # Fall back to built-in profiles
+    builtin = get_builtin_profiles()
+    if profile_name in builtin:
+        return ProfileConfig(**builtin[profile_name])
+
+    # Profile not found
+    available = sorted(set(config.profiles.keys()) | set(builtin.keys()))
+    raise KeyError(
+        f"Profile '{profile_name}' not found. "
+        f"Available profiles: {', '.join(available)}"
+    )
 
 
 def load_config(
     global_config_path: Path | None = None,
     project_config_path: Path | None = None,
     cli_overrides: dict[str, Any] | None = None,
+    profile_name: str | None = None,
 ) -> ConsoulConfig:
     """Load and merge configuration from all sources.
 
     Precedence order (lowest to highest):
-    1. Defaults (hardcoded)
+    1. Defaults (built-in profiles + default settings)
     2. Global config (~/.consoul/config.yaml)
     3. Project config (.consoul/config.yaml)
     4. CLI overrides (passed as argument)
@@ -201,6 +211,8 @@ def load_config(
         project_config_path: Optional path to project config file.
             If None, searches upward from cwd.
         cli_overrides: Optional dictionary of CLI argument overrides.
+        profile_name: Optional profile name to set as active.
+            If provided, sets active_profile after loading.
 
     Returns:
         Validated ConsoulConfig instance.
@@ -234,7 +246,11 @@ def load_config(
         cli_overrides or {},
     )
 
-    # 5. Validate with Pydantic and return
+    # 5. Set active profile if specified
+    if profile_name is not None:
+        merged["active_profile"] = profile_name
+
+    # 6. Validate with Pydantic and return
     return ConsoulConfig(**merged)
 
 

@@ -1,0 +1,145 @@
+"""Built-in configuration profiles for Consoul.
+
+This module provides predefined profiles optimized for different use cases,
+making it easy to switch between configurations for different tasks.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from consoul.config.models import ConsoulConfig
+
+
+def get_builtin_profiles() -> dict[str, dict[str, Any]]:
+    """Get all built-in configuration profiles.
+
+    Returns:
+        Dictionary mapping profile names to their configuration dictionaries.
+    """
+    return {
+        "default": {
+            "name": "default",
+            "description": "Default profile with balanced settings for general use",
+            "model": {
+                "provider": "anthropic",
+                "model": "claude-3-5-sonnet-20241022",
+                "temperature": 1.0,
+            },
+            "conversation": {
+                "save_history": True,
+                "history_file": str(Path.home() / ".consoul" / "history.json"),
+                "max_history_length": 100,
+                "auto_save": True,
+            },
+            "context": {
+                "max_context_tokens": 4096,
+                "include_system_info": True,
+                "include_git_info": True,
+                "custom_context_files": [],
+            },
+        },
+        "code-review": {
+            "name": "code-review",
+            "description": "Focused profile for code review with low temperature",
+            "model": {
+                "provider": "openai",
+                "model": "gpt-4o",
+                "temperature": 0.3,
+            },
+            "conversation": {
+                "save_history": True,
+                "history_file": str(Path.home() / ".consoul" / "history-code.json"),
+                "max_history_length": 50,
+                "auto_save": True,
+            },
+            "context": {
+                "max_context_tokens": 8192,
+                "include_system_info": True,
+                "include_git_info": True,
+                "custom_context_files": [],
+            },
+        },
+        "creative": {
+            "name": "creative",
+            "description": "Creative profile with high temperature for brainstorming",
+            "model": {
+                "provider": "anthropic",
+                "model": "claude-3-5-sonnet-20241022",
+                "temperature": 1.5,
+            },
+            "conversation": {
+                "save_history": True,
+                "history_file": str(Path.home() / ".consoul" / "history-creative.json"),
+                "max_history_length": 150,
+                "auto_save": True,
+            },
+            "context": {
+                "max_context_tokens": 4096,
+                "include_system_info": False,
+                "include_git_info": False,
+                "custom_context_files": [],
+            },
+        },
+        "fast": {
+            "name": "fast",
+            "description": "Fast local profile using Ollama for quick responses",
+            "model": {
+                "provider": "ollama",
+                "model": "llama3",
+                "temperature": 1.0,
+            },
+            "conversation": {
+                "save_history": True,
+                "history_file": str(Path.home() / ".consoul" / "history-fast.json"),
+                "max_history_length": 50,
+                "auto_save": True,
+            },
+            "context": {
+                "max_context_tokens": 2048,
+                "include_system_info": True,
+                "include_git_info": True,
+                "custom_context_files": [],
+            },
+        },
+    }
+
+
+def list_available_profiles(config: ConsoulConfig) -> list[str]:
+    """List all available profile names (built-in + custom).
+
+    Args:
+        config: ConsoulConfig instance to check for custom profiles.
+
+    Returns:
+        Sorted list of profile names.
+    """
+    builtin = set(get_builtin_profiles().keys())
+    custom = set(config.profiles.keys())
+    return sorted(builtin | custom)
+
+
+def get_profile_description(profile_name: str, config: ConsoulConfig) -> str:
+    """Get description for a profile.
+
+    Args:
+        profile_name: Name of the profile.
+        config: ConsoulConfig instance to check for custom profiles.
+
+    Returns:
+        Profile description string.
+    """
+    # Check custom profiles first
+    if profile_name in config.profiles:
+        return config.profiles[profile_name].description
+
+    # Fall back to built-in profiles
+    builtin = get_builtin_profiles()
+    if profile_name in builtin:
+        desc = builtin[profile_name].get("description", "Unknown profile")
+        assert isinstance(desc, str)  # Type guard for mypy
+        return desc
+
+    return "Unknown profile"
