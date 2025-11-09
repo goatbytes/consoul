@@ -41,16 +41,19 @@ MODEL_TOKEN_LIMITS: dict[str, int] = {
     "gpt-3.5-turbo": 16_385,
     "o1-preview": 128_000,
     "o1-mini": 128_000,
-    # Anthropic models
-    "claude-3-5-sonnet-20241022": 200_000,
+    # Anthropic models - Claude 4 (Sonnet 4.5 with 1M context via beta)
+    "claude-sonnet-4-5": 200_000,  # Default 200K, 1M with beta flag
+    "claude-sonnet-4": 1_000_000,  # 1M context window (Aug 2025)
+    # Anthropic models - Claude 3.5
     "claude-3-5-sonnet": 200_000,
-    "claude-3-opus-20240229": 200_000,
+    # Anthropic models - Claude 3
     "claude-3-opus": 200_000,
-    "claude-3-sonnet-20240229": 200_000,
     "claude-3-sonnet": 200_000,
-    "claude-3-haiku-20240307": 200_000,
     "claude-3-haiku": 200_000,
-    # Google models
+    # Google models - Gemini 2.5 (2025)
+    "gemini-2.5-pro": 1_000_000,  # 1M context (2M in testing)
+    "gemini-2.5-flash": 1_000_000,  # 1M context window
+    # Google models - Gemini 1.5
     "gemini-1.5-pro": 2_000_000,
     "gemini-1.5-flash": 1_000_000,
     "gemini-pro": 32_000,

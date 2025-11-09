@@ -25,12 +25,26 @@ class TestModelTokenLimits:
 
     def test_get_known_anthropic_model_limit(self):
         """Test getting token limit for known Anthropic models."""
+        # Claude 4
+        assert get_model_token_limit("claude-sonnet-4-5") == 200_000
+        assert get_model_token_limit("claude-sonnet-4") == 1_000_000
+        # Claude 3.5
         assert get_model_token_limit("claude-3-5-sonnet-20241022") == 200_000
+        assert get_model_token_limit("claude-3-5-sonnet") == 200_000
+        # Claude 3
         assert get_model_token_limit("claude-3-opus") == 200_000
+        assert get_model_token_limit("claude-3-sonnet") == 200_000
+        assert get_model_token_limit("claude-3-haiku") == 200_000
 
     def test_get_known_google_model_limit(self):
         """Test getting token limit for known Google models."""
+        # Gemini 2.5
+        assert get_model_token_limit("gemini-2.5-pro") == 1_000_000
+        assert get_model_token_limit("gemini-2.5-flash") == 1_000_000
+        # Gemini 1.5
         assert get_model_token_limit("gemini-1.5-pro") == 2_000_000
+        assert get_model_token_limit("gemini-1.5-flash") == 1_000_000
+        # Gemini 1.0
         assert get_model_token_limit("gemini-pro") == 32_000
 
     def test_get_unknown_model_returns_default(self):
@@ -40,10 +54,14 @@ class TestModelTokenLimits:
 
     def test_get_model_with_version_suffix(self):
         """Test partial matching for models with version suffixes."""
-        # Should match "gpt-4o" prefix
+        # OpenAI versioned models
         assert get_model_token_limit("gpt-4o-2024-08-06") == 128_000
-        # Should match "claude-3-5-sonnet" prefix
-        assert get_model_token_limit("claude-3-5-sonnet-custom") == 200_000
+        # Anthropic versioned models (from examples/README.md)
+        assert get_model_token_limit("claude-sonnet-4-5-20250929") == 200_000
+        assert get_model_token_limit("claude-3-5-sonnet-20241022") == 200_000
+        assert get_model_token_limit("claude-3-opus-20240229") == 200_000
+        assert get_model_token_limit("claude-3-sonnet-20240229") == 200_000
+        assert get_model_token_limit("claude-3-haiku-20240307") == 200_000
 
 
 class TestTokenCounterCreation:
