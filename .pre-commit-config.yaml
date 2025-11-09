@@ -29,4 +29,5 @@ repos:
         additional_dependencies:
           - types-setuptools
           - pydantic>=2.0
+          - types-pyyaml
         files: ^src/
