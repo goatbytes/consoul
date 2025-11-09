@@ -389,3 +389,162 @@ class TestConversationHistoryBackwardCompatibility:
 
         history.clear(preserve_system=False)
         assert len(history) == 0
+
+
+class TestSummarizationErrorHandling:
+    """Tests for error handling in summarization."""
+
+    @patch("consoul.ai.history.create_token_counter")
+    def test_llm_invoke_failure_falls_back_to_standard_trimming(
+        self, mock_create_counter
+    ):
+        """Test that LLM failure during summarization falls back gracefully."""
+        mock_counter = MagicMock(return_value=100)
+        mock_create_counter.return_value = mock_counter
+
+        mock_model = MagicMock()
+        mock_model.get_num_tokens_from_messages.return_value = 100
+
+        # Make LLM invoke raise an exception
+        mock_model.invoke.side_effect = Exception("LLM API Error")
+
+        history = ConversationHistory(
+            "gpt-4o",
+            model=mock_model,
+            persist=False,
+            summarize=True,
+            summarize_threshold=5,
+            keep_recent=2,
+        )
+
+        # Add messages to trigger summarization
+        for i in range(10):
+            history.add_user_message(f"Message {i}")
+
+        with patch("consoul.ai.history.trim_messages") as mock_trim:
+            mock_trim.return_value = history.messages.copy()
+
+            with patch("consoul.ai.history.logger") as mock_logger:
+                result = history.get_trimmed_messages()
+
+                # Should fall back to standard trimming
+                mock_trim.assert_called_once()
+
+                # Should log the error
+                assert mock_logger.error.called or mock_logger.warning.called
+
+                # Should return messages
+                assert len(result) > 0
+
+    @patch("consoul.ai.history.create_token_counter")
+    def test_llm_returns_empty_content_handled_gracefully(self, mock_create_counter):
+        """Test that empty LLM response doesn't break summarization."""
+        mock_counter = MagicMock(return_value=100)
+        mock_create_counter.return_value = mock_counter
+
+        mock_model = MagicMock()
+        mock_model.get_num_tokens_from_messages.return_value = 100
+
+        # Make LLM return empty content
+        mock_response = MagicMock()
+        mock_response.content = ""
+        mock_model.invoke.return_value = mock_response
+
+        history = ConversationHistory(
+            "gpt-4o",
+            model=mock_model,
+            persist=False,
+            summarize=True,
+            summarize_threshold=5,
+            keep_recent=2,
+        )
+
+        # Add messages
+        for i in range(10):
+            history.add_user_message(f"Message {i}")
+
+        result = history.get_trimmed_messages()
+
+        # Should still work - empty summary is valid
+        assert len(result) >= 2  # At least keep_recent messages
+
+    @patch("consoul.ai.history.create_token_counter")
+    def test_llm_returns_none_content_handled(self, mock_create_counter):
+        """Test that None content from LLM is handled."""
+        mock_counter = MagicMock(return_value=100)
+        mock_create_counter.return_value = mock_counter
+
+        mock_model = MagicMock()
+        mock_model.get_num_tokens_from_messages.return_value = 100
+
+        # Make LLM return None content
+        mock_response = MagicMock()
+        mock_response.content = None
+        mock_model.invoke.return_value = mock_response
+
+        history = ConversationHistory(
+            "gpt-4o",
+            model=mock_model,
+            persist=False,
+            summarize=True,
+            summarize_threshold=5,
+            keep_recent=2,
+        )
+
+        for i in range(10):
+            history.add_user_message(f"Message {i}")
+
+        with patch("consoul.ai.history.trim_messages") as mock_trim:
+            mock_trim.return_value = history.messages.copy()
+
+            # This might raise AttributeError on None.strip()
+            # Should fall back to standard trimming
+            result = history.get_trimmed_messages()
+            assert len(result) > 0
+
+    @patch("consoul.ai.history.create_token_counter")
+    def test_database_save_summary_failure_doesnt_break_summarization(
+        self, mock_create_counter
+    ):
+        """Test that database failures during summary save don't break flow."""
+        mock_counter = MagicMock(return_value=100)
+        mock_create_counter.return_value = mock_counter
+
+        mock_model = MagicMock()
+        mock_model.get_num_tokens_from_messages.return_value = 100
+
+        mock_response = MagicMock()
+        mock_response.content = "Valid summary"
+        mock_model.invoke.return_value = mock_response
+
+        # Mock database that fails on save_summary
+        mock_db = MagicMock()
+        mock_db.save_summary.side_effect = Exception("Database error")
+
+        history = ConversationHistory(
+            "gpt-4o",
+            model=mock_model,
+            persist=True,
+            summarize=True,
+            summarize_threshold=5,
+            keep_recent=2,
+        )
+
+        # Inject failing database
+        history._db = mock_db
+        history.session_id = "test-session"
+
+        for i in range(10):
+            history.add_user_message(f"Message {i}")
+
+        with patch("consoul.ai.history.logger") as mock_logger:
+            result = history.get_trimmed_messages()
+
+            # Should still return summarized messages
+            assert len(result) >= 2
+
+            # Should log warning about db failure
+            assert mock_logger.warning.called
+
+            # Summary should still be in memory
+            assert history.conversation_summary == "Valid summary"
