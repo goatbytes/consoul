@@ -167,6 +167,79 @@ class TestBuildModelParams:
         assert params["top_p"] == 0.95
         assert params["top_k"] == 40
 
+    def test_build_params_anthropic_with_thinking(self):
+        """Test building Anthropic parameters with thinking."""
+        thinking_config = {"type": "enabled", "budget_tokens": 2000}
+        config = AnthropicModelConfig(
+            model="claude-sonnet-4-5-20250929",
+            temperature=0.7,
+            thinking=thinking_config,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "claude-sonnet-4-5-20250929"
+        assert params["temperature"] == 0.7
+        assert params["thinking"] == thinking_config
+
+    def test_build_params_anthropic_with_betas(self):
+        """Test building Anthropic parameters with betas."""
+        betas = ["files-api-2025-04-14", "token-efficient-tools-2025-02-19"]
+        config = AnthropicModelConfig(
+            model="claude-3-5-sonnet-20241022",
+            temperature=0.8,
+            betas=betas,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "claude-3-5-sonnet-20241022"
+        assert params["temperature"] == 0.8
+        assert params["betas"] == betas
+
+    def test_build_params_anthropic_with_metadata(self):
+        """Test building Anthropic parameters with metadata."""
+        metadata = {"user_id": "test-user", "session_id": "abc123"}
+        config = AnthropicModelConfig(
+            model="claude-3-opus-20240229",
+            temperature=0.9,
+            metadata=metadata,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "claude-3-opus-20240229"
+        assert params["temperature"] == 0.9
+        assert params["metadata"] == metadata
+
+    def test_build_params_anthropic_all_exclusive_params(self):
+        """Test building Anthropic parameters with all exclusive parameters."""
+        thinking_config = {"type": "enabled", "budget_tokens": 5000}
+        betas = ["files-api-2025-04-14"]
+        metadata = {"user_id": "test-user"}
+
+        config = AnthropicModelConfig(
+            model="claude-sonnet-4-5-20250929",
+            temperature=0.8,
+            max_tokens=4096,
+            top_p=0.95,
+            top_k=40,
+            thinking=thinking_config,
+            betas=betas,
+            metadata=metadata,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "claude-sonnet-4-5-20250929"
+        assert params["temperature"] == 0.8
+        assert params["max_tokens"] == 4096
+        assert params["top_p"] == 0.95
+        assert params["top_k"] == 40
+        assert params["thinking"] == thinking_config
+        assert params["betas"] == betas
+        assert params["metadata"] == metadata
+
     def test_build_params_google(self):
         """Test building parameters for Google model."""
         config = GoogleModelConfig(
@@ -838,6 +911,101 @@ class TestGetChatModel:
         assert "response_format" not in call_kwargs
         assert "frequency_penalty" not in call_kwargs
         assert "presence_penalty" not in call_kwargs
+
+
+class TestAnthropicProvider:
+    """Tests for Anthropic Claude provider support."""
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_anthropic_with_thinking(self, mock_init):
+        """Test Anthropic model with thinking parameter."""
+        thinking_config = {"type": "enabled", "budget_tokens": 2000}
+        config = AnthropicModelConfig(
+            model="claude-sonnet-4-5-20250929",
+            temperature=0.8,
+            thinking=thinking_config,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config, api_key=SecretStr("test-key"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["thinking"] == thinking_config
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_anthropic_with_betas(self, mock_init):
+        """Test Anthropic model with betas parameter."""
+        betas = ["files-api-2025-04-14", "token-efficient-tools-2025-02-19"]
+        config = AnthropicModelConfig(
+            model="claude-3-5-sonnet-20241022",
+            temperature=0.7,
+            betas=betas,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config, api_key=SecretStr("test-key"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["betas"] == betas
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_anthropic_with_metadata(self, mock_init):
+        """Test Anthropic model with metadata parameter."""
+        metadata = {"user_id": "test-user", "session_id": "abc123"}
+        config = AnthropicModelConfig(
+            model="claude-3-opus-20240229",
+            temperature=0.9,
+            metadata=metadata,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config, api_key=SecretStr("test-key"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["metadata"] == metadata
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_anthropic_with_all_exclusive_params(self, mock_init):
+        """Test Anthropic model with all exclusive parameters."""
+        thinking_config = {"type": "enabled", "budget_tokens": 5000}
+        betas = ["files-api-2025-04-14"]
+        metadata = {"user_id": "test-user"}
+
+        config = AnthropicModelConfig(
+            model="claude-sonnet-4-5-20250929",
+            temperature=0.8,
+            max_tokens=4096,
+            top_p=0.95,
+            top_k=40,
+            thinking=thinking_config,
+            betas=betas,
+            metadata=metadata,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config, api_key=SecretStr("test-key"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["model"] == "claude-sonnet-4-5-20250929"
+        assert call_kwargs["temperature"] == 0.8
+        assert call_kwargs["max_tokens"] == 4096
+        assert call_kwargs["top_p"] == 0.95
+        assert call_kwargs["top_k"] == 40
+        assert call_kwargs["thinking"] == thinking_config
+        assert call_kwargs["betas"] == betas
+        assert call_kwargs["metadata"] == metadata
 
 
 class TestOllamaProvider:

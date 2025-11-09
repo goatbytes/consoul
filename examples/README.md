@@ -101,12 +101,87 @@ export OPENAI_API_KEY=your-key-here
 ```
 Or add to `.env` file in project root or `~/.consoul/`
 
-### Anthropic
+### Anthropic Claude
 Set your API key:
 ```bash
 export ANTHROPIC_API_KEY=your-key-here
 ```
 Or add to `.env` file in project root or `~/.consoul/`
+
+**Getting an API key:**
+1. Visit [Anthropic Console](https://console.anthropic.com/)
+2. Sign in or create an account
+3. Navigate to API Keys section
+4. Create a new API key
+5. Copy the key and set it as shown above
+
+**Supported models:**
+- `claude-sonnet-4-5-20250929` - Latest Claude 4 Sonnet (most capable)
+- `claude-3-5-sonnet-20241022` - Claude 3.5 Sonnet (highly capable)
+- `claude-3-opus-20240229` - Claude 3 Opus (best for complex tasks)
+- `claude-3-sonnet-20240229` - Claude 3 Sonnet (balanced performance)
+- `claude-3-haiku-20240307` - Claude 3 Haiku (fast and efficient)
+
+**Example usage:**
+```bash
+# Use latest Claude model
+python examples/interactive_chat.py --model claude-sonnet-4-5-20250929
+
+# Use Claude 3.5 Sonnet with higher temperature
+python examples/interactive_chat.py --model claude-3-5-sonnet-20241022 --temperature 0.9
+```
+
+**Anthropic-specific configuration:**
+
+Claude supports advanced features like extended thinking, experimental beta features, and metadata tracking. Configure these in your YAML profile:
+
+```yaml
+profiles:
+  thinking_mode:
+    model:
+      provider: anthropic
+      model: claude-sonnet-4-5-20250929
+      temperature: 0.7
+      max_tokens: 4096
+      thinking:
+        type: enabled
+        budget_tokens: 2000
+
+  experimental_features:
+    model:
+      provider: anthropic
+      model: claude-3-5-sonnet-20241022
+      temperature: 0.8
+      betas:
+        - files-api-2025-04-14
+        - token-efficient-tools-2025-02-19
+
+  tracked_session:
+    model:
+      provider: anthropic
+      model: claude-3-opus-20240229
+      temperature: 0.9
+      metadata:
+        user_id: user-123
+        session_id: session-abc
+```
+
+**Advanced Features:**
+
+**Extended Thinking:**
+- Enables Claude to show its step-by-step reasoning process
+- `budget_tokens`: Controls how many tokens can be used for thinking
+- Useful for complex problem-solving and transparent reasoning
+
+**Beta Features:**
+- `files-api-2025-04-14`: Enhanced file handling capabilities
+- `token-efficient-tools-2025-02-19`: Optimized tool usage
+- `context-management-2025-06-27`: Advanced context window management
+
+**Metadata:**
+- Add custom metadata for run tracing and analytics
+- Track user sessions, request origins, or custom identifiers
+- Useful for debugging and monitoring
 
 ### Google Gemini
 Set your API key:

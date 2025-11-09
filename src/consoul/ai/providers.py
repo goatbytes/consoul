@@ -178,6 +178,12 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
             params["top_p"] = model_config.top_p
         if model_config.top_k is not None:
             params["top_k"] = model_config.top_k
+        if model_config.thinking is not None:
+            params["thinking"] = model_config.thinking
+        if model_config.betas is not None:
+            params["betas"] = model_config.betas
+        if model_config.metadata is not None:
+            params["metadata"] = model_config.metadata
 
     elif isinstance(model_config, GoogleModelConfig):
         if model_config.top_p is not None:

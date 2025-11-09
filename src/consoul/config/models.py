@@ -122,6 +122,18 @@ class AnthropicModelConfig(BaseModelConfig):
         gt=0,
         description="Top-k sampling parameter (Anthropic-specific)",
     )
+    thinking: dict[str, Any] | None = Field(
+        default=None,
+        description="Extended thinking configuration (type, budget_tokens)",
+    )
+    betas: list[str] | None = Field(
+        default=None,
+        description="Experimental features (e.g., files-api-2025-04-14, token-efficient-tools-2025-02-19)",
+    )
+    metadata: dict[str, Any] | None = Field(
+        default=None,
+        description="Metadata for run tracing",
+    )
 
 
 class GoogleModelConfig(BaseModelConfig):
