@@ -6,13 +6,12 @@ configuration from multiple sources with clear precedence rules.
 
 from __future__ import annotations
 
-import contextlib
-import os
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from consoul.config.env import load_env_settings
 from consoul.config.models import ConsoulConfig, ProfileConfig
 from consoul.config.profiles import get_builtin_profiles
 
@@ -150,42 +149,50 @@ def merge_configs(*configs: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def load_env_config() -> dict[str, Any]:
-    """Load configuration from CONSOUL_* environment variables.
+def load_env_config(env_settings: Any | None = None) -> dict[str, Any]:
+    """Load configuration from CONSOUL_* environment variables and .env files.
 
-    Supports the following environment variables:
-    - CONSOUL_ACTIVE_PROFILE: Set active profile
-    - CONSOUL_MODEL: Override model name
-    - CONSOUL_TEMPERATURE: Override temperature (float)
-    - CONSOUL_MAX_TOKENS: Override max tokens (int)
-    - CONSOUL_PROVIDER: Override provider
+    This function converts EnvSettings into config dict format for merging.
+    Supports both environment variables and .env file values.
+
+    Args:
+        env_settings: Optional EnvSettings instance. If None, loads fresh settings.
 
     Returns:
-        Configuration dictionary parsed from environment variables.
+        Configuration dictionary parsed from environment variables and .env files.
     """
+    if env_settings is None:
+        env_settings = load_env_settings()
+
     env_config: dict[str, Any] = {}
 
-    # Active profile
-    if active_profile := os.getenv("CONSOUL_ACTIVE_PROFILE"):
-        env_config["active_profile"] = active_profile
+    # Active profile (CONSOUL_PROFILE)
+    if env_settings.consoul_profile:
+        env_config["active_profile"] = env_settings.consoul_profile
 
     # Model configuration overrides
     model_overrides: dict[str, Any] = {}
-    if provider := os.getenv("CONSOUL_PROVIDER"):
-        model_overrides["provider"] = provider
-    if model := os.getenv("CONSOUL_MODEL"):
-        model_overrides["model"] = model
-    if temperature := os.getenv("CONSOUL_TEMPERATURE"):
-        with contextlib.suppress(ValueError):
-            model_overrides["temperature"] = float(temperature)
-    if max_tokens := os.getenv("CONSOUL_MAX_TOKENS"):
-        with contextlib.suppress(ValueError):
-            model_overrides["max_tokens"] = int(max_tokens)
+    if env_settings.consoul_model_provider:
+        model_overrides["provider"] = env_settings.consoul_model_provider
+    if env_settings.consoul_model_name:
+        model_overrides["model"] = env_settings.consoul_model_name
+    if env_settings.consoul_temperature is not None:
+        model_overrides["temperature"] = env_settings.consoul_temperature
+    if env_settings.consoul_max_tokens is not None:
+        model_overrides["max_tokens"] = env_settings.consoul_max_tokens
 
     # If we have model overrides, we need to apply them to the active profile
     # This requires knowing the active profile, which we'll handle in load_config
     if model_overrides:
         env_config["_model_overrides"] = model_overrides
+
+    # Conversation overrides
+    conversation_overrides: dict[str, Any] = {}
+    if env_settings.consoul_history_file:
+        conversation_overrides["history_file"] = env_settings.consoul_history_file
+
+    if conversation_overrides:
+        env_config["_conversation_overrides"] = conversation_overrides
 
     return env_config
 
@@ -275,14 +282,22 @@ def load_config(
         if project_config_path is None:
             project_config_path = found_project
 
-    # 3. Load each config source
+    # 3. Load environment settings (shared for both config and API keys)
+    env_settings = load_env_settings()
+
+    # Warn if .env file exists but not in .gitignore
+    from consoul.utils.security import warn_if_env_not_ignored
+
+    warn_if_env_not_ignored()
+
+    # 4. Load each config source
     global_config = load_yaml_config(global_config_path) if global_config_path else {}
     project_config = (
         load_yaml_config(project_config_path) if project_config_path else {}
     )
-    env_config = load_env_config()
+    env_config = load_env_config(env_settings)
 
-    # 4. Determine active profile from precedence chain
+    # 5. Determine active profile from precedence chain
     active = (
         profile_name  # CLI has highest precedence
         or env_config.get("active_profile")
@@ -291,15 +306,24 @@ def load_config(
         or default_config.get("active_profile", "default")
     )
 
-    # 5. Apply model overrides from env vars to the active profile
+    # 6. Apply model and conversation overrides from env vars to the active profile
     env_overrides: dict[str, Any] = {}
+    profile_overrides: dict[str, Any] = {}
+
     if "_model_overrides" in env_config:
         model_overrides = env_config.pop("_model_overrides")
-        env_overrides = {"profiles": {active: {"model": model_overrides}}}
+        profile_overrides["model"] = model_overrides
+
+    if "_conversation_overrides" in env_config:
+        conversation_overrides = env_config.pop("_conversation_overrides")
+        profile_overrides["conversation"] = conversation_overrides
+
+    if profile_overrides:
+        env_overrides = {"profiles": {active: profile_overrides}}
         if "active_profile" not in env_config:
             env_overrides["active_profile"] = active
 
-    # 6. Merge in precedence order
+    # 7. Merge in precedence order
     merged = merge_configs(
         default_config,
         global_config,
@@ -309,12 +333,15 @@ def load_config(
         cli_overrides or {},
     )
 
-    # 7. Set active profile if specified via CLI (highest precedence)
+    # 8. Set active profile if specified via CLI (highest precedence)
     if profile_name is not None:
         merged["active_profile"] = profile_name
 
-    # 8. Validate with Pydantic and return
-    return ConsoulConfig(**merged)
+    # 9. Validate with Pydantic and attach env_settings (already loaded)
+    config = ConsoulConfig(**merged)
+    config.env_settings = env_settings
+
+    return config
 
 
 def save_config(

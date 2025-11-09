@@ -47,8 +47,32 @@ def cli(
     max_tokens: int | None,
 ) -> None:
     """Consoul - AI-powered conversational CLI tool."""
-    # Load configuration
-    config = load_config(profile_name=profile)
+    # Build CLI overrides BEFORE loading config
+    cli_overrides: dict[str, Any] = {}
+    if temperature is not None or model is not None or max_tokens is not None:
+        model_overrides: dict[str, Any] = {}
+        if temperature is not None:
+            model_overrides["temperature"] = temperature
+        if model is not None:
+            model_overrides["model"] = model
+        if max_tokens is not None:
+            model_overrides["max_tokens"] = max_tokens
+
+        # We need to determine the active profile to apply overrides
+        # Profile name from CLI has highest precedence, otherwise we need to load config first
+        # to know the active profile from files/env vars
+        if profile != "default":
+            # CLI specified a profile, use it
+            active_profile_name = profile
+        else:
+            # Need to load config to determine active profile
+            temp_config = load_config()
+            active_profile_name = temp_config.active_profile
+
+        cli_overrides = {"profiles": {active_profile_name: {"model": model_overrides}}}
+
+    # Load configuration with CLI overrides applied
+    config = load_config(profile_name=profile, cli_overrides=cli_overrides)
 
     # Handle --list-profiles
     if list_profiles:
@@ -62,21 +86,6 @@ def cli(
             click.echo(f"  {profile_name}{marker}{active}")
             click.echo(f"    {description}")
         ctx.exit(0)
-
-    # Build CLI overrides
-    cli_overrides: dict[str, Any] = {}
-    if temperature is not None or model is not None or max_tokens is not None:
-        model_overrides: dict[str, Any] = {}
-        if temperature is not None:
-            model_overrides["temperature"] = temperature
-        if model is not None:
-            model_overrides["model"] = model
-        if max_tokens is not None:
-            model_overrides["max_tokens"] = max_tokens
-
-        # Apply overrides to active profile's model config
-        active_profile_name = config.active_profile
-        cli_overrides = {"profiles": {active_profile_name: {"model": model_overrides}}}
 
     # Store in context for subcommands
     ctx.ensure_object(dict)

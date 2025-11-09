@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -19,6 +19,11 @@ from pydantic import (
     model_serializer,
     model_validator,
 )
+
+if TYPE_CHECKING:
+    from consoul.config.env import EnvSettings
+else:
+    EnvSettings = Any  # type: ignore[misc,assignment]
 
 
 class Provider(str, Enum):
@@ -289,6 +294,7 @@ class ConsoulConfig(BaseModel):
     model_config = ConfigDict(
         extra="forbid",  # Reject unknown fields to catch typos and enforce schema
         validate_assignment=True,
+        arbitrary_types_allowed=True,  # Allow EnvSettings type
     )
 
     profiles: dict[str, ProfileConfig] = Field(
@@ -301,6 +307,11 @@ class ConsoulConfig(BaseModel):
     api_keys: dict[str, SecretStr] = Field(
         default_factory=dict,
         description="API keys for providers (runtime only, never serialized)",
+    )
+    env_settings: EnvSettings | None = Field(
+        default=None,
+        exclude=True,
+        description="Environment settings for lazy API key loading",
     )
     global_settings: dict[str, Any] = Field(
         default_factory=dict,
@@ -347,3 +358,22 @@ class ConsoulConfig(BaseModel):
             KeyError: If the active profile doesn't exist.
         """
         return self.profiles[self.active_profile]
+
+    def get_api_key(self, provider: Provider) -> SecretStr | None:
+        """Get API key for a provider with lazy loading from environment.
+
+        Args:
+            provider: The provider to get the API key for.
+
+        Returns:
+            SecretStr containing the API key, or None if not found.
+        """
+        from consoul.config.env import EnvSettings as RealEnvSettings
+        from consoul.config.env import get_api_key
+
+        return get_api_key(
+            provider,
+            self.env_settings
+            if isinstance(self.env_settings, RealEnvSettings)
+            else None,
+        )

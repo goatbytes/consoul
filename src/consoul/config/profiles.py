@@ -45,8 +45,8 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
             "name": "code-review",
             "description": "Focused profile for code review with low temperature",
             "model": {
-                "provider": "openai",
-                "model": "gpt-4o",
+                "provider": "anthropic",
+                "model": "claude-3-5-sonnet-20241022",
                 "temperature": 0.3,
             },
             "conversation": {
@@ -85,10 +85,10 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
         },
         "fast": {
             "name": "fast",
-            "description": "Fast local profile using Ollama for quick responses",
+            "description": "Fast profile using Claude 3.5 Haiku for quick responses",
             "model": {
-                "provider": "ollama",
-                "model": "llama3",
+                "provider": "anthropic",
+                "model": "claude-3-5-haiku-20241022",
                 "temperature": 1.0,
             },
             "conversation": {

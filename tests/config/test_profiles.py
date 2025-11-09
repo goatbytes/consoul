@@ -8,8 +8,6 @@ from pydantic import ValidationError
 from consoul.config.loader import load_config, load_profile
 from consoul.config.models import (
     AnthropicModelConfig,
-    OllamaModelConfig,
-    OpenAIModelConfig,
     ProfileConfig,
     Provider,
 )
@@ -54,8 +52,8 @@ class TestGetBuiltinProfiles:
 
         assert code_review["name"] == "code-review"
         assert "description" in code_review
-        assert code_review["model"]["provider"] == "openai"
-        assert code_review["model"]["model"] == "gpt-4o"
+        assert code_review["model"]["provider"] == "anthropic"
+        assert code_review["model"]["model"] == "claude-3-5-sonnet-20241022"
         assert code_review["model"]["temperature"] == 0.3
 
     def test_creative_profile_structure(self):
@@ -75,8 +73,8 @@ class TestGetBuiltinProfiles:
 
         assert fast["name"] == "fast"
         assert "description" in fast
-        assert fast["model"]["provider"] == "ollama"
-        assert fast["model"]["model"] == "llama3"
+        assert fast["model"]["provider"] == "anthropic"
+        assert fast["model"]["model"] == "claude-3-5-haiku-20241022"
 
     def test_all_profiles_validate(self):
         """Test that all built-in profiles validate correctly."""
@@ -250,8 +248,8 @@ profiles:
     name: my-profile
     description: Custom profile
     model:
-      provider: openai
-      model: gpt-4o
+      provider: anthropic
+      model: claude-3-5-sonnet-20241022
       temperature: 0.5
 active_profile: default
 """
@@ -262,7 +260,7 @@ active_profile: default
         profile = load_profile("my-profile", config)
 
         assert profile.name == "my-profile"
-        assert isinstance(profile.model, OpenAIModelConfig)
+        assert isinstance(profile.model, AnthropicModelConfig)
         assert profile.model.temperature == 0.5
 
     def test_custom_overrides_builtin(
@@ -280,8 +278,8 @@ profiles:
     name: default
     description: Overridden default
     model:
-      provider: openai
-      model: gpt-3.5-turbo
+      provider: anthropic
+      model: claude-3-opus-20240229
       temperature: 0.8
 active_profile: default
 """
@@ -292,8 +290,8 @@ active_profile: default
         profile = load_profile("default", config)
 
         # Should get custom profile, not built-in
-        assert isinstance(profile.model, OpenAIModelConfig)
-        assert profile.model.model == "gpt-3.5-turbo"
+        assert isinstance(profile.model, AnthropicModelConfig)
+        assert profile.model.model == "claude-3-opus-20240229"
         assert profile.model.temperature == 0.8
 
     def test_nonexistent_profile_raises_key_error(self):
@@ -364,13 +362,13 @@ class TestProfileProviderTypes:
         assert isinstance(profile.model, AnthropicModelConfig)
         assert profile.model.provider == Provider.ANTHROPIC
 
-    def test_code_review_uses_openai_config(self):
-        """Test that code-review profile uses OpenAIModelConfig."""
+    def test_code_review_uses_anthropic_config(self):
+        """Test that code-review profile uses AnthropicModelConfig."""
         config = load_config(profile_name="code-review")
         profile = config.get_active_profile()
 
-        assert isinstance(profile.model, OpenAIModelConfig)
-        assert profile.model.provider == Provider.OPENAI
+        assert isinstance(profile.model, AnthropicModelConfig)
+        assert profile.model.provider == Provider.ANTHROPIC
 
     def test_creative_uses_anthropic_config(self):
         """Test that creative profile uses AnthropicModelConfig."""
@@ -380,10 +378,10 @@ class TestProfileProviderTypes:
         assert isinstance(profile.model, AnthropicModelConfig)
         assert profile.model.provider == Provider.ANTHROPIC
 
-    def test_fast_uses_ollama_config(self):
-        """Test that fast profile uses OllamaModelConfig."""
+    def test_fast_uses_anthropic_config(self):
+        """Test that fast profile uses AnthropicModelConfig."""
         config = load_config(profile_name="fast")
         profile = config.get_active_profile()
 
-        assert isinstance(profile.model, OllamaModelConfig)
-        assert profile.model.provider == Provider.OLLAMA
+        assert isinstance(profile.model, AnthropicModelConfig)
+        assert profile.model.provider == Provider.ANTHROPIC
