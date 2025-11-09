@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-11-08T16:29:13.720160",
+  "updated_at": "2025-11-08T16:29:13.720169",
+  "id": "SOUL-26",
+  "uuid": "2ff72254-bec6-4b6d-ac7e-399d996e6725",
+  "title": "Implement conversation history and context management",
+  "description": "## User Story\nAs a Consoul user, I want my conversations with AI to maintain context so that I can have multi-turn discussions without repeating information.\n\n## Description\nImplement conversation history and context management using LangChain's message history utilities and token counting. Maintain conversation context across multiple interactions, manage token limits with intelligent message trimming, and optionally persist conversations to SQLite for session recovery.\n\n## Technical Notes\n- **File**: `src/consoul/ai/history.py`, `src/consoul/ai/context.py`\n- **LangChain Docs**: https://python.langchain.com/docs/concepts/messages/\n- **Token Counting**: tiktoken (OpenAI tokenizer)\n- **Message Types**: SystemMessage, HumanMessage, AIMessage\n- Use `trim_messages` for automatic context window management\n- Store message history in memory (default) or SQLite (optional)\n- Track token counts per provider\n- Implement smart trimming (preserve system message + recent context)\n\n## Acceptance Criteria\n- **Given** multiple conversation turns\n- **When** sending a new message\n- **Then** previous context is included in the prompt\n\n- **Given** conversation approaching token limit\n- **When** trimming is triggered\n- **Then** system message is preserved and oldest messages are removed\n\n- **Given** token count exceeds model's context window\n- **When** preparing messages\n- **Then** messages are trimmed to fit within limits\n\n- **Given** optional persistence enabled\n- **When** conversation ends\n- **Then** history is saved to SQLite for later recovery\n\n- **Given** a new conversation session\n- **When** user loads previous conversation\n- **Then** full history is restored\n\n## Testing Considerations\n- Mock token counting (tiktoken)\n- Test message trimming with various token limits\n- Verify system message preservation\n- Test SQLite persistence (create, read, update)\n- Test memory-only mode\n- Mock different provider token limits\n- Test conversation recovery\n\n## Implementation Hints\n```python\nfrom langchain_core.messages import SystemMessage, HumanMessage, AIMessage, trim_messages\nimport tiktoken\n\nclass ConversationHistory:\n    def __init__(self, model: str, max_tokens: int = 4000):\n        self.messages = []\n        self.model = model\n        self.max_tokens = max_tokens\n        self.tokenizer = tiktoken.encoding_for_model(model)\n    \n    def add_message(self, role: str, content: str):\n        \"\"\"Add message to history.\"\"\"\n        if role == \"system\":\n            msg = SystemMessage(content=content)\n        elif role == \"user\":\n            msg = HumanMessage(content=content)\n        else:\n            msg = AIMessage(content=content)\n        \n        self.messages.append(msg)\n    \n    def get_trimmed_messages(self):\n        \"\"\"Get messages trimmed to fit token limit.\"\"\"\n        return trim_messages(\n            self.messages,\n            max_tokens=self.max_tokens,\n            strategy=\"last\",\n            token_counter=self.tokenizer,\n            include_system=True\n        )\n    \n    def count_tokens(self) -> int:\n        \"\"\"Count total tokens in conversation.\"\"\"\n        text = \" \".join(msg.content for msg in self.messages)\n        return len(self.tokenizer.encode(text))\n```\n\n## Dependencies\n- SOUL-20 (provider initialization)\n- SOUL-25 (streaming support)\n\n## Story Points\n8 - Complex feature with token counting, trimming, and persistence",
+  "status": "todo",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "ai",
+    "context",
+    "history",
+    "memory"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-002",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {}
+}
