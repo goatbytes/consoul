@@ -502,3 +502,340 @@ class TestErrorHandling:
         # Both messages should be saved
         assert len(db1.load_conversation(session1)) == 1
         assert len(db2.load_conversation(session2)) == 1
+
+
+class TestFullTextSearch:
+    """Tests for FTS5 full-text search functionality."""
+
+    def test_search_basic_query(self, tmp_path):
+        """Test basic single-term search."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        db.save_message(session_id, "user", "I found an authentication bug", 10)
+        db.save_message(session_id, "assistant", "Let me help fix that bug", 10)
+        db.save_message(session_id, "user", "The feature works great now", 10)
+
+        results = db.search_messages("bug")
+
+        assert len(results) == 2
+        assert all("bug" in r["content"].lower() for r in results)
+
+    def test_search_phrase_query(self, tmp_path):
+        """Test phrase search with exact matching."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        db.save_message(session_id, "user", "token limit exceeded", 5)
+        db.save_message(session_id, "user", "token limits are fine", 5)
+        db.save_message(session_id, "user", "limit exceeded again", 5)
+
+        # Exact phrase should match only first message
+        results = db.search_messages('"token limit exceeded"')
+
+        assert len(results) == 1
+        assert results[0]["content"] == "token limit exceeded"
+
+    def test_search_prefix_matching(self, tmp_path):
+        """Test prefix search with wildcard."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        db.save_message(session_id, "user", "authentication failed", 5)
+        db.save_message(session_id, "user", "authorize user access", 5)
+        db.save_message(session_id, "user", "testing features", 5)
+
+        results = db.search_messages("auth*")
+
+        assert len(results) == 2
+        contents = [r["content"] for r in results]
+        assert any("authentication" in c for c in contents)
+        assert any("authorize" in c for c in contents)
+
+    def test_search_multiple_terms(self, tmp_path):
+        """Test multi-term search (implicit AND)."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        db.save_message(session_id, "user", "API error occurred", 5)
+        db.save_message(session_id, "user", "fixing the API", 5)
+        db.save_message(session_id, "user", "error in database", 5)
+
+        results = db.search_messages("API error")
+
+        # Should match messages with both terms
+        assert len(results) >= 1
+        assert results[0]["content"] == "API error occurred"
+
+    def test_search_with_model_filter(self, tmp_path):
+        """Test filtering search results by model."""
+        db = ConversationDatabase(tmp_path / "test.db")
+
+        session_gpt = db.create_conversation("gpt-4o")
+        session_claude = db.create_conversation("claude-3-5-sonnet")
+
+        db.save_message(session_gpt, "user", "testing gpt model", 5)
+        db.save_message(session_claude, "user", "testing claude model", 5)
+
+        # Search with model filter
+        results = db.search_messages("testing", model_filter="gpt-4o")
+
+        assert len(results) == 1
+        assert results[0]["model"] == "gpt-4o"
+
+    def test_search_with_date_filter(self, tmp_path):
+        """Test filtering search results by date."""
+        db = ConversationDatabase(tmp_path / "test.db")
+
+        session1 = db.create_conversation("gpt-4o")
+        db.save_message(session1, "user", "message one", 5)
+
+        # Create another conversation (will have later timestamp)
+        session2 = db.create_conversation("gpt-4o")
+        db.save_message(session2, "user", "message two", 5)
+
+        # Get conversation metadata to extract dates
+        import sqlite3
+
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT created_at FROM conversations WHERE session_id = ?",
+                (session1,),
+            )
+            date1 = cursor.fetchone()[0]
+
+        # Search with date filter
+        results = db.search_messages("message", after_date=date1)
+
+        assert len(results) == 2  # Both after date1
+
+    def test_search_with_limit(self, tmp_path):
+        """Test limiting search results."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        for i in range(10):
+            db.save_message(session_id, "user", f"test message {i}", 5)
+
+        results = db.search_messages("test", limit=3)
+
+        assert len(results) == 3
+
+    def test_search_ranking(self, tmp_path):
+        """Test BM25 relevance ranking."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        # Message with term repeated should rank higher
+        db.save_message(session_id, "user", "bug bug bug found", 5)
+        db.save_message(session_id, "user", "small bug here", 5)
+
+        results = db.search_messages("bug")
+
+        # First result should have higher (more negative) rank due to more matches
+        assert len(results) == 2
+        assert results[0]["rank"] < results[1]["rank"]
+
+    def test_search_snippet_generation(self, tmp_path):
+        """Test that search generates highlighted snippets."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        db.save_message(
+            session_id,
+            "user",
+            "I found a critical authentication bug in the login system that needs fixing",
+            20,
+        )
+
+        results = db.search_messages("authentication")
+
+        assert len(results) == 1
+        assert "<mark>" in results[0]["snippet"]
+        assert "</mark>" in results[0]["snippet"]
+        assert "authentication" in results[0]["snippet"].lower()
+
+    def test_search_empty_results(self, tmp_path):
+        """Test search with no matching results."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        db.save_message(session_id, "user", "hello world", 5)
+
+        results = db.search_messages("nonexistent")
+
+        assert len(results) == 0
+
+    def test_search_unicode_content(self, tmp_path):
+        """Test search with Unicode characters."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        db.save_message(session_id, "user", "Hello 你好 Привет مرحبا", 10)
+        db.save_message(session_id, "user", "testing unicode 你好", 10)
+
+        results = db.search_messages("你好")
+
+        assert len(results) == 2
+
+    def test_search_special_characters(self, tmp_path):
+        """Test search with special characters."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        db.save_message(session_id, "user", "Error: file not found!", 5)
+        db.save_message(session_id, "user", "Warning: timeout occurred", 5)
+
+        results = db.search_messages("Error")
+
+        assert len(results) == 1
+        assert "Error" in results[0]["content"]
+
+    def test_get_message_context_basic(self, tmp_path):
+        """Test getting message context."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        msg_ids = []
+        for i in range(5):
+            msg_id = db.save_message(session_id, "user", f"Message {i}", 5)
+            msg_ids.append(msg_id)
+
+        # Get context around middle message
+        context = db.get_message_context(msg_ids[2], context_size=1)
+
+        # Should get 3 messages: msg[1], msg[2], msg[3]
+        assert len(context) == 3
+        assert context[1]["id"] == msg_ids[2]
+        assert "Message 1" in context[0]["content"]
+        assert "Message 3" in context[2]["content"]
+
+    def test_get_message_context_edge_cases(self, tmp_path):
+        """Test message context at conversation boundaries."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        msg_ids = []
+        for i in range(3):
+            msg_id = db.save_message(session_id, "user", f"Message {i}", 5)
+            msg_ids.append(msg_id)
+
+        # First message: should only get messages from start
+        context = db.get_message_context(msg_ids[0], context_size=2)
+        assert len(context) <= 3  # Max 3 messages available
+
+        # Last message: should only get messages to end
+        context = db.get_message_context(msg_ids[-1], context_size=2)
+        assert len(context) <= 3
+
+    def test_get_message_context_invalid_id(self, tmp_path):
+        """Test getting context for non-existent message."""
+        db = ConversationDatabase(tmp_path / "test.db")
+
+        context = db.get_message_context(99999, context_size=2)
+
+        assert len(context) == 0
+
+    def test_fts_triggers_on_update(self, tmp_path):
+        """Test that FTS index updates when messages are updated."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        msg_id = db.save_message(session_id, "user", "original text", 5)
+
+        # Update message content directly in database
+        import sqlite3
+
+        with sqlite3.connect(db.db_path) as conn:
+            conn.execute(
+                "UPDATE messages SET content = ? WHERE id = ?",
+                ("updated text", msg_id),
+            )
+
+        # Search should find updated content
+        results = db.search_messages("updated")
+        assert len(results) == 1
+
+        # Search should not find old content
+        results = db.search_messages("original")
+        assert len(results) == 0
+
+    def test_fts_triggers_on_delete(self, tmp_path):
+        """Test that FTS index updates when messages are deleted."""
+        db = ConversationDatabase(tmp_path / "test.db")
+        session_id = db.create_conversation("gpt-4o")
+
+        db.save_message(session_id, "user", "searchable text", 5)
+
+        # Delete conversation (CASCADE should delete messages and FTS entries)
+        db.delete_conversation(session_id)
+
+        # Search should return no results
+        results = db.search_messages("searchable")
+        assert len(results) == 0
+
+    def test_search_across_multiple_conversations(self, tmp_path):
+        """Test searching across different conversations."""
+        db = ConversationDatabase(tmp_path / "test.db")
+
+        session1 = db.create_conversation("gpt-4o")
+        session2 = db.create_conversation("claude-3-5-sonnet")
+        session3 = db.create_conversation("gpt-4o")
+
+        db.save_message(session1, "user", "authentication issue", 5)
+        db.save_message(session2, "user", "authentication problem", 5)
+        db.save_message(session3, "user", "different topic", 5)
+
+        results = db.search_messages("authentication")
+
+        assert len(results) == 2
+        session_ids = {r["session_id"] for r in results}
+        assert session1 in session_ids
+        assert session2 in session_ids
+
+    def test_migration_backfills_existing_messages(self, tmp_path):
+        """Test that v2->v3 migration backfills FTS index."""
+        import sqlite3
+
+        db_path = tmp_path / "test.db"
+
+        # Create v2 database manually
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.executescript("""
+                CREATE TABLE schema_version (version INTEGER PRIMARY KEY);
+                INSERT INTO schema_version VALUES (2);
+
+                CREATE TABLE conversations (
+                    id TEXT PRIMARY KEY,
+                    session_id TEXT UNIQUE NOT NULL,
+                    model TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    metadata TEXT DEFAULT '{}',
+                    summary TEXT DEFAULT NULL
+                );
+
+                CREATE TABLE messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    conversation_id TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    tokens INTEGER,
+                    timestamp TEXT NOT NULL,
+                    FOREIGN KEY (conversation_id) REFERENCES conversations(session_id)
+                );
+
+                INSERT INTO conversations VALUES
+                    ('test-id', 'test-session', 'gpt-4o', '2025-01-01', '2025-01-01', '{}', NULL);
+                INSERT INTO messages VALUES
+                    (1, 'test-session', 'user', 'searchable content', 5, '2025-01-01');
+            """)
+
+        # Open with ConversationDatabase (should trigger migration)
+        db = ConversationDatabase(db_path)
+
+        # Search should work on pre-existing data
+        results = db.search_messages("searchable")
+        assert len(results) == 1
+        assert results[0]["content"] == "searchable content"

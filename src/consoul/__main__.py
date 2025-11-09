@@ -275,6 +275,158 @@ def summary_history(session_id: str, db_path: Path | None) -> None:
         sys.exit(1)
 
 
+@history.command("search")  # type: ignore[misc]
+@click.argument("query")  # type: ignore[misc]
+@click.option(  # type: ignore[misc]
+    "--limit",
+    "-n",
+    type=int,
+    default=20,
+    help="Maximum number of results to return (default: 20)",
+)
+@click.option(  # type: ignore[misc]
+    "--model",
+    help="Filter results by model name",
+)
+@click.option(  # type: ignore[misc]
+    "--after",
+    help="Filter results after this date (ISO format: YYYY-MM-DD)",
+)
+@click.option(  # type: ignore[misc]
+    "--before",
+    help="Filter results before this date (ISO format: YYYY-MM-DD)",
+)
+@click.option(  # type: ignore[misc]
+    "--context",
+    "-c",
+    type=int,
+    default=2,
+    help="Number of surrounding messages to show (default: 2)",
+)
+@click.option(  # type: ignore[misc]
+    "--format",
+    "-f",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+    default="text",
+    help="Output format (default: text)",
+)
+@click.option(  # type: ignore[misc]
+    "--db-path",
+    type=click.Path(path_type=Path),
+    help="Path to history database (default: ~/.consoul/history.db)",
+)
+def search_history(
+    query: str,
+    limit: int,
+    model: str | None,
+    after: str | None,
+    before: str | None,
+    context: int,
+    format: str,
+    db_path: Path | None,
+) -> None:
+    """Search conversation history using full-text search.
+
+    Query supports FTS5 syntax:
+      - Basic: 'authentication bug'
+      - Phrase: '"token limit exceeded"'
+      - Prefix: 'auth*'
+      - Boolean: 'bug AND NOT feature'
+
+    Examples:
+      consoul history search "authentication error"
+      consoul history search '"token limit"' --model gpt-4o
+      consoul history search "bug" --after 2025-01-01 --limit 10
+    """
+    import json
+
+    from consoul.ai.database import ConversationDatabase, DatabaseError
+
+    try:
+        db = ConversationDatabase(db_path or "~/.consoul/history.db")
+        results = db.search_messages(
+            query=query,
+            limit=limit,
+            model_filter=model,
+            after_date=after,
+            before_date=before,
+        )
+
+        if not results:
+            click.echo(f"No results found for: {query}")
+            return
+
+        if format == "json":
+            # JSON output
+            output = {
+                "query": query,
+                "total_results": len(results),
+                "results": results,
+            }
+            click.echo(json.dumps(output, indent=2))
+        else:
+            # Text output
+            click.echo(f"\nFound {len(results)} result(s) for: {query}\n")
+
+            for i, result in enumerate(results, 1):
+                click.echo("=" * 70)
+                click.echo(
+                    f"#{i} | Session: {result['session_id']} | Model: {result['model']}"
+                )
+                click.echo(f"    Timestamp: {result['timestamp']}")
+                click.echo("-" * 70)
+
+                # Show context if requested
+                if context > 0:
+                    try:
+                        context_msgs = db.get_message_context(result["id"], context)
+                        for msg in context_msgs:
+                            role_label = msg["role"].upper()
+                            is_match = msg["id"] == result["id"]
+                            prefix = ">>> " if is_match else "    "
+                            click.echo(f"{prefix}{role_label}:")
+
+                            # Show snippet for matched message, full content for context
+                            content = (
+                                result["snippet"]
+                                .replace("<mark>", "**")
+                                .replace("</mark>", "**")
+                                if is_match
+                                else msg["content"][:200]
+                            )
+                            click.echo(f"{prefix}{content}")
+                            click.echo()
+                    except DatabaseError:
+                        # Fallback to just showing the match
+                        click.echo(f">>> {result['role'].upper()}:")
+                        snippet = (
+                            result["snippet"]
+                            .replace("<mark>", "**")
+                            .replace("</mark>", "**")
+                        )
+                        click.echo(f">>> {snippet}")
+                        click.echo()
+                else:
+                    # Just show the snippet
+                    click.echo(f">>> {result['role'].upper()}:")
+                    snippet = (
+                        result["snippet"]
+                        .replace("<mark>", "**")
+                        .replace("</mark>", "**")
+                    )
+                    click.echo(f">>> {snippet}")
+                    click.echo()
+
+                click.echo(
+                    f"[View full conversation: consoul history show {result['session_id']}]"
+                )
+                click.echo()
+
+    except DatabaseError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
 @history.command("delete")  # type: ignore[misc]
 @click.argument("session_id")  # type: ignore[misc]
 @click.option(  # type: ignore[misc]

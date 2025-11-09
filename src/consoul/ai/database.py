@@ -60,7 +60,7 @@ class ConversationDatabase:
         >>> conversations = db.list_conversations(limit=10)
     """
 
-    SCHEMA_VERSION = 2  # Updated for conversation summary support
+    SCHEMA_VERSION = 3  # Updated for full-text search support
 
     def __init__(self, db_path: Path | str = "~/.consoul/history.db"):
         """Initialize database connection and schema.
@@ -124,6 +124,32 @@ class ConversationDatabase:
                     ON conversations(session_id);
                 CREATE INDEX IF NOT EXISTS idx_conversations_updated
                     ON conversations(updated_at DESC);
+
+                -- FTS5 virtual table for full-text search
+                CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+                    message_id UNINDEXED,
+                    conversation_id UNINDEXED,
+                    role,
+                    content,
+                    timestamp UNINDEXED,
+                    tokenize = 'porter unicode61'
+                );
+
+                -- Triggers to keep FTS index in sync with messages table
+                CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN
+                    INSERT INTO messages_fts(message_id, conversation_id, role, content, timestamp)
+                    VALUES (new.id, new.conversation_id, new.role, new.content, new.timestamp);
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN
+                    DELETE FROM messages_fts WHERE message_id = old.id;
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS messages_au AFTER UPDATE ON messages BEGIN
+                    UPDATE messages_fts
+                    SET role = new.role, content = new.content
+                    WHERE message_id = old.id;
+                END;
             """)
 
             # Check and run migrations
@@ -163,6 +189,30 @@ class ConversationDatabase:
                     )
             except sqlite3.OperationalError:
                 # Column might already exist, ignore
+                pass
+
+        # Migration from v2 to v3: Add FTS5 search support
+        if from_version < 3:
+            try:
+                # Check if FTS table is already populated
+                cursor = conn.execute("SELECT COUNT(*) FROM messages_fts")
+                fts_count = cursor.fetchone()[0]
+
+                # Only backfill if FTS is empty but messages exist
+                if fts_count == 0:
+                    cursor = conn.execute("SELECT COUNT(*) FROM messages")
+                    msg_count = cursor.fetchone()[0]
+
+                    if msg_count > 0:
+                        # Backfill existing messages into FTS index
+                        conn.execute("""
+                            INSERT INTO messages_fts(message_id, conversation_id, role, content, timestamp)
+                            SELECT id, conversation_id, role, content, timestamp
+                            FROM messages
+                        """)
+            except sqlite3.OperationalError:
+                # FTS table might not exist yet or error in backfill
+                # The table will be created by _init_schema, triggers will handle new messages
                 pass
 
     def create_conversation(
@@ -209,7 +259,7 @@ class ConversationDatabase:
 
     def save_message(
         self, session_id: str, role: str, content: str, tokens: int | None = None
-    ) -> None:
+    ) -> int:
         """Save a message to a conversation.
 
         Args:
@@ -218,6 +268,9 @@ class ConversationDatabase:
             content: Message content
             tokens: Optional token count for this message
 
+        Returns:
+            The ID of the inserted message
+
         Raises:
             ConversationNotFoundError: If session_id doesn't exist
             DatabaseError: If save operation fails
@@ -225,7 +278,9 @@ class ConversationDatabase:
         Example:
             >>> db = ConversationDatabase()
             >>> session_id = db.create_conversation("gpt-4o")
-            >>> db.save_message(session_id, "user", "Hello!", 5)
+            >>> msg_id = db.save_message(session_id, "user", "Hello!", 5)
+            >>> msg_id > 0
+            True
         """
         now = datetime.utcnow().isoformat()
 
@@ -241,17 +296,22 @@ class ConversationDatabase:
                     )
 
                 # Insert message
-                conn.execute(
+                cursor = conn.execute(
                     "INSERT INTO messages (conversation_id, role, content, tokens, timestamp) "
                     "VALUES (?, ?, ?, ?, ?)",
                     (session_id, role, content, tokens, now),
                 )
+                message_id = cursor.lastrowid
+                if message_id is None:
+                    raise DatabaseError("Failed to get inserted message ID")
 
                 # Update conversation updated_at
                 conn.execute(
                     "UPDATE conversations SET updated_at = ? WHERE session_id = ?",
                     (now, session_id),
                 )
+
+                return message_id
         except ConversationNotFoundError:
             raise
         except Exception as e:
@@ -374,11 +434,151 @@ class ConversationDatabase:
                     raise ConversationNotFoundError(
                         f"Conversation not found: {session_id}"
                     )
-                return row[0]
+                summary: str | None = row[0]
+                return summary
         except ConversationNotFoundError:
             raise
         except Exception as e:
             raise DatabaseError(f"Failed to load summary: {e}") from e
+
+    def search_messages(
+        self,
+        query: str,
+        limit: int = 20,
+        model_filter: str | None = None,
+        after_date: str | None = None,
+        before_date: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Full-text search across all conversation messages.
+
+        Uses SQLite FTS5 for efficient searching with BM25 ranking.
+        Supports FTS5 query syntax including phrase queries, boolean operators,
+        and prefix matching.
+
+        Args:
+            query: FTS5 search query (e.g., "bug", "auth*", '"exact phrase"')
+            limit: Maximum number of results to return (default: 20)
+            model_filter: Filter results by model name (default: None)
+            after_date: Filter results after this date (ISO format, default: None)
+            before_date: Filter results before this date (ISO format, default: None)
+
+        Returns:
+            List of message dicts with keys: id, conversation_id, session_id,
+            model, role, content, timestamp, snippet, rank
+
+        Raises:
+            DatabaseError: If search operation fails
+
+        Example:
+            >>> db = ConversationDatabase()
+            >>> session_id = db.create_conversation("gpt-4o")
+            >>> db.save_message(session_id, "user", "authentication bug", 3)
+            >>> results = db.search_messages("auth*")
+            >>> len(results) >= 1
+            True
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+
+                sql = """
+                    SELECT
+                        m.id,
+                        m.conversation_id,
+                        c.session_id,
+                        c.model,
+                        m.role,
+                        m.content,
+                        m.timestamp,
+                        snippet(messages_fts, 3, '<mark>', '</mark>', '...', 30) as snippet,
+                        bm25(messages_fts) as rank
+                    FROM messages_fts fts
+                    JOIN messages m ON fts.message_id = m.id
+                    JOIN conversations c ON m.conversation_id = c.session_id
+                    WHERE messages_fts MATCH ?
+                """
+
+                params: list[Any] = [query]
+
+                if model_filter:
+                    sql += " AND c.model = ?"
+                    params.append(model_filter)
+
+                if after_date:
+                    sql += " AND c.created_at >= ?"
+                    params.append(after_date)
+
+                if before_date:
+                    sql += " AND c.created_at <= ?"
+                    params.append(before_date)
+
+                sql += " ORDER BY rank LIMIT ?"
+                params.append(limit)
+
+                cursor = conn.execute(sql, params)
+                return [dict(row) for row in cursor.fetchall()]
+
+        except Exception as e:
+            raise DatabaseError(f"Search failed: {e}") from e
+
+    def get_message_context(
+        self, message_id: int, context_size: int = 2
+    ) -> list[dict[str, Any]]:
+        """Get surrounding messages for context around a specific message.
+
+        Args:
+            message_id: ID of the message to get context for
+            context_size: Number of messages before and after (default: 2)
+
+        Returns:
+            List of message dicts with keys: id, role, content, timestamp
+            Returns empty list if message not found
+
+        Raises:
+            DatabaseError: If context retrieval fails
+
+        Example:
+            >>> db = ConversationDatabase()
+            >>> session_id = db.create_conversation("gpt-4o")
+            >>> msg_id = db.save_message(session_id, "user", "Hello", 1)
+            >>> db.save_message(session_id, "assistant", "Hi there", 2)
+            >>> context = db.get_message_context(msg_id, context_size=1)
+            >>> len(context) >= 1
+            True
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+
+                # Get the target message's conversation
+                target = conn.execute(
+                    "SELECT conversation_id, id FROM messages WHERE id = ?",
+                    (message_id,),
+                ).fetchone()
+
+                if not target:
+                    return []
+
+                # Get context window (messages before and after)
+                cursor = conn.execute(
+                    """
+                    SELECT id, role, content, timestamp
+                    FROM messages
+                    WHERE conversation_id = ?
+                      AND id BETWEEN ? AND ?
+                    ORDER BY id
+                """,
+                    (
+                        target["conversation_id"],
+                        message_id - context_size,
+                        message_id + context_size,
+                    ),
+                )
+
+                return [dict(row) for row in cursor.fetchall()]
+
+        except Exception as e:
+            raise DatabaseError(f"Failed to get message context: {e}") from e
 
     def list_conversations(
         self, limit: int = 50, offset: int = 0
