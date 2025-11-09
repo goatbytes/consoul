@@ -93,6 +93,18 @@ class OpenAIModelConfig(BaseModelConfig):
         le=2.0,
         description="Presence penalty (-2.0 to 2.0)",
     )
+    seed: int | None = Field(
+        default=None,
+        description="Seed for deterministic sampling (beta feature)",
+    )
+    logit_bias: dict[str, float] | None = Field(
+        default=None,
+        description="Modify likelihood of specific tokens appearing",
+    )
+    response_format: dict[str, Any] | None = Field(
+        default=None,
+        description="Response format (e.g., {'type': 'json_object'} or {'type': 'json_schema', 'json_schema': {...}})",
+    )
 
 
 class AnthropicModelConfig(BaseModelConfig):

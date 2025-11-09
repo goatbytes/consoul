@@ -147,6 +147,12 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
             params["frequency_penalty"] = model_config.frequency_penalty
         if model_config.presence_penalty is not None:
             params["presence_penalty"] = model_config.presence_penalty
+        if model_config.seed is not None:
+            params["seed"] = model_config.seed
+        if model_config.logit_bias is not None:
+            params["logit_bias"] = model_config.logit_bias
+        if model_config.response_format is not None:
+            params["response_format"] = model_config.response_format
 
     elif isinstance(
         model_config, (AnthropicModelConfig, GoogleModelConfig, OllamaModelConfig)
@@ -246,6 +252,16 @@ def get_chat_model(
         max_tokens = kwargs.pop("max_tokens", None)
         stop_sequences = kwargs.pop("stop_sequences", None)
 
+        # Extract provider-specific parameters to prevent them from leaking to other providers
+        # These will only be used if the provider supports them
+        top_p = kwargs.pop("top_p", None)
+        top_k = kwargs.pop("top_k", None)
+        frequency_penalty = kwargs.pop("frequency_penalty", None)
+        presence_penalty = kwargs.pop("presence_penalty", None)
+        seed = kwargs.pop("seed", None)
+        logit_bias = kwargs.pop("logit_bias", None)
+        response_format = kwargs.pop("response_format", None)
+
         # Build appropriate config based on provider
         if provider == Provider.OPENAI:
             model_config = OpenAIModelConfig(
@@ -253,9 +269,12 @@ def get_chat_model(
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stop_sequences=stop_sequences,
-                top_p=kwargs.pop("top_p", None),
-                frequency_penalty=kwargs.pop("frequency_penalty", None),
-                presence_penalty=kwargs.pop("presence_penalty", None),
+                top_p=top_p,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
+                seed=seed,
+                logit_bias=logit_bias,
+                response_format=response_format,
             )
         elif provider == Provider.ANTHROPIC:
             model_config = AnthropicModelConfig(
@@ -263,8 +282,8 @@ def get_chat_model(
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stop_sequences=stop_sequences,
-                top_p=kwargs.pop("top_p", None),
-                top_k=kwargs.pop("top_k", None),
+                top_p=top_p,
+                top_k=top_k,
             )
         elif provider == Provider.GOOGLE:
             model_config = GoogleModelConfig(
@@ -272,8 +291,8 @@ def get_chat_model(
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stop_sequences=stop_sequences,
-                top_p=kwargs.pop("top_p", None),
-                top_k=kwargs.pop("top_k", None),
+                top_p=top_p,
+                top_k=top_k,
             )
         elif provider == Provider.OLLAMA:
             model_config = OllamaModelConfig(
@@ -281,8 +300,8 @@ def get_chat_model(
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stop_sequences=stop_sequences,
-                top_p=kwargs.pop("top_p", None),
-                top_k=kwargs.pop("top_k", None),
+                top_p=top_p,
+                top_k=top_k,
             )
 
     provider = model_config.provider

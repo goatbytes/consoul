@@ -197,6 +197,74 @@ class TestBuildModelParams:
         assert params["top_p"] == 0.9
         assert params["top_k"] == 40
 
+    def test_build_params_openai_with_seed(self):
+        """Test building parameters for OpenAI model with seed."""
+        config = OpenAIModelConfig(
+            model="gpt-4o",
+            temperature=0.7,
+            seed=42,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "gpt-4o"
+        assert params["temperature"] == 0.7
+        assert params["seed"] == 42
+
+    def test_build_params_openai_with_logit_bias(self):
+        """Test building parameters for OpenAI model with logit_bias."""
+        config = OpenAIModelConfig(
+            model="gpt-4o",
+            temperature=0.7,
+            logit_bias={"50256": -100},
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "gpt-4o"
+        assert params["logit_bias"] == {"50256": -100}
+
+    def test_build_params_openai_with_response_format(self):
+        """Test building parameters for OpenAI model with response_format."""
+        config = OpenAIModelConfig(
+            model="gpt-4o",
+            temperature=0.7,
+            response_format={"type": "json_object"},
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "gpt-4o"
+        assert params["response_format"] == {"type": "json_object"}
+
+    def test_build_params_openai_all_new_features(self):
+        """Test building parameters with all new OpenAI features."""
+        config = OpenAIModelConfig(
+            model="gpt-4o",
+            temperature=0.8,
+            max_tokens=2048,
+            top_p=0.9,
+            frequency_penalty=0.5,
+            presence_penalty=0.3,
+            seed=42,
+            logit_bias={"50256": -100},
+            response_format={"type": "json_object"},
+            stop_sequences=["END"],
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "gpt-4o"
+        assert params["temperature"] == 0.8
+        assert params["max_tokens"] == 2048
+        assert params["top_p"] == 0.9
+        assert params["frequency_penalty"] == 0.5
+        assert params["presence_penalty"] == 0.3
+        assert params["seed"] == 42
+        assert params["logit_bias"] == {"50256": -100}
+        assert params["response_format"] == {"type": "json_object"}
+        assert params["stop"] == ["END"]
+
 
 class TestGetChatModel:
     """Tests for get_chat_model function."""
@@ -524,3 +592,173 @@ class TestGetChatModel:
         assert call_kwargs["frequency_penalty"] == 0.5
         assert call_kwargs["presence_penalty"] == 0.3
         assert call_kwargs["stop"] == ["END"]
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_openai_with_seed(self, mock_init):
+        """Test OpenAI model with seed parameter for reproducibility."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        config = OpenAIModelConfig(
+            model="gpt-4o",
+            temperature=0.7,
+            seed=42,
+        )
+
+        result = get_chat_model(config, api_key=SecretStr("sk-test"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["seed"] == 42
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_openai_with_logit_bias(self, mock_init):
+        """Test OpenAI model with logit_bias parameter."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        logit_bias = {"50256": -100}  # Suppress <|endoftext|> token
+        config = OpenAIModelConfig(
+            model="gpt-4o",
+            temperature=0.7,
+            logit_bias=logit_bias,
+        )
+
+        result = get_chat_model(config, api_key=SecretStr("sk-test"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["logit_bias"] == logit_bias
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_openai_with_response_format(self, mock_init):
+        """Test OpenAI model with response_format for JSON mode."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        response_format = {"type": "json_object"}
+        config = OpenAIModelConfig(
+            model="gpt-4o",
+            temperature=0.7,
+            response_format=response_format,
+        )
+
+        result = get_chat_model(config, api_key=SecretStr("sk-test"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["response_format"] == response_format
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_string_with_new_openai_params(self, mock_init):
+        """Test string mode with new OpenAI parameters."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(
+            "gpt-4o",
+            api_key=SecretStr("sk-test"),
+            seed=123,
+            logit_bias={"100": 10},
+            response_format={"type": "json_object"},
+        )
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["seed"] == 123
+        assert call_kwargs["logit_bias"] == {"100": 10}
+        assert call_kwargs["response_format"] == {"type": "json_object"}
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_openai_all_new_params(self, mock_init):
+        """Test OpenAI model with all new parameters combined."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        config = OpenAIModelConfig(
+            model="gpt-4o",
+            temperature=0.8,
+            max_tokens=1024,
+            seed=42,
+            logit_bias={"50256": -100},
+            response_format={"type": "json_object"},
+            frequency_penalty=0.2,
+            presence_penalty=0.1,
+            top_p=0.95,
+        )
+
+        result = get_chat_model(config, api_key=SecretStr("sk-test"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["model"] == "gpt-4o"
+        assert call_kwargs["temperature"] == 0.8
+        assert call_kwargs["max_tokens"] == 1024
+        assert call_kwargs["seed"] == 42
+        assert call_kwargs["logit_bias"] == {"50256": -100}
+        assert call_kwargs["response_format"] == {"type": "json_object"}
+        assert call_kwargs["frequency_penalty"] == 0.2
+        assert call_kwargs["presence_penalty"] == 0.1
+        assert call_kwargs["top_p"] == 0.95
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_openai_with_nested_response_format(self, mock_init):
+        """Test OpenAI model with nested response_format for JSON schema mode."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        # Test nested structure for JSON schema mode
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "math_response",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "answer": {"type": "number"},
+                        "explanation": {"type": "string"},
+                    },
+                    "required": ["answer", "explanation"],
+                },
+            },
+        }
+
+        config = OpenAIModelConfig(
+            model="gpt-4o",
+            temperature=0.7,
+            response_format=response_format,
+        )
+
+        result = get_chat_model(config, api_key=SecretStr("sk-test"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["response_format"] == response_format
+        # Verify nested structure is preserved
+        assert call_kwargs["response_format"]["json_schema"]["name"] == "math_response"
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_openai_params_dont_leak_to_anthropic(self, mock_init):
+        """Test that OpenAI-specific params don't leak to other providers."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        # Try to use OpenAI-specific params with Anthropic model
+        result = get_chat_model(
+            "claude-3-5-sonnet-20241022",
+            api_key=SecretStr("sk-ant-test"),
+            seed=42,  # OpenAI-only
+            logit_bias={"100": 10},  # OpenAI-only
+            response_format={"type": "json_object"},  # OpenAI-only
+            frequency_penalty=0.5,  # OpenAI-only
+            presence_penalty=0.3,  # OpenAI-only
+        )
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        # These OpenAI-specific params should NOT appear in the call
+        assert "seed" not in call_kwargs
+        assert "logit_bias" not in call_kwargs
+        assert "response_format" not in call_kwargs
+        assert "frequency_penalty" not in call_kwargs
+        assert "presence_penalty" not in call_kwargs
