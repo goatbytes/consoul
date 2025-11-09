@@ -28,4 +28,5 @@ repos:
       - id: mypy
         additional_dependencies:
           - types-setuptools
+          - pydantic>=2.0
         files: ^src/

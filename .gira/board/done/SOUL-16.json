@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-08T16:23:23.724869",
-  "updated_at": "2025-11-08T16:23:23.724878",
+  "updated_at": "2025-11-08T16:47:40.520634",
   "id": "SOUL-16",
   "uuid": "dfac89d7-df92-4303-bee5-97864548d79e",
   "title": "Create Pydantic configuration models",
   "description": "# Create Pydantic Configuration Models\n\n## User Story\n**As a** developer\n**I want** strongly-typed configuration models using Pydantic v2\n**So that** configuration data is validated, type-safe, and easy to work with across the application\n\n## Description\nCreate comprehensive Pydantic models for all configuration aspects of Consoul using Pydantic v2's modern features. These models will serve as the foundation for the configuration system, providing type validation, default values, and clear structure.\n\n## Technical Notes\n\n### Models to Create\n\n**File: `consoul/config/models.py`**\n\n1. **ModelConfig**\n   - `provider`: Enum (openai, anthropic, google, ollama)\n   - `model`: str (model name/ID)\n   - `temperature`: float (0.0-2.0, default 1.0)\n   - `max_tokens`: Optional[int]\n   - `top_p`: Optional[float] (0.0-1.0)\n   - `top_k`: Optional[int] (for some providers)\n   - `frequency_penalty`: Optional[float] (-2.0 to 2.0)\n   - `presence_penalty`: Optional[float] (-2.0 to 2.0)\n   - `stop_sequences`: Optional[List[str]]\n   - Provider-specific fields with discriminated unions\n\n2. **ConversationConfig**\n   - `save_history`: bool (default True)\n   - `history_file`: Path (default ~/.consoul/history.json)\n   - `max_history_length`: int (default 100)\n   - `auto_save`: bool (default True)\n\n3. **ContextConfig**\n   - `max_context_tokens`: int (default 4096)\n   - `include_system_info`: bool (default True)\n   - `include_git_info`: bool (default True)\n   - `custom_context_files`: List[Path]\n\n4. **ProfileConfig**\n   - `name`: str\n   - `description`: str\n   - `model`: ModelConfig\n   - `conversation`: ConversationConfig\n   - `context`: ContextConfig\n\n5. **ConsoulConfig** (Root config)\n   - `profiles`: Dict[str, ProfileConfig]\n   - `active_profile`: str (default \"default\")\n   - `api_keys`: Dict[str, SecretStr] (runtime only, never serialized)\n   - `global_settings`: dict (for extensibility)\n\n### Pydantic v2 Features to Use\n\n- `ConfigDict` with validation settings\n- `Field()` for constraints and metadata\n- `field_validator` for custom validation\n- `model_validator` for cross-field validation\n- `SecretStr` for API keys\n- `computed_field` for derived values\n- Custom serializers to prevent API key serialization\n\n## Acceptance Criteria\n\n**Given** a developer needs to define configuration\n**When** they create a config dictionary\n**Then** Pydantic models validate all fields and types automatically\n\n**Given** invalid configuration data (wrong types, out-of-range values)\n**When** the model is instantiated\n**Then** Pydantic raises ValidationError with clear messages\n\n**Given** a ProfileConfig with nested ModelConfig\n**When** accessing configuration values\n**Then** all fields are properly typed and accessible\n\n**Given** API keys in configuration\n**When** serializing to JSON/YAML\n**Then** SecretStr fields are never included in output\n\n**Given** provider-specific parameters (e.g., top_k for Anthropic)\n**When** using different providers\n**Then** only relevant parameters are validated and used\n\n## Testing Considerations\n\n- Unit tests for each model with valid/invalid data\n- Test field validators and constraints\n- Test nested model validation\n- Test SecretStr serialization behavior\n- Test Enum validation for provider field\n- Test discriminated unions for provider-specific configs\n- Test default values and optional fields\n\n## Implementation Hints\n\n1. Use Pydantic v2 syntax throughout\n2. Define Provider as StrEnum for better type safety\n3. Use `Field(ge=0.0, le=2.0)` for temperature constraints\n4. Use `@field_validator` for complex validations\n5. Implement `model_serializer` to exclude SecretStr fields\n6. Consider using `ConfigDict(extra='forbid')` to catch typos\n7. Add `description` to Field() for auto-documentation\n\n## Files to Create/Modify\n\n- `consoul/config/__init__.py` - Module initialization\n- `consoul/config/models.py` - Pydantic models\n- `tests/config/test_models.py` - Model tests\n\n## Dependencies\n\n- `pydantic>=2.0` (already in requirements)\n- Python 3.11+ (for modern type hints)\n\n## References\n\n- [Pydantic v2 Models](https://docs.pydantic.dev/latest/concepts/models/)\n- [Pydantic v2 Fields](https://docs.pydantic.dev/latest/concepts/fields/)\n- [Pydantic v2 Validators](https://docs.pydantic.dev/latest/concepts/validators/)\n- [SecretStr Documentation](https://docs.pydantic.dev/latest/api/types/#pydantic.types.SecretStr)",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "high",
   "labels": [
@@ -17,10 +17,24 @@
   "epic_id": "EPIC-002",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-08T16:47:40.520494",
+      "updated_at": "2025-11-08T16:47:40.520495",
+      "id": "20251108164740-1e397210",
+      "ticket_id": "SOUL-16",
+      "author": "jared@goatbytes.io",
+      "content": "Implemented comprehensive Pydantic v2 configuration models with full test coverage.\n\n**Created Files:**\n- src/consoul/config/models.py - Complete Pydantic models\n- src/consoul/config/__init__.py - Module exports\n- tests/config/test_models.py - 31 comprehensive unit tests\n\n**Models Implemented:**\n\n1. **Provider (StrEnum)** - AI provider enumeration (openai, anthropic, google, ollama)\n\n2. **ModelConfig** - AI model parameters with:\n   - Provider selection with Enum validation\n   - Temperature (0.0-2.0), max_tokens, top_p (0.0-1.0)\n   - Penalties (frequency/presence: -2.0 to 2.0)\n   - Provider-specific validation (top_k for Anthropic, no penalties for Ollama)\n   - Stop sequences support\n   - Field validators for model name and provider-specific params\n\n3. **ConversationConfig** - Conversation management:\n   - save_history, auto_save flags\n   - history_file with path expansion (default ~/.consoul/history.json)\n   - max_history_length validation (>0)\n\n4. **ContextConfig** - Context management:\n   - max_context_tokens (>0, default 4096)\n   - include_system_info, include_git_info flags\n   - custom_context_files with path expansion\n\n5. **ProfileConfig** - Complete profile configuration:\n   - Profile name validation (alphanumeric, hyphens, underscores only)\n   - Name normalization to lowercase\n   - Nested ModelConfig, ConversationConfig, ContextConfig\n   - Description field\n\n6. **ConsoulConfig** - Root configuration:\n   - Dictionary of ProfileConfig instances\n   - active_profile validation (must exist in profiles)\n   - api_keys with SecretStr (never serialized to JSON)\n   - global_settings for extensibility\n   - get_active_profile() helper method\n   - Custom serializer to exclude API keys from output\n\n**Pydantic v2 Features Used:**\n- ConfigDict with extra='forbid' and validate_assignment\n- Field() with ge/le/gt constraints and descriptions\n- @field_validator for custom validation\n- @model_validator for cross-field validation\n- @model_serializer for secure API key handling\n- SecretStr for sensitive data\n- Path expansion for user paths\n\n**Test Coverage:**\n- 31 tests covering all models\n- Valid/invalid data validation\n- Field constraints and validators\n- Nested model validation\n- SecretStr serialization behavior\n- Provider-specific parameter validation\n- Path expansion and normalization\n- Coverage: 93.55% on models.py\n\nAll acceptance criteria met. Ready for SOUL-17 (YAML config loader).",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 5,
   "order": 0,
   "custom_fields": {}

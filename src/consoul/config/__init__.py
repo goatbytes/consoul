@@ -1,6 +1,22 @@
-"""Configuration management module.
+"""Configuration module for Consoul.
 
-Handles application configuration, user preferences, and provider settings.
+This module provides Pydantic models and utilities for managing Consoul configuration.
 """
 
-__all__ = []
+from consoul.config.models import (
+    ConsoulConfig,
+    ContextConfig,
+    ConversationConfig,
+    ModelConfig,
+    ProfileConfig,
+    Provider,
+)
+
+__all__ = [
+    "ConsoulConfig",
+    "ContextConfig",
+    "ConversationConfig",
+    "ModelConfig",
+    "ProfileConfig",
+    "Provider",
+]

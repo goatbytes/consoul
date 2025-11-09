@@ -233,6 +233,7 @@ module = [
     "langchain_openai.*",
     "langchain_anthropic.*",
     "langchain_google_genai.*",
+    "pydantic.*",
 ]
 ignore_missing_imports = true
 
