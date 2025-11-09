@@ -13,8 +13,8 @@ Usage:
     python examples/interactive_chat.py
     python examples/interactive_chat.py --model gpt-4o
     python examples/interactive_chat.py --profile creative
-    python examples/interactive_chat.py --resume SESSION_ID  # Resume a previous conversation
-    python examples/interactive_chat.py --no-persist  # Disable persistence (in-memory only)
+    python examples/interactive_chat.py --persist --resume SESSION_ID  # Resume a previous conversation
+    python examples/interactive_chat.py --persist  # Enable persistence (save to database)
 """
 
 from __future__ import annotations
@@ -96,7 +96,7 @@ def interactive_chat(
     profile_name: str | None = None,
     temperature: float | None = None,
     show_tokens: bool = False,
-    persist: bool = True,
+    persist: bool = False,
     resume_session: str | None = None,
     summarize: bool | None = None,
     summarize_threshold: int | None = None,
@@ -337,7 +337,7 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Use default profile with persistence (default)
+  # Basic usage (in-memory only, no persistence)
   python examples/interactive_chat.py
 
   # Use specific model with auto-detection
@@ -352,12 +352,12 @@ Examples:
   python examples/interactive_chat.py --temperature 0.9
   python examples/interactive_chat.py --model gpt-4o --temperature 0.5
 
-  # Resume a previous conversation
-  python examples/interactive_chat.py --resume abc123-def456-...
-  python examples/interactive_chat.py --model gpt-4o --resume abc123-def456-...
+  # Enable persistence (save to database)
+  python examples/interactive_chat.py --persist
 
-  # Disable persistence (in-memory only)
-  python examples/interactive_chat.py --no-persist
+  # Resume a previous conversation (requires --persist)
+  python examples/interactive_chat.py --persist --resume abc123-def456-...
+  python examples/interactive_chat.py --model gpt-4o --persist --resume abc123-def456-...
 
   # Enable conversation summarization (reduces token usage by 70-90%)
   python examples/interactive_chat.py --summarize
@@ -365,9 +365,9 @@ Examples:
   python examples/interactive_chat.py --summarize --summary-model gpt-4o-mini
 
 Persistence:
-  Conversations are automatically saved to ~/.consoul/history.db by default.
+  Optional SQLite storage. Use --persist to save conversations to ~/.consoul/history.db.
   Type 'session' in the chat to see the current session ID.
-  Use --resume SESSION_ID to continue a previous conversation.
+  Use --persist --resume SESSION_ID to continue a previous conversation.
 
 Summarization:
   Enable with --summarize to automatically compress long conversations.
@@ -411,9 +411,9 @@ For Ollama:
         help="Display token count after each turn (advanced feature)",
     )
     parser.add_argument(
-        "--no-persist",
+        "--persist",
         action="store_true",
-        help="Disable SQLite persistence (in-memory only)",
+        help="Enable SQLite persistence (save conversation to database)",
     )
     parser.add_argument(
         "--resume",
@@ -456,10 +456,10 @@ For Ollama:
         print("❌ Error: Temperature must be between 0.0 and 2.0")
         sys.exit(1)
 
-    # Validate --no-persist and --resume are not used together
-    if args.no_persist and args.resume:
-        print("❌ Error: Cannot use --no-persist with --resume")
-        print("   (Resuming requires persistence to be enabled)")
+    # Validate --persist is enabled when using --resume
+    if args.resume and not args.persist:
+        print("❌ Error: --resume requires --persist to be enabled")
+        print("   Use: --persist --resume SESSION_ID")
         sys.exit(1)
 
     # Validate --summarize and --no-summarize are not used together
@@ -489,7 +489,7 @@ For Ollama:
         profile_name=args.profile,
         temperature=args.temperature,
         show_tokens=args.show_tokens,
-        persist=not args.no_persist,
+        persist=args.persist,
         resume_session=args.resume,
         summarize=summarize_value,
         summarize_threshold=args.summarize_threshold,
