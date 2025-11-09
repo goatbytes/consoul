@@ -9,11 +9,13 @@ from consoul.ai.exceptions import (
     InvalidModelError,
     MissingAPIKeyError,
     MissingDependencyError,
+    OllamaServiceError,
 )
 from consoul.ai.providers import (
     build_model_params,
     get_chat_model,
     get_provider_from_model,
+    is_ollama_running,
     validate_provider_dependencies,
 )
 from consoul.config.models import (
@@ -762,3 +764,218 @@ class TestGetChatModel:
         assert "response_format" not in call_kwargs
         assert "frequency_penalty" not in call_kwargs
         assert "presence_penalty" not in call_kwargs
+
+
+class TestOllamaProvider:
+    """Tests for Ollama provider support."""
+
+    @patch("requests.get")
+    def test_is_ollama_running_success(self, mock_get):
+        """Test detecting running Ollama service."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        assert is_ollama_running() is True
+
+    @patch("requests.get")
+    def test_is_ollama_running_failure(self, mock_get):
+        """Test detecting Ollama service not running."""
+        mock_get.side_effect = Exception("Connection refused")
+
+        assert is_ollama_running() is False
+
+    @patch("requests.get")
+    def test_is_ollama_running_404(self, mock_get):
+        """Test Ollama service returns 404."""
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_get.return_value = mock_response
+
+        assert is_ollama_running() is False
+
+    @patch("requests.get")
+    def test_is_ollama_running_custom_url(self, mock_get):
+        """Test checking Ollama at custom URL."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        assert is_ollama_running("http://custom:8080") is True
+        mock_get.assert_called_once_with("http://custom:8080/api/tags", timeout=2)
+
+    @patch("consoul.ai.providers.is_ollama_running", return_value=False)
+    def test_get_chat_model_ollama_not_running(self, mock_ollama_running):
+        """Test error when Ollama service is not running."""
+        config = OllamaModelConfig(
+            model="llama3",
+            temperature=0.7,
+        )
+
+        with pytest.raises(OllamaServiceError) as exc_info:
+            get_chat_model(config)
+
+        error_msg = str(exc_info.value)
+        assert "Ollama service is not running" in error_msg
+        assert "ollama serve" in error_msg
+        assert "ollama pull llama3" in error_msg
+
+    @patch("consoul.ai.providers.is_ollama_running", return_value=True)
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_ollama_success(self, mock_init, mock_ollama_running):
+        """Test successful Ollama model initialization."""
+        config = OllamaModelConfig(
+            model="llama3",
+            temperature=0.7,
+            max_tokens=2048,
+            top_p=0.9,
+            top_k=40,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        mock_init.assert_called_once()
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["model_provider"] == "ollama"
+        assert call_kwargs["model"] == "llama3"
+        assert call_kwargs["temperature"] == 0.7
+        assert call_kwargs["max_tokens"] == 2048
+        assert call_kwargs["top_p"] == 0.9
+        assert call_kwargs["top_k"] == 40
+
+    @patch("consoul.ai.providers.is_ollama_running", return_value=True)
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_ollama_string(self, mock_init, mock_ollama_running):
+        """Test Ollama initialization with string model name."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model("llama3", temperature=0.8)
+
+        assert result == mock_chat_model
+        mock_init.assert_called_once()
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["model_provider"] == "ollama"
+        assert call_kwargs["model"] == "llama3"
+        assert call_kwargs["temperature"] == 0.8
+
+    @patch("consoul.ai.providers.is_ollama_running", return_value=True)
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_ollama_model_not_found(
+        self, mock_init, mock_ollama_running
+    ):
+        """Test error when Ollama model is not found."""
+        config = OllamaModelConfig(
+            model="nonexistent-model",
+            temperature=0.7,
+        )
+
+        # Simulate model not found error
+        mock_init.side_effect = ValueError("Model not found: nonexistent-model")
+
+        with pytest.raises(OllamaServiceError) as exc_info:
+            get_chat_model(config)
+
+        error_msg = str(exc_info.value)
+        assert "not found" in error_msg.lower()
+        assert "ollama pull nonexistent-model" in error_msg
+        assert "ollama list" in error_msg
+
+    @patch("consoul.ai.providers.is_ollama_running", return_value=True)
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_ollama_connection_error(
+        self, mock_init, mock_ollama_running
+    ):
+        """Test handling connection errors during Ollama initialization."""
+        config = OllamaModelConfig(
+            model="llama3",
+            temperature=0.7,
+        )
+
+        # Simulate connection error
+        mock_init.side_effect = Exception("Connection refused to localhost:11434")
+
+        with pytest.raises(OllamaServiceError) as exc_info:
+            get_chat_model(config)
+
+        error_msg = str(exc_info.value)
+        assert "Failed to connect to Ollama service" in error_msg
+        assert "ollama serve" in error_msg
+
+    @patch("consoul.ai.providers.is_ollama_running", return_value=True)
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_ollama_no_api_key_needed(
+        self, mock_init, mock_ollama_running
+    ):
+        """Test that Ollama doesn't require API key."""
+        config = OllamaModelConfig(
+            model="llama3",
+            temperature=0.7,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        # Should succeed without API key
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        # Verify no API key parameters were passed
+        call_kwargs = mock_init.call_args.kwargs
+        assert "openai_api_key" not in call_kwargs
+        assert "anthropic_api_key" not in call_kwargs
+        assert "google_api_key" not in call_kwargs
+
+    @patch("consoul.ai.providers.is_ollama_running", return_value=True)
+    @patch("consoul.ai.providers.init_chat_model")
+    @patch(
+        "consoul.config.env.get_ollama_api_base", return_value="http://custom-host:8080"
+    )
+    def test_get_chat_model_ollama_custom_base_url(
+        self, mock_get_base, mock_init, mock_ollama_running
+    ):
+        """Test that Ollama uses custom base_url from config."""
+        config = OllamaModelConfig(
+            model="llama3",
+            temperature=0.7,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        # Verify base_url was passed
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["base_url"] == "http://custom-host:8080"
+        # Verify health check used custom URL
+        mock_ollama_running.assert_called_once_with("http://custom-host:8080")
+
+    @patch("consoul.ai.providers.is_ollama_running", return_value=True)
+    @patch("consoul.ai.providers.init_chat_model")
+    @patch("consoul.config.env.get_ollama_api_base", return_value=None)
+    def test_get_chat_model_ollama_default_base_url(
+        self, mock_get_base, mock_init, mock_ollama_running
+    ):
+        """Test that Ollama uses default localhost when no custom base_url."""
+        config = OllamaModelConfig(
+            model="llama3",
+            temperature=0.7,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        # Verify base_url was NOT passed (using default)
+        call_kwargs = mock_init.call_args.kwargs
+        assert "base_url" not in call_kwargs
+        # Verify health check used default URL
+        mock_ollama_running.assert_called_once_with("http://localhost:11434")

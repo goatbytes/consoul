@@ -48,11 +48,13 @@ dependencies = [
     "langchain-openai>=1.0.0",
     "langchain-anthropic>=1.0.0",
     "langchain-google-genai>=3.0.0",
+    "langchain-ollama>=0.2.0",
     "click>=8.1.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.0.0",
     "pyyaml (>=6.0.3,<7.0.0)",
+    "requests>=2.25.0",
 ]
 
 
@@ -102,10 +104,12 @@ langchain = "^1.0.0"
 langchain-openai = "^1.0.0"
 langchain-anthropic = "^1.0.0"
 langchain-google-genai = "^3.0.0"
+langchain-ollama = "^0.2.0"
 click = "^8.1.0"
 pydantic = "^2.0.0"
 pydantic-settings = "^2.0.0"
 python-dotenv = "^1.0.0"
+requests = "^2.25.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.0"
@@ -117,6 +121,7 @@ mypy = "^1.7.0"
 pre-commit = "^4.0.0"
 attrs = "^25.4.0"
 types-pyyaml = "^6.0.12.20250915"
+types-requests = "^2.31.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.6.1"
@@ -235,6 +240,7 @@ module = [
     "langchain_openai.*",
     "langchain_anthropic.*",
     "langchain_google_genai.*",
+    "langchain_ollama.*",
     "pydantic.*",
 ]
 ignore_missing_imports = true

@@ -37,3 +37,12 @@ class InvalidModelError(ProviderInitializationError):
     This error indicates that the specified model name is not valid
     for the selected provider or cannot be found.
     """
+
+
+class OllamaServiceError(ProviderInitializationError):
+    """Exception raised when Ollama service is not running or unavailable.
+
+    This error indicates that the Ollama service is not running locally
+    or the specified model is not available. Users should start Ollama
+    with 'ollama serve' or pull the model with 'ollama pull {model}'.
+    """

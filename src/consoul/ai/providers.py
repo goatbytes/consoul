@@ -17,6 +17,7 @@ from consoul.ai.exceptions import (
     InvalidModelError,
     MissingAPIKeyError,
     MissingDependencyError,
+    OllamaServiceError,
     ProviderInitializationError,
 )
 from consoul.config.models import Provider
@@ -31,7 +32,7 @@ PROVIDER_PACKAGES = {
     Provider.OPENAI: "langchain_openai",
     Provider.ANTHROPIC: "langchain_anthropic",
     Provider.GOOGLE: "langchain_google_genai",
-    Provider.OLLAMA: "langchain_community",
+    Provider.OLLAMA: "langchain_ollama",
 }
 
 # Model name patterns for provider detection
@@ -57,6 +58,24 @@ API_KEY_ENV_VARS = {
     Provider.GOOGLE: "GOOGLE_API_KEY",
     Provider.OLLAMA: None,  # Ollama doesn't require API key
 }
+
+
+def is_ollama_running(base_url: str = "http://localhost:11434") -> bool:
+    """Check if Ollama service is running locally.
+
+    Args:
+        base_url: The base URL for the Ollama service. Defaults to http://localhost:11434.
+
+    Returns:
+        True if Ollama is running and accessible, False otherwise.
+    """
+    try:
+        import requests  # type: ignore[import-untyped]
+
+        response = requests.get(f"{base_url}/api/tags", timeout=2)
+        return bool(response.status_code == 200)
+    except Exception:
+        return False
 
 
 def validate_provider_dependencies(provider: Provider) -> None:
@@ -312,6 +331,30 @@ def get_chat_model(
     except MissingDependencyError:
         raise  # Re-raise with helpful message
 
+    # Check Ollama service availability before attempting initialization
+    if provider == Provider.OLLAMA:
+        # Get Ollama API base URL from config/env
+        from consoul.config.env import get_ollama_api_base
+
+        ollama_base_url = get_ollama_api_base()
+        if not ollama_base_url:
+            ollama_base_url = "http://localhost:11434"
+
+        if not is_ollama_running(ollama_base_url):
+            raise OllamaServiceError(
+                f"Ollama service is not running.\n\n"
+                f"To use Ollama models:\n"
+                f"1. Start Ollama service:\n"
+                f"   ollama serve\n\n"
+                f"2. Pull the model if not already available:\n"
+                f"   ollama pull {model_config.model}\n\n"
+                f"3. Verify Ollama is running:\n"
+                f"   curl {ollama_base_url}/api/tags\n\n"
+                f"Current base URL: {ollama_base_url}\n"
+                f"(Set OLLAMA_API_BASE to use a different endpoint)\n\n"
+                f"See: {PROVIDER_DOCS.get(Provider.OLLAMA, 'https://ollama.com')}"
+            )
+
     # Resolve API key (if required for this provider)
     resolved_api_key: str | None = None
     if provider != Provider.OLLAMA:  # Ollama doesn't need API key
@@ -370,6 +413,14 @@ def get_chat_model(
         elif provider == Provider.GOOGLE:
             params["google_api_key"] = resolved_api_key
 
+    # Add Ollama-specific base_url parameter
+    if provider == Provider.OLLAMA:
+        from consoul.config.env import get_ollama_api_base
+
+        ollama_base_url = get_ollama_api_base()
+        if ollama_base_url:
+            params["base_url"] = ollama_base_url
+
     # Merge with any additional kwargs
     params.update(kwargs)
 
@@ -389,6 +440,21 @@ def get_chat_model(
     except ValueError as e:
         # Invalid model name or configuration
         docs_url = PROVIDER_DOCS.get(provider, "")
+        error_msg = str(e).lower()
+
+        # Special handling for Ollama model not found errors
+        if provider == Provider.OLLAMA and (
+            "not found" in error_msg or "404" in error_msg
+        ):
+            raise OllamaServiceError(
+                f"Model '{model_config.model}' not found in Ollama.\n\n"
+                f"To download the model:\n"
+                f"   ollama pull {model_config.model}\n\n"
+                f"To list available models:\n"
+                f"   ollama list\n\n"
+                f"See available models: {docs_url}"
+            ) from e
+
         raise InvalidModelError(
             f"Invalid model '{model_config.model}' for {provider.value}.\n\n"
             f"Error: {e}\n\n"
@@ -396,6 +462,22 @@ def get_chat_model(
         ) from e
     except Exception as e:
         # Other initialization errors
+        error_msg = str(e).lower()
+
+        # Catch additional Ollama connection errors
+        if provider == Provider.OLLAMA and (
+            "connection" in error_msg or "refused" in error_msg
+        ):
+            raise OllamaServiceError(
+                f"Failed to connect to Ollama service.\n\n"
+                f"To use Ollama models:\n"
+                f"1. Start Ollama service:\n"
+                f"   ollama serve\n\n"
+                f"2. Verify service is running:\n"
+                f"   curl http://localhost:11434/api/tags\n\n"
+                f"Original error: {e}"
+            ) from e
+
         raise ProviderInitializationError(
             f"Failed to initialize {provider.value} model '{model_config.model}': {e}"
         ) from e
