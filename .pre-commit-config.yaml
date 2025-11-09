@@ -3,12 +3,14 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^\.gira/
       - id: end-of-file-fixer
+        exclude: ^\.gira/
       - id: check-yaml
         args: ['--unsafe']  # Allow custom YAML tags in mkdocs.yml
       - id: check-toml
       - id: check-json
-        exclude: ^\.vscode/  # VS Code uses JSONC (JSON with comments)
+        exclude: ^(\.vscode/|\.gira/)  # VS Code uses JSONC, .gira managed by gira tool
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ["--maxkb=1000"]
