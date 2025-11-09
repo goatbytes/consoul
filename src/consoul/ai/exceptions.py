@@ -78,3 +78,42 @@ class StreamingError(ConsoulAIError):
         """
         super().__init__(message)
         self.partial_response = partial_response
+
+
+class ContextError(ConsoulAIError):
+    """Base exception for conversation context management errors.
+
+    This error is raised when there are issues with managing conversation
+    context, such as token limit violations or message formatting problems.
+    """
+
+
+class TokenLimitExceededError(ContextError):
+    """Exception raised when conversation exceeds model's token limit.
+
+    This error indicates that the conversation history contains more tokens
+    than the model can handle, even after trimming. This typically means
+    individual messages are too large.
+
+    Attributes:
+        current_tokens: Number of tokens in the conversation
+        max_tokens: Maximum tokens allowed by the model
+
+    Example:
+        >>> try:
+        ...     history.add_message("user", very_long_message)
+        ... except TokenLimitExceededError as e:
+        ...     print(f"Exceeded: {e.current_tokens}/{e.max_tokens}")
+    """
+
+    def __init__(self, message: str, current_tokens: int, max_tokens: int):
+        """Initialize TokenLimitExceededError.
+
+        Args:
+            message: Error description
+            current_tokens: Number of tokens in conversation
+            max_tokens: Maximum allowed tokens
+        """
+        super().__init__(message)
+        self.current_tokens = current_tokens
+        self.max_tokens = max_tokens

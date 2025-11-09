@@ -26,7 +26,9 @@ import argparse
 from typing import Any
 
 from consoul.ai import get_chat_model, stream_response
+from consoul.ai.context import count_message_tokens, get_model_token_limit
 from consoul.ai.exceptions import StreamingError
+from consoul.ai.history import to_langchain_message
 from consoul.config import load_config
 
 
@@ -66,6 +68,7 @@ def interactive_chat(
     model_name: str | None = None,
     profile_name: str | None = None,
     temperature: float | None = None,
+    show_tokens: bool = False,
 ) -> None:
     """Run interactive chat session.
 
@@ -73,6 +76,7 @@ def interactive_chat(
         model_name: Optional model name override (e.g., "gpt-4o", "claude-3-5-sonnet")
         profile_name: Optional profile name to load
         temperature: Optional temperature override
+        show_tokens: Whether to display token counts (default: False)
     """
     print_banner()
 
@@ -169,6 +173,24 @@ def interactive_chat(
                     # Add assistant message to history
                     messages.append({"role": "assistant", "content": assistant_message})
 
+                    # Display token count if requested
+                    if show_tokens:
+                        # Convert dict messages to LangChain format for counting
+                        lc_messages = [
+                            to_langchain_message(msg["role"], msg["content"])
+                            for msg in messages
+                        ]
+                        current_tokens = count_message_tokens(
+                            lc_messages, model_name or profile.model.model
+                        )
+                        max_tokens = get_model_token_limit(
+                            model_name or profile.model.model
+                        )
+                        percentage = (current_tokens / max_tokens) * 100
+                        print(
+                            f"\n📊 Tokens: {current_tokens:,} / {max_tokens:,} ({percentage:.1f}%)\n"
+                        )
+
                 except StreamingError as e:
                     # Handle both interrupts and errors - partial response is always available
                     if "interrupted by user" in str(e).lower():
@@ -261,6 +283,11 @@ For Ollama:
         type=float,
         help="Temperature override (0.0-2.0)",
     )
+    parser.add_argument(
+        "--show-tokens",
+        action="store_true",
+        help="Display token count after each turn (advanced feature)",
+    )
 
     args = parser.parse_args()
 
@@ -273,6 +300,7 @@ For Ollama:
         model_name=args.model,
         profile_name=args.profile,
         temperature=args.temperature,
+        show_tokens=args.show_tokens,
     )
 
 
