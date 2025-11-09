@@ -108,12 +108,72 @@ export ANTHROPIC_API_KEY=your-key-here
 ```
 Or add to `.env` file in project root or `~/.consoul/`
 
-### Google
+### Google Gemini
 Set your API key:
 ```bash
 export GOOGLE_API_KEY=your-key-here
 ```
 Or add to `.env` file in project root or `~/.consoul/`
+
+**Getting an API key:**
+1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Sign in with your Google account
+3. Click "Create API Key"
+4. Copy the key and set it as shown above
+
+**Supported models:**
+- `gemini-2.5-pro` - Latest and most capable
+- `gemini-1.5-pro` - High quality general purpose
+- `gemini-1.5-flash` - Fast and efficient
+
+**Example usage:**
+```bash
+# Use latest Gemini model
+python examples/interactive_chat.py --model gemini-2.5-pro
+
+# Use fast model with higher temperature
+python examples/interactive_chat.py --model gemini-1.5-flash --temperature 0.9
+```
+
+**Google-specific configuration:**
+
+Google Gemini supports additional parameters for content safety and generation control. Configure these in your YAML profile:
+
+```yaml
+profiles:
+  safe_chat:
+    model:
+      provider: google
+      model: gemini-2.5-pro
+      temperature: 0.7
+      candidate_count: 1
+      safety_settings:
+        HARM_CATEGORY_DANGEROUS_CONTENT: BLOCK_ONLY_HIGH
+        HARM_CATEGORY_HARASSMENT: BLOCK_MEDIUM_AND_ABOVE
+        HARM_CATEGORY_HATE_SPEECH: BLOCK_MEDIUM_AND_ABOVE
+        HARM_CATEGORY_SEXUALLY_EXPLICIT: BLOCK_MEDIUM_AND_ABOVE
+
+  multimodal_chat:
+    model:
+      provider: google
+      model: gemini-2.5-pro
+      temperature: 0.8
+      generation_config:
+        response_modalities: ["TEXT", "IMAGE"]
+        candidate_count: 2
+```
+
+**Safety Settings Options:**
+- `BLOCK_NONE` - No filtering
+- `BLOCK_ONLY_HIGH` - Block only high-probability harmful content
+- `BLOCK_MEDIUM_AND_ABOVE` - Block medium and high-probability harmful content
+- `BLOCK_LOW_AND_ABOVE` - Block low, medium, and high-probability harmful content
+
+**Harm Categories:**
+- `HARM_CATEGORY_DANGEROUS_CONTENT`
+- `HARM_CATEGORY_HARASSMENT`
+- `HARM_CATEGORY_HATE_SPEECH`
+- `HARM_CATEGORY_SEXUALLY_EXPLICIT`
 
 ### Ollama
 No API key required! Just install and run:

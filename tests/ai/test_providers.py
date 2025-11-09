@@ -183,6 +183,80 @@ class TestBuildModelParams:
         assert params["top_p"] == 0.9
         assert params["top_k"] == 50
 
+    def test_build_params_google_with_candidate_count(self):
+        """Test building Google parameters with candidate_count."""
+        config = GoogleModelConfig(
+            model="gemini-2.5-pro",
+            temperature=0.7,
+            candidate_count=3,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "gemini-2.5-pro"
+        assert params["temperature"] == 0.7
+        assert params["candidate_count"] == 3
+
+    def test_build_params_google_with_safety_settings(self):
+        """Test building Google parameters with safety_settings."""
+        safety_settings = {
+            "HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_NONE",
+            "HARM_CATEGORY_HARASSMENT": "BLOCK_ONLY_HIGH",
+        }
+        config = GoogleModelConfig(
+            model="gemini-1.5-pro",
+            temperature=0.8,
+            safety_settings=safety_settings,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "gemini-1.5-pro"
+        assert params["temperature"] == 0.8
+        assert params["safety_settings"] == safety_settings
+
+    def test_build_params_google_with_generation_config(self):
+        """Test building Google parameters with generation_config."""
+        generation_config = {"response_modalities": ["TEXT", "IMAGE"]}
+        config = GoogleModelConfig(
+            model="gemini-2.5-pro",
+            temperature=0.7,
+            generation_config=generation_config,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "gemini-2.5-pro"
+        assert params["temperature"] == 0.7
+        assert params["generation_config"] == generation_config
+
+    def test_build_params_google_all_exclusive_params(self):
+        """Test building Google parameters with all exclusive parameters."""
+        safety_settings = {"HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_NONE"}
+        generation_config = {"response_modalities": ["TEXT"]}
+
+        config = GoogleModelConfig(
+            model="gemini-2.5-pro",
+            temperature=0.8,
+            max_tokens=2048,
+            top_p=0.95,
+            top_k=50,
+            candidate_count=2,
+            safety_settings=safety_settings,
+            generation_config=generation_config,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "gemini-2.5-pro"
+        assert params["temperature"] == 0.8
+        assert params["max_tokens"] == 2048
+        assert params["top_p"] == 0.95
+        assert params["top_k"] == 50
+        assert params["candidate_count"] == 2
+        assert params["safety_settings"] == safety_settings
+        assert params["generation_config"] == generation_config
+
     def test_build_params_ollama(self):
         """Test building parameters for Ollama model."""
         config = OllamaModelConfig(
@@ -979,3 +1053,231 @@ class TestOllamaProvider:
         assert "base_url" not in call_kwargs
         # Verify health check used default URL
         mock_ollama_running.assert_called_once_with("http://localhost:11434")
+
+
+class TestGoogleProvider:
+    """Tests for Google Gemini provider support."""
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_google_with_all_params(self, mock_init):
+        """Test Google model initialization with all parameters."""
+        config = GoogleModelConfig(
+            model="gemini-2.5-pro",
+            temperature=0.8,
+            max_tokens=2048,
+            top_p=0.95,
+            top_k=50,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config, api_key=SecretStr("test-google-key"))
+
+        assert result == mock_chat_model
+        mock_init.assert_called_once()
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["model_provider"] == "google"
+        assert call_kwargs["model"] == "gemini-2.5-pro"
+        assert call_kwargs["temperature"] == 0.8
+        assert call_kwargs["max_tokens"] == 2048
+        assert call_kwargs["top_p"] == 0.95
+        assert call_kwargs["top_k"] == 50
+        assert call_kwargs["google_api_key"] == "test-google-key"
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_google_string_auto_detection(self, mock_init):
+        """Test Google model initialization with string name auto-detection."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model("gemini-2.5-flash", api_key=SecretStr("test-key"))
+
+        assert result == mock_chat_model
+        mock_init.assert_called_once()
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["model_provider"] == "google"
+        assert call_kwargs["model"] == "gemini-2.5-flash"
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_google_with_top_k_and_top_p(self, mock_init):
+        """Test that Google supports both top_k and top_p parameters."""
+        config = GoogleModelConfig(
+            model="gemini-1.5-pro",
+            temperature=0.7,
+            top_p=0.9,
+            top_k=40,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config, api_key=SecretStr("test-key"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["top_p"] == 0.9
+        assert call_kwargs["top_k"] == 40
+
+    def test_get_chat_model_google_missing_api_key(self):
+        """Test error when Google API key is missing."""
+        config = GoogleModelConfig(
+            model="gemini-pro",
+            temperature=0.7,
+        )
+
+        with pytest.raises(MissingAPIKeyError) as exc_info:
+            get_chat_model(config)
+
+        error_msg = str(exc_info.value)
+        assert "Missing API key for google" in error_msg
+        assert "GOOGLE_API_KEY" in error_msg
+
+    @patch("consoul.ai.providers.init_chat_model")
+    @patch("consoul.config.env.get_api_key", return_value=SecretStr("env-google-key"))
+    def test_get_chat_model_google_from_env(self, mock_get_key, mock_init):
+        """Test Google model initialization with API key from environment."""
+        config = GoogleModelConfig(
+            model="gemini-pro",
+            temperature=0.7,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["google_api_key"] == "env-google-key"
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_google_latest_models(self, mock_init):
+        """Test Google with latest Gemini 2.5 and 1.5 models."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        # Test Gemini 2.5 Pro
+        result = get_chat_model("gemini-2.5-pro", api_key=SecretStr("key"))
+        assert result == mock_chat_model
+
+        # Test Gemini 1.5 Flash
+        result = get_chat_model("gemini-1.5-flash", api_key=SecretStr("key"))
+        assert result == mock_chat_model
+
+        # Test Gemini 1.5 Pro
+        result = get_chat_model("gemini-1.5-pro", api_key=SecretStr("key"))
+        assert result == mock_chat_model
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_google_with_kwargs(self, mock_init):
+        """Test passing additional kwargs to Google model."""
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(
+            "gemini-pro",
+            api_key=SecretStr("key"),
+            timeout=60,
+            max_retries=3,
+        )
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["timeout"] == 60
+        assert call_kwargs["max_retries"] == 3
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_google_with_candidate_count(self, mock_init):
+        """Test Google model with candidate_count parameter."""
+        config = GoogleModelConfig(
+            model="gemini-2.5-pro",
+            temperature=0.8,
+            candidate_count=3,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config, api_key=SecretStr("test-key"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["candidate_count"] == 3
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_google_with_safety_settings(self, mock_init):
+        """Test Google model with safety_settings parameter."""
+        safety_settings = {
+            "HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_NONE",
+            "HARM_CATEGORY_HARASSMENT": "BLOCK_ONLY_HIGH",
+        }
+        config = GoogleModelConfig(
+            model="gemini-1.5-pro",
+            temperature=0.7,
+            safety_settings=safety_settings,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config, api_key=SecretStr("test-key"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["safety_settings"] == safety_settings
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_google_with_generation_config(self, mock_init):
+        """Test Google model with generation_config parameter."""
+        generation_config = {
+            "response_modalities": ["TEXT", "IMAGE"],
+            "candidate_count": 2,
+        }
+        config = GoogleModelConfig(
+            model="gemini-2.5-pro",
+            temperature=0.8,
+            generation_config=generation_config,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config, api_key=SecretStr("test-key"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["generation_config"] == generation_config
+
+    @patch("consoul.ai.providers.init_chat_model")
+    def test_get_chat_model_google_with_all_exclusive_params(self, mock_init):
+        """Test Google model with all Google-exclusive parameters."""
+        safety_settings = {"HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_NONE"}
+        generation_config = {"response_modalities": ["TEXT"]}
+
+        config = GoogleModelConfig(
+            model="gemini-2.5-pro",
+            temperature=0.8,
+            max_tokens=2048,
+            top_p=0.95,
+            top_k=50,
+            candidate_count=2,
+            safety_settings=safety_settings,
+            generation_config=generation_config,
+        )
+
+        mock_chat_model = MagicMock()
+        mock_init.return_value = mock_chat_model
+
+        result = get_chat_model(config, api_key=SecretStr("test-key"))
+
+        assert result == mock_chat_model
+        call_kwargs = mock_init.call_args.kwargs
+        assert call_kwargs["model"] == "gemini-2.5-pro"
+        assert call_kwargs["temperature"] == 0.8
+        assert call_kwargs["max_tokens"] == 2048
+        assert call_kwargs["top_p"] == 0.95
+        assert call_kwargs["top_k"] == 50
+        assert call_kwargs["candidate_count"] == 2
+        assert call_kwargs["safety_settings"] == safety_settings
+        assert call_kwargs["generation_config"] == generation_config

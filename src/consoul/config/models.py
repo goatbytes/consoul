@@ -139,6 +139,19 @@ class GoogleModelConfig(BaseModelConfig):
         gt=0,
         description="Top-k sampling parameter",
     )
+    candidate_count: int | None = Field(
+        default=None,
+        gt=0,
+        description="Number of chat completions to generate for each prompt",
+    )
+    safety_settings: dict[str, str] | None = Field(
+        default=None,
+        description="Safety settings for content filtering (HarmCategory -> HarmBlockThreshold)",
+    )
+    generation_config: dict[str, Any] | None = Field(
+        default=None,
+        description="Generation configuration (e.g., response_modalities)",
+    )
 
 
 class OllamaModelConfig(BaseModelConfig):

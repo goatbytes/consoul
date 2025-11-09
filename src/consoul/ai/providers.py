@@ -173,9 +173,25 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
         if model_config.response_format is not None:
             params["response_format"] = model_config.response_format
 
-    elif isinstance(
-        model_config, (AnthropicModelConfig, GoogleModelConfig, OllamaModelConfig)
-    ):
+    elif isinstance(model_config, AnthropicModelConfig):
+        if model_config.top_p is not None:
+            params["top_p"] = model_config.top_p
+        if model_config.top_k is not None:
+            params["top_k"] = model_config.top_k
+
+    elif isinstance(model_config, GoogleModelConfig):
+        if model_config.top_p is not None:
+            params["top_p"] = model_config.top_p
+        if model_config.top_k is not None:
+            params["top_k"] = model_config.top_k
+        if model_config.candidate_count is not None:
+            params["candidate_count"] = model_config.candidate_count
+        if model_config.safety_settings is not None:
+            params["safety_settings"] = model_config.safety_settings
+        if model_config.generation_config is not None:
+            params["generation_config"] = model_config.generation_config
+
+    elif isinstance(model_config, OllamaModelConfig):
         if model_config.top_p is not None:
             params["top_p"] = model_config.top_p
         if model_config.top_k is not None:
