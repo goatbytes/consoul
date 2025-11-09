@@ -271,6 +271,10 @@ class ConversationHistory:
         Returns:
             Trimmed list of messages that fit within token limit
 
+        Raises:
+            TokenLimitExceededError: If reserve_tokens >= max_tokens, preventing
+                                    any messages from being sent.
+
         Example:
             >>> history = ConversationHistory("gpt-4o")
             >>> history.add_system_message("You are helpful.")
@@ -283,6 +287,18 @@ class ConversationHistory:
 
         # Calculate available tokens for conversation
         available_tokens = self.max_tokens - reserve_tokens
+
+        # Guard against negative available_tokens (e.g., small models with default reserve)
+        if available_tokens <= 0:
+            from consoul.ai.exceptions import TokenLimitExceededError
+
+            raise TokenLimitExceededError(
+                f"Reserve tokens ({reserve_tokens}) exceeds model's context window "
+                f"({self.max_tokens}). Cannot trim messages. "
+                f"Try reducing reserve_tokens to at most {self.max_tokens - 1}.",
+                current_tokens=reserve_tokens,
+                max_tokens=self.max_tokens,
+            )
 
         # Use LangChain's trim_messages
         try:

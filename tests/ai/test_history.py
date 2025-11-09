@@ -297,6 +297,32 @@ class TestConversationHistoryTrimming:
         assert len(result) == 1
         assert result[0].content == "Message"
 
+    @patch("consoul.ai.history.create_token_counter")
+    def test_get_trimmed_messages_negative_available_tokens(self, mock_create_counter):
+        """Test that negative available_tokens raises TokenLimitExceededError."""
+        from consoul.ai.exceptions import TokenLimitExceededError
+
+        mock_counter = MagicMock()
+        mock_create_counter.return_value = mock_counter
+
+        # Create history with small context window
+        history = ConversationHistory("phi", max_tokens=512)  # phi has 4K limit
+        history.add_user_message("Hello")
+
+        # Try to reserve more tokens than available
+        with pytest.raises(TokenLimitExceededError) as exc_info:
+            history.get_trimmed_messages(reserve_tokens=1000)
+
+        # Verify error message is helpful
+        error_msg = str(exc_info.value)
+        assert "Reserve tokens (1000)" in error_msg
+        assert "exceeds model's context window (512)" in error_msg
+        assert "Try reducing reserve_tokens to at most 511" in error_msg
+
+        # Verify error attributes
+        assert exc_info.value.current_tokens == 1000
+        assert exc_info.value.max_tokens == 512
+
     def test_get_trimmed_messages_empty_history(self):
         """Test trimming empty history returns empty list."""
         history = ConversationHistory("gpt-4o")

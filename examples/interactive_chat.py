@@ -27,7 +27,7 @@ from typing import Any
 
 from consoul.ai import get_chat_model, stream_response
 from consoul.ai.exceptions import StreamingError
-from consoul.ai.history import ConversationHistory
+from consoul.ai.history import ConversationHistory, to_dict_message
 from consoul.config import load_config
 
 
@@ -175,13 +175,8 @@ def interactive_chat(
                 trimmed_messages = history.get_trimmed_messages(reserve_tokens=1000)
 
                 # Convert trimmed messages to dict format for streaming
-                messages_dict = [
-                    {
-                        "role": msg.type if msg.type != "human" else "user",
-                        "content": msg.content,
-                    }
-                    for msg in trimmed_messages
-                ]
+                # Uses to_dict_message() to properly map roles (ai→assistant, human→user)
+                messages_dict = [to_dict_message(msg) for msg in trimmed_messages]
 
                 # Stream AI response
                 print()  # Newline before streaming starts

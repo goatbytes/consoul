@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(.venv/bin/poetry install --with dev,docs,security)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "WebSearch",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
