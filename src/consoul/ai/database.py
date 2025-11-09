@@ -60,7 +60,7 @@ class ConversationDatabase:
         >>> conversations = db.list_conversations(limit=10)
     """
 
-    SCHEMA_VERSION = 3  # Updated for full-text search support
+    SCHEMA_VERSION = 1  # Single schema version (pre-release)
 
     def __init__(self, db_path: Path | str = "~/.consoul/history.db"):
         """Initialize database connection and schema.
@@ -152,68 +152,16 @@ class ConversationDatabase:
                 END;
             """)
 
-            # Check and run migrations
+            # Set schema version
             cursor = conn.execute("SELECT version FROM schema_version")
             result = cursor.fetchone()
-            current_version = result[0] if result else 0
 
-            if current_version == 0:
-                # Fresh database, set current version
+            if result is None:
+                # Fresh database, set version
                 conn.execute(
                     "INSERT INTO schema_version (version) VALUES (?)",
                     (self.SCHEMA_VERSION,),
                 )
-            elif current_version < self.SCHEMA_VERSION:
-                # Run migrations
-                self._run_migrations(conn, current_version)
-                conn.execute(
-                    "UPDATE schema_version SET version = ?", (self.SCHEMA_VERSION,)
-                )
-
-    def _run_migrations(self, conn: sqlite3.Connection, from_version: int) -> None:
-        """Run database migrations from current version to latest.
-
-        Args:
-            conn: Active database connection
-            from_version: Current schema version
-        """
-        # Migration from v1 to v2: Add summary column
-        if from_version < 2:
-            try:
-                # Check if column already exists (handles reruns)
-                cursor = conn.execute("PRAGMA table_info(conversations)")
-                columns = [row[1] for row in cursor.fetchall()]
-                if "summary" not in columns:
-                    conn.execute(
-                        "ALTER TABLE conversations ADD COLUMN summary TEXT DEFAULT NULL"
-                    )
-            except sqlite3.OperationalError:
-                # Column might already exist, ignore
-                pass
-
-        # Migration from v2 to v3: Add FTS5 search support
-        if from_version < 3:
-            try:
-                # Check if FTS table is already populated
-                cursor = conn.execute("SELECT COUNT(*) FROM messages_fts")
-                fts_count = cursor.fetchone()[0]
-
-                # Only backfill if FTS is empty but messages exist
-                if fts_count == 0:
-                    cursor = conn.execute("SELECT COUNT(*) FROM messages")
-                    msg_count = cursor.fetchone()[0]
-
-                    if msg_count > 0:
-                        # Backfill existing messages into FTS index
-                        conn.execute("""
-                            INSERT INTO messages_fts(message_id, conversation_id, role, content, timestamp)
-                            SELECT id, conversation_id, role, content, timestamp
-                            FROM messages
-                        """)
-            except sqlite3.OperationalError:
-                # FTS table might not exist yet or error in backfill
-                # The table will be created by _init_schema, triggers will handle new messages
-                pass
 
     def create_conversation(
         self,
