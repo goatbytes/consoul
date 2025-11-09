@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-08T16:29:08.139259",
-  "updated_at": "2025-11-08T16:29:08.139270",
+  "updated_at": "2025-11-09T20:00:07.704106Z",
   "id": "SOUL-23",
   "uuid": "f711bb00-7a8d-4fd6-b7e7-a2883c09f5ff",
   "title": "Implement Google Gemini provider support",
   "description": "## User Story\nAs a Consoul user, I want to use Google's Gemini models so that I can access Google's advanced multimodal AI capabilities.\n\n## Description\nImplement full support for Google's Gemini models using LangChain's `ChatGoogleGenerativeAI` integration. Support Gemini 2.5 Pro and 1.5 Flash models with Google-specific parameters and streaming capabilities.\n\n## Technical Notes\n- **File**: `src/consoul/ai/providers/google.py`\n- **LangChain Docs**: https://python.langchain.com/docs/integrations/chat/google_generative_ai/\n- **Package**: `langchain-google-genai`\n- **Environment Variable**: `GOOGLE_API_KEY`\n- Supported models: gemini-2.5-pro, gemini-1.5-flash, gemini-1.5-pro\n- Google-specific params: candidate_count, safety_settings, generation_config\n- Streaming support via `.stream()`\n- Multimodal capabilities (future enhancement)\n\n## Acceptance Criteria\n- **Given** a valid GOOGLE_API_KEY\n- **When** user specifies a Gemini model\n- **Then** the model is initialized with correct parameters\n\n- **Given** Google-specific parameters (candidate_count)\n- **When** creating the chat model\n- **Then** these parameters are passed to the Google API\n\n- **Given** a streaming request\n- **When** generating a response\n- **Then** tokens are yielded one at a time\n\n- **Given** missing langchain-google-genai package\n- **When** attempting to use Google Gemini\n- **Then** error suggests: `pip install langchain-google-genai`\n\n## Testing Considerations\n- Mock Google Generative AI API responses\n- Test model parameter validation\n- Verify streaming functionality\n- Test error handling for invalid API keys\n- Test safety settings configuration\n- Mock missing package import\n\n## Implementation Hints\n```python\nfrom langchain_google_genai import ChatGoogleGenerativeAI\n\ndef create_google_model(\n    model: str = \"gemini-2.5-pro\",\n    temperature: float = 0.7,\n    streaming: bool = False,\n    **kwargs\n):\n    \"\"\"Create Google Gemini chat model.\"\"\"\n    return ChatGoogleGenerativeAI(\n        model=model,\n        temperature=temperature,\n        streaming=streaming,\n        **kwargs\n    )\n```\n\n## Dependencies\n- SOUL-20 (provider initialization)\n\n## Story Points\n3 - Similar complexity to other provider integrations",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "medium",
   "labels": [

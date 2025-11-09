@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-08T16:29:05.922647",
-  "updated_at": "2025-11-08T16:29:05.922657",
+  "updated_at": "2025-11-09T20:25:01.720715Z",
   "id": "SOUL-22",
   "uuid": "af115352-5d96-4cad-89df-58e01ef1758c",
   "title": "Implement Anthropic provider support",
   "description": "## User Story\nAs a Consoul user, I want to use Anthropic's Claude models so that I can leverage their advanced reasoning and long context capabilities.\n\n## Description\nImplement full support for Anthropic's Claude models using LangChain's `ChatAnthropic` integration. Support all Claude 3 model families (Opus, Sonnet, Haiku) with Anthropic-specific parameters and streaming capabilities.\n\n## Technical Notes\n- **File**: `src/consoul/ai/providers/anthropic.py`\n- **LangChain Docs**: https://python.langchain.com/docs/integrations/chat/anthropic/\n- **Package**: `langchain-anthropic`\n- **Environment Variable**: `ANTHROPIC_API_KEY`\n- Supported models: claude-3-5-sonnet, claude-3-opus, claude-3-sonnet, claude-3-haiku\n- Anthropic-specific params: top_k, stop_sequences, max_tokens\n- Streaming support via `.stream()`\n- Large context windows (200K tokens for Claude 3)\n\n## Acceptance Criteria\n- **Given** a valid ANTHROPIC_API_KEY\n- **When** user specifies a Claude model\n- **Then** the model is initialized with correct parameters\n\n- **Given** Anthropic-specific parameters (top_k, stop_sequences)\n- **When** creating the chat model\n- **Then** these parameters are passed to the Anthropic API\n\n- **Given** a streaming request\n- **When** generating a response\n- **Then** tokens are yielded one at a time\n\n- **Given** missing langchain-anthropic package\n- **When** attempting to use Anthropic\n- **Then** error suggests: `pip install langchain-anthropic`\n\n## Testing Considerations\n- Mock Anthropic API responses\n- Test model parameter validation\n- Verify streaming functionality\n- Test error handling for invalid API keys\n- Test long context window handling\n- Mock missing package import\n\n## Implementation Hints\n```python\nfrom langchain_anthropic import ChatAnthropic\n\ndef create_anthropic_model(\n    model: str = \"claude-3-5-sonnet-20241022\",\n    temperature: float = 0.7,\n    streaming: bool = False,\n    **kwargs\n):\n    \"\"\"Create Anthropic chat model.\"\"\"\n    return ChatAnthropic(\n        model=model,\n        temperature=temperature,\n        streaming=streaming,\n        **kwargs\n    )\n```\n\n## Dependencies\n- SOUL-20 (provider initialization)\n\n## Story Points\n3 - Similar to OpenAI integration",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "high",
   "labels": [
