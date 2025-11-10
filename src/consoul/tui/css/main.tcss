@@ -50,12 +50,16 @@ Footer {
  * Chat View
  * ============================================================================ */
 
-.chat-view {
+ChatView {
     width: 100%;
     height: 1fr;
     background: $panel;
     padding: 1 2;
-    overflow-y: auto;
+    border: solid $accent;
+}
+
+ChatView:focus {
+    border: heavy $primary;
 }
 
 .chat-messages {

@@ -117,8 +117,10 @@ class ConsoulApp(App[None]):
         Yields:
             Widgets to display in the app
         """
+        from consoul.tui.widgets import ChatView
+
         yield Header()
-        # TODO: Add main widgets in Phase 2
+        yield ChatView()
         yield Footer()
 
     def _idle_gc(self) -> None:
