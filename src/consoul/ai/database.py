@@ -596,6 +596,64 @@ class ConversationDatabase:
         except Exception as e:
             raise DatabaseError(f"Failed to list conversations: {e}") from e
 
+    def search_conversations(self, query: str, limit: int = 50) -> list[dict[str, Any]]:
+        """Search conversations using FTS5 full-text search.
+
+        Searches through message content and returns matching conversations
+        ordered by relevance (FTS5 rank) and recency.
+
+        Args:
+            query: Search query string (FTS5 syntax supported)
+            limit: Maximum number of conversations to return (default: 50)
+
+        Returns:
+            List of conversation dicts with keys: session_id, model, created_at,
+            updated_at, message_count, metadata, rank (search relevance score)
+
+        Raises:
+            DatabaseError: If search operation fails
+
+        Example:
+            >>> db = ConversationDatabase()
+            >>> db.create_conversation("gpt-4o")
+            >>> db.save_message(session_id, "user", "Python tutorial", 5)
+            >>> results = db.search_conversations("Python")
+            >>> len(results) >= 1
+            True
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute(
+                    """
+                    SELECT
+                        c.session_id,
+                        c.model,
+                        c.created_at,
+                        c.updated_at,
+                        c.metadata,
+                        COUNT(DISTINCT m.id) as message_count,
+                        MIN(fts.rank) as rank
+                    FROM conversations c
+                    INNER JOIN messages_fts fts ON c.session_id = fts.conversation_id
+                    LEFT JOIN messages m ON c.session_id = m.conversation_id
+                    WHERE messages_fts MATCH ?
+                    GROUP BY c.session_id
+                    ORDER BY rank ASC, c.updated_at DESC
+                    LIMIT ?
+                    """,
+                    (query, limit),
+                )
+                conversations = []
+                for row in cursor.fetchall():
+                    conv = dict(row)
+                    # Parse metadata JSON
+                    conv["metadata"] = json.loads(conv["metadata"])
+                    conversations.append(conv)
+                return conversations
+        except Exception as e:
+            raise DatabaseError(f"Failed to search conversations: {e}") from e
+
     def get_conversation_metadata(self, session_id: str) -> dict[str, Any]:
         """Get metadata for a specific conversation.
 

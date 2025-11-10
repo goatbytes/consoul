@@ -385,6 +385,34 @@ DataTable > .datatable--hover {
 }
 
 /* ============================================================================
+ * ConversationList Sidebar
+ * ============================================================================ */
+
+ConversationList {
+    width: 30%;
+    min-width: 30;
+    max-width: 60;
+    height: 100%;
+    background: $surface-darken-1;
+    border-right: solid $accent;
+    padding: 0 1;
+}
+
+ConversationList DataTable {
+    background: $surface-darken-1;
+    height: 100%;
+}
+
+ConversationList DataTable > .datatable--cursor {
+    background: $primary;
+    color: $text;
+}
+
+ConversationList DataTable > .datatable--hover {
+    background: $surface-lighten-1;
+}
+
+/* ============================================================================
  * Scrollbars
  * ============================================================================ */
 

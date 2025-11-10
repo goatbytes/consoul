@@ -196,17 +196,31 @@ class ConsoulApp(App[None]):
         Yields:
             Widgets to display in the app
         """
-        from consoul.tui.widgets import ChatView, InputArea
+        from textual.containers import Horizontal, Vertical
+
+        from consoul.tui.widgets import ChatView, ConversationList, InputArea
 
         yield Header()
 
-        # Main chat display area
-        self.chat_view = ChatView()
-        yield self.chat_view
+        # Main content area with optional sidebar
+        with Horizontal(classes="main-container"):
+            # Conversation list sidebar (conditional)
+            if self.config.show_sidebar and self.consoul_config:
+                from consoul.ai.database import ConversationDatabase
 
-        # Message input area at bottom
-        self.input_area = InputArea()
-        yield self.input_area
+                db = ConversationDatabase()
+                self.conversation_list = ConversationList(db=db)
+                yield self.conversation_list
+
+            # Chat area (vertical layout)
+            with Vertical(classes="content-area"):
+                # Main chat display area
+                self.chat_view = ChatView()
+                yield self.chat_view
+
+                # Message input area at bottom
+                self.input_area = InputArea()
+                yield self.input_area
 
         yield Footer()
 
@@ -502,3 +516,68 @@ class ConsoulApp(App[None]):
     def action_help(self) -> None:
         """Show help modal."""
         self.notify("Help (Phase 4)")
+
+    async def on_conversation_list_conversation_selected(
+        self,
+        event: ConversationList.ConversationSelected,  # type: ignore[name-defined]  # noqa: F821
+    ) -> None:
+        """Handle conversation selection from sidebar.
+
+        Args:
+            event: ConversationSelected event from ConversationList
+        """
+        conversation_id = event.conversation_id
+        self.log.info(f"Loading conversation: {conversation_id}")
+
+        # Clear current chat view
+        await self.chat_view.clear_messages()
+
+        # Load conversation from database
+        if self.consoul_config:
+            try:
+                from consoul.ai.database import ConversationDatabase
+
+                db = ConversationDatabase()
+                messages = db.load_conversation(conversation_id)
+
+                # Display messages in chat view
+                from consoul.tui.widgets import MessageBubble
+
+                for msg in messages:
+                    role = msg["role"]
+                    content = msg["content"]
+
+                    # Skip system messages in display
+                    if role == "system":
+                        continue
+
+                    bubble = MessageBubble(
+                        content,
+                        role=role,
+                        show_metadata=True,
+                    )
+                    await self.chat_view.add_message(bubble)
+
+                # Update conversation ID to resume this conversation
+                self.conversation_id = conversation_id
+
+                # Update the conversation object if we have one
+                if self.conversation:
+                    # Reload conversation history into current conversation object
+                    from consoul.ai import ConversationHistory
+
+                    self.conversation = ConversationHistory(
+                        model_name=self.active_profile.model.model,  # type: ignore[union-attr]
+                        model=self.chat_model,
+                        persist=True,
+                        session_id=conversation_id,
+                    )
+
+                self.notify(
+                    f"Loaded conversation {conversation_id[:8]}...",
+                    severity="information",
+                )
+
+            except Exception as e:
+                self.log.error(f"Failed to load conversation: {e}")
+                self.notify(f"Failed to load conversation: {e}", severity="error")
