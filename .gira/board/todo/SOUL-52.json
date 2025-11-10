@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-09T20:16:17.985619",
+  "updated_at": "2025-11-09T20:16:17.985628",
+  "id": "SOUL-52",
+  "uuid": "19ae81e3-fbe2-40bd-91ef-ec131b975d1c",
+  "title": "Create comprehensive TUI test suite",
+  "description": "Implement 4 test suites from TUI_RESEARCH.md: widget unit tests (80% coverage), streaming regression tests, smoke tests, optional visual tests. Mock AI providers, test all keyboard shortcuts.",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "tui",
+    "testing"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-003",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {}
+}

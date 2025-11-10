@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-09T20:15:24.461650",
+  "updated_at": "2025-11-09T20:15:24.461659",
+  "id": "SOUL-44",
+  "uuid": "38af4124-ee28-4a5e-9998-d42cdad8315e",
+  "title": "Add profile and model selection modals",
+  "description": "Create modal widgets for profile/model selection. Bind to ctrl+p and ctrl+m. List available profiles/models, handle selection, reinitialize AI provider with new settings.",
+  "status": "todo",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "modals"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-003",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

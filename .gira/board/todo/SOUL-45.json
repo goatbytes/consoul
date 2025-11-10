@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-11-09T20:15:45.471694",
+  "updated_at": "2025-11-09T20:15:45.471703",
+  "id": "SOUL-45",
+  "uuid": "cfed52c2-78c8-4cf4-b145-8c9adcb13885",
+  "title": "Add search functionality for conversation history",
+  "description": "Implement ctrl+s search interface. Modal with search input, wire to ConversationList.search() FTS5 method, display filtered results, highlight matches.",
+  "status": "todo",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "search",
+    "fts5"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-003",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

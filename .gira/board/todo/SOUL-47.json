@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-09T20:15:49.368836",
+  "updated_at": "2025-11-09T20:15:49.368846",
+  "id": "SOUL-47",
+  "uuid": "fb93c9c5-8c01-4426-a0ce-cf5eea9ce025",
+  "title": "Implement settings screen",
+  "description": "Create ctrl+comma settings screen. Edit TuiConfig fields (theme, gc_mode, show_timestamps, etc.), save to config file, apply changes without restart.",
+  "status": "todo",
+  "type": "feature",
+  "priority": "low",
+  "labels": [
+    "tui",
+    "settings"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-003",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-09T20:15:53.788120",
+  "updated_at": "2025-11-09T20:15:53.788129",
+  "id": "SOUL-49",
+  "uuid": "3f3f2861-58ee-4ca1-b29d-75d29abdef74",
+  "title": "Implement theme switching UI",
+  "description": "Implement ctrl+t theme cycling. Cycle through 4 themes (monokai/dracula/nord/gruvbox), reload CSS dynamically, persist selection to config.",
+  "status": "todo",
+  "type": "feature",
+  "priority": "low",
+  "labels": [
+    "tui",
+    "themes"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-003",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

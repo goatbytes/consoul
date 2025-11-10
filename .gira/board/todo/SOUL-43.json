@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-09T20:15:22.710452",
+  "updated_at": "2025-11-09T20:15:22.710475",
+  "id": "SOUL-43",
+  "uuid": "69edd291-c746-4691-b37a-4269694b5cc6",
+  "title": "Implement conversation switching functionality",
+  "description": "Handle ConversationList.ConversationSelected event. Load selected conversation into ChatView, update current_conversation_id, clear/populate messages, maintain scroll position.",
+  "status": "todo",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "conversation"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-003",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}
