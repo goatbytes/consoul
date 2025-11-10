@@ -124,24 +124,25 @@ ChatView:focus {
  * Input Area
  * ============================================================================ */
 
-.input-area {
+InputArea {
     dock: bottom;
     height: auto;
     max-height: 10;
     background: $surface-lighten-1;
-    padding: 1 2;
-    border-top: solid $accent;
+    padding: 1;
+    border: solid $accent;
 }
 
-.input-field {
+InputArea TextArea {
     width: 100%;
     height: auto;
+    min-height: 3;
     background: $panel;
     color: $text;
     border: round $primary;
 }
 
-.input-field:focus {
+InputArea TextArea:focus {
     border: heavy $primary;
 }
 
