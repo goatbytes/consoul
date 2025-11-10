@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-10T14:35:31.774869",
+  "updated_at": "2025-11-10T14:35:31.774875",
+  "id": "SOUL-56",
+  "uuid": "ecc5ef8c-947c-4d06-ab61-0a2e2939b32e",
+  "title": "Decouple profiles from model/provider configuration",
+  "description": "# Decouple Profiles from Model/Provider Configuration\n\n## User Story\n**As a** Consoul developer\n**I want** profiles to be independent of model/provider selection\n**So that** users can switch models without changing profile settings\n\n## Description\n\nRefactor the configuration system to separate profile concepts from model selection. Currently, `ProfileConfig` includes a `model: ModelConfig` field, which tightly couples profiles to specific models. This makes it difficult to:\n- Switch models without changing profiles\n- Use the same profile with different models\n- Have model selection independent of settings presets\n\n## Current Architecture\n\n```python\nclass ProfileConfig(BaseModel):\n    name: str\n    description: str\n    model: ModelConfig  # ❌ Couples profile to specific model\n    conversation: ConversationConfig\n    context: ContextConfig\n```\n\n## Proposed Architecture\n\n```python\nclass ProfileConfig(BaseModel):\n    \"\"\"Settings preset (system prompts, context, conversation config)\"\"\"\n    name: str\n    description: str\n    system_prompt: str | None\n    conversation: ConversationConfig\n    context: ContextConfig\n    # No model field!\n\nclass ConsoulConfig(BaseModel):\n    profiles: dict[str, ProfileConfig]\n    active_profile: str\n    \n    # New: Model/provider tracked separately\n    current_provider: Provider  # openai, anthropic, google, ollama\n    current_model: str  # gpt-4o, claude-3-opus, etc.\n    \n    # Model configurations per provider\n    provider_configs: dict[Provider, ProviderConfig]  # API keys, base URLs, etc.\n```\n\n## Migration Strategy\n\n1. **Backward compatibility**: Support old config format during transition\n2. **Auto-migration**: Detect old configs and migrate to new format\n3. **Default model**: If no current_model set, use sensible default (gpt-4o)\n\n## Benefits\n\n- **Flexible model switching**: Change models without affecting profile\n- **Profile reuse**: Use \"code-review\" profile with any model\n- **Clearer separation**: Profiles = HOW to use AI, Models = WHICH AI to use\n- **Better UX**: Model picker and profile selector are independent\n\n## Technical Notes\n\n**Files to Modify:**\n- src/consoul/config/models.py\n  - Refactor ProfileConfig (remove model field)\n  - Add current_provider, current_model to ConsoulConfig\n  - Add provider_configs for per-provider settings\n  \n- src/consoul/config/loader.py\n  - Add migration logic for old configs\n  - Update config serialization/deserialization\n\n- src/consoul/cli/main.py\n  - Update CLI to handle new config structure\n\n- src/consoul/tui/app.py\n  - Update initialization to load provider/model separately\n  - Load profile for settings, model separately\n\n**Migration Example:**\n\nOLD config.toml:\n```toml\nactive_profile = \"default\"\n\n[profiles.default]\nname = \"default\"\ndescription = \"Default profile\"\n\n[profiles.default.model]\nprovider = \"openai\"\nmodel = \"gpt-4o\"\ntemperature = 0.7\n```\n\nNEW config.toml:\n```toml\nactive_profile = \"default\"\ncurrent_provider = \"openai\"\ncurrent_model = \"gpt-4o\"\n\n[profiles.default]\nname = \"default\"\ndescription = \"Default profile\"\nsystem_prompt = \"You are a helpful assistant.\"\n\n[provider_configs.openai]\napi_key_env = \"OPENAI_API_KEY\"\ndefault_temperature = 0.7\ndefault_max_tokens = 4096\n```\n\n## Acceptance Criteria\n\n**Given** I have an old config with model embedded in profile\n**When** I start Consoul\n**Then** the config is auto-migrated to new format\n\n**Given** I switch models in the TUI\n**When** I save the config\n**Then** only current_provider and current_model change (not profile)\n\n**Given** I switch profiles\n**When** the profile loads\n**Then** system prompt and settings update but model stays the same\n\n## Dependencies\n\n**Blocked by:**\n- SOUL-55 (ContextualTopBar provides UI for separate model/profile selection)\n\n**Blocks:**\n- SOUL-44 (Model picker needs decoupled config)\n\n## Related Tickets\n\n- SOUL-44: Implement model & provider picker UI",
+  "status": "backlog",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "config",
+    "refactor",
+    "breaking-change"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-003",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}
