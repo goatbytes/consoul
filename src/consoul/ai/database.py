@@ -637,7 +637,7 @@ class ConversationDatabase:
                     FROM conversations c
                     INNER JOIN messages_fts fts ON c.session_id = fts.conversation_id
                     LEFT JOIN messages m ON c.session_id = m.conversation_id
-                    WHERE messages_fts MATCH ?
+                    WHERE fts MATCH ?
                     GROUP BY c.session_id
                     ORDER BY rank ASC, c.updated_at DESC
                     LIMIT ?
