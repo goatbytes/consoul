@@ -778,6 +778,15 @@ def import_history(import_file: Path, dry_run: bool, db_path: Path | None) -> No
 
 def main() -> None:
     """Main entry point for Consoul CLI."""
+    # Register TUI command if Textual is available
+    try:
+        from consoul.tui.cli import tui
+
+        cli.add_command(tui)
+    except ImportError:
+        # TUI dependencies not installed, CLI will work without TUI subcommand
+        pass
+
     cli(obj={})
 
 

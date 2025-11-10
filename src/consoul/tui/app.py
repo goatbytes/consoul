@@ -15,7 +15,12 @@ from textual.reactive import reactive
 from textual.widgets import Footer, Header
 
 if TYPE_CHECKING:
+    from langchain_core.language_models.chat_models import BaseChatModel
     from textual.binding import BindingType
+
+    from consoul.ai.history import ConversationHistory
+    from consoul.config import ConsoulConfig
+    from consoul.tui.widgets import InputArea, StreamingResponse
 
 from consoul.tui.config import TuiConfig
 from consoul.tui.css.themes import load_theme
@@ -61,12 +66,16 @@ class ConsoulApp(App[None]):
     streaming: reactive[bool] = reactive(False)
 
     def __init__(
-        self, config: TuiConfig | None = None, test_mode: bool = False
+        self,
+        config: TuiConfig | None = None,
+        consoul_config: ConsoulConfig | None = None,
+        test_mode: bool = False,
     ) -> None:
         """Initialize the Consoul TUI application.
 
         Args:
             config: TUI configuration (uses defaults if None)
+            consoul_config: Consoul configuration for AI providers (loads from file if None)
             test_mode: Enable test mode (auto-exit for testing)
         """
         super().__init__()
@@ -78,6 +87,76 @@ class ConsoulApp(App[None]):
 
         # GC management will be set up in on_mount (after message pump starts)
         self._gc_interval_timer: object | None = None
+
+        # Load Consoul configuration for AI providers
+        if consoul_config is None:
+            from consoul.config import load_config
+
+            try:
+                consoul_config = load_config()
+            except Exception as e:
+                self.log.error(f"Failed to load configuration: {e}")
+                consoul_config = None
+
+        self.consoul_config = consoul_config
+
+        # Initialize AI components
+        self.chat_model: BaseChatModel | None = None
+        self.conversation: ConversationHistory | None = None
+        self.active_profile = None
+
+        if consoul_config is not None:
+            try:
+                self.active_profile = consoul_config.get_active_profile()
+                self.current_profile = self.active_profile.name
+                self.current_model = self.active_profile.model.model
+
+                # Initialize chat model
+                from consoul.ai import get_chat_model
+
+                self.chat_model = get_chat_model(
+                    self.active_profile.model, config=consoul_config
+                )
+
+                # Initialize conversation history
+                from consoul.ai import ConversationHistory
+
+                self.conversation = ConversationHistory(
+                    model_name=self.active_profile.model.model,
+                    model=self.chat_model,
+                    persist=True,  # Enable SQLite persistence
+                )
+
+                # Add system prompt if configured
+                if (
+                    hasattr(self.active_profile, "system_prompt")
+                    and self.active_profile.system_prompt
+                ):
+                    self.conversation.add_system_message(
+                        self.active_profile.system_prompt
+                    )
+
+                # Set conversation ID for tracking
+                self.conversation_id = self.conversation.session_id
+
+                self.log.info(
+                    f"Initialized AI model: {self.active_profile.model.model}, "
+                    f"session: {self.conversation_id}"
+                )
+
+            except Exception as e:
+                # Log error but allow app to start (graceful degradation)
+                import traceback
+
+                self.log.error(
+                    f"Failed to initialize AI model: {e}\n{traceback.format_exc()}"
+                )
+                self.chat_model = None
+                self.conversation = None
+
+        # Streaming state
+        self._current_stream: StreamingResponse | None = None
+        self._stream_cancelled = False
 
     def on_mount(self) -> None:
         """Initialize app after mounting (message pump is running).
@@ -117,10 +196,18 @@ class ConsoulApp(App[None]):
         Yields:
             Widgets to display in the app
         """
-        from consoul.tui.widgets import ChatView
+        from consoul.tui.widgets import ChatView, InputArea
 
         yield Header()
-        yield ChatView()
+
+        # Main chat display area
+        self.chat_view = ChatView()
+        yield self.chat_view
+
+        # Message input area at bottom
+        self.input_area = InputArea()
+        yield self.input_area
+
         yield Footer()
 
     def _idle_gc(self) -> None:
@@ -132,21 +219,257 @@ class ConsoulApp(App[None]):
         if not self.streaming:
             gc.collect(generation=self.config.gc_generation)
 
+    async def on_input_area_message_submit(
+        self, event: InputArea.MessageSubmit
+    ) -> None:
+        """Handle user message submission from InputArea.
+
+        Args:
+            event: MessageSubmit event containing user's message content
+        """
+        from consoul.tui.widgets import MessageBubble
+
+        user_message = event.content
+
+        # Check if AI model is available
+        if self.chat_model is None or self.conversation is None:
+            # Display error message
+            error_bubble = MessageBubble(
+                "AI model not initialized. Please check your configuration.\n\n"
+                "Ensure you have:\n"
+                "- A valid profile with model configuration\n"
+                "- Required API keys set in environment or .env file\n"
+                "- Provider packages installed (e.g., langchain-openai)",
+                role="error",
+                show_metadata=False,
+            )
+            await self.chat_view.add_message(error_bubble)
+            return
+
+        # Add user message to chat view
+        user_bubble = MessageBubble(user_message, role="user", show_metadata=True)
+        await self.chat_view.add_message(user_bubble)
+
+        # Add to conversation history
+        self.conversation.add_user_message(user_message)
+
+        # Start streaming AI response
+        await self._stream_ai_response()
+
+    async def _stream_ai_response(self) -> None:
+        """Stream AI response token-by-token to TUI.
+
+        Uses StreamingResponse widget for real-time token display,
+        then converts to MessageBubble when complete.
+
+        Runs the blocking LangChain stream() call in a background worker
+        to prevent freezing the UI event loop.
+        """
+        from consoul.ai.exceptions import StreamingError
+        from consoul.ai.history import to_dict_message
+        from consoul.tui.widgets import MessageBubble, StreamingResponse
+
+        # Create streaming response widget
+        stream_widget = StreamingResponse(renderer="markdown")
+        await self.chat_view.add_message(stream_widget)
+
+        # Track for cancellation
+        self._current_stream = stream_widget
+        self._stream_cancelled = False
+        self.streaming = True  # Update reactive state
+
+        try:
+            # Get trimmed messages for context window
+            messages = self.conversation.get_trimmed_messages(  # type: ignore[union-attr]
+                reserve_tokens=self.active_profile.model.max_tokens or 4096  # type: ignore[union-attr]
+            )
+
+            # Convert to dict format for LangChain
+            messages_dict = [to_dict_message(msg) for msg in messages]
+
+            # Stream tokens in background worker to avoid blocking UI
+            collected_tokens: list[str] = []
+
+            # Use asyncio.Queue to stream tokens from background thread to UI
+            import asyncio
+
+            token_queue: asyncio.Queue[str | None] = asyncio.Queue()
+
+            # Get the current event loop (Textual's loop)
+            event_loop = asyncio.get_running_loop()
+
+            def sync_stream_producer() -> None:
+                """Background thread: stream tokens and push to queue.
+
+                Sends None as sentinel when complete or cancelled.
+                """
+                try:
+                    for chunk in self.chat_model.stream(messages_dict):  # type: ignore[union-attr]
+                        # Check for cancellation
+                        if self._stream_cancelled:
+                            break
+
+                        # Skip empty chunks
+                        if not chunk.content:
+                            continue
+
+                        token = chunk.content
+                        # Push token to queue (thread-safe)
+                        asyncio.run_coroutine_threadsafe(
+                            token_queue.put(token), event_loop
+                        )
+
+                except Exception as e:
+                    # Push exception as string
+                    asyncio.run_coroutine_threadsafe(
+                        token_queue.put(f"ERROR: {e}"), event_loop
+                    )
+                finally:
+                    # Send sentinel to signal completion
+                    asyncio.run_coroutine_threadsafe(token_queue.put(None), event_loop)
+
+            # Start background thread
+            import threading
+
+            stream_thread = threading.Thread(target=sync_stream_producer, daemon=True)
+            stream_thread.start()
+
+            # Consume tokens from queue and update UI in real-time
+            while True:
+                token = await token_queue.get()
+
+                # None = sentinel, stream is done
+                if token is None:
+                    break
+
+                # Check for cancellation
+                if self._stream_cancelled:
+                    break
+
+                # Add token to UI immediately
+                collected_tokens.append(token)
+                await stream_widget.add_token(token)
+
+            # Finalize streaming widget
+            await stream_widget.finalize_stream()
+
+            # Get complete response
+            full_response = "".join(collected_tokens)
+
+            if not self._stream_cancelled and full_response.strip():
+                # Add to conversation history
+                self.conversation.add_assistant_message(full_response)  # type: ignore[union-attr]
+
+                # Replace StreamingResponse with MessageBubble for permanent display
+                await stream_widget.remove()
+
+                assistant_bubble = MessageBubble(
+                    full_response,
+                    role="assistant",
+                    show_metadata=True,
+                    token_count=len(collected_tokens),
+                )
+                await self.chat_view.add_message(assistant_bubble)
+            elif self._stream_cancelled:
+                # Show cancellation indicator
+                await stream_widget.remove()
+                cancelled_bubble = MessageBubble(
+                    "_Stream cancelled by user_",
+                    role="system",
+                    show_metadata=False,
+                )
+                await self.chat_view.add_message(cancelled_bubble)
+
+        except StreamingError as e:
+            # Handle streaming errors with partial response
+            self.log.error(f"Streaming error: {e}")
+
+            await stream_widget.remove()
+
+            error_message = f"**Error:** {e}"
+            if e.partial_response:
+                error_message += (
+                    f"\n\n**Partial response:**\n{e.partial_response[:500]}"
+                )
+                if len(e.partial_response) > 500:
+                    error_message += "..."
+
+            error_bubble = MessageBubble(
+                error_message, role="error", show_metadata=False
+            )
+            await self.chat_view.add_message(error_bubble)
+
+        except Exception as e:
+            # Handle unexpected errors
+            self.log.error(f"Unexpected error during streaming: {e}", exc_info=True)
+
+            await stream_widget.remove()
+
+            error_bubble = MessageBubble(
+                f"**Unexpected error:** {e}\n\nPlease check the logs for more details.",
+                role="error",
+                show_metadata=False,
+            )
+            await self.chat_view.add_message(error_bubble)
+
+        finally:
+            # Reset streaming state
+            self._current_stream = None
+            self.streaming = False
+
+            # Restore focus to input area
+            self.input_area.text_area.focus()
+
     # Action handlers (placeholders for Phase 2+)
 
-    def action_new_conversation(self) -> None:
+    async def action_new_conversation(self) -> None:
         """Start a new conversation."""
-        self.notify("New conversation (placeholder)")
+        if self.conversation is not None:
+            # Clear chat view
+            await self.chat_view.clear_messages()
 
-    def action_clear_conversation(self) -> None:
+            # Create new conversation with same model
+            from consoul.ai import ConversationHistory
+
+            self.conversation = ConversationHistory(
+                model_name=self.active_profile.model.model,  # type: ignore[union-attr]
+                model=self.chat_model,
+                persist=True,  # New session ID will be created
+            )
+
+            # Re-add system prompt if configured
+            if self.active_profile and hasattr(self.active_profile, "system_prompt"):
+                system_prompt = self.active_profile.system_prompt
+                if system_prompt:
+                    self.conversation.add_system_message(system_prompt)
+
+            self.conversation_id = self.conversation.session_id
+            self.notify("Started new conversation", severity="information")
+        else:
+            self.notify("AI model not initialized", severity="warning")
+
+    async def action_clear_conversation(self) -> None:
         """Clear current conversation."""
-        self.notify("Clear conversation (placeholder)")
+        if self.conversation is not None:
+            # Clear chat view
+            await self.chat_view.clear_messages()
+
+            # Clear conversation history (preserve system message)
+            self.conversation.clear(preserve_system=True)
+
+            self.log.info("Conversation cleared")
+            self.notify("Conversation cleared", severity="information")
+        else:
+            self.notify("No conversation to clear", severity="warning")
 
     def action_cancel_stream(self) -> None:
         """Cancel active streaming."""
-        if self.streaming:
-            self.streaming = False
-            self.notify("Streaming cancelled")
+        if self.streaming and self._current_stream:
+            self._stream_cancelled = True
+            self.log.info("Cancelling stream...")
+            self.notify("Cancelling stream...", severity="warning")
+        else:
+            self.log.debug("No active stream to cancel")
 
     def action_switch_profile(self) -> None:
         """Show profile selection modal."""

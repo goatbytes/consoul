@@ -6,8 +6,9 @@ with Enter to send and Shift+Enter for newlines.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
+from textual.binding import Binding
 from textual.containers import Container
 from textual.message import Message
 from textual.reactive import reactive
@@ -15,6 +16,7 @@ from textual.widgets import TextArea
 
 if TYPE_CHECKING:
     from textual import events
+    from textual.binding import BindingType
 
 __all__ = ["InputArea"]
 
@@ -28,6 +30,11 @@ class InputArea(Container):
     Attributes:
         character_count: Number of characters in the input
     """
+
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding("enter", "send_message", "Send", priority=True, show=False),
+        Binding("escape", "clear_input", "Clear", show=False),
+    ]
 
     class MessageSubmit(Message):
         """Message posted when user submits input.
@@ -95,25 +102,23 @@ class InputArea(Container):
         else:
             self.border_title = "Message (Enter to send, Shift+Enter for newline)"
 
+    async def action_send_message(self) -> None:
+        """Action to send the message (bound to Enter key)."""
+        await self._send_message()
+
+    def action_clear_input(self) -> None:
+        """Action to clear the input (bound to Escape key)."""
+        self.clear()
+
     async def on_key(self, event: events.Key) -> None:
-        """Handle keyboard shortcuts.
+        """Handle keyboard shortcuts for Shift+Enter newline.
 
         Args:
             event: The key event
         """
-        # Enter without shift = send
-        if (event.key == "enter" and not event.shift and not event.ctrl) or (
-            event.key == "enter" and event.ctrl
-        ):
-            event.prevent_default()
-            await self._send_message()
-
-        # Shift+Enter = newline (default TextArea behavior, don't prevent)
-
-        # Escape = clear
-        elif event.key == "escape":
-            event.prevent_default()
-            self.clear()
+        # Shift+Enter = newline (allow default TextArea behavior)
+        # This doesn't prevent default, so TextArea handles it
+        pass
 
     async def _send_message(self) -> None:
         """Send the current message.
