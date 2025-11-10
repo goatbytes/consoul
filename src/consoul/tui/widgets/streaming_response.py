@@ -196,8 +196,17 @@ class StreamingResponse(Static):
             # Use plain text during streaming, markdown on completion
             if self.streaming:
                 logger.debug(f"Updating with plain text: {display_content[:50]}...")
-                self.update(display_content)
+                # Use Text renderable explicitly for plain text
+                from rich.text import Text as RichText
+
+                text_renderable = RichText(display_content, style="white on blue")
+                self.update(text_renderable)
                 self.refresh(layout=True)  # Force immediate refresh with layout recalculation
+
+                # Also refresh parent container
+                if self.parent:
+                    self.parent.refresh()
+
                 logger.debug(f"Update+refresh called, widget visible={self.visible}")
             else:
                 try:
