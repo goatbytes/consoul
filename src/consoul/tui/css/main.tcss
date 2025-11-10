@@ -265,7 +265,7 @@ ChatView:focus {
  * Streaming Response
  * ============================================================================ */
 
-.streaming-response {
+StreamingResponse {
     width: 100%;
     height: auto;
     background: $secondary;
@@ -273,6 +273,11 @@ ChatView:focus {
     padding: 1 2;
     border: tall $success;
     border-title-color: $success;
+}
+
+StreamingResponse.streaming {
+    border: heavy $accent;
+    border-title-color: $accent;
 }
 
 .streaming-cursor {
