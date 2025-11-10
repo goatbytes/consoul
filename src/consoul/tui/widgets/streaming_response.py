@@ -138,6 +138,9 @@ class StreamingResponse(Static):
             # Plain text mode (richlog)
             self.update(display_content)
 
+        # Force refresh to ensure display updates
+        self.refresh()
+
     async def finalize_stream(self) -> None:
         """Finalize streaming and render final content.
 
