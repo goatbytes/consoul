@@ -59,11 +59,11 @@ ChatView {
     height: 1fr;
     background: $panel;
     padding: 1 2;
-    border: solid $accent;
+    border: round $accent;
 }
 
 ChatView:focus {
-    border: heavy $primary;
+    border: thick $primary;
 }
 
 .chat-messages {
@@ -86,7 +86,7 @@ ChatView:focus {
 .message-user {
     background: $primary;
     color: $text;
-    border: tall $accent;
+    border: round $accent;
     border-title-color: $accent;
     border-title-align: right;
 }
@@ -94,7 +94,7 @@ ChatView:focus {
 .message-assistant {
     background: $secondary;
     color: $text;
-    border: tall $success;
+    border: round $success;
     border-title-color: $success;
     border-title-align: left;
 }
@@ -102,14 +102,14 @@ ChatView:focus {
 .message-system {
     background: $surface-lighten-1;
     color: $text-muted;
-    border: solid $accent;
+    border: round $accent;
     border-title-color: $accent;
 }
 
 .message-error {
     background: $error;
     color: $text;
-    border: double $warning;
+    border: thick $warning;
     border-title-color: $warning;
 }
 
@@ -134,7 +134,7 @@ InputArea {
     max-height: 10;
     background: $surface-lighten-1;
     padding: 1;
-    border: solid $accent;
+    border: round $accent;
 }
 
 InputArea TextArea {
@@ -147,7 +147,7 @@ InputArea TextArea {
 }
 
 InputArea TextArea:focus {
-    border: heavy $primary;
+    border: thick $primary;
 }
 
 /* ============================================================================
@@ -253,7 +253,7 @@ InputArea TextArea:focus {
 
 .modal-button:hover {
     background: $primary;
-    border: heavy $accent;
+    border: thick $accent;
 }
 
 .modal-button.primary {
@@ -276,12 +276,12 @@ StreamingResponse {
     background: $secondary;
     color: $text;
     padding: 1 2;
-    border: tall $success;
+    border: round $success;
     border-title-color: $success;
 }
 
 StreamingResponse.streaming {
-    border: heavy $accent;
+    border: round $accent;
     border-title-color: $accent;
 }
 
