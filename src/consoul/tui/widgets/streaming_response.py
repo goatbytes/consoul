@@ -119,11 +119,9 @@ class StreamingResponse(Static):
             logger.debug("Triggering render")
             self.token_buffer.clear()
             self.last_render_time = current_time
-            # Force a screen refresh
-            self.refresh()
-            if self.screen:
-                self.screen.refresh()
-            logger.debug(f"Refreshed widget and screen")
+            # Force immediate repaint by setting needs_repaint flag
+            self.refresh(repaint=True, layout=True)
+            logger.debug(f"Called refresh with repaint=True")
 
     async def _render_content(self, force: bool = False) -> None:
         """No longer used - render() method is called automatically."""
