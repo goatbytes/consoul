@@ -98,6 +98,8 @@ class StreamingResponse(RichLog):
                 logger.debug(f"Appending {len(new_content)} new chars to RichLog")
                 self.write(Text(new_content, style="yellow on red"))
                 self._last_written_length = len(self.full_content)
+                # Scroll to bottom to follow the streaming content
+                self.scroll_end(animate=False)
             self.token_buffer.clear()
             self.last_render_time = current_time
 
