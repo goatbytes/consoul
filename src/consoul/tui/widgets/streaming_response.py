@@ -73,18 +73,23 @@ class StreamingResponse(Static):
 
         This method is called by Textual whenever the widget needs to be redrawn.
         """
+        logger.debug(f"render() ENTRY: full_content len={len(self.full_content)}, streaming={self.streaming}")
+
         if not self.full_content:
+            logger.debug("render() returning empty string")
             return ""
 
         display = self.full_content
         if self.streaming:
             display += " ▌"
 
-        logger.debug(f"render() called: len={len(display)}, streaming={self.streaming}")
+        logger.debug(f"render() returning Text: len={len(display)}")
 
         # Return plain text with explicit styling for visibility
         from rich.text import Text as RichText
-        return RichText(display, style="yellow on red")
+        result = RichText(display, style="yellow on red")
+        logger.debug(f"render() created RichText: {result}")
+        return result
 
     async def add_token(self, token: str) -> None:
         """Add a streaming token to the response.
@@ -114,8 +119,11 @@ class StreamingResponse(Static):
             logger.debug("Triggering render")
             self.token_buffer.clear()
             self.last_render_time = current_time
-            # Instead of calling update(), just trigger a refresh which calls render()
+            # Force a screen refresh
             self.refresh()
+            if self.screen:
+                self.screen.refresh()
+            logger.debug(f"Refreshed widget and screen")
 
     async def _render_content(self, force: bool = False) -> None:
         """No longer used - render() method is called automatically."""
