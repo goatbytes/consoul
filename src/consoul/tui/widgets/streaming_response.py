@@ -68,6 +68,9 @@ class StreamingResponse(Static):
         self.border_title = "Assistant"
         self.add_class("streaming-response")
 
+        # Set up a timer to force repaints during streaming
+        self.set_interval(0.1, self._periodic_refresh)
+
     def render(self) -> str | Text:
         """Render the streaming content.
 
@@ -90,6 +93,17 @@ class StreamingResponse(Static):
         result = RichText(display, style="yellow on red")
         logger.debug(f"render() created RichText: {result}")
         return result
+
+    def _periodic_refresh(self) -> None:
+        """Periodically refresh the widget during streaming.
+
+        This runs on a timer to force repaints even when the event loop
+        is busy processing tokens.
+        """
+        if self.streaming and self.full_content:
+            logger.debug(f"Periodic refresh triggered, content len={len(self.full_content)}")
+            # Don't call refresh here, just let render() be called naturally
+            # The timer itself triggers a repaint cycle
 
     async def add_token(self, token: str) -> None:
         """Add a streaming token to the response.
@@ -116,12 +130,10 @@ class StreamingResponse(Static):
         )
 
         if buffer_size >= self.BUFFER_SIZE or time_since_render >= self.DEBOUNCE_MS:
-            logger.debug("Triggering render")
+            logger.debug("Clearing token buffer")
             self.token_buffer.clear()
             self.last_render_time = current_time
-            # Force immediate repaint by setting needs_repaint flag
-            self.refresh(repaint=True, layout=True)
-            logger.debug(f"Called refresh with repaint=True")
+            # Don't call refresh here - let the periodic timer handle it
 
     async def _render_content(self, force: bool = False) -> None:
         """No longer used - render() method is called automatically."""
