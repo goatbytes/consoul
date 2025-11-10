@@ -5,10 +5,18 @@ tokens across different AI providers. It handles provider-specific token countin
 with appropriate fallbacks.
 
 Provider-Specific Token Counting:
-    - OpenAI (gpt-*, o1-*): Uses tiktoken for accurate, deterministic counting
+    - OpenAI (gpt-*, o1-*, o2-*, etc.): Uses tiktoken for accurate counting
     - Anthropic (claude-*): Uses LangChain's get_num_tokens_from_messages
     - Google (gemini-*): Uses LangChain's get_num_tokens_from_messages
     - Ollama/Others: Uses character-based approximation (4 chars ≈ 1 token)
+
+Token Limits (as of 2025-11-09):
+    - OpenAI GPT-5/4.1: 400K/1M tokens
+    - OpenAI GPT-4o: 128K tokens
+    - Anthropic Claude Sonnet 4: 1M tokens (beta/enterprise)
+    - Anthropic Claude 3.5/3: 200K tokens
+    - Google Gemini 1.5 Pro: 2M tokens
+    - Google Gemini 2.5: 1M tokens
 
 Example:
     >>> counter = create_token_counter("gpt-4o")
@@ -32,34 +40,49 @@ if TYPE_CHECKING:
     from langchain_core.messages import BaseMessage
 
 # Model token limits (context window sizes)
+# Updated: 2025-11-09
+# Notes:
+# - OpenAI GPT-5/4.1 support 400K/1M token context; GPT-4o remains 128K.
+# - Anthropic Claude defaults to 200K; Sonnet 4 supports 1M (beta/enterprise).
+# - Gemini 1.5 Pro allows 2M; 2.5 Pro is 1M (2M announced); 2.5 Flash is ~1M.
+# - Open-source models (Llama, Mistral, etc.) may have configurable limits.
 MODEL_TOKEN_LIMITS: dict[str, int] = {
-    # OpenAI models
+    # OpenAI models - GPT-5 series
+    "gpt-5": 400_000,  # API spec: 400K context window
+    "gpt-5-mini": 400_000,
+    "gpt-5-nano": 400_000,
+    # OpenAI models - GPT-4.1 series
+    "gpt-4.1": 1_000_000,  # Full API version: ~1M tokens
+    "gpt-4.1-mini": 1_000_000,
+    "gpt-4.1-nano": 1_000_000,
+    # OpenAI models - GPT-4 series
     "gpt-4o": 128_000,
     "gpt-4o-mini": 128_000,
     "gpt-4-turbo": 128_000,
     "gpt-4": 8_192,
     "gpt-3.5-turbo": 16_385,
+    # OpenAI reasoning models
     "o1-preview": 128_000,
     "o1-mini": 128_000,
-    # Anthropic models - Claude 4 (Sonnet 4.5 with 1M context via beta)
-    "claude-sonnet-4-5": 200_000,  # Default 200K, 1M with beta flag
-    "claude-sonnet-4": 1_000_000,  # 1M context window (Aug 2025)
+    # Anthropic models - Claude 4 (longer prefixes first for proper matching)
+    "claude-sonnet-4-5": 200_000,  # Default 200K
+    "claude-sonnet-4": 1_000_000,  # Beta/enterprise: 1M context
     # Anthropic models - Claude 3.5
     "claude-3-5-sonnet": 200_000,
     # Anthropic models - Claude 3
     "claude-3-opus": 200_000,
     "claude-3-sonnet": 200_000,
     "claude-3-haiku": 200_000,
-    # Google models - Gemini 2.5 (2025)
-    "gemini-2.5-pro": 1_000_000,  # 1M context (2M in testing)
-    "gemini-2.5-flash": 1_000_000,  # 1M context window
+    # Google models - Gemini 2.5
+    "gemini-2.5-pro": 1_000_000,  # 1M context (2M rolling out)
+    "gemini-2.5-flash": 1_048_576,  # API spec: 1,048,576 tokens (~1M)
     # Google models - Gemini 1.5
-    "gemini-1.5-pro": 2_000_000,
+    "gemini-1.5-pro": 2_000_000,  # 2M context window
     "gemini-1.5-flash": 1_000_000,
-    "gemini-pro": 32_000,
-    # Ollama (typical open models)
+    "gemini-pro": 32_000,  # Legacy
+    # Ollama / Open-source models
     "llama3": 8_192,
-    "llama3.1": 128_000,
+    "llama3.1": 128_000,  # Llama 3.1 family supports 128K
     "mistral": 32_000,
     "phi": 4_096,
     "qwen": 32_000,
@@ -74,7 +97,8 @@ def get_model_token_limit(model_name: str) -> int:
     """Get the maximum context window size (in tokens) for a model.
 
     Returns the known token limit for the model, or a conservative default
-    if the model is not recognized.
+    if the model is not recognized. Uses case-insensitive matching with
+    separator normalization for robustness.
 
     Args:
         model_name: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet")
@@ -85,16 +109,22 @@ def get_model_token_limit(model_name: str) -> int:
     Example:
         >>> get_model_token_limit("gpt-4o")
         128000
+        >>> get_model_token_limit("GPT-4O-2024-08-06")
+        128000
         >>> get_model_token_limit("unknown-model")
         4096
     """
-    # Try exact match first
-    if model_name in MODEL_TOKEN_LIMITS:
-        return MODEL_TOKEN_LIMITS[model_name]
+    # Normalize: lowercase, strip whitespace, normalize separators
+    key = (model_name or "").strip().lower()
+    key = key.replace(":", "-").replace("/", "-").replace("_", "-")
 
-    # Try partial match (e.g., "gpt-4o-2024-08-06" → "gpt-4o")
+    # Try exact match first
+    if key in MODEL_TOKEN_LIMITS:
+        return MODEL_TOKEN_LIMITS[key]
+
+    # Try prefix match (e.g., "gpt-4o-2024-08-06" → "gpt-4o")
     for known_model, limit in MODEL_TOKEN_LIMITS.items():
-        if model_name.startswith(known_model):
+        if key.startswith(known_model):
             return limit
 
     # Return conservative default
@@ -104,14 +134,18 @@ def get_model_token_limit(model_name: str) -> int:
 def _is_openai_model(model_name: str) -> bool:
     """Check if model is an OpenAI model (supports tiktoken).
 
+    Heuristic detection for OpenAI chat/reasoning families that use tiktoken.
+    Uses case-insensitive matching for robustness.
+
     Args:
         model_name: Model identifier
 
     Returns:
-        True if model is from OpenAI (gpt-*, o1-*, text-davinci-*)
+        True if model is from OpenAI (gpt-*, o1-*, o2-*, o3-*, o4-*, text-davinci-*)
     """
-    openai_prefixes = ("gpt-", "o1-", "text-davinci")
-    return any(model_name.startswith(prefix) for prefix in openai_prefixes)
+    key = (model_name or "").lower()
+    openai_prefixes = ("gpt-", "o1-", "o2-", "o3-", "o4-", "text-davinci")
+    return any(key.startswith(prefix) for prefix in openai_prefixes)
 
 
 def _create_tiktoken_counter(model_name: str) -> Callable[[list[BaseMessage]], int]:

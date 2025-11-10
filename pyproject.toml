@@ -47,10 +47,10 @@ dependencies = [
     "langchain>=1.0.0",
     "langchain-openai>=1.0.0",
     "langchain-anthropic>=1.0.0",
-    "langchain-google-genai>=3.0.0",
-    "langchain-ollama>=0.2.0",
+    "langchain-google-genai>=2.0.0",
+    "langchain-ollama>=1.0.0",
     "click>=8.1.0",
-    "pydantic>=2.0.0",
+    "pydantic>=2.12.4",
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.0.0",
     "pyyaml (>=6.0.3,<7.0.0)",
@@ -101,37 +101,37 @@ packages = [{include = "consoul", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 textual = "^6.5.0"
-langchain = "^1.0.0"
-langchain-openai = "^1.0.0"
-langchain-anthropic = "^1.0.0"
-langchain-google-genai = "^3.0.0"
-langchain-ollama = "^0.2.0"
-click = "^8.1.0"
-pydantic = "^2.0.0"
-pydantic-settings = "^2.0.0"
-python-dotenv = "^1.0.0"
-requests = "^2.25.0"
+langchain = "^1.0.5"
+langchain-openai = "^1.0.2"
+langchain-anthropic = "^1.0.2"
+langchain-google-genai = "^3.0.1"
+langchain-ollama = "^1.0.0"
+click = "^8.3.0"
+pydantic = "^2.12.4"
+pydantic-settings = "^2.11.0"
+python-dotenv = "^1.2.1"
+requests = "^2.32.5"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.2.0"
+pytest = "^8.4.2"
 pytest-cov = "^7.0.0"
-pytest-asyncio = "^1.0.0"
-pytest-mock = "^3.12.0"
-ruff = "^0.14.0"
-mypy = "^1.7.0"
-pre-commit = "^4.0.0"
+pytest-asyncio = "^1.2.0"
+pytest-mock = "^3.15.1"
+ruff = "^0.14.4"
+mypy = "^1.18.2"
+pre-commit = "^4.4.0"
 attrs = "^25.4.0"
 types-pyyaml = "^6.0.12.20250915"
-types-requests = "^2.31.0"
+types-requests = "^2.32.4.20250913"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.6.1"
-mkdocs-material = "^9.5.50"
-mkdocstrings = {extras = ["python"], version = "^0.27.0"}
+mkdocs-material = "^9.6.23"
+mkdocstrings = {extras = ["python"], version = "^0.30.1"}
 
 [tool.poetry.group.security.dependencies]
-safety = "^3.0.0"
-bandit = {extras = ["toml"], version = "^1.7.0"}
+safety = "^3.7.0"
+bandit = {extras = ["toml"], version = "^1.8.6"}
 
 [tool.poetry.scripts]
 consoul = "consoul.__main__:main"

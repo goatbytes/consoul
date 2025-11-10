@@ -40,7 +40,9 @@ class TestModelTokenLimits:
         """Test getting token limit for known Google models."""
         # Gemini 2.5
         assert get_model_token_limit("gemini-2.5-pro") == 1_000_000
-        assert get_model_token_limit("gemini-2.5-flash") == 1_000_000
+        assert (
+            get_model_token_limit("gemini-2.5-flash") == 1_048_576
+        )  # API spec: 1,048,576
         # Gemini 1.5
         assert get_model_token_limit("gemini-1.5-pro") == 2_000_000
         assert get_model_token_limit("gemini-1.5-flash") == 1_000_000
