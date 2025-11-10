@@ -75,8 +75,17 @@ class StreamingResponse(RichLog):
         This timer runs continuously to keep the ChatView scrolled
         to the bottom as the streaming widget grows in height.
         """
-        if self.streaming and self.parent and hasattr(self.parent, 'scroll_end'):
-            self.parent.scroll_end(animate=False)
+        if self.streaming:
+            logger.debug(f"Timer: streaming={self.streaming}, parent={type(self.parent).__name__ if self.parent else None}")
+            if self.parent and hasattr(self.parent, 'scroll_end'):
+                logger.debug(f"Calling parent.scroll_end()")
+                self.parent.scroll_end(animate=False)
+            # Try scrolling via screen if parent doesn't work
+            if self.screen:
+                chat_view = self.screen.query_one("ChatView", expect_type=False)
+                if chat_view and hasattr(chat_view, 'scroll_end'):
+                    logger.debug(f"Calling ChatView.scroll_end()")
+                    chat_view.scroll_end(animate=False)
 
     async def add_token(self, token: str) -> None:
         """Add a streaming token to the response.
