@@ -10,8 +10,6 @@ import logging
 import time
 from typing import Any, Literal
 
-from rich.markdown import Markdown
-from rich.text import Text
 from textual.reactive import reactive
 from textual.widgets import RichLog
 
@@ -75,17 +73,8 @@ class StreamingResponse(RichLog):
         This timer runs continuously to keep the ChatView scrolled
         to the bottom as the streaming widget grows in height.
         """
-        if self.streaming:
-            logger.debug(f"Timer: streaming={self.streaming}, parent={type(self.parent).__name__ if self.parent else None}")
-            if self.parent and hasattr(self.parent, 'scroll_end'):
-                logger.debug(f"Calling parent.scroll_end()")
-                self.parent.scroll_end(animate=False)
-            # Try scrolling via screen if parent doesn't work
-            if self.screen:
-                chat_view = self.screen.query_one("ChatView", expect_type=False)
-                if chat_view and hasattr(chat_view, 'scroll_end'):
-                    logger.debug(f"Calling ChatView.scroll_end()")
-                    chat_view.scroll_end(animate=False)
+        if self.streaming and self.parent and hasattr(self.parent, "scroll_end"):
+            self.parent.scroll_end(animate=False)
 
     async def add_token(self, token: str) -> None:
         """Add a streaming token to the response.
@@ -113,7 +102,7 @@ class StreamingResponse(RichLog):
 
         if buffer_size >= self.BUFFER_SIZE or time_since_render >= self.DEBOUNCE_MS:
             # Write only the NEW content since last write (append mode)
-            new_content = self.full_content[self._last_written_length:]
+            new_content = self.full_content[self._last_written_length :]
             if new_content:
                 logger.debug(f"Appending {len(new_content)} new chars to RichLog")
                 self.write(new_content)  # Use plain text, CSS handles styling
