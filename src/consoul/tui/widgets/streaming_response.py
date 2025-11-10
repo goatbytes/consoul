@@ -6,6 +6,7 @@ debounced markdown rendering, and fallback strategies to prevent UI freezes.
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any, Literal
 
@@ -15,6 +16,8 @@ from textual.reactive import reactive
 from textual.widgets import Static
 
 __all__ = ["StreamingResponse"]
+
+logger = logging.getLogger(__name__)
 
 
 class StreamingResponse(Static):
@@ -85,13 +88,13 @@ class StreamingResponse(Static):
         current_time = time.time() * 1000  # milliseconds
         time_since_render = current_time - self.last_render_time
 
-        self.log.debug(
+        logger.debug(
             f"add_token: buffer_size={buffer_size}, time_since={time_since_render:.0f}ms, "
             f"total_len={len(self.full_content)}"
         )
 
         if buffer_size >= self.BUFFER_SIZE or time_since_render >= self.DEBOUNCE_MS:
-            self.log.debug("Triggering render")
+            logger.debug("Triggering render")
             await self._render_content()
 
     async def _render_content(self, force: bool = False) -> None:
@@ -164,7 +167,7 @@ class StreamingResponse(Static):
         Args:
             content: New content to display
         """
-        self.log.debug(
+        logger.debug(
             f"watch_content called: len={len(content)}, streaming={self.streaming}, "
             f"mode={self.renderer_mode}"
         )

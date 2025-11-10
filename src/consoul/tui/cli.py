@@ -113,16 +113,31 @@ def tui(
     else:
         consoul_config = load_config()
 
+    # Set up logging if debug mode enabled
+    if tui_config.debug:
+        import logging
+
+        log_path = tui_config.log_file or "textual.log"
+
+        # Configure root logger
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            handlers=[logging.FileHandler(log_path, mode="w"), logging.StreamHandler()],
+        )
+
+        # Enable debug logging for our widgets
+        logging.getLogger("textual").setLevel(logging.DEBUG)
+        logging.getLogger("consoul").setLevel(logging.DEBUG)
+
+        # Create a logger to confirm setup
+        logger = logging.getLogger(__name__)
+        logger.info(f"Debug logging enabled, writing to: {log_path}")
+
     app = ConsoulApp(
         config=tui_config, consoul_config=consoul_config, test_mode=test_mode
     )
-
-    # Run with logging if debug mode enabled
-    if tui_config.debug:
-        log_path = tui_config.log_file or "textual.log"
-        app.run(log=log_path)
-    else:
-        app.run()
+    app.run()
 
 
 if __name__ == "__main__":
