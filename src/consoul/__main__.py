@@ -51,26 +51,35 @@ def cli(
     # Build CLI overrides BEFORE loading config
     cli_overrides: dict[str, Any] = {}
     if temperature is not None or model is not None or max_tokens is not None:
-        model_overrides: dict[str, Any] = {}
-        if temperature is not None:
-            model_overrides["temperature"] = temperature
+        from consoul.config.models import Provider
+
+        # Determine provider from model name if specified
         if model is not None:
-            model_overrides["model"] = model
+            provider_str: str
+            if "gpt" in model.lower() or "o1" in model.lower():
+                provider_str = Provider.OPENAI.value
+            elif "claude" in model.lower():
+                provider_str = Provider.ANTHROPIC.value
+            elif "gemini" in model.lower():
+                provider_str = Provider.GOOGLE.value
+            else:
+                provider_str = Provider.OLLAMA.value
+
+            cli_overrides["current_provider"] = provider_str
+            cli_overrides["current_model"] = model
+
+        # Build provider config overrides
+        provider_config_overrides: dict[str, Any] = {}
+        if temperature is not None:
+            provider_config_overrides["default_temperature"] = temperature
         if max_tokens is not None:
-            model_overrides["max_tokens"] = max_tokens
+            provider_config_overrides["default_max_tokens"] = max_tokens
 
-        # We need to determine the active profile to apply overrides
-        # Profile name from CLI has highest precedence, otherwise we need to load config first
-        # to know the active profile from files/env vars
-        if profile != "default":
-            # CLI specified a profile, use it
-            active_profile_name = profile
-        else:
-            # Need to load config to determine active profile
-            temp_config = load_config()
-            active_profile_name = temp_config.active_profile
-
-        cli_overrides = {"profiles": {active_profile_name: {"model": model_overrides}}}
+        # Apply provider config overrides if we have any
+        if provider_config_overrides and model is not None:
+            cli_overrides.setdefault("provider_configs", {})[provider_str] = (
+                provider_config_overrides
+            )
 
     # Load configuration with CLI overrides applied
     config = load_config(profile_name=profile, cli_overrides=cli_overrides)
