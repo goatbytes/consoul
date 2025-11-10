@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, ClassVar
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.reactive import reactive
-from textual.widgets import Footer, Header
+from textual.widgets import Footer
 
 if TYPE_CHECKING:
     from langchain_core.language_models.chat_models import BaseChatModel
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
     from consoul.ai.history import ConversationHistory
     from consoul.config import ConsoulConfig
-    from consoul.tui.widgets import InputArea, StreamingResponse
+    from consoul.tui.widgets import ContextualTopBar, InputArea, StreamingResponse
 
 from consoul.tui.config import TuiConfig
 from consoul.tui.css.themes import load_theme
@@ -227,6 +227,9 @@ class ConsoulApp(App[None]):
                 self.config.gc_interval_seconds, self._idle_gc
             )
 
+        # Update top bar with initial state
+        self._update_top_bar_state()
+
     def on_unmount(self) -> None:
         """Cleanup when app unmounts (library-first design).
 
@@ -246,9 +249,16 @@ class ConsoulApp(App[None]):
         """
         from textual.containers import Horizontal, Vertical
 
-        from consoul.tui.widgets import ChatView, ConversationList, InputArea
+        from consoul.tui.widgets import (
+            ChatView,
+            ContextualTopBar,
+            ConversationList,
+            InputArea,
+        )
 
-        yield Header()
+        # Top bar
+        self.top_bar = ContextualTopBar(id="top-bar")
+        yield self.top_bar
 
         # Main content area with optional sidebar
         with Horizontal(classes="main-container"):
@@ -271,6 +281,29 @@ class ConsoulApp(App[None]):
                 yield self.input_area
 
         yield Footer()
+
+    def _update_top_bar_state(self) -> None:
+        """Update ContextualTopBar reactive properties from app state."""
+        if not hasattr(self, "top_bar"):
+            return
+
+        # Update model name
+        if self.active_profile and self.active_profile.model:
+            self.top_bar.current_model = self.active_profile.model.model
+        else:
+            self.top_bar.current_model = self.current_model
+
+        # Update profile name
+        self.top_bar.current_profile = self.current_profile
+
+        # Update streaming status
+        self.top_bar.streaming = self.streaming
+
+        # Update conversation count
+        if hasattr(self, "conversation_list") and self.conversation_list:
+            self.top_bar.conversation_count = self.conversation_list.conversation_count
+        else:
+            self.top_bar.conversation_count = 0
 
     def _idle_gc(self) -> None:
         """Periodic garbage collection when not streaming.
@@ -323,6 +356,7 @@ class ConsoulApp(App[None]):
         # Reload conversation list if this was the first message
         if is_first_message and hasattr(self, "conversation_list"):
             self.conversation_list.reload_conversations()
+            self._update_top_bar_state()  # Update conversation count
 
         # Start streaming AI response
         await self._stream_ai_response()
@@ -348,6 +382,7 @@ class ConsoulApp(App[None]):
         self._current_stream = stream_widget
         self._stream_cancelled = False
         self.streaming = True  # Update reactive state
+        self._update_top_bar_state()  # Update top bar streaming indicator
 
         try:
             # Get trimmed messages for context window
@@ -519,6 +554,7 @@ class ConsoulApp(App[None]):
             # Reset streaming state
             self._current_stream = None
             self.streaming = False
+            self._update_top_bar_state()  # Update top bar streaming indicator
 
             # Restore focus to input area
             self.input_area.text_area.focus()
@@ -727,3 +763,35 @@ class ConsoulApp(App[None]):
             except Exception as e:
                 self.log.error(f"Failed to load conversation: {e}")
                 self.notify(f"Failed to load conversation: {e}", severity="error")
+
+    # ContextualTopBar message handlers
+
+    async def on_contextual_top_bar_settings_requested(
+        self, event: ContextualTopBar.SettingsRequested
+    ) -> None:
+        """Handle settings button click from top bar."""
+        self.notify("Settings - Coming in SOUL-47", severity="information")
+
+    async def on_contextual_top_bar_help_requested(
+        self, event: ContextualTopBar.HelpRequested
+    ) -> None:
+        """Handle help button click from top bar."""
+        self.notify("Help - Coming in SOUL-48", severity="information")
+
+    async def on_contextual_top_bar_theme_switch_requested(
+        self, event: ContextualTopBar.ThemeSwitchRequested
+    ) -> None:
+        """Handle theme switch request from top bar."""
+        self.notify("Theme switching - Coming in SOUL-49", severity="information")
+
+    async def on_contextual_top_bar_model_selection_requested(
+        self, event: ContextualTopBar.ModelSelectionRequested
+    ) -> None:
+        """Handle model selection request from top bar."""
+        self.notify("Model selection - Coming in SOUL-44", severity="information")
+
+    async def on_contextual_top_bar_search_requested(
+        self, event: ContextualTopBar.SearchRequested
+    ) -> None:
+        """Handle search request from top bar."""
+        self.notify("Search - Coming in SOUL-45", severity="information")
