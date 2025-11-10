@@ -73,25 +73,43 @@ class ConsoulApp(App[None]):
         self.config = config or TuiConfig()
         self.test_mode = test_mode
 
-        # Load theme CSS
-        self._load_theme(self.config.theme)
+        # Store original GC state for cleanup (library-first design)
+        self._original_gc_enabled = gc.isenabled()
 
-        # GC management (streaming-aware mode from research)
+        # GC management will be set up in on_mount (after message pump starts)
+        self._gc_interval_timer: object | None = None
+
+    def on_mount(self) -> None:
+        """Initialize app after mounting (message pump is running).
+
+        Sets up GC management and validates theme.
+        """
+        # Validate theme (can safely notify now that message pump is running)
+        try:
+            _ = load_theme(self.config.theme)  # type: ignore[arg-type]
+        except FileNotFoundError:
+            self.notify(
+                f"Theme '{self.config.theme}' not found, using default",
+                severity="warning",
+            )
+
+        # Set up GC management (streaming-aware mode from research)
         if self.config.gc_mode == "streaming-aware":
             gc.disable()
-            self.set_interval(self.config.gc_interval_seconds, self._idle_gc)
+            self._gc_interval_timer = self.set_interval(
+                self.config.gc_interval_seconds, self._idle_gc
+            )
 
-    def _load_theme(self, theme_name: str) -> None:
-        """Load a theme's CSS.
+    def on_unmount(self) -> None:
+        """Cleanup when app unmounts (library-first design).
 
-        Args:
-            theme_name: Name of the theme to load
+        Restores original GC state to avoid affecting embedding applications.
         """
-        try:
-            _ = load_theme(theme_name)  # type: ignore[arg-type]
-            # Theme CSS will be loaded via CSS_PATH and theme imports
-        except FileNotFoundError:
-            self.notify(f"Theme '{theme_name}' not found, using default")
+        # Restore original GC state
+        if self._original_gc_enabled:
+            gc.enable()
+        else:
+            gc.disable()
 
     def compose(self) -> ComposeResult:
         """Compose the UI layout.
