@@ -43,7 +43,6 @@ class StreamingResponse(Static):
     # Reactive state
     streaming: reactive[bool] = reactive(False)
     token_count: reactive[int] = reactive(0)
-    content: reactive[str] = reactive("")
 
     def __init__(
         self,
@@ -68,6 +67,24 @@ class StreamingResponse(Static):
         """Initialize streaming response widget on mount."""
         self.border_title = "Assistant"
         self.add_class("streaming-response")
+
+    def render(self) -> str | Text:
+        """Render the streaming content.
+
+        This method is called by Textual whenever the widget needs to be redrawn.
+        """
+        if not self.full_content:
+            return ""
+
+        display = self.full_content
+        if self.streaming:
+            display += " ▌"
+
+        logger.debug(f"render() called: len={len(display)}, streaming={self.streaming}")
+
+        # Return plain text with explicit styling for visibility
+        from rich.text import Text as RichText
+        return RichText(display, style="yellow on red")
 
     async def add_token(self, token: str) -> None:
         """Add a streaming token to the response.
@@ -95,31 +112,14 @@ class StreamingResponse(Static):
 
         if buffer_size >= self.BUFFER_SIZE or time_since_render >= self.DEBOUNCE_MS:
             logger.debug("Triggering render")
-            await self._render_content()
+            self.token_buffer.clear()
+            self.last_render_time = current_time
+            # Instead of calling update(), just trigger a refresh which calls render()
+            self.refresh()
 
     async def _render_content(self, force: bool = False) -> None:
-        """Render buffered content based on renderer mode.
-
-        Attempts markdown rendering first, falls back to plain text
-        if markdown fails or is too slow.
-
-        Args:
-            force: If True, render even when buffer is empty (used during finalization)
-        """
-        # Skip early return only if we have tokens OR we're forcing a final render
-        if not self.token_buffer and not force:
-            return
-
-        self.last_render_time = time.time() * 1000
-        self.token_buffer.clear()
-
-        # Add streaming cursor
-        display_content = self.full_content
-        if self.streaming:
-            display_content += " ▌"
-
-        # Update reactive content property to trigger watch
-        self.content = self.full_content
+        """No longer used - render() method is called automatically."""
+        pass
 
     async def finalize_stream(self) -> None:
         """Finalize streaming and render final content.
@@ -128,7 +128,8 @@ class StreamingResponse(Static):
         tokens, and updates the border title with token count.
         """
         self.streaming = False
-        await self._render_content(force=True)
+        self.token_buffer.clear()
+        self.refresh()
         self.border_title = f"Assistant ({self.token_count} tokens)"
 
     def reset(self) -> None:
@@ -143,7 +144,7 @@ class StreamingResponse(Static):
         self.streaming = False
         self._markdown_failed = False
         self.last_render_time = 0.0
-        self.update("")
+        self.refresh()
         self.border_title = "Assistant"
 
     def watch_streaming(self, streaming: bool) -> None:
@@ -158,62 +159,5 @@ class StreamingResponse(Static):
             self.add_class("streaming")
         else:
             self.remove_class("streaming")
-
-    def watch_content(self, content: str) -> None:
-        """Update display when content changes.
-
-        Called automatically when the content reactive property changes.
-
-        Args:
-            content: New content to display
-        """
-        logger.debug(
-            f"watch_content called: len={len(content)}, streaming={self.streaming}, "
-            f"mode={self.renderer_mode}"
-        )
-
-        display_content = content
-        if self.streaming:
-            display_content += " ▌"
-
-        # Render based on mode
-        if self.renderer_mode == "markdown" and not self._markdown_failed:
-            try:
-                md = Markdown(content)
-                if self.streaming:
-                    # Append cursor for streaming indicator
-                    from rich.console import Group
-
-                    cursor = Text(" ▌", style="bold blink")
-                    self.update(Group(md, cursor))
-                else:
-                    self.update(md)
-            except Exception:
-                # Fallback to plain text if markdown fails
-                self._markdown_failed = True
-                self.update(display_content)
-        elif self.renderer_mode == "hybrid":
-            # Use plain text during streaming, markdown on completion
-            if self.streaming:
-                logger.debug(f"Updating with plain text: {display_content[:50]}...")
-                # Use Text renderable explicitly for plain text
-                from rich.text import Text as RichText
-
-                text_renderable = RichText(display_content, style="white on blue")
-                self.update(text_renderable)
-                self.refresh(layout=True)  # Force immediate refresh with layout recalculation
-
-                # Also refresh parent container
-                if self.parent:
-                    self.parent.refresh()
-
-                logger.debug(f"Update+refresh called, widget visible={self.visible}")
-            else:
-                try:
-                    md = Markdown(content)
-                    self.update(md)
-                except Exception:
-                    self.update(content)
-        else:
-            # Plain text mode (richlog)
-            self.update(display_content)
+        # Refresh when streaming state changes
+        self.refresh()
