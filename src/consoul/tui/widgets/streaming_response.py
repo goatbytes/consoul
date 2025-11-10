@@ -92,13 +92,14 @@ class StreamingResponse(RichLog):
         )
 
         if buffer_size >= self.BUFFER_SIZE or time_since_render >= self.DEBOUNCE_MS:
-            logger.debug(f"Writing buffered content to RichLog: {len(self.full_content)} chars")
-            # Clear the log and write all content
-            self.clear()
-            self.write(Text(self.full_content + " ▌" if self.streaming else self.full_content))
+            # Write only the NEW content since last write (append mode)
+            new_content = self.full_content[self._last_written_length:]
+            if new_content:
+                logger.debug(f"Appending {len(new_content)} new chars to RichLog")
+                self.write(Text(new_content, style="yellow on red"))
+                self._last_written_length = len(self.full_content)
             self.token_buffer.clear()
             self.last_render_time = current_time
-            self._last_written_length = len(self.full_content)
 
     async def _render_content(self, force: bool = False) -> None:
         """No longer used - render() method is called automatically."""
