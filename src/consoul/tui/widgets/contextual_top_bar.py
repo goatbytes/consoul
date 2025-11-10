@@ -113,7 +113,6 @@ class ContextualTopBar(Static):
         margin: 0 1;
         background: transparent;
         color: white 80%;
-        text-style: normal;
         padding: 0 1;
     }
 
