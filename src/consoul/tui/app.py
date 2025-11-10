@@ -115,20 +115,19 @@ class ConsoulApp(App[None]):
             try:
                 self.active_profile = consoul_config.get_active_profile()
                 self.current_profile = self.active_profile.name
-                self.current_model = self.active_profile.model.model
+                self.current_model = consoul_config.current_model
 
-                # Initialize chat model
+                # Initialize chat model using current provider/model from config
                 from consoul.ai import get_chat_model
 
-                self.chat_model = get_chat_model(
-                    self.active_profile.model, config=consoul_config
-                )
+                model_config = consoul_config.get_current_model_config()
+                self.chat_model = get_chat_model(model_config, config=consoul_config)
 
                 # Initialize conversation history
                 from consoul.ai import ConversationHistory
 
                 self.conversation = ConversationHistory(
-                    model_name=self.active_profile.model.model,
+                    model_name=consoul_config.current_model,
                     model=self.chat_model,
                     persist=True,  # Enable SQLite persistence
                 )
@@ -146,7 +145,7 @@ class ConsoulApp(App[None]):
                 self.conversation_id = self.conversation.session_id
 
                 self.log.info(
-                    f"Initialized AI model: {self.active_profile.model.model}, "
+                    f"Initialized AI model: {consoul_config.current_model}, "
                     f"session: {self.conversation_id}"
                 )
 
@@ -287,9 +286,9 @@ class ConsoulApp(App[None]):
         if not hasattr(self, "top_bar"):
             return
 
-        # Update model name
-        if self.active_profile and self.active_profile.model:
-            self.top_bar.current_model = self.active_profile.model.model
+        # Update model name (from config, not profile)
+        if self.consoul_config:
+            self.top_bar.current_model = self.consoul_config.current_model
         else:
             self.top_bar.current_model = self.current_model
 
@@ -386,8 +385,10 @@ class ConsoulApp(App[None]):
 
         try:
             # Get trimmed messages for context window
+            model_config = self.consoul_config.get_current_model_config()  # type: ignore[union-attr]
+            reserve_tokens = model_config.max_tokens or 4096
             messages = self.conversation.get_trimmed_messages(  # type: ignore[union-attr]
-                reserve_tokens=self.active_profile.model.max_tokens or 4096  # type: ignore[union-attr]
+                reserve_tokens=reserve_tokens
             )
 
             # Convert to dict format for LangChain
@@ -563,7 +564,7 @@ class ConsoulApp(App[None]):
 
     async def action_new_conversation(self) -> None:
         """Start a new conversation."""
-        if self.conversation is not None:
+        if self.conversation is not None and self.consoul_config:
             # Clear chat view
             await self.chat_view.clear_messages()
 
@@ -571,7 +572,7 @@ class ConsoulApp(App[None]):
             from consoul.ai import ConversationHistory
 
             self.conversation = ConversationHistory(
-                model_name=self.active_profile.model.model,  # type: ignore[union-attr]
+                model_name=self.consoul_config.current_model,
                 model=self.chat_model,
                 persist=True,  # New session ID will be created
             )
@@ -744,12 +745,12 @@ class ConsoulApp(App[None]):
                 self.conversation_id = conversation_id
 
                 # Update the conversation object if we have one
-                if self.conversation:
+                if self.conversation and self.consoul_config:
                     # Reload conversation history into current conversation object
                     from consoul.ai import ConversationHistory
 
                     self.conversation = ConversationHistory(
-                        model_name=self.active_profile.model.model,  # type: ignore[union-attr]
+                        model_name=self.consoul_config.current_model,
                         model=self.chat_model,
                         persist=True,
                         session_id=conversation_id,
@@ -811,7 +812,10 @@ class ConsoulApp(App[None]):
         self.notify("Search - Coming in SOUL-45", severity="information")
 
     def _switch_profile(self, profile_name: str) -> None:
-        """Switch to a different profile and reinitialize AI provider.
+        """Switch to a different profile WITHOUT changing model/provider.
+
+        Profiles define HOW to use AI (system prompts, context settings).
+        This method updates profile settings while preserving current model.
 
         Args:
             profile_name: Name of profile to switch to
@@ -825,16 +829,60 @@ class ConsoulApp(App[None]):
             self.consoul_config.active_profile = profile_name
             self.active_profile = self.consoul_config.get_active_profile()
             self.current_profile = profile_name
-            self.current_model = self.active_profile.model.model
 
-            # Reinitialize chat model with new profile
+            # NOTE: Model/provider remain unchanged - profiles are separate from models
+
+            # Update conversation with new system prompt if needed
+            if self.conversation and self.active_profile.system_prompt:
+                # Clear and re-add system message with new prompt
+                # (This preserves conversation history but updates instructions)
+                self.conversation.clear(preserve_system=False)
+                self.conversation.add_system_message(self.active_profile.system_prompt)
+
+            # Update top bar display
+            self._update_top_bar_state()
+
+            self.notify(
+                f"Switched to profile '{profile_name}' (model unchanged: {self.current_model})",
+                severity="information",
+            )
+            self.log.info(
+                f"Profile switched: {profile_name}, model preserved: {self.current_model}"
+            )
+
+        except Exception as e:
+            self.notify(f"Failed to switch profile: {e}", severity="error")
+            self.log.error(f"Profile switch failed: {e}", exc_info=True)
+
+    def _switch_provider_and_model(self, provider: str, model_name: str) -> None:
+        """Switch to a different provider and model WITHOUT changing profile.
+
+        Models/providers define WHICH AI to use.
+        This method changes the AI backend while preserving profile settings.
+
+        Args:
+            provider: Provider to switch to (e.g., "openai", "anthropic")
+            model_name: Name of model to switch to
+        """
+        if not self.consoul_config:
+            self.notify("No configuration available", severity="error")
+            return
+
+        try:
+            from consoul.config.models import Provider
+
+            # Update current provider and model in config
+            self.consoul_config.current_provider = Provider(provider)
+            self.consoul_config.current_model = model_name
+            self.current_model = model_name
+
+            # Reinitialize chat model with new provider/model
             from consoul.ai import get_chat_model
 
             old_conversation_id = self.conversation_id
 
-            self.chat_model = get_chat_model(
-                self.active_profile.model, config=self.consoul_config
-            )
+            model_config = self.consoul_config.get_current_model_config()
+            self.chat_model = get_chat_model(model_config, config=self.consoul_config)
 
             # Preserve conversation by updating model reference
             if self.conversation:
@@ -845,55 +893,15 @@ class ConsoulApp(App[None]):
             self._update_top_bar_state()
 
             self.notify(
-                f"Switched to profile '{profile_name}' (model: {self.current_model})",
+                f"Switched to {provider}/{model_name} (profile unchanged: {self.current_profile})",
                 severity="information",
             )
             self.log.info(
-                f"Profile switched: {profile_name}, model: {self.current_model}, "
+                f"Model/provider switched: {provider}/{model_name}, "
+                f"profile preserved: {self.current_profile}, "
                 f"conversation preserved: {old_conversation_id}"
             )
 
         except Exception as e:
-            self.notify(f"Failed to switch profile: {e}", severity="error")
-            self.log.error(f"Profile switch failed: {e}", exc_info=True)
-
-    def _switch_model(self, model_name: str) -> None:
-        """Switch to a different model within current provider.
-
-        Args:
-            model_name: Name of model to switch to
-        """
-        if not self.active_profile or not self.consoul_config:
-            self.notify("No active profile available", severity="error")
-            return
-
-        try:
-            # Update model in active profile
-            self.active_profile.model.model = model_name
-            self.current_model = model_name
-
-            # Reinitialize chat model
-            from consoul.ai import get_chat_model
-
-            old_conversation_id = self.conversation_id
-
-            self.chat_model = get_chat_model(
-                self.active_profile.model, config=self.consoul_config
-            )
-
-            # Preserve conversation
-            if self.conversation:
-                self.conversation._model = self.chat_model
-                self.conversation.model_name = self.current_model
-
-            # Update top bar display
-            self._update_top_bar_state()
-
-            self.notify(f"Switched to model '{model_name}'", severity="information")
-            self.log.info(
-                f"Model switched: {model_name}, conversation preserved: {old_conversation_id}"
-            )
-
-        except Exception as e:
-            self.notify(f"Failed to switch model: {e}", severity="error")
-            self.log.error(f"Model switch failed: {e}", exc_info=True)
+            self.notify(f"Failed to switch model/provider: {e}", severity="error")
+            self.log.error(f"Model/provider switch failed: {e}", exc_info=True)

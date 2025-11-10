@@ -335,11 +335,11 @@ def get_chat_model(
         ProviderInitializationError: If initialization fails for other reasons.
 
     Examples:
-        >>> # Using ModelConfig from profile
+        >>> # Using ModelConfig from config
         >>> from consoul.config import load_config
         >>> config = load_config()
-        >>> profile = config.get_active_profile()
-        >>> chat_model = get_chat_model(profile.model)
+        >>> model_config = config.get_current_model_config()
+        >>> chat_model = get_chat_model(model_config)
 
         >>> # Using model name string with auto-detection
         >>> chat_model = get_chat_model("gpt-4o", temperature=0.7)

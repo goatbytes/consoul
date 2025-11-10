@@ -16,6 +16,9 @@ if TYPE_CHECKING:
 def get_builtin_profiles() -> dict[str, dict[str, Any]]:
     """Get all built-in configuration profiles.
 
+    Profiles define HOW to use AI (system prompts, context settings),
+    not WHICH AI to use (model/provider are configured separately).
+
     Returns:
         Dictionary mapping profile names to their configuration dictionaries.
     """
@@ -23,11 +26,7 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
         "default": {
             "name": "default",
             "description": "Default profile with balanced settings for general use",
-            "model": {
-                "provider": "anthropic",
-                "model": "claude-3-5-sonnet-20241022",
-                "temperature": 1.0,
-            },
+            "system_prompt": "You are a helpful AI assistant.",
             "conversation": {
                 "persist": False,  # Disabled by default (opt-in)
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
@@ -46,12 +45,12 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
         },
         "code-review": {
             "name": "code-review",
-            "description": "Focused profile for code review with low temperature",
-            "model": {
-                "provider": "anthropic",
-                "model": "claude-3-5-sonnet-20241022",
-                "temperature": 0.3,
-            },
+            "description": "Focused profile for thorough code review",
+            "system_prompt": (
+                "You are a senior software engineer conducting a thorough code review. "
+                "Focus on code quality, best practices, potential bugs, security issues, "
+                "and maintainability. Provide specific, actionable feedback."
+            ),
             "conversation": {
                 "persist": False,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
@@ -70,12 +69,12 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
         },
         "creative": {
             "name": "creative",
-            "description": "Creative profile with high temperature for brainstorming",
-            "model": {
-                "provider": "anthropic",
-                "model": "claude-3-5-sonnet-20241022",
-                "temperature": 1.5,
-            },
+            "description": "Creative profile for brainstorming and ideation",
+            "system_prompt": (
+                "You are a creative AI assistant focused on innovative ideas and "
+                "brainstorming. Think outside the box, explore unconventional solutions, "
+                "and encourage creative thinking."
+            ),
             "conversation": {
                 "persist": False,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
@@ -94,12 +93,8 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
         },
         "fast": {
             "name": "fast",
-            "description": "Fast profile using Claude 3.5 Haiku for quick responses",
-            "model": {
-                "provider": "anthropic",
-                "model": "claude-3-5-haiku-20241022",
-                "temperature": 1.0,
-            },
+            "description": "Fast profile optimized for quick responses with lower context",
+            "system_prompt": "You are a helpful AI assistant. Be concise and to the point.",
             "conversation": {
                 "persist": False,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),

@@ -190,9 +190,8 @@ def auto_detect_title_config(config: ConsoulConfig | None = None) -> dict | None
     # Check if user's main model is cheap enough to reuse
     if config:
         try:
-            profile = config.get_active_profile()
-            provider = profile.model.provider
-            model = profile.model.model
+            provider = config.current_provider.value
+            model = config.current_model
 
             # Reuse main model if it's a cheap one
             cheap_models = [

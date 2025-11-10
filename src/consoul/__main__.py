@@ -106,7 +106,7 @@ def chat(ctx: click.Context) -> None:
     config = ctx.obj["config"]
     active_profile = config.get_active_profile()
     click.echo(f"Using profile: {active_profile.name}")
-    click.echo(f"Model: {active_profile.model.provider} - {active_profile.model.model}")
+    click.echo(f"Model: {config.current_provider.value} - {config.current_model}")
 
 
 @cli.command()  # type: ignore[misc]

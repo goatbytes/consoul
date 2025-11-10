@@ -203,11 +203,128 @@ def create_default_config() -> dict[str, Any]:
     Returns:
         Default configuration dictionary with all built-in profiles.
     """
+    from consoul.config.models import Provider
+
     return {
         "profiles": get_builtin_profiles(),
         "active_profile": "default",
+        "current_provider": Provider.ANTHROPIC.value,
+        "current_model": "claude-3-5-sonnet-20241022",
+        "provider_configs": {
+            Provider.OPENAI.value: {
+                "api_key_env": "OPENAI_API_KEY",
+                "default_temperature": 1.0,
+                "default_max_tokens": 4096,
+            },
+            Provider.ANTHROPIC.value: {
+                "api_key_env": "ANTHROPIC_API_KEY",
+                "default_temperature": 1.0,
+                "default_max_tokens": 4096,
+            },
+            Provider.GOOGLE.value: {
+                "api_key_env": "GOOGLE_API_KEY",
+                "default_temperature": 1.0,
+                "default_max_tokens": 4096,
+            },
+            Provider.OLLAMA.value: {
+                "api_base": "http://localhost:11434",
+                "default_temperature": 1.0,
+                "default_max_tokens": 4096,
+            },
+        },
         "global_settings": {},
     }
+
+
+def detect_old_config_format(config_dict: dict[str, Any]) -> bool:
+    """Detect if config uses old format (model embedded in profiles).
+
+    Args:
+        config_dict: Configuration dictionary to check.
+
+    Returns:
+        True if old format detected, False otherwise.
+    """
+    if "profiles" not in config_dict:
+        return False
+
+    # Check if any profile has a 'model' field
+    for profile_data in config_dict["profiles"].values():
+        if isinstance(profile_data, dict) and "model" in profile_data:
+            return True
+
+    return False
+
+
+def migrate_old_config(old_config: dict[str, Any]) -> dict[str, Any]:
+    """Migrate old config format to new decoupled format.
+
+    OLD: profiles.default.model = {provider, model, temperature}
+    NEW: current_provider, current_model, provider_configs
+
+    Args:
+        old_config: Configuration dictionary in old format.
+
+    Returns:
+        Migrated configuration dictionary in new format.
+    """
+
+    new_config = old_config.copy()
+
+    # Extract model from active profile (or first profile if active not found)
+    active_profile_name = old_config.get("active_profile", "default")
+    profiles = old_config.get("profiles", {})
+
+    # Find active profile or fall back to first available
+    active_profile = profiles.get(active_profile_name)
+    if not active_profile and profiles:
+        active_profile = next(iter(profiles.values()))
+
+    if (
+        active_profile
+        and isinstance(active_profile, dict)
+        and "model" in active_profile
+    ):
+        model_config = active_profile["model"]
+
+        # Set current provider/model at root level
+        provider_str = model_config.get("provider", "anthropic")
+        new_config["current_provider"] = provider_str
+        new_config["current_model"] = model_config.get(
+            "model", "claude-3-5-sonnet-20241022"
+        )
+
+        # Create provider_configs from model settings
+        provider_config_data = {
+            "default_temperature": model_config.get("temperature", 1.0),
+        }
+
+        if "max_tokens" in model_config:
+            provider_config_data["default_max_tokens"] = model_config["max_tokens"]
+
+        if "api_base" in model_config:
+            provider_config_data["api_base"] = model_config["api_base"]
+
+        # Initialize provider_configs if not exists
+        if "provider_configs" not in new_config:
+            new_config["provider_configs"] = {}
+
+        new_config["provider_configs"][provider_str] = provider_config_data
+
+    # Remove model field from all profiles
+    new_profiles = {}
+    for profile_name, profile_data in profiles.items():
+        if isinstance(profile_data, dict):
+            new_profile = profile_data.copy()
+            if "model" in new_profile:
+                del new_profile["model"]
+            new_profiles[profile_name] = new_profile
+        else:
+            new_profiles[profile_name] = profile_data
+
+    new_config["profiles"] = new_profiles
+
+    return new_config
 
 
 def load_profile(profile_name: str, config: ConsoulConfig) -> ProfileConfig:
@@ -333,11 +450,16 @@ def load_config(
         cli_overrides or {},
     )
 
-    # 8. Set active profile if specified via CLI (highest precedence)
+    # 8. AUTO-MIGRATION: Detect and migrate old format
+    if detect_old_config_format(merged):
+        print("⚠️  Migrating config to new format (profiles decoupled from models)")
+        merged = migrate_old_config(merged)
+
+    # 9. Set active profile if specified via CLI (highest precedence)
     if profile_name is not None:
         merged["active_profile"] = profile_name
 
-    # 9. Validate with Pydantic and attach env_settings (already loaded)
+    # 10. Validate with Pydantic and attach env_settings (already loaded)
     config = ConsoulConfig(**merged)
     config.env_settings = env_settings
 

@@ -58,54 +58,44 @@ def tui(
 
         if model_override:
             # Create a minimal config with the overridden model
+            # Determine provider and create provider config
             from consoul.config.models import (
-                AnthropicModelConfig,
                 ConsoulConfig,
-                GoogleModelConfig,
-                ModelConfig,
-                OllamaModelConfig,
-                OpenAIModelConfig,
                 ProfileConfig,
+                Provider,
+                ProviderConfig,
             )
 
-            # Determine the model config based on the model name
-            model_config: ModelConfig
+            provider: Provider
             if "gpt" in model_override.lower() or "o1" in model_override.lower():
-                model_config = OpenAIModelConfig(
-                    model=model_override,
-                    max_tokens=parent_ctx.params.get("max_tokens", 4096),
-                )
+                provider = Provider.OPENAI
             elif "claude" in model_override.lower():
-                model_config = AnthropicModelConfig(
-                    model=model_override,
-                    max_tokens=parent_ctx.params.get("max_tokens", 4096),
-                )
+                provider = Provider.ANTHROPIC
             elif "gemini" in model_override.lower():
-                model_config = GoogleModelConfig(
-                    model=model_override,
-                    max_tokens=parent_ctx.params.get("max_tokens", 4096),
-                )
+                provider = Provider.GOOGLE
             else:
-                model_config = OllamaModelConfig(
-                    model=model_override,
-                    max_tokens=parent_ctx.params.get("max_tokens", 4096),
-                )
+                provider = Provider.OLLAMA
 
-            # Set temperature if provided (uses model-agnostic temperature property)
-            if parent_ctx.params.get("temperature") is not None:
-                model_config.temperature = parent_ctx.params["temperature"]
+            # Build provider config with CLI overrides
+            provider_config = ProviderConfig(
+                default_temperature=parent_ctx.params.get("temperature", 1.0),
+                default_max_tokens=parent_ctx.params.get("max_tokens", 4096),
+            )
 
-            # Create profile with overridden model
+            # Create simple profile (no model, just settings)
             profile = ProfileConfig(
                 name="cli-override",
                 description=f"CLI override with {model_override}",
-                model=model_config,
+                system_prompt="You are a helpful AI assistant.",
             )
 
-            # Create config with this profile
+            # Create config with provider/model at root level
             consoul_config = ConsoulConfig(
                 profiles={"cli-override": profile},
                 active_profile="cli-override",
+                current_provider=provider,
+                current_model=model_override,
+                provider_configs={provider: provider_config},
             )
         else:
             # Load default config

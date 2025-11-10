@@ -44,6 +44,43 @@ class Provider(str, Enum):
     OLLAMA = "ollama"
 
 
+class ProviderConfig(BaseModel):
+    """Configuration for a specific AI provider.
+
+    Stores provider-specific settings like API keys, base URLs, and default parameters.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    api_key_env: str | None = Field(
+        default=None,
+        description="Environment variable name for API key",
+    )
+    api_base: str | None = Field(
+        default=None,
+        description="Custom API base URL",
+    )
+    default_temperature: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=2.0,
+        description="Default sampling temperature",
+    )
+    default_max_tokens: int | None = Field(
+        default=None,
+        gt=0,
+        description="Default maximum tokens to generate",
+    )
+    timeout: int = Field(
+        default=30,
+        gt=0,
+        description="Request timeout in seconds",
+    )
+
+
 class BaseModelConfig(BaseModel):
     """Base configuration for AI model parameters shared across all providers."""
 
@@ -311,7 +348,11 @@ class ContextConfig(BaseModel):
 
 
 class ProfileConfig(BaseModel):
-    """Configuration profile with model, conversation, and context settings."""
+    """Configuration profile with conversation and context settings.
+
+    Profiles define HOW to use AI (system prompts, context, conversation settings),
+    not WHICH AI to use (model/provider are configured separately).
+    """
 
     model_config = ConfigDict(
         extra="forbid",
@@ -325,8 +366,9 @@ class ProfileConfig(BaseModel):
     description: str = Field(
         description="Profile description",
     )
-    model: ModelConfig = Field(
-        description="Model configuration for this profile",
+    system_prompt: str | None = Field(
+        default=None,
+        description="Custom system prompt for this profile",
     )
     conversation: ConversationConfig = Field(
         default_factory=ConversationConfig,
@@ -355,6 +397,8 @@ class ConsoulConfig(BaseModel):
     """Root configuration for Consoul application.
 
     This is the main configuration model that contains all settings.
+    Profiles define HOW to use AI (prompts, settings).
+    Provider/model define WHICH AI to use (tracked separately).
     """
 
     model_config = ConfigDict(
@@ -369,6 +413,18 @@ class ConsoulConfig(BaseModel):
     active_profile: str = Field(
         default="default",
         description="Currently active profile name",
+    )
+    current_provider: Provider = Field(
+        default=Provider.ANTHROPIC,
+        description="Currently active AI provider",
+    )
+    current_model: str = Field(
+        default="claude-3-5-sonnet-20241022",
+        description="Currently active model name",
+    )
+    provider_configs: dict[Provider, ProviderConfig] = Field(
+        default_factory=dict,
+        description="Per-provider configuration settings",
     )
     api_keys: dict[str, SecretStr] = Field(
         default_factory=dict,
@@ -428,6 +484,37 @@ class ConsoulConfig(BaseModel):
             KeyError: If the active profile doesn't exist.
         """
         return self.profiles[self.active_profile]
+
+    def get_current_model_config(self) -> ModelConfig:
+        """Build ModelConfig from current_provider and current_model.
+
+        Returns:
+            Appropriate ModelConfig subclass based on current provider.
+        """
+        # Get provider-specific settings, or use defaults
+        provider_config = self.provider_configs.get(
+            self.current_provider, ProviderConfig()
+        )
+
+        # Build base model parameters
+        model_params: dict[str, Any] = {
+            "model": self.current_model,
+            "temperature": provider_config.default_temperature,
+            "max_tokens": provider_config.default_max_tokens,
+        }
+
+        # Return appropriate ModelConfig subclass based on provider
+        if self.current_provider == Provider.OPENAI:
+            return OpenAIModelConfig(**model_params)
+        elif self.current_provider == Provider.ANTHROPIC:
+            return AnthropicModelConfig(**model_params)
+        elif self.current_provider == Provider.GOOGLE:
+            return GoogleModelConfig(**model_params)
+        else:  # OLLAMA
+            model_params["api_base"] = (
+                provider_config.api_base or "http://localhost:11434"
+            )
+            return OllamaModelConfig(**model_params)
 
     def get_api_key(self, provider: Provider) -> SecretStr | None:
         """Get API key for a provider with lazy loading from environment.

@@ -142,7 +142,6 @@ class ProfileSelectorModal(ModalScreen[str | None]):
         self._table = self.query_one("#profiles-table", DataTable)
         self._table.add_column("Name")
         self._table.add_column("Description")
-        self._table.add_column("Model")
         self._table.cursor_type = "row"
         self._table.focus()
 
@@ -184,13 +183,12 @@ class ProfileSelectorModal(ModalScreen[str | None]):
             is_current = name == self.current_profile
             name_col = f"✓ {name}" if is_current else f"  {name}"
             description_col = (
-                profile.description[:40] + "..."
-                if len(profile.description) > 40
+                profile.description[:60] + "..."
+                if len(profile.description) > 60
                 else profile.description
             )
-            model_col = profile.model.model
 
-            self._table.add_row(name_col, description_col, model_col, key=row_key)
+            self._table.add_row(name_col, description_col, key=row_key)
 
             # Highlight current profile row
             if is_current:
