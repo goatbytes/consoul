@@ -22,8 +22,17 @@ from pydantic import (
 
 if TYPE_CHECKING:
     from consoul.config.env import EnvSettings
+    from consoul.tui.config import TuiConfig
 else:
     EnvSettings = Any  # type: ignore[misc,assignment]
+    TuiConfig = Any  # type: ignore[misc,assignment]
+
+
+def _get_tui_config() -> TuiConfig:
+    """Lazy import and instantiate TuiConfig to avoid circular imports."""
+    from consoul.tui.config import TuiConfig as RealTuiConfig
+
+    return RealTuiConfig()
 
 
 class Provider(str, Enum):
@@ -369,6 +378,10 @@ class ConsoulConfig(BaseModel):
         default=None,
         exclude=True,
         description="Environment settings for lazy API key loading",
+    )
+    tui: TuiConfig = Field(
+        default_factory=lambda: _get_tui_config(),
+        description="TUI-specific settings (only loaded when TUI module is used)",
     )
     global_settings: dict[str, Any] = Field(
         default_factory=dict,
