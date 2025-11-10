@@ -96,7 +96,7 @@ class StreamingResponse(RichLog):
             new_content = self.full_content[self._last_written_length:]
             if new_content:
                 logger.debug(f"Appending {len(new_content)} new chars to RichLog")
-                self.write(Text(new_content, style="yellow on red"))
+                self.write(new_content)  # Use plain text, CSS handles styling
                 self._last_written_length = len(self.full_content)
                 # Scroll to bottom to follow the streaming content
                 self.scroll_end(animate=False)
