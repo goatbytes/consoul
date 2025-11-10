@@ -11,6 +11,8 @@ from consoul.tui.widgets.contextual_top_bar import ContextualTopBar
 from consoul.tui.widgets.conversation_list import ConversationList
 from consoul.tui.widgets.input_area import InputArea
 from consoul.tui.widgets.message_bubble import MessageBubble
+from consoul.tui.widgets.model_selector_modal import ModelSelectorModal
+from consoul.tui.widgets.profile_selector_modal import ProfileSelectorModal
 from consoul.tui.widgets.streaming_response import StreamingResponse
 
 __all__ = [
@@ -19,5 +21,7 @@ __all__ = [
     "ConversationList",
     "InputArea",
     "MessageBubble",
+    "ModelSelectorModal",
+    "ProfileSelectorModal",
     "StreamingResponse",
 ]

@@ -787,11 +787,113 @@ class ConsoulApp(App[None]):
     async def on_contextual_top_bar_model_selection_requested(
         self, event: ContextualTopBar.ModelSelectionRequested
     ) -> None:
-        """Handle model selection request from top bar."""
-        self.notify("Model selection - Coming in SOUL-44", severity="information")
+        """Handle model/profile selection request from top bar."""
+        if not self.consoul_config:
+            self.notify("No configuration available", severity="error")
+            return
+
+        def on_profile_selected(selected_profile: str | None) -> None:
+            if selected_profile and selected_profile != self.current_profile:
+                self._switch_profile(selected_profile)
+
+        from consoul.tui.widgets import ProfileSelectorModal
+
+        modal = ProfileSelectorModal(
+            current_profile=self.current_profile,
+            profiles=self.consoul_config.profiles,
+        )
+        self.push_screen(modal, on_profile_selected)
 
     async def on_contextual_top_bar_search_requested(
         self, event: ContextualTopBar.SearchRequested
     ) -> None:
         """Handle search request from top bar."""
         self.notify("Search - Coming in SOUL-45", severity="information")
+
+    def _switch_profile(self, profile_name: str) -> None:
+        """Switch to a different profile and reinitialize AI provider.
+
+        Args:
+            profile_name: Name of profile to switch to
+        """
+        if not self.consoul_config:
+            self.notify("No configuration available", severity="error")
+            return
+
+        try:
+            # Update active profile in config
+            self.consoul_config.active_profile = profile_name
+            self.active_profile = self.consoul_config.get_active_profile()
+            self.current_profile = profile_name
+            self.current_model = self.active_profile.model.model
+
+            # Reinitialize chat model with new profile
+            from consoul.ai import get_chat_model
+
+            old_conversation_id = self.conversation_id
+
+            self.chat_model = get_chat_model(
+                self.active_profile.model, config=self.consoul_config
+            )
+
+            # Preserve conversation by updating model reference
+            if self.conversation:
+                self.conversation._model = self.chat_model
+                self.conversation.model_name = self.current_model
+
+            # Update top bar display
+            self._update_top_bar_state()
+
+            self.notify(
+                f"Switched to profile '{profile_name}' (model: {self.current_model})",
+                severity="information",
+            )
+            self.log.info(
+                f"Profile switched: {profile_name}, model: {self.current_model}, "
+                f"conversation preserved: {old_conversation_id}"
+            )
+
+        except Exception as e:
+            self.notify(f"Failed to switch profile: {e}", severity="error")
+            self.log.error(f"Profile switch failed: {e}", exc_info=True)
+
+    def _switch_model(self, model_name: str) -> None:
+        """Switch to a different model within current provider.
+
+        Args:
+            model_name: Name of model to switch to
+        """
+        if not self.active_profile or not self.consoul_config:
+            self.notify("No active profile available", severity="error")
+            return
+
+        try:
+            # Update model in active profile
+            self.active_profile.model.model = model_name
+            self.current_model = model_name
+
+            # Reinitialize chat model
+            from consoul.ai import get_chat_model
+
+            old_conversation_id = self.conversation_id
+
+            self.chat_model = get_chat_model(
+                self.active_profile.model, config=self.consoul_config
+            )
+
+            # Preserve conversation
+            if self.conversation:
+                self.conversation._model = self.chat_model
+                self.conversation.model_name = self.current_model
+
+            # Update top bar display
+            self._update_top_bar_state()
+
+            self.notify(f"Switched to model '{model_name}'", severity="information")
+            self.log.info(
+                f"Model switched: {model_name}, conversation preserved: {old_conversation_id}"
+            )
+
+        except Exception as e:
+            self.notify(f"Failed to switch model: {e}", severity="error")
+            self.log.error(f"Model switch failed: {e}", exc_info=True)
