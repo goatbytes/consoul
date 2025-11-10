@@ -8,19 +8,21 @@ with support for lazy loading and FTS5 full-text search for performance with
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
+from textual.binding import Binding
 from textual.containers import Container
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import DataTable
+from textual.screen import ModalScreen
+from textual.widgets import Button, DataTable, Input, Label
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
     from consoul.ai.database import ConversationDatabase
 
-__all__ = ["ConversationList"]
+__all__ = ["ConversationList", "RenameConversationModal"]
 
 
 class ConversationList(Container):
@@ -54,6 +56,11 @@ class ConversationList(Container):
     conversation_count: reactive[int] = reactive(0)
     selected_id: reactive[str | None] = reactive(None)
 
+    # Key bindings
+    BINDINGS: ClassVar[list[Binding]] = [
+        Binding("f2", "rename_conversation", "Rename", show=False),
+    ]
+
     INITIAL_LOAD = 50  # Conversations to load initially
     LAZY_LOAD_THRESHOLD = 10  # Rows from bottom to trigger lazy load
 
@@ -68,6 +75,7 @@ class ConversationList(Container):
         self.db = db
         self.loaded_count = 0
         self._is_searching = False
+        self._renaming = False
 
     def compose(self) -> ComposeResult:
         """Compose conversation list widgets.
@@ -124,6 +132,17 @@ class ConversationList(Container):
 
         self.conversation_count = self.loaded_count
         self._update_title()
+
+    def reload_conversations(self) -> None:
+        """Reload all conversations from database.
+
+        Clears current list and reloads from the beginning.
+        Useful when a new conversation is created.
+        """
+        self.table.clear()
+        self.loaded_count = 0
+        self._is_searching = False
+        self.load_conversations()
 
     def _get_conversation_title(self, conv: dict) -> str:  # type: ignore[type-arg]
         """Get conversation title from metadata or generate from first message.
@@ -231,3 +250,147 @@ class ConversationList(Container):
         if event.cursor_row >= self.table.row_count - self.LAZY_LOAD_THRESHOLD:
             # Load next batch
             self.load_conversations(limit=self.INITIAL_LOAD)
+
+    async def action_rename_conversation(self) -> None:
+        """Prompt to rename the currently selected conversation."""
+        if self.table.cursor_row is None:
+            return
+
+        # Get current row
+        row_key = self.table.get_row_at(self.table.cursor_row)[0]
+        if row_key is None:
+            return
+
+        conversation_id = str(row_key)
+        current_title = str(self.table.get_cell_at((self.table.cursor_row, 0)))
+
+        # Prompt for new title using app's built-in input
+        self.app.push_screen(
+            RenameConversationModal(conversation_id, current_title, self.db),
+            callback=self._handle_rename,
+        )
+
+    async def _handle_rename(self, result: tuple[str, str] | None) -> None:
+        """Handle rename result from modal.
+
+        Args:
+            result: Tuple of (conversation_id, new_title) or None if cancelled
+        """
+        if result is None:
+            return
+
+        conversation_id, new_title = result
+
+        # Update the table row
+        for row_index, row_key in enumerate(self.table.rows.keys()):
+            if str(row_key.value) == conversation_id:
+                # Update row
+                self.table.update_cell_at((row_index, 0), new_title)
+                self._update_title()
+                break
+
+
+class RenameConversationModal(ModalScreen[tuple[str, str] | None]):
+    """Modal for renaming a conversation."""
+
+    DEFAULT_CSS = """
+    RenameConversationModal {
+        align: center middle;
+    }
+
+    RenameConversationModal > Container {
+        width: 60;
+        height: auto;
+        background: $panel;
+        border: thick $primary;
+        padding: 1;
+    }
+
+    RenameConversationModal Label {
+        width: 100%;
+        height: auto;
+        content-align: center middle;
+        text-style: bold;
+        padding: 1;
+    }
+
+    RenameConversationModal Input {
+        width: 100%;
+        margin: 1 0;
+    }
+
+    RenameConversationModal .modal-actions {
+        width: 100%;
+        height: auto;
+        layout: horizontal;
+        align: center middle;
+    }
+
+    RenameConversationModal Button {
+        margin: 0 1;
+    }
+    """
+
+    def __init__(
+        self,
+        conversation_id: str,
+        current_title: str,
+        db: ConversationDatabase,
+    ) -> None:
+        """Initialize rename modal.
+
+        Args:
+            conversation_id: ID of conversation to rename
+            current_title: Current title of the conversation
+            db: Database instance
+        """
+        super().__init__()
+        self.conversation_id = conversation_id
+        self.current_title = current_title
+        self.db = db
+
+    def compose(self) -> ComposeResult:
+        """Compose modal widgets."""
+        from textual.containers import Horizontal
+
+        with Container():
+            yield Label("Rename Conversation")
+            self.input = Input(
+                value=self.current_title,
+                placeholder="Enter conversation title",
+                id="title-input",
+            )
+            yield self.input
+            with Horizontal(classes="modal-actions"):
+                yield Button("Save", variant="primary", id="save-button")
+                yield Button("Cancel", variant="default", id="cancel-button")
+
+    def on_mount(self) -> None:
+        """Focus input on mount."""
+        self.input.focus()
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses."""
+        if event.button.id == "save-button":
+            new_title = self.input.value.strip()
+            if new_title:
+                # Update in database
+                self.db.update_conversation_metadata(
+                    self.conversation_id, {"title": new_title}
+                )
+                self.dismiss((self.conversation_id, new_title))
+            else:
+                self.dismiss(None)
+        elif event.button.id == "cancel-button":
+            self.dismiss(None)
+
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Handle Enter key in input."""
+        new_title = self.input.value.strip()
+        if new_title:
+            self.db.update_conversation_metadata(
+                self.conversation_id, {"title": new_title}
+            )
+            self.dismiss((self.conversation_id, new_title))
+        else:
+            self.dismiss(None)

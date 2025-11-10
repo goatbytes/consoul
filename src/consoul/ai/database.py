@@ -708,6 +708,53 @@ class ConversationDatabase:
         except Exception as e:
             raise DatabaseError(f"Failed to get conversation metadata: {e}") from e
 
+    def update_conversation_metadata(
+        self, session_id: str, metadata: dict[str, Any]
+    ) -> None:
+        """Update metadata for a specific conversation.
+
+        Args:
+            session_id: Conversation session ID
+            metadata: Metadata dict to update (merged with existing metadata)
+
+        Raises:
+            ConversationNotFoundError: If session_id doesn't exist
+            DatabaseError: If update operation fails
+
+        Example:
+            >>> db = ConversationDatabase()
+            >>> session_id = db.create_conversation("gpt-4o")
+            >>> db.update_conversation_metadata(session_id, {"title": "My Chat"})
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # First check if conversation exists
+                cursor = conn.execute(
+                    "SELECT metadata FROM conversations WHERE session_id = ?",
+                    (session_id,),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    raise ConversationNotFoundError(
+                        f"Conversation not found: {session_id}"
+                    )
+
+                # Merge with existing metadata
+                existing_metadata = json.loads(row[0])
+                existing_metadata.update(metadata)
+                metadata_json = json.dumps(existing_metadata)
+
+                # Update metadata and updated_at timestamp
+                now = datetime.utcnow().isoformat()
+                conn.execute(
+                    "UPDATE conversations SET metadata = ?, updated_at = ? WHERE session_id = ?",
+                    (metadata_json, now, session_id),
+                )
+        except ConversationNotFoundError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to update conversation metadata: {e}") from e
+
     def delete_conversation(self, session_id: str) -> None:
         """Delete a conversation and all its messages.
 

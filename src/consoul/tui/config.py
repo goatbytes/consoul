@@ -94,4 +94,32 @@ class TuiConfig(BaseModel):
         default=None, description="Path to debug log file (None = textual.log)"
     )
 
+    # Auto-title Generation
+    auto_generate_titles: bool = Field(
+        default=True,
+        description="Auto-generate conversation titles using LLM",
+    )
+    auto_title_provider: str | None = Field(
+        default=None,
+        description="Provider for title generation (openai, anthropic, google, ollama, or None for auto-detect)",
+    )
+    auto_title_model: str | None = Field(
+        default=None,
+        description="Model for title generation (None = use provider default)",
+    )
+    auto_title_api_key: str | None = Field(
+        default=None,
+        description="API key for title generation (None = use from env/config)",
+    )
+    auto_title_prompt: str = Field(
+        default="Generate a concise 2-8 word title for this conversation. Based on:\n\nUser: {user_message}\n\nAssistant: {assistant_message}\n\nReturn only the title with no quotes or extra text.",
+        description="Prompt template for title generation",
+    )
+    auto_title_max_tokens: int = Field(
+        default=20, ge=5, le=100, description="Max tokens for generated title"
+    )
+    auto_title_temperature: float = Field(
+        default=0.7, ge=0.0, le=2.0, description="Temperature for title generation"
+    )
+
     model_config = {"extra": "forbid"}  # Catch typos in config files

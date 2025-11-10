@@ -199,20 +199,20 @@ class ConversationHistory:
         self.persist = persist
         self.session_id = session_id
         self._db: ConversationDatabase | None = None
+        self._db_path = db_path or "~/.consoul/history.db"
+        self._conversation_created = False  # Track if DB conversation was created
 
         if persist:
             try:
                 from consoul.ai.database import ConversationDatabase
 
-                self._db = ConversationDatabase(db_path or "~/.consoul/history.db")
+                self._db = ConversationDatabase(self._db_path)
 
                 if session_id:
                     # Resume existing conversation
                     self._load_from_db(session_id)
-                else:
-                    # Create new session
-                    self.session_id = self._db.create_conversation(model_name)
-                    logger.info(f"Created new conversation session: {self.session_id}")
+                    self._conversation_created = True
+                # else: Defer conversation creation until first user message
 
             except Exception as e:
                 # Graceful fallback to in-memory mode
@@ -356,6 +356,21 @@ class ConversationHistory:
             >>> len(history)
             1
         """
+        # Create conversation in DB on first user message if not already created
+        if self.persist and self._db and not self._conversation_created:
+            try:
+                self.session_id = self._db.create_conversation(self.model_name)
+                self._conversation_created = True
+                logger.info(f"Created new conversation session: {self.session_id}")
+
+                # Persist any existing system messages that were added before first user message
+                for msg in self.messages:
+                    if isinstance(msg, SystemMessage):
+                        self._persist_message(msg)
+            except Exception as e:
+                logger.warning(f"Failed to create conversation in database: {e}")
+                self.persist = False
+
         message = HumanMessage(content=content)
         self.messages.append(message)
 

@@ -84,8 +84,6 @@ class ConsoulApp(App[None]):
 
         # Enable Textual devtools if debug mode
         if self.config.debug:
-            from pathlib import Path
-
             log_path = self.config.log_file or "textual.log"
             self.log.info(f"Debug mode enabled, logging to: {log_path}")
             # Textual automatically logs to textual.log when devtools is active
@@ -161,6 +159,48 @@ class ConsoulApp(App[None]):
                 )
                 self.chat_model = None
                 self.conversation = None
+
+        # Initialize title generator if enabled
+        self.title_generator = None
+        if self.config.auto_generate_titles:
+            from consoul.ai.title_generator import (
+                TitleGenerator,
+                auto_detect_title_config,
+            )
+
+            try:
+                # Determine provider and model
+                provider = self.config.auto_title_provider
+                model = self.config.auto_title_model
+
+                # Auto-detect if not specified
+                if provider is None or model is None:
+                    detected = auto_detect_title_config(consoul_config)
+                    if detected:
+                        provider = provider or detected["provider"]
+                        model = model or detected["model"]
+                    else:
+                        # No suitable model available, disable feature
+                        self.log.info(
+                            "Auto-title generation disabled: no suitable model found"
+                        )
+                        provider = None
+
+                if provider and model:
+                    self.title_generator = TitleGenerator(
+                        provider=provider,
+                        model_name=model,
+                        prompt_template=self.config.auto_title_prompt,
+                        max_tokens=self.config.auto_title_max_tokens,
+                        temperature=self.config.auto_title_temperature,
+                        api_key=self.config.auto_title_api_key,
+                        config=consoul_config,
+                    )
+                    self.log.info(f"Title generator initialized: {provider}/{model}")
+
+            except Exception as e:
+                self.log.warning(f"Failed to initialize title generator: {e}")
+                self.title_generator = None
 
         # Streaming state
         self._current_stream: StreamingResponse | None = None
@@ -272,8 +312,17 @@ class ConsoulApp(App[None]):
         user_bubble = MessageBubble(user_message, role="user", show_metadata=True)
         await self.chat_view.add_message(user_bubble)
 
-        # Add to conversation history
+        # Track if this is the first message (conversation not yet in DB)
+        is_first_message = (
+            self.conversation.persist and not self.conversation._conversation_created
+        )
+
+        # Add to conversation history (creates DB conversation on first message)
         self.conversation.add_user_message(user_message)
+
+        # Reload conversation list if this was the first message
+        if is_first_message and hasattr(self, "conversation_list"):
+            self.conversation_list.reload_conversations()
 
         # Start streaming AI response
         await self._stream_ai_response()
@@ -386,6 +435,33 @@ class ConsoulApp(App[None]):
             if not self._stream_cancelled and full_response.strip():
                 # Add to conversation history
                 self.conversation.add_assistant_message(full_response)  # type: ignore[union-attr]
+
+                # Generate title if this is the first exchange
+                if self.title_generator and self._should_generate_title():
+                    self.log.debug("Triggering title generation for first exchange")
+                    # Get first user message (skip system messages)
+                    user_msg = None
+                    for msg in self.conversation.messages:  # type: ignore[union-attr]
+                        if msg.type == "human":
+                            user_msg = msg.content
+                            break
+
+                    if user_msg and self.conversation.session_id:  # type: ignore[union-attr]
+                        # Run title generation in background (non-blocking)
+                        self.run_worker(
+                            self._generate_and_save_title(
+                                self.conversation.session_id,  # type: ignore[union-attr]
+                                user_msg,
+                                full_response,
+                            ),
+                            exclusive=False,
+                            name=f"title_gen_{self.conversation.session_id}",  # type: ignore[union-attr]
+                        )
+                    else:
+                        self.log.warning(
+                            f"Cannot generate title: user_msg={bool(user_msg)}, "
+                            f"session_id={self.conversation.session_id if self.conversation else None}"
+                        )
 
                 # Replace StreamingResponse with MessageBubble for permanent display
                 await stream_widget.remove()
@@ -529,6 +605,63 @@ class ConsoulApp(App[None]):
     def action_help(self) -> None:
         """Show help modal."""
         self.notify("Help (Phase 4)")
+
+    def _should_generate_title(self) -> bool:
+        """Check if we should generate a title for current conversation.
+
+        Returns:
+            True if this is the first complete user/assistant exchange
+        """
+        if not self.conversation or not self.title_generator:
+            return False
+
+        # Count user/assistant messages (exclude system)
+        user_msgs = sum(1 for m in self.conversation.messages if m.type == "human")
+        assistant_msgs = sum(1 for m in self.conversation.messages if m.type == "ai")
+
+        # Generate title after first complete exchange
+        return user_msgs == 1 and assistant_msgs == 1
+
+    async def _generate_and_save_title(
+        self, session_id: str, user_msg: str, assistant_msg: str
+    ) -> None:
+        """Generate and save conversation title in background.
+
+        Args:
+            session_id: Conversation session ID
+            user_msg: First user message
+            assistant_msg: First assistant response
+        """
+        try:
+            self.log.debug(f"Generating title for conversation {session_id}")
+
+            # Generate title using LLM
+            title = await self.title_generator.generate_title(user_msg, assistant_msg)  # type: ignore[union-attr]
+
+            self.log.info(f"Generated title: '{title}'")
+
+            # Save to database
+            from consoul.ai.database import ConversationDatabase
+
+            db = ConversationDatabase()
+            db.update_conversation_metadata(session_id, {"title": title})
+
+            # Update UI if conversation list is visible
+            if hasattr(self, "conversation_list"):
+                # Find and update the row in conversation list
+                for row_index, row_key in enumerate(
+                    self.conversation_list.table.rows.keys()
+                ):
+                    if str(row_key.value) == session_id:
+                        self.conversation_list.table.update_cell_at(
+                            (row_index, 0), title
+                        )
+                        self.log.debug("Updated conversation list UI with title")
+                        break
+
+        except Exception as e:
+            self.log.warning(f"Failed to generate title: {e}")
+            # Silently fail - title generation is non-critical
 
     async def on_conversation_list_conversation_selected(
         self,
