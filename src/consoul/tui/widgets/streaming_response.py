@@ -66,6 +66,17 @@ class StreamingResponse(RichLog):
         """Initialize streaming response widget on mount."""
         self.border_title = "Assistant"
         self.add_class("streaming-response")
+        # Set up a timer to continuously scroll parent during streaming
+        self.set_interval(0.2, self._auto_scroll_parent)
+
+    def _auto_scroll_parent(self) -> None:
+        """Periodically scroll parent container during streaming.
+
+        This timer runs continuously to keep the ChatView scrolled
+        to the bottom as the streaming widget grows in height.
+        """
+        if self.streaming and self.parent and hasattr(self.parent, 'scroll_end'):
+            self.parent.scroll_end(animate=False)
 
     async def add_token(self, token: str) -> None:
         """Add a streaming token to the response.
@@ -100,9 +111,6 @@ class StreamingResponse(RichLog):
                 self._last_written_length = len(self.full_content)
                 # Scroll to bottom to follow the streaming content
                 self.scroll_end(animate=False)
-                # Also scroll the parent ChatView container
-                if self.parent and hasattr(self.parent, 'scroll_end'):
-                    self.parent.scroll_end(animate=False)
             self.token_buffer.clear()
             self.last_render_time = current_time
 
