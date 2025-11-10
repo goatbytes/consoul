@@ -77,7 +77,6 @@ ChatView:focus {
     height: auto;
     padding: 1 2;
     margin: 1 0;
-    border-radius: 2;
 }
 
 .message-user {
@@ -99,8 +98,8 @@ ChatView:focus {
 .message-system {
     background: $surface-lighten-1;
     color: $text-muted;
-    border: solid $text-muted;
-    border-title-color: $text-muted;
+    border: solid $accent;
+    border-title-color: $accent;
 }
 
 .message-error {
@@ -379,14 +378,11 @@ DataTable > .datatable--hover {
  * Scrollbars
  * ============================================================================ */
 
-::-webkit-scrollbar {
-    width: 1;
+/* Textual uses Scrollbar widget for scrollbars, not CSS pseudo-elements */
+Scrollbar {
+    background: $surface-darken-1;
 }
 
-::-webkit-scrollbar-thumb {
-    background: $primary;
-}
-
-::-webkit-scrollbar-track {
+ScrollbarCorner {
     background: $surface-darken-1;
 }
