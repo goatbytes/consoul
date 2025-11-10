@@ -116,7 +116,13 @@ def tui(
     app = ConsoulApp(
         config=tui_config, consoul_config=consoul_config, test_mode=test_mode
     )
-    app.run()
+
+    # Run with logging if debug mode enabled
+    if tui_config.debug:
+        log_path = tui_config.log_file or "textual.log"
+        app.run(log=log_path)
+    else:
+        app.run()
 
 
 if __name__ == "__main__":
