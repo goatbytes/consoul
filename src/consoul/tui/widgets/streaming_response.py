@@ -40,6 +40,7 @@ class StreamingResponse(Static):
     # Reactive state
     streaming: reactive[bool] = reactive(False)
     token_count: reactive[int] = reactive(0)
+    content: reactive[str] = reactive("")
 
     def __init__(
         self,
@@ -108,38 +109,8 @@ class StreamingResponse(Static):
         if self.streaming:
             display_content += " ▌"
 
-        # Render based on mode
-        if self.renderer_mode == "markdown" and not self._markdown_failed:
-            try:
-                md = Markdown(self.full_content)
-                if self.streaming:
-                    # Append cursor for streaming indicator
-                    from rich.console import Group
-
-                    cursor = Text(" ▌", style="bold blink")
-                    self.update(Group(md, cursor))
-                else:
-                    self.update(md)
-            except Exception:
-                # Fallback to plain text if markdown fails
-                self._markdown_failed = True
-                self.update(display_content)
-        elif self.renderer_mode == "hybrid":
-            # Use plain text during streaming, markdown on completion
-            if self.streaming:
-                self.update(display_content)
-            else:
-                try:
-                    md = Markdown(self.full_content)
-                    self.update(md)
-                except Exception:
-                    self.update(self.full_content)
-        else:
-            # Plain text mode (richlog)
-            self.update(display_content)
-
-        # Force refresh to ensure display updates
-        self.refresh()
+        # Update reactive content property to trigger watch
+        self.content = self.full_content
 
     async def finalize_stream(self) -> None:
         """Finalize streaming and render final content.
@@ -178,3 +149,45 @@ class StreamingResponse(Static):
             self.add_class("streaming")
         else:
             self.remove_class("streaming")
+
+    def watch_content(self, content: str) -> None:
+        """Update display when content changes.
+
+        Called automatically when the content reactive property changes.
+
+        Args:
+            content: New content to display
+        """
+        display_content = content
+        if self.streaming:
+            display_content += " ▌"
+
+        # Render based on mode
+        if self.renderer_mode == "markdown" and not self._markdown_failed:
+            try:
+                md = Markdown(content)
+                if self.streaming:
+                    # Append cursor for streaming indicator
+                    from rich.console import Group
+
+                    cursor = Text(" ▌", style="bold blink")
+                    self.update(Group(md, cursor))
+                else:
+                    self.update(md)
+            except Exception:
+                # Fallback to plain text if markdown fails
+                self._markdown_failed = True
+                self.update(display_content)
+        elif self.renderer_mode == "hybrid":
+            # Use plain text during streaming, markdown on completion
+            if self.streaming:
+                self.update(display_content)
+            else:
+                try:
+                    md = Markdown(content)
+                    self.update(md)
+                except Exception:
+                    self.update(content)
+        else:
+            # Plain text mode (richlog)
+            self.update(display_content)
