@@ -1,10 +1,10 @@
 {
   "created_at": "2025-11-09T20:15:49.368836",
-  "updated_at": "2025-11-09T20:15:49.368846",
+  "updated_at": "2025-11-10T21:37:44.602355Z",
   "id": "SOUL-47",
   "uuid": "fb93c9c5-8c01-4426-a0ce-cf5eea9ce025",
   "title": "Implement settings screen",
-  "description": "Create ctrl+comma settings screen. Edit TuiConfig fields (theme, gc_mode, show_timestamps, etc.), save to config file, apply changes without restart.",
+  "description": "# Implement Settings Screen\n\n## User Story\n**As a** Consoul user\n**I want** to modify application settings from the UI\n**So that** I can customize the TUI behavior without manually editing config files\n\n## Description\n\nCreate a settings screen accessible from the ContextualTopBar (SOUL-55) settings button. Users should be able to edit TuiConfig fields and apply changes without restarting the application.\n\n## Context\n\nThe ContextualTopBar (SOUL-55) will provide a settings button/icon. This ticket implements the settings modal/screen that appears when the settings button is clicked.\n\nSimilar to configuration interfaces in other TUIs, this should provide an organized view of settings grouped by category.\n\n## Technical Notes\n\n**File to Create:**\n- src/consoul/tui/widgets/settings_screen.py\n\n**Integration:**\n- Listen for ContextualTopBar.SettingsRequested message\n- Push settings screen as modal using app.push_screen()\n- Load current TuiConfig values\n- Handle field edits with validation\n- Save to config file on confirmation\n- Apply changes dynamically where possible\n\n**Settings Categories:**\n- Appearance (theme, show_timestamps, show_token_count, show_metadata)\n- Performance (gc_mode, gc_generation, gc_interval_seconds)\n- Behavior (show_sidebar, auto_generate_titles)\n- Advanced (streaming settings, model defaults)\n\n## Acceptance Criteria\n\n**Given** I click the settings button in ContextualTopBar\n**When** the settings screen opens\n**Then** I see all configurable TuiConfig options organized by category\n\n**Given** I modify a setting value\n**When** I save the changes\n**Then** the config file is updated with new values\n\n**Given** I change the theme setting\n**When** I apply changes\n**Then** the TUI updates to show the new theme without restart\n\n**Given** I change sidebar visibility\n**When** I apply changes\n**Then** the sidebar shows/hides immediately\n\n## Dependencies\n\n**Prerequisites:**\n- SOUL-55 (ContextualTopBar must exist with settings button)",
   "status": "todo",
   "type": "feature",
   "priority": "low",
@@ -14,7 +14,9 @@
   ],
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
-  "blocked_by": [],
+  "blocked_by": [
+    "SOUL-55"
+  ],
   "blocks": [],
   "comments": [],
   "attachments": [],

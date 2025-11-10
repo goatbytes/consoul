@@ -1,10 +1,10 @@
 {
   "created_at": "2025-11-09T20:15:53.788120",
-  "updated_at": "2025-11-09T20:15:53.788129",
+  "updated_at": "2025-11-10T21:39:01.690780Z",
   "id": "SOUL-49",
   "uuid": "3f3f2861-58ee-4ca1-b29d-75d29abdef74",
   "title": "Implement theme switching UI",
-  "description": "Implement ctrl+t theme cycling. Cycle through 4 themes (monokai/dracula/nord/gruvbox), reload CSS dynamically, persist selection to config.",
+  "description": "# Implement Theme Switching UI\n\n## User Story\n**As a** Consoul user\n**I want** to switch between different visual themes\n**So that** I can customize the appearance to match my preferences and terminal setup\n\n## Description\n\nImplement theme switching functionality accessible from the ContextualTopBar (SOUL-55). Users should be able to cycle through available themes and see changes applied immediately without restarting.\n\n## Context\n\nThe ContextualTopBar (SOUL-55) will provide a theme selector button/icon. This ticket implements the theme switching logic that cycles through available themes and dynamically reloads CSS.\n\nConsoul currently supports 4 themes: monokai, dracula, nord, gruvbox (defined in src/consoul/tui/css/themes/)\n\n## Technical Notes\n\n**Integration:**\n- Add theme button to ContextualTopBar right zone\n- Listen for ContextualTopBar.ThemeSwitchRequested message or Ctrl+T binding\n- Cycle through available themes\n- Reload CSS dynamically using app.load_css()\n- Persist theme selection to TuiConfig\n- Update ContextualTopBar display to show current theme\n\n**Theme Cycling:**\n- monokai → dracula → nord → gruvbox → monokai\n- Visual feedback during theme switch\n- No TUI restart required\n\n## Acceptance Criteria\n\n**Given** I click the theme button in ContextualTopBar\n**When** the button is clicked\n**Then** the theme cycles to the next available theme\n\n**Given** I press Ctrl+T\n**When** the keyboard shortcut is triggered\n**Then** the theme switches to the next one\n\n**Given** the theme is switched\n**When** the new theme loads\n**Then** all widgets update to use the new color scheme immediately\n\n**Given** I switch themes\n**When** the change is applied\n**Then** the selected theme persists to config and loads on next launch\n\n**Given** I'm on the last theme (gruvbox)\n**When** I switch themes\n**Then** it cycles back to the first theme (monokai)\n\n## Dependencies\n\n**Prerequisites:**\n- SOUL-55 (ContextualTopBar must exist with theme button)\n- Theme CSS files already exist in src/consoul/tui/css/themes/",
   "status": "todo",
   "type": "feature",
   "priority": "low",
@@ -14,7 +14,9 @@
   ],
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
-  "blocked_by": [],
+  "blocked_by": [
+    "SOUL-55"
+  ],
   "blocks": [],
   "comments": [],
   "attachments": [],

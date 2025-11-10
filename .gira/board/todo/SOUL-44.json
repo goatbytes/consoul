@@ -1,20 +1,24 @@
 {
   "created_at": "2025-11-09T20:15:24.461650",
-  "updated_at": "2025-11-09T20:15:24.461659",
+  "updated_at": "2025-11-10T21:36:21.912979Z",
   "id": "SOUL-44",
   "uuid": "38af4124-ee28-4a5e-9998-d42cdad8315e",
   "title": "Add profile and model selection modals",
-  "description": "Create modal widgets for profile/model selection. Bind to ctrl+p and ctrl+m. List available profiles/models, handle selection, reinitialize AI provider with new settings.",
+  "description": "# Add Profile and Model Selection Modals\n\n## User Story\n**As a** Consoul user\n**I want** to select different AI models and profiles from the UI\n**So that** I can quickly switch between different use cases without editing config files\n\n## Description\n\nCreate modal widgets for profile and model selection accessible from the ContextualTopBar (SOUL-55). Users should be able to:\n- Browse available profiles (default, code-review, creative, fast)\n- Switch AI models within the current provider\n- See model metadata (cost, context window, capabilities)\n- Reinitialize the AI provider with new settings without restarting\n\n## Context\n\nThe ContextualTopBar (SOUL-55) will provide dropdown triggers for model/profile selection. This ticket implements the actual modal UI and selection logic that appears when those triggers are activated.\n\n## Technical Notes\n\n**Files to Create:**\n- src/consoul/tui/widgets/profile_selector_modal.py\n- src/consoul/tui/widgets/model_selector_modal.py\n\n**Integration:**\n- Listen for ContextualTopBar messages for profile/model selection requests\n- Push appropriate modal using app.push_screen()\n- Handle selection callback and reinitialize AI provider\n- Update ContextualTopBar reactive properties\n\n## Acceptance Criteria\n\n**Given** I click the profile dropdown in ContextualTopBar\n**When** the modal opens\n**Then** I see a list of available profiles with current one highlighted\n\n**Given** I select a different profile\n**When** I confirm selection\n**Then** the AI provider reinitializes with new profile settings\n\n**Given** I'm in the middle of a conversation\n**When** I switch models\n**Then** conversation context is preserved\n\n## Dependencies\n\n**Prerequisites:**\n- SOUL-55 (ContextualTopBar must exist to trigger modals)",
   "status": "todo",
   "type": "feature",
   "priority": "medium",
   "labels": [
     "tui",
-    "modals"
+    "modals",
+    "ai",
+    "config"
   ],
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
-  "blocked_by": [],
+  "blocked_by": [
+    "SOUL-55"
+  ],
   "blocks": [],
   "comments": [],
   "attachments": [],

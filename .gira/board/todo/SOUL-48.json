@@ -1,10 +1,10 @@
 {
   "created_at": "2025-11-09T20:15:51.818073",
-  "updated_at": "2025-11-09T20:15:51.818085",
+  "updated_at": "2025-11-10T21:38:18.875380Z",
   "id": "SOUL-48",
   "uuid": "2680719e-aff3-4e26-9325-77cf89b57b01",
   "title": "Add help modal with keyboard shortcuts",
-  "description": "Implement F1 help modal. Display all keyboard bindings, grouped by category. Show current theme, profile, model. Link to documentation.",
+  "description": "# Add Help Modal with Keyboard Shortcuts\n\n## User Story\n**As a** Consoul user\n**I want** to view all available keyboard shortcuts and help information\n**So that** I can learn to use the TUI efficiently\n\n## Description\n\nCreate a help modal accessible from the ContextualTopBar (SOUL-55) help button. The modal should display all keyboard bindings grouped by category, current configuration information, and links to documentation.\n\n## Context\n\nThe ContextualTopBar (SOUL-55) will provide a help button/icon (typically ? or F1). This ticket implements the help modal that appears when the help button is triggered.\n\nSimilar to other TUI help screens, this should provide a well-organized reference of all available commands and shortcuts.\n\n## Technical Notes\n\n**File to Create:**\n- src/consoul/tui/widgets/help_modal.py\n\n**Integration:**\n- Listen for ContextualTopBar.HelpRequested message or F1 key binding\n- Push help modal using app.push_screen()\n- Display keyboard shortcuts grouped by category\n- Show current theme, profile, model\n- Provide links to online documentation\n\n**Content Categories:**\n- Navigation (conversation switching, scrolling)\n- Actions (new conversation, model selection, search)\n- Input (message editing, sending)\n- System (help, settings, quit)\n\n## Acceptance Criteria\n\n**Given** I click the help button in ContextualTopBar\n**When** the help modal opens\n**Then** I see all keyboard shortcuts organized by category\n\n**Given** I press F1\n**When** the key is pressed\n**Then** the help modal opens\n\n**Given** the help modal is open\n**When** I view the content\n**Then** I see current theme, profile, and model information\n\n**Given** I'm viewing the help modal\n**When** I press Esc or click close\n**Then** the modal closes and returns to the main screen\n\n## Dependencies\n\n**Prerequisites:**\n- SOUL-55 (ContextualTopBar must exist with help button)",
   "status": "todo",
   "type": "feature",
   "priority": "medium",
@@ -15,7 +15,9 @@
   ],
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
-  "blocked_by": [],
+  "blocked_by": [
+    "SOUL-55"
+  ],
   "blocks": [],
   "comments": [],
   "attachments": [],
