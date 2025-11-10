@@ -84,7 +84,6 @@ ChatView:focus {
 }
 
 .message-user {
-    background: $primary;
     color: $text;
     border: round $accent;
     border-title-color: $accent;
@@ -92,7 +91,6 @@ ChatView:focus {
 }
 
 .message-assistant {
-    background: $secondary;
     color: $text;
     border: round $success;
     border-title-color: $success;
@@ -273,7 +271,6 @@ InputArea TextArea:focus {
 StreamingResponse {
     width: 100%;
     height: auto;
-    background: $secondary;
     color: $text;
     padding: 1 2;
     border: round $success;
