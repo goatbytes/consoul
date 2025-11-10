@@ -65,7 +65,8 @@ class StreamingResponse(RichLog):
         self.border_title = "Assistant"
         self.add_class("streaming-response")
         # Set up a timer to continuously scroll parent during streaming
-        self.set_interval(0.2, self._auto_scroll_parent)
+        # Use faster interval (50ms) for smoother scrolling
+        self.set_interval(0.05, self._auto_scroll_parent)
 
     def _auto_scroll_parent(self) -> None:
         """Periodically scroll parent container during streaming.
@@ -101,11 +102,22 @@ class StreamingResponse(RichLog):
         )
 
         if buffer_size >= self.BUFFER_SIZE or time_since_render >= self.DEBOUNCE_MS:
-            # Write only the NEW content since last write (append mode)
-            new_content = self.full_content[self._last_written_length :]
-            if new_content:
-                logger.debug(f"Appending {len(new_content)} new chars to RichLog")
-                self.write(new_content)  # Use plain text, CSS handles styling
+            if self.full_content:
+                logger.debug(
+                    f"Rendering full content as markdown: {len(self.full_content)} chars"
+                )
+                # Clear and re-render the FULL content as markdown
+                self.clear()
+                from rich.markdown import Markdown
+
+                try:
+                    # Render the full content as markdown for proper formatting
+                    md = Markdown(self.full_content)
+                    self.write(md)
+                except Exception as e:
+                    # Fall back to plain text if markdown fails
+                    logger.debug(f"Markdown render failed: {e}")
+                    self.write(self.full_content)
                 self._last_written_length = len(self.full_content)
                 # Scroll to bottom to follow the streaming content
                 self.scroll_end(animate=False)
