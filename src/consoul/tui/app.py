@@ -82,6 +82,14 @@ class ConsoulApp(App[None]):
         self.config = config or TuiConfig()
         self.test_mode = test_mode
 
+        # Enable Textual devtools if debug mode
+        if self.config.debug:
+            from pathlib import Path
+
+            log_path = self.config.log_file or "textual.log"
+            self.log.info(f"Debug mode enabled, logging to: {log_path}")
+            # Textual automatically logs to textual.log when devtools is active
+
         # Store original GC state for cleanup (library-first design)
         self._original_gc_enabled = gc.isenabled()
 

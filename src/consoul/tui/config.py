@@ -88,4 +88,10 @@ class TuiConfig(BaseModel):
     enable_mouse: bool = Field(default=True, description="Enable mouse interactions")
     vim_mode: bool = Field(default=False, description="Enable vim-style navigation")
 
+    # Debug Settings
+    debug: bool = Field(default=False, description="Enable debug logging")
+    log_file: str | None = Field(
+        default=None, description="Path to debug log file (None = textual.log)"
+    )
+
     model_config = {"extra": "forbid"}  # Catch typos in config files

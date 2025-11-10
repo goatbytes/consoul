@@ -85,7 +85,13 @@ class StreamingResponse(Static):
         current_time = time.time() * 1000  # milliseconds
         time_since_render = current_time - self.last_render_time
 
+        self.log.debug(
+            f"add_token: buffer_size={buffer_size}, time_since={time_since_render:.0f}ms, "
+            f"total_len={len(self.full_content)}"
+        )
+
         if buffer_size >= self.BUFFER_SIZE or time_since_render >= self.DEBOUNCE_MS:
+            self.log.debug("Triggering render")
             await self._render_content()
 
     async def _render_content(self, force: bool = False) -> None:
@@ -158,6 +164,11 @@ class StreamingResponse(Static):
         Args:
             content: New content to display
         """
+        self.log.debug(
+            f"watch_content called: len={len(content)}, streaming={self.streaming}, "
+            f"mode={self.renderer_mode}"
+        )
+
         display_content = content
         if self.streaming:
             display_content += " ▌"

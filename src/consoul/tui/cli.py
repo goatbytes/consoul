@@ -16,9 +16,17 @@ __all__ = ["tui"]
 
 @click.command()
 @click.option("--theme", help="Color theme (monokai, dracula, nord, gruvbox)")
+@click.option("--debug", is_flag=True, help="Enable debug logging")
+@click.option("--log-file", type=click.Path(), help="Debug log file path")
 @click.option("--test-mode", is_flag=True, hidden=True, help="Test mode (auto-exit)")
 @click.pass_context
-def tui(ctx: click.Context, theme: str | None, test_mode: bool) -> None:
+def tui(
+    ctx: click.Context,
+    theme: str | None,
+    debug: bool,
+    log_file: str | None,
+    test_mode: bool,
+) -> None:
     """Launch Consoul TUI.
 
     Interactive terminal user interface for AI conversations with streaming
@@ -34,6 +42,10 @@ def tui(ctx: click.Context, theme: str | None, test_mode: bool) -> None:
     tui_config = TuiConfig()
     if theme:
         tui_config.theme = theme
+    if debug:
+        tui_config.debug = True
+    if log_file:
+        tui_config.log_file = log_file
 
     # Load Consoul config and apply CLI overrides
     consoul_config = None
