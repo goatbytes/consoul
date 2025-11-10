@@ -381,6 +381,125 @@ class TestGetFormatter:
             get_formatter("invalid")
 
 
+class TestMultiConversation:
+    """Tests for multi-conversation export/import."""
+
+    def test_export_multiple_conversations(self):
+        """Test exporting multiple conversations."""
+        metadata1 = {
+            "session_id": "session-1",
+            "model": "model-1",
+            "created_at": "2025-11-09T10:00:00Z",
+            "updated_at": "2025-11-09T10:10:00Z",
+            "message_count": 2,
+        }
+        messages1 = [
+            {
+                "role": "user",
+                "content": "Hello 1",
+                "timestamp": "2025-11-09T10:00:00Z",
+                "tokens": 2,
+            },
+            {
+                "role": "assistant",
+                "content": "Response 1",
+                "timestamp": "2025-11-09T10:05:00Z",
+                "tokens": 3,
+            },
+        ]
+
+        metadata2 = {
+            "session_id": "session-2",
+            "model": "model-2",
+            "created_at": "2025-11-09T11:00:00Z",
+            "updated_at": "2025-11-09T11:10:00Z",
+            "message_count": 2,
+        }
+        messages2 = [
+            {
+                "role": "user",
+                "content": "Hello 2",
+                "timestamp": "2025-11-09T11:00:00Z",
+                "tokens": 2,
+            },
+            {
+                "role": "assistant",
+                "content": "Response 2",
+                "timestamp": "2025-11-09T11:05:00Z",
+                "tokens": 3,
+            },
+        ]
+
+        # Export multiple conversations
+        conversations_data = [(metadata1, messages1), (metadata2, messages2)]
+        output = JSONFormatter.export_multiple(conversations_data)
+
+        # Parse and verify
+        data = json.loads(output)
+        assert data["version"] == "1.0-multi"
+        assert data["conversation_count"] == 2
+        assert len(data["conversations"]) == 2
+
+        # Verify first conversation
+        conv1 = data["conversations"][0]
+        assert conv1["conversation"]["session_id"] == "session-1"
+        assert len(conv1["messages"]) == 2
+
+        # Verify second conversation
+        conv2 = data["conversations"][1]
+        assert conv2["conversation"]["session_id"] == "session-2"
+        assert len(conv2["messages"]) == 2
+
+    def test_validate_multi_conversation_format(self):
+        """Test validation of multi-conversation format."""
+        # Create valid multi-conversation data
+        conversations_data = [
+            (
+                {
+                    "session_id": "s1",
+                    "model": "m1",
+                    "created_at": "2025-11-09T10:00:00Z",
+                    "updated_at": "2025-11-09T10:00:00Z",
+                    "message_count": 1,
+                },
+                [
+                    {
+                        "role": "user",
+                        "content": "test",
+                        "timestamp": "2025-11-09T10:00:00Z",
+                        "tokens": 1,
+                    }
+                ],
+            )
+        ]
+
+        output = JSONFormatter.export_multiple(conversations_data)
+        data = json.loads(output)
+
+        # Should validate successfully
+        JSONFormatter.validate_import_data(data)
+
+    def test_validate_multi_conversation_invalid(self):
+        """Test validation rejects invalid multi-conversation format."""
+        data = {
+            "version": "1.0-multi",
+            "exported_at": "2025-11-09T10:00:00Z",
+            "conversation_count": 1,
+            "conversations": [
+                {
+                    "conversation": {
+                        "session_id": "test"
+                        # Missing required fields
+                    },
+                    "messages": [],
+                }
+            ],
+        }
+
+        with pytest.raises(ValueError, match="Missing conversation keys"):
+            JSONFormatter.validate_import_data(data)
+
+
 class TestRoundTrip:
     """Tests for export → import round-trip."""
 
@@ -432,6 +551,75 @@ class TestRoundTrip:
                 assert imported["role"] == orig["role"]
                 assert imported["content"] == orig["content"]
                 assert imported["tokens"] == orig["tokens"]
+
+    def test_round_trip_multi_conversation(self):
+        """Test exporting and importing multiple conversations."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            export_path = Path(tmpdir) / "export-multi.json"
+
+            # Create database and add multiple conversations
+            db = ConversationDatabase(str(db_path))
+
+            session_id1 = db.create_conversation("model-1")
+            db.save_message(session_id1, "user", "Hello 1", 2)
+            db.save_message(session_id1, "assistant", "Response 1", 3)
+
+            session_id2 = db.create_conversation("model-2")
+            db.save_message(session_id2, "user", "Hello 2", 2)
+            db.save_message(session_id2, "assistant", "Response 2", 3)
+
+            # Export all conversations
+            conversations = db.list_conversations()
+            conversations_data = []
+            for conv in conversations:
+                meta = db.get_conversation_metadata(conv["session_id"])
+                messages = db.load_conversation(conv["session_id"])
+                conversations_data.append((meta, messages))
+
+            export_output = JSONFormatter.export_multiple(conversations_data)
+            export_path.write_text(export_output, encoding="utf-8")
+
+            # Import to new database
+            db2_path = Path(tmpdir) / "test2.db"
+            db2 = ConversationDatabase(str(db2_path))
+
+            import_data = json.loads(export_path.read_text())
+            JSONFormatter.validate_import_data(import_data)
+
+            assert import_data["version"] == "1.0-multi"
+            assert import_data["conversation_count"] == 2
+
+            # Import all conversations
+            for conv_data in import_data["conversations"]:
+                conv = conv_data["conversation"]
+                db2.create_conversation(
+                    model=conv["model"], session_id=conv["session_id"]
+                )
+
+                for msg in conv_data["messages"]:
+                    db2.save_message(
+                        conv["session_id"],
+                        msg["role"],
+                        msg["content"],
+                        msg.get("tokens"),
+                    )
+
+            # Verify both conversations were imported
+            imported_convs = db2.list_conversations()
+            assert len(imported_convs) == 2
+
+            # Verify first conversation
+            meta1 = db2.get_conversation_metadata(session_id1)
+            messages1 = db2.load_conversation(session_id1)
+            assert meta1["model"] == "model-1"
+            assert len(messages1) == 2
+
+            # Verify second conversation
+            meta2 = db2.get_conversation_metadata(session_id2)
+            messages2 = db2.load_conversation(session_id2)
+            assert meta2["model"] == "model-2"
+            assert len(messages2) == 2
 
 
 class TestEdgeCases:
