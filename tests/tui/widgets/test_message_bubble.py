@@ -451,3 +451,41 @@ class TestMessageBubbleEdgeCases:
             widget = app.query_one(MessageBubble)
             footer = widget._build_metadata_footer()
             assert "0 tokens" in str(footer)
+
+    async def test_markdown_failed_flag_prevents_repeated_attempts(self) -> None:
+        """Test that _markdown_failed flag prevents repeated markdown parsing.
+
+        Regression test: Once markdown fails, subsequent re-renders should
+        skip markdown entirely until update_content() resets the flag.
+        """
+        bubble = MessageBubble("Test content", role="user")
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test() as pilot:
+            widget = app.query_one(MessageBubble)
+
+            # Initially flag should be False
+            assert widget._markdown_failed is False
+
+            # Simulate markdown failure by setting flag
+            widget._markdown_failed = True
+
+            # Change role - triggers _render_message() via watch_role()
+            widget.role = "assistant"
+            await pilot.pause()
+
+            # Flag should still be True (not reset by role change)
+            assert widget._markdown_failed is True
+
+            # Change role again - flag should still persist
+            widget.role = "system"
+            await pilot.pause()
+
+            # Flag should still be True
+            assert widget._markdown_failed is True
+
+            # Update content - should reset flag
+            widget.update_content("New content")
+            await pilot.pause()
+
+            # Flag should be reset
+            assert widget._markdown_failed is False

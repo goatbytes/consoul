@@ -98,13 +98,18 @@ class MessageBubble(Static):
 
     def _render_message(self) -> None:
         """Render message content with markdown and optional metadata."""
-        # Render markdown content
-        try:
-            content_renderable: RenderableType = Markdown(self.content_text)
-        except Exception:
-            # Fallback to plain text if markdown fails
-            self._markdown_failed = True
-            content_renderable = Text(self.content_text)
+        # Check if markdown previously failed - skip markdown if so
+        if self._markdown_failed:
+            # Use plain text directly without retrying markdown
+            content_renderable: RenderableType = Text(self.content_text)
+        else:
+            # Try markdown rendering for the first time
+            try:
+                content_renderable = Markdown(self.content_text)
+            except Exception:
+                # Fallback to plain text if markdown fails
+                self._markdown_failed = True
+                content_renderable = Text(self.content_text)
 
         # Add metadata footer if enabled
         if self.show_metadata:
