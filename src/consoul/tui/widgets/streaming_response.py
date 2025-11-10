@@ -195,7 +195,10 @@ class StreamingResponse(Static):
         elif self.renderer_mode == "hybrid":
             # Use plain text during streaming, markdown on completion
             if self.streaming:
+                logger.debug(f"Updating with plain text: {display_content[:50]}...")
                 self.update(display_content)
+                self.refresh(layout=True)  # Force immediate refresh with layout recalculation
+                logger.debug(f"Update+refresh called, widget visible={self.visible}")
             else:
                 try:
                     md = Markdown(content)
