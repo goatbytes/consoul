@@ -1,0 +1,388 @@
+/* Consoul TUI - Main Stylesheet
+ * Base styles and layout definitions
+ */
+
+/* ============================================================================
+ * Global Styles
+ * ============================================================================ */
+
+Screen {
+    background: $surface;
+    color: $text;
+}
+
+/* ============================================================================
+ * Header & Footer
+ * ============================================================================ */
+
+Header {
+    dock: top;
+    height: 3;
+    background: $primary;
+    color: $text;
+    content-align: center middle;
+}
+
+Footer {
+    dock: bottom;
+    height: 1;
+    background: $surface-darken-1;
+    color: $text-muted;
+}
+
+/* ============================================================================
+ * Layout Containers
+ * ============================================================================ */
+
+.main-container {
+    width: 100%;
+    height: 100%;
+    layout: horizontal;
+}
+
+.content-area {
+    width: 1fr;
+    height: 100%;
+    layout: vertical;
+}
+
+/* ============================================================================
+ * Chat View
+ * ============================================================================ */
+
+.chat-view {
+    width: 100%;
+    height: 1fr;
+    background: $panel;
+    padding: 1 2;
+    overflow-y: auto;
+}
+
+.chat-messages {
+    width: 100%;
+    height: auto;
+    layout: vertical;
+}
+
+/* ============================================================================
+ * Message Bubbles
+ * ============================================================================ */
+
+.message {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    margin: 1 0;
+    border-radius: 2;
+}
+
+.message-user {
+    background: $primary;
+    color: $text;
+    border: tall $accent;
+    border-title-color: $accent;
+    border-title-align: right;
+}
+
+.message-assistant {
+    background: $secondary;
+    color: $text;
+    border: tall $success;
+    border-title-color: $success;
+    border-title-align: left;
+}
+
+.message-system {
+    background: $surface-lighten-1;
+    color: $text-muted;
+    border: solid $text-muted;
+    border-title-color: $text-muted;
+}
+
+.message-error {
+    background: $error;
+    color: $text;
+    border: double $warning;
+    border-title-color: $warning;
+}
+
+/* Message metadata */
+.message-timestamp {
+    color: $text-muted;
+    text-style: italic;
+}
+
+.message-tokens {
+    color: $accent;
+    text-style: bold;
+}
+
+/* ============================================================================
+ * Input Area
+ * ============================================================================ */
+
+.input-area {
+    dock: bottom;
+    height: auto;
+    max-height: 10;
+    background: $surface-lighten-1;
+    padding: 1 2;
+    border-top: solid $accent;
+}
+
+.input-field {
+    width: 100%;
+    height: auto;
+    background: $panel;
+    color: $text;
+    border: round $primary;
+}
+
+.input-field:focus {
+    border: heavy $primary;
+}
+
+/* ============================================================================
+ * Conversation List (Sidebar)
+ * ============================================================================ */
+
+.conversation-list {
+    width: 30%;
+    min-width: 30;
+    max-width: 60;
+    height: 100%;
+    background: $surface-darken-1;
+    border-right: solid $accent;
+    padding: 1;
+}
+
+.conversation-item {
+    width: 100%;
+    height: 3;
+    background: $surface;
+    color: $text;
+    padding: 0 1;
+    margin: 0 0 1 0;
+    border-left: wide $primary;
+}
+
+.conversation-item:hover {
+    background: $surface-lighten-1;
+    border-left: wide $accent;
+}
+
+.conversation-item.active {
+    background: $primary;
+    color: $text;
+    border-left: wide $success;
+    text-style: bold;
+}
+
+.conversation-title {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.conversation-preview {
+    width: 100%;
+    color: $text-muted;
+    text-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ============================================================================
+ * Modals
+ * ============================================================================ */
+
+.modal-overlay {
+    background: $surface 70%;
+    align: center middle;
+}
+
+.modal {
+    width: 80;
+    height: auto;
+    max-height: 30;
+    background: $panel;
+    border: thick $primary;
+    padding: 2;
+}
+
+.modal-title {
+    dock: top;
+    height: 3;
+    content-align: center middle;
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+
+.modal-content {
+    width: 100%;
+    height: auto;
+    padding: 1;
+}
+
+.modal-actions {
+    dock: bottom;
+    height: 3;
+    align: center middle;
+    layout: horizontal;
+    padding: 1;
+}
+
+.modal-button {
+    width: 15;
+    height: 3;
+    margin: 0 1;
+    content-align: center middle;
+    background: $secondary;
+    color: $text;
+    border: round $accent;
+}
+
+.modal-button:hover {
+    background: $primary;
+    border: heavy $accent;
+}
+
+.modal-button.primary {
+    background: $success;
+    border: round $success;
+}
+
+.modal-button.danger {
+    background: $error;
+    border: round $error;
+}
+
+/* ============================================================================
+ * Streaming Response
+ * ============================================================================ */
+
+.streaming-response {
+    width: 100%;
+    height: auto;
+    background: $secondary;
+    color: $text;
+    padding: 1 2;
+    border: tall $success;
+    border-title-color: $success;
+}
+
+.streaming-cursor {
+    background: $accent;
+    color: $surface;
+    text-style: bold blink;
+}
+
+/* ============================================================================
+ * Code Blocks (Markdown)
+ * ============================================================================ */
+
+.code-block {
+    width: 100%;
+    height: auto;
+    background: $surface-darken-1;
+    color: $text;
+    padding: 1;
+    border: round $accent;
+    overflow-x: auto;
+}
+
+.code-inline {
+    background: $surface-lighten-1;
+    color: $accent;
+    padding: 0 1;
+}
+
+/* ============================================================================
+ * Status Indicators
+ * ============================================================================ */
+
+.status-badge {
+    width: auto;
+    height: 1;
+    padding: 0 1;
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+
+.status-badge.streaming {
+    background: $warning;
+}
+
+.status-badge.error {
+    background: $error;
+}
+
+.status-badge.success {
+    background: $success;
+}
+
+/* ============================================================================
+ * Loading & Progress
+ * ============================================================================ */
+
+.loading-spinner {
+    width: 100%;
+    height: 3;
+    content-align: center middle;
+    color: $primary;
+    text-style: bold;
+}
+
+LoadingIndicator {
+    color: $primary;
+}
+
+ProgressBar {
+    background: $surface-darken-1;
+}
+
+ProgressBar > .bar {
+    background: $success;
+}
+
+/* ============================================================================
+ * DataTable (Conversation List)
+ * ============================================================================ */
+
+DataTable {
+    background: $surface;
+    color: $text;
+}
+
+DataTable > .datatable--header {
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: $primary;
+    color: $text;
+}
+
+DataTable > .datatable--hover {
+    background: $surface-lighten-1;
+}
+
+/* ============================================================================
+ * Scrollbars
+ * ============================================================================ */
+
+::-webkit-scrollbar {
+    width: 1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: $primary;
+}
+
+::-webkit-scrollbar-track {
+    background: $surface-darken-1;
+}

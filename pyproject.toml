@@ -247,8 +247,14 @@ module = [
     "langchain_google_genai.*",
     "langchain_ollama.*",
     "pydantic.*",
+    "click.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "consoul.tui.*"
+disallow_untyped_decorators = false
+disallow_subclassing_any = false
 
 # Bandit security configuration
 [tool.bandit]

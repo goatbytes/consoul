@@ -1,0 +1,21 @@
+/* Consoul TUI - Monokai Theme
+ * Classic Monokai color scheme
+ * Based on the iconic Sublime Text theme
+ */
+
+/* Color palette */
+$surface: #272822;
+$surface-lighten-1: #3E3D32;
+$surface-darken-1: #1E1F1C;
+
+$primary: #F92672;     /* Pink/Magenta */
+$secondary: #66D9EF;   /* Cyan */
+$accent: #E6DB74;      /* Yellow */
+$success: #A6E22E;     /* Green */
+$warning: #FD971F;     /* Orange */
+$error: #F92672;       /* Pink (same as primary) */
+
+$text: #F8F8F2;        /* Off-white */
+$text-muted: #75715E;  /* Gray */
+
+$panel: #272822;       /* Same as surface */

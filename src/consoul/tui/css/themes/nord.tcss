@@ -1,0 +1,21 @@
+/* Consoul TUI - Nord Theme
+ * Arctic, north-bluish color palette
+ * Based on: https://www.nordtheme.com/
+ */
+
+/* Color palette */
+$surface: #2E3440;
+$surface-lighten-1: #3B4252;
+$surface-darken-1: #2B303B;
+
+$primary: #88C0D0;     /* Frost blue */
+$secondary: #81A1C1;   /* Light blue */
+$accent: #EBCB8B;      /* Yellow */
+$success: #A3BE8C;     /* Green */
+$warning: #D08770;     /* Orange */
+$error: #BF616A;       /* Red */
+
+$text: #ECEFF4;        /* Snow white */
+$text-muted: #4C566A;  /* Gray */
+
+$panel: #3B4252;       /* Lighter than surface */
