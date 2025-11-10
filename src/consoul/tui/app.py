@@ -284,7 +284,7 @@ class ConsoulApp(App[None]):
         from consoul.tui.widgets import MessageBubble, StreamingResponse
 
         # Create streaming response widget
-        stream_widget = StreamingResponse(renderer="markdown")
+        stream_widget = StreamingResponse(renderer="hybrid")
         await self.chat_view.add_message(stream_widget)
 
         # Track for cancellation
