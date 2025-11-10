@@ -100,6 +100,9 @@ class StreamingResponse(RichLog):
                 self._last_written_length = len(self.full_content)
                 # Scroll to bottom to follow the streaming content
                 self.scroll_end(animate=False)
+                # Also scroll the parent ChatView container
+                if self.parent and hasattr(self.parent, 'scroll_end'):
+                    self.parent.scroll_end(animate=False)
             self.token_buffer.clear()
             self.last_render_time = current_time
 
