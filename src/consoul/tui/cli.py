@@ -77,9 +77,12 @@ def tui(
                 provider = Provider.OLLAMA
 
             # Build provider config with CLI overrides
+            temp = parent_ctx.params.get("temperature")
+            max_tok = parent_ctx.params.get("max_tokens")
+
             provider_config = ProviderConfig(
-                default_temperature=parent_ctx.params.get("temperature", 1.0),
-                default_max_tokens=parent_ctx.params.get("max_tokens", 4096),
+                default_temperature=temp if temp is not None else 1.0,
+                default_max_tokens=max_tok if max_tok is not None else 4096,
             )
 
             # Create simple profile (no model, just settings)
