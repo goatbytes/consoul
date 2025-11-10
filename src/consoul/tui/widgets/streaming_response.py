@@ -13,14 +13,14 @@ from typing import Any, Literal
 from rich.markdown import Markdown
 from rich.text import Text
 from textual.reactive import reactive
-from textual.widgets import Static
+from textual.widgets import RichLog
 
 __all__ = ["StreamingResponse"]
 
 logger = logging.getLogger(__name__)
 
 
-class StreamingResponse(Static):
+class StreamingResponse(RichLog):
     """Widget for displaying streaming AI responses.
 
     Buffers tokens and debounces markdown rendering for performance.
@@ -53,57 +53,19 @@ class StreamingResponse(Static):
 
         Args:
             renderer: Rendering mode to use (markdown, richlog, or hybrid)
-            **kwargs: Additional arguments passed to Static
+            **kwargs: Additional arguments passed to RichLog
         """
-        super().__init__(**kwargs)
+        super().__init__(wrap=True, markup=True, **kwargs)
         self.renderer_mode = renderer
         self.token_buffer: list[str] = []
         self.full_content = ""
         self.last_render_time = 0.0
-        self.render_pending = False
-        self._markdown_failed = False
+        self._last_written_length = 0
 
     def on_mount(self) -> None:
         """Initialize streaming response widget on mount."""
         self.border_title = "Assistant"
         self.add_class("streaming-response")
-
-        # Set up a timer to force repaints during streaming
-        self.set_interval(0.1, self._periodic_refresh)
-
-    def render(self) -> str | Text:
-        """Render the streaming content.
-
-        This method is called by Textual whenever the widget needs to be redrawn.
-        """
-        logger.debug(f"render() ENTRY: full_content len={len(self.full_content)}, streaming={self.streaming}")
-
-        if not self.full_content:
-            logger.debug("render() returning empty string")
-            return ""
-
-        display = self.full_content
-        if self.streaming:
-            display += " ▌"
-
-        logger.debug(f"render() returning Text: len={len(display)}")
-
-        # Return plain text with explicit styling for visibility
-        from rich.text import Text as RichText
-        result = RichText(display, style="yellow on red")
-        logger.debug(f"render() created RichText: {result}")
-        return result
-
-    def _periodic_refresh(self) -> None:
-        """Periodically refresh the widget during streaming.
-
-        This runs on a timer to force repaints even when the event loop
-        is busy processing tokens.
-        """
-        if self.streaming and self.full_content:
-            logger.debug(f"Periodic refresh triggered, content len={len(self.full_content)}")
-            # Don't call refresh here, just let render() be called naturally
-            # The timer itself triggers a repaint cycle
 
     async def add_token(self, token: str) -> None:
         """Add a streaming token to the response.
@@ -130,10 +92,13 @@ class StreamingResponse(Static):
         )
 
         if buffer_size >= self.BUFFER_SIZE or time_since_render >= self.DEBOUNCE_MS:
-            logger.debug("Clearing token buffer")
+            logger.debug(f"Writing buffered content to RichLog: {len(self.full_content)} chars")
+            # Clear the log and write all content
+            self.clear()
+            self.write(Text(self.full_content + " ▌" if self.streaming else self.full_content))
             self.token_buffer.clear()
             self.last_render_time = current_time
-            # Don't call refresh here - let the periodic timer handle it
+            self._last_written_length = len(self.full_content)
 
     async def _render_content(self, force: bool = False) -> None:
         """No longer used - render() method is called automatically."""
@@ -147,7 +112,9 @@ class StreamingResponse(Static):
         """
         self.streaming = False
         self.token_buffer.clear()
-        self.refresh()
+        # Write final content without cursor
+        self.clear()
+        self.write(self.full_content)
         self.border_title = f"Assistant ({self.token_count} tokens)"
 
     def reset(self) -> None:
@@ -160,9 +127,9 @@ class StreamingResponse(Static):
         self.full_content = ""
         self.token_count = 0
         self.streaming = False
-        self._markdown_failed = False
         self.last_render_time = 0.0
-        self.refresh()
+        self._last_written_length = 0
+        self.clear()
         self.border_title = "Assistant"
 
     def watch_streaming(self, streaming: bool) -> None:
@@ -177,5 +144,3 @@ class StreamingResponse(Static):
             self.add_class("streaming")
         else:
             self.remove_class("streaming")
-        # Refresh when streaming state changes
-        self.refresh()
