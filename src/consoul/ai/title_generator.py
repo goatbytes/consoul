@@ -166,7 +166,7 @@ def auto_detect_title_config(config: ConsoulConfig | None = None) -> dict | None
     """Auto-detect best available model for title generation.
 
     Preference order:
-    1. Ollama (free, local, fast) - if running
+    1. Ollama (free, local, fast) - if running and has suitable model
     2. Main chat model - if using cheap model
     3. None - disable feature
 
@@ -176,17 +176,16 @@ def auto_detect_title_config(config: ConsoulConfig | None = None) -> dict | None
     Returns:
         Dict with "provider" and "model" keys, or None if no suitable model found
     """
-    from consoul.ai.providers import is_ollama_running
+    from consoul.ai.providers import is_ollama_running, select_best_ollama_model
 
     # Try Ollama first (free and local)
     if is_ollama_running():
-        # Preference: llama3.2:1b > llama3.2:latest > llama3:8b
-        # For now, default to llama3.2:latest (most likely to be available)
-        # TODO: Query Ollama API to find best available small model
-        return {
-            "provider": "ollama",
-            "model": "llama3.2:latest",
-        }
+        model = select_best_ollama_model()
+        if model:
+            return {
+                "provider": "ollama",
+                "model": model,
+            }
 
     # Check if user's main model is cheap enough to reuse
     if config:

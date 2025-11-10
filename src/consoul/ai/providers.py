@@ -78,6 +78,87 @@ def is_ollama_running(base_url: str = "http://localhost:11434") -> bool:
         return False
 
 
+def get_ollama_models(base_url: str = "http://localhost:11434") -> list[dict[str, str]]:
+    """Get list of available Ollama models.
+
+    Args:
+        base_url: The base URL for the Ollama service. Defaults to http://localhost:11434.
+
+    Returns:
+        List of model dicts with 'name' and 'size' keys, sorted by size (smallest first).
+        Returns empty list if Ollama is not running or request fails.
+    """
+    try:
+        import requests
+
+        response = requests.get(f"{base_url}/api/tags", timeout=2)
+        if response.status_code != 200:
+            return []
+
+        data = response.json()
+        models = data.get("models", [])
+
+        # Extract model info and sort by size
+        model_list = [
+            {"name": m.get("name", ""), "size": m.get("size", 0)} for m in models
+        ]
+        # Sort by size (smallest first for faster title generation)
+        model_list.sort(key=lambda m: m.get("size", float("inf")))
+
+        return model_list
+    except Exception:
+        return []
+
+
+def select_best_ollama_model(
+    base_url: str = "http://localhost:11434",
+) -> str | None:
+    """Select the best available Ollama model for title generation.
+
+    Preference order:
+    1. llama3.2:1b (smallest, fastest)
+    2. llama3.2:3b
+    3. Any llama3.2 variant
+    4. Any llama3 variant
+    5. Smallest available model
+
+    Args:
+        base_url: The base URL for the Ollama service. Defaults to http://localhost:11434.
+
+    Returns:
+        Model name string or None if no models available.
+    """
+    models = get_ollama_models(base_url)
+    if not models:
+        return None
+
+    model_names = [m["name"] for m in models]
+
+    # Preference list
+    preferred = [
+        "llama3.2:1b",
+        "llama3.2:3b",
+    ]
+
+    # Check preferred models first
+    for pref in preferred:
+        if pref in model_names:
+            return pref
+
+    # Check for any llama3.2 variant
+    for name in model_names:
+        if "llama3.2" in name.lower():
+            return name
+
+    # Check for any llama3 variant
+    for name in model_names:
+        if "llama3" in name.lower():
+            return name
+
+    # Fall back to smallest model
+    return models[0]["name"] if models else None
+
+
 def validate_provider_dependencies(provider: Provider) -> None:
     """Check if required langchain provider package is installed.
 
