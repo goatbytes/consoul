@@ -516,7 +516,7 @@ def stats_history(db_path: Path | None) -> None:
 @click.option(  # type: ignore[misc]
     "--format",
     "-f",
-    type=click.Choice(["json", "txt"], case_sensitive=False),
+    type=click.Choice(["json", "markdown", "html", "csv"], case_sensitive=False),
     default="json",
     help="Output format (default: json)",
 )
@@ -528,14 +528,26 @@ def stats_history(db_path: Path | None) -> None:
 def export_history(
     session_id: str, output_file: Path, format: str, db_path: Path | None
 ) -> None:
-    """Export a conversation to a file."""
-    import json
+    """Export a conversation to a file.
 
+    Supported formats:
+        - json: Structured JSON with full metadata (supports round-trip import)
+        - markdown: Human-readable Markdown with formatting
+        - html: Standalone HTML file with embedded styling
+        - csv: CSV format for analytics (one row per message)
+
+    Examples:
+        consoul history export SESSION-ID output.json --format json
+        consoul history export SESSION-ID output.md --format markdown
+        consoul history export SESSION-ID output.html --format html
+        consoul history export SESSION-ID output.csv --format csv
+    """
     from consoul.ai.database import (
         ConversationDatabase,
         ConversationNotFoundError,
         DatabaseError,
     )
+    from consoul.formatters import get_formatter
 
     try:
         db = ConversationDatabase(db_path or "~/.consoul/history.db")
@@ -544,24 +556,9 @@ def export_history(
         meta = db.get_conversation_metadata(session_id)
         messages = db.load_conversation(session_id)
 
-        # Export based on format
-        if format == "json":
-            data = {"metadata": meta, "messages": messages}
-            with open(output_file, "w") as f:
-                json.dump(data, f, indent=2)
-        else:  # txt
-            with open(output_file, "w") as f:
-                f.write(f"Conversation: {session_id}\n")
-                f.write(f"Model: {meta['model']}\n")
-                f.write(f"Created: {meta['created_at']}\n")
-                f.write(f"Updated: {meta['updated_at']}\n")
-                f.write(f"Messages: {meta['message_count']}\n")
-                f.write("=" * 60 + "\n\n")
-
-                for msg in messages:
-                    role = msg["role"].upper()
-                    content = msg["content"]
-                    f.write(f"{role}:\n{content}\n\n")
+        # Get formatter and export
+        formatter = get_formatter(format)
+        formatter.export_to_file(meta, messages, output_file)
 
         click.echo(f"Exported conversation to: {output_file}")
 
@@ -571,8 +568,108 @@ def export_history(
     except DatabaseError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
     except Exception as e:
-        click.echo(f"Error writing file: {e}", err=True)
+        click.echo(f"Error exporting conversation: {e}", err=True)
+        sys.exit(1)
+
+
+@history.command("import")  # type: ignore[misc]
+@click.argument("import_file", type=click.Path(exists=True, path_type=Path))  # type: ignore[misc]
+@click.option(  # type: ignore[misc]
+    "--dry-run",
+    is_flag=True,
+    help="Validate import file without importing",
+)
+@click.option(  # type: ignore[misc]
+    "--db-path",
+    type=click.Path(path_type=Path),
+    help="Path to history database (default: ~/.consoul/history.db)",
+)
+def import_history(import_file: Path, dry_run: bool, db_path: Path | None) -> None:
+    """Import conversations from Consoul JSON export.
+
+    Only Consoul's own JSON export format (v1.0) is supported for import.
+    This command restores conversations from backups created with the export command.
+
+    Examples:
+        consoul history import backup.json
+        consoul history import backup.json --dry-run  # validate only
+    """
+    import json
+
+    from consoul.ai.database import ConversationDatabase, DatabaseError
+    from consoul.formatters.json_formatter import JSONFormatter
+
+    try:
+        # Read and parse import file
+        try:
+            data = json.loads(import_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            click.echo(f"Error: Invalid JSON file: {e}", err=True)
+            sys.exit(1)
+
+        # Validate structure
+        try:
+            JSONFormatter.validate_import_data(data)
+        except ValueError as e:
+            click.echo(f"Error: Invalid export format: {e}", err=True)
+            sys.exit(1)
+
+        if dry_run:
+            click.echo("✓ Validation successful")
+            click.echo(f"  Version: {data['version']}")
+            click.echo(f"  Exported: {data['exported_at']}")
+            click.echo(f"  Session ID: {data['conversation']['session_id']}")
+            click.echo(f"  Model: {data['conversation']['model']}")
+            click.echo(f"  Messages: {len(data['messages'])}")
+            return
+
+        # Import conversation
+        db = ConversationDatabase(db_path or "~/.consoul/history.db")
+
+        conv = data["conversation"]
+        session_id = conv["session_id"]
+
+        # Check if conversation already exists
+        try:
+            existing = db.get_conversation_metadata(session_id)
+            click.echo(
+                f"Warning: Conversation {session_id} already exists. Skipping import.",
+                err=True,
+            )
+            click.echo(
+                f"  Existing: created {existing['created_at']}, "
+                f"{existing['message_count']} messages"
+            )
+            sys.exit(1)
+        except Exception:
+            # Conversation doesn't exist, proceed with import
+            pass
+
+        # Create conversation with original session_id
+        db.create_conversation(model=conv["model"], session_id=session_id)
+
+        # Import messages
+        for msg in data["messages"]:
+            db.save_message(
+                session_id=session_id,
+                role=msg["role"],
+                content=msg["content"],
+                tokens=msg.get("tokens"),
+            )
+
+        click.echo(f"✓ Imported conversation: {session_id}")
+        click.echo(f"  Model: {conv['model']}")
+        click.echo(f"  Messages: {len(data['messages'])}")
+
+    except DatabaseError as e:
+        click.echo(f"Error: Database error: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error importing conversation: {e}", err=True)
         sys.exit(1)
 
 
