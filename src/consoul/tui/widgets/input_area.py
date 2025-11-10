@@ -81,8 +81,13 @@ class InputArea(Container):
             event: The text change event
         """
         self.character_count = len(self.text_area.text)
+        self._update_border_title()
 
-        # Update border title with count
+    def _update_border_title(self) -> None:
+        """Update border title based on character count.
+
+        Shows character count when text is present, otherwise shows help text.
+        """
         if self.character_count > 0:
             self.border_title = (
                 f"Message ({self.character_count} chars) - Enter to send"
@@ -131,4 +136,5 @@ class InputArea(Container):
         """Clear the input area and reset character count."""
         self.text_area.clear()
         self.character_count = 0
+        self._update_border_title()
         self.text_area.focus()

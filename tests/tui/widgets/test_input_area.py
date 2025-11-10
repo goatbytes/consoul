@@ -363,3 +363,56 @@ class TestInputAreaEdgeCases:
 
             assert len(app.messages) == 3
             assert app.messages == ["First", "Second", "Third"]
+
+    async def test_border_title_updates_after_clear(self) -> None:
+        """Test that border title resets after clear.
+
+        Regression test: clear() must update border title back to default
+        state, not leave stale character count visible.
+        """
+        app = InputAreaTestApp()
+
+        async with app.run_test() as pilot:
+            widget = app.query_one(InputArea)
+
+            # Add text - border title should show count
+            widget.text_area.text = "Test message"
+            widget.on_text_area_changed(widget.text_area.Changed(widget.text_area))
+            await pilot.pause()
+
+            assert "12 chars" in widget.border_title
+
+            # Clear - border title should reset
+            widget.clear()
+            await pilot.pause()
+
+            assert "Enter to send" in widget.border_title
+            assert "Shift+Enter for newline" in widget.border_title
+            assert "chars" not in widget.border_title
+
+    async def test_border_title_updates_after_send(self) -> None:
+        """Test that border title resets after sending message.
+
+        Regression test: Sending a message clears input, which should
+        also reset the border title to default state.
+        """
+        app = InputAreaTestApp()
+
+        async with app.run_test() as pilot:
+            widget = app.query_one(InputArea)
+
+            # Add text and trigger change event
+            widget.text_area.text = "Test message"
+            widget.on_text_area_changed(widget.text_area.Changed(widget.text_area))
+            await pilot.pause()
+
+            assert "12 chars" in widget.border_title
+
+            # Send message (which calls clear internally)
+            await widget._send_message()
+            await pilot.pause()
+
+            # Border title should be reset
+            assert "Enter to send" in widget.border_title
+            assert "Shift+Enter for newline" in widget.border_title
+            assert "chars" not in widget.border_title
