@@ -372,6 +372,11 @@ class ConsoulApp(App[None]):
                 collected_tokens.append(token)
                 await stream_widget.add_token(token)
 
+                # Yield to event loop to allow screen refresh
+                import asyncio
+
+                await asyncio.sleep(0)
+
             # Finalize streaming widget
             await stream_widget.finalize_stream()
 
