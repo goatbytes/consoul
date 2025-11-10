@@ -620,25 +620,477 @@ ConsoulApp
 
 ---
 
+## Design Decisions (Updated Post-Review)
+
+### 1. Streaming Renderer Strategy
+
+**Decision:** Prototype multiple approaches in Phase 2, select based on performance metrics
+
+**Approaches to Test:**
+- **Option A:** Textual's `Markdown` widget with buffered updates
+  - Buffer: ~200 chars or 50 tokens per flush
+  - Debounce: 120-150ms between renders
+  - Pro: Full markdown semantics, built-in styling
+  - Con: May jitter on complex markdown during streaming
+
+- **Option B:** `RichLog` with markdown-aware appending
+  - Stream tokens directly without re-rendering entire doc
+  - Pro: Smoother streaming, better for long outputs
+  - Con: Loses some markdown interactivity
+
+- **Option C:** Hybrid approach
+  - Use RichLog during active streaming
+  - Convert to Markdown widget on completion
+  - Pro: Best of both worlds
+  - Con: More complex implementation
+
+**Implementation Plan:**
+```python
+# consoul/tui/widgets/streaming_response.py
+class StreamingResponse(Widget):
+    """Adaptive streaming widget with fallback renderers."""
+
+    BUFFER_SIZE = 200  # chars
+    DEBOUNCE_MS = 150  # milliseconds
+
+    def __init__(self, renderer: Literal["markdown", "richlog", "hybrid"] = "markdown"):
+        self.renderer_type = renderer
+        self.token_buffer = []
+        self.buffer_size = 0
+
+    def append_token(self, token: str):
+        """Buffer tokens and flush on threshold."""
+        self.token_buffer.append(token)
+        self.buffer_size += len(token)
+
+        if self.buffer_size >= self.BUFFER_SIZE:
+            self.flush_buffer()
+
+    def flush_buffer(self):
+        """Render buffered tokens based on renderer type."""
+        if self.renderer_type == "markdown":
+            self._render_markdown()
+        elif self.renderer_type == "richlog":
+            self._append_richlog()
+        else:  # hybrid
+            self._hybrid_render()
+```
+
+**Testing Criteria:**
+- Measure render time for 1000-token response
+- Test with complex markdown (nested lists, code blocks, tables)
+- Evaluate subjective smoothness/jitter
+- Memory usage during long streaming sessions
+
+**Fallback Plan:** If Markdown widget performance is insufficient, switch to RichLog or hybrid approach
+
+---
+
+### 2. GC Management Policy
+
+**Decision:** Configurable GC strategy with streaming-aware behavior
+
+**Policy Specification:**
+
+```python
+# consoul/tui/config.py
+class TuiConfig(BaseModel):
+    """TUI-specific configuration."""
+
+    # GC Management
+    gc_mode: Literal["auto", "manual", "streaming-aware"] = "streaming-aware"
+    gc_interval_seconds: float = 30.0  # Manual collection interval when idle
+    gc_generation: int = 0  # Which generation to collect (0=young, 1=middle, 2=all)
+```
+
+**Streaming-Aware Strategy:**
+```python
+# consoul/tui/app.py
+class ConsoulApp(App):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        if self.config.tui.gc_mode == "streaming-aware":
+            # Disable automatic GC
+            gc.disable()
+
+            # Schedule periodic idle GC
+            self.set_interval(self.config.tui.gc_interval_seconds, self._idle_gc)
+
+    def _idle_gc(self):
+        """Collect garbage when not actively streaming."""
+        if not self.streaming:  # Only GC when idle
+            collected = gc.collect(generation=self.config.tui.gc_generation)
+            self.logger.debug(f"Idle GC collected {collected} objects")
+
+    @on(StreamComplete)
+    def handle_stream_complete(self, message: StreamComplete):
+        """Run GC after each completed stream."""
+        gc.collect(0)  # Quick gen-0 collection only
+```
+
+**Rationale:**
+- Disabling GC entirely risks memory bloat in long sessions
+- Streaming-specific pauses are avoided by checking `self.streaming` flag
+- Generation-0 collections are fast (<10ms) and safe during streaming
+- Full collections deferred to idle periods
+
+---
+
+### 3. Conversation List Virtualization
+
+**Decision:** Virtual scrolling for 1000+ conversations with search-first UX
+
+**Architecture:**
+
+```python
+# consoul/tui/widgets/conversation_list.py
+from textual.widgets import DataTable
+
+class ConversationList(Widget):
+    """Virtualized conversation list with search-first navigation."""
+
+    def compose(self) -> ComposeResult:
+        yield Input(placeholder="Search conversations...", id="search-input")
+        yield DataTable(
+            id="conversation-table",
+            zebra_stripes=True,
+            cursor_type="row",
+            virtual=True  # Enable virtualization
+        )
+
+    async def on_mount(self):
+        """Lazy load initial batch of conversations."""
+        table = self.query_one(DataTable)
+
+        # Only load visible rows initially
+        conversations = await self.load_conversations(limit=50)
+
+        for conv in conversations:
+            table.add_row(
+                conv["session_id"],
+                conv["model"],
+                conv["created_at"],
+                key=conv["session_id"]
+            )
+
+    async def load_conversations(self, limit: int = 50, offset: int = 0, query: str = ""):
+        """Load conversations with pagination and search."""
+        db = ConversationDatabase()
+
+        if query:
+            # Use FTS5 search
+            return db.search_conversations(query, limit=limit, offset=offset)
+        else:
+            # Recent conversations
+            return db.list_conversations(limit=limit, offset=offset)
+```
+
+**Search-First Strategy:**
+- Default view shows 50 most recent conversations
+- Search box immediately filters via FTS5
+- Virtualization handles 1000+ results without performance hit
+- Lazy loading on scroll for additional batches
+
+**Performance Targets:**
+- Initial render: <200ms for 50 conversations
+- Search results: <100ms for FTS5 query
+- Scroll performance: 60 FPS with virtualization
+- Memory: O(visible rows) not O(total rows)
+
+---
+
+### 4. Testing Strategy (Expanded)
+
+**Test Suites:**
+
+#### A. Unit Tests (`tests/tui/widgets/`)
+```python
+# test_streaming_response.py
+def test_token_buffering():
+    """Verify tokens are buffered before rendering."""
+    widget = StreamingResponse()
+
+    for i in range(10):
+        widget.append_token("x")
+
+    # Should not render until buffer threshold
+    assert widget.render_count == 0
+
+    widget.append_token("x" * 190)  # Exceeds 200-char buffer
+    assert widget.render_count == 1
+
+def test_debounce_rendering():
+    """Verify debounce prevents excessive re-renders."""
+    # Use time-based assertions
+    pass
+```
+
+#### B. Streaming Regression Tests (`tests/tui/test_streaming.py`)
+```python
+@pytest.mark.asyncio
+async def test_streaming_markdown_complex():
+    """Test streaming with complex markdown (code, tables, lists)."""
+    app = ConsoulApp()
+
+    # Simulate streaming a complex response
+    tokens = [
+        "# Header\n",
+        "```python\n",
+        "def foo():\n",
+        "    pass\n",
+        "```\n",
+        "| A | B |\n",
+        "|---|---|\n",
+        "| 1 | 2 |\n",
+    ]
+
+    for token in tokens:
+        app.post_message(StreamToken(token=token, session_id="test"))
+        await asyncio.sleep(0.01)
+
+    # Verify final markdown is correct
+    markdown_widget = app.query_one(StreamingResponse)
+    assert "def foo():" in markdown_widget.buffer
+    assert "| A | B |" in markdown_widget.buffer
+
+@pytest.mark.asyncio
+async def test_stream_cancellation():
+    """Test Ctrl+C gracefully cancels streaming."""
+    app = ConsoulApp()
+
+    # Start streaming
+    app.post_message(StreamStart(model="gpt-4o", session_id="test"))
+
+    # Simulate cancellation
+    app.action_cancel_stream()
+
+    # Verify partial response is saved
+    db = ConversationDatabase()
+    messages = db.load_conversation("test")
+    assert len(messages) > 0
+```
+
+#### C. Smoke Tests (`tests/tui/test_tui_smoke.py`)
+```python
+def test_tui_launches():
+    """Verify TUI app launches without errors."""
+    app = ConsoulApp(test_mode=True)
+    assert app is not None
+
+def test_tui_keyboard_navigation():
+    """Test basic keyboard shortcuts work."""
+    # Simulate key presses, verify state changes
+    pass
+```
+
+#### D. Visual Regression Tests (Optional, Phase 5)
+```python
+# Using textual-dev snapshot testing
+@pytest.mark.snapshot
+def test_chat_view_snapshot():
+    """Compare rendered chat view to baseline screenshot."""
+    # textual-dev captures PNG, diffs against baseline
+    pass
+```
+
+**Coverage Targets:**
+- Unit tests: 80%+ for widgets
+- Integration tests: Cover all AI provider streaming paths
+- Smoke tests: All screens launch and navigate
+- Manual tests: Complex markdown rendering, theme switching
+
+---
+
+### 5. Export/Import UI Integration
+
+**Decision:** Modal-based export/import with format selection
+
+**Architecture:**
+
+```python
+# consoul/tui/widgets/modals/export_modal.py
+class ExportModal(ModalScreen):
+    """Modal for exporting conversations."""
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Label("Export Conversations")
+
+            # Format selection
+            yield Select(
+                options=[
+                    ("JSON", "json"),
+                    ("Markdown", "markdown"),
+                    ("HTML", "html"),
+                    ("CSV", "csv"),
+                ],
+                id="format-select"
+            )
+
+            # Scope selection
+            yield RadioSet(
+                RadioButton("Current conversation", value="current"),
+                RadioButton("All conversations", value="all"),
+                id="scope-radio"
+            )
+
+            # File path input
+            yield Input(
+                placeholder="/path/to/export.json",
+                id="path-input"
+            )
+
+            with Horizontal():
+                yield Button("Cancel", variant="default", id="cancel")
+                yield Button("Export", variant="primary", id="export")
+
+    @on(Button.Pressed, "#export")
+    async def handle_export(self):
+        """Execute export using existing CLI functionality."""
+        from consoul.formatters import get_formatter
+        from consoul.ai.database import ConversationDatabase
+
+        format_val = self.query_one("#format-select").value
+        scope = self.query_one("#scope-radio").value
+        path = Path(self.query_one("#path-input").value)
+
+        db = ConversationDatabase()
+
+        if scope == "all":
+            # Use JSONFormatter.export_multiple()
+            conversations = db.list_conversations(limit=10000)
+            data = [(db.get_conversation_metadata(c["session_id"]),
+                     db.load_conversation(c["session_id"]))
+                    for c in conversations]
+
+            if format_val == "json":
+                from consoul.formatters.json_formatter import JSONFormatter
+                output = JSONFormatter.export_multiple(data)
+            else:
+                self.notify("Multi-conversation export only supports JSON", severity="error")
+                return
+        else:
+            # Single conversation export
+            formatter = get_formatter(format_val)
+            metadata = db.get_conversation_metadata(self.app.conversation_id)
+            messages = db.load_conversation(self.app.conversation_id)
+            output = formatter.export(metadata, messages)
+
+        # Write to file
+        path.write_text(output, encoding="utf-8")
+        self.notify(f"Exported to {path}", severity="information")
+        self.dismiss()
+```
+
+**Import Modal:**
+```python
+# consoul/tui/widgets/modals/import_modal.py
+class ImportModal(ModalScreen):
+    """Modal for importing conversations."""
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Label("Import Conversations")
+            yield Input(placeholder="/path/to/import.json", id="path-input")
+            yield Checkbox("Dry run (preview only)", id="dry-run")
+
+            with Horizontal():
+                yield Button("Cancel", variant="default", id="cancel")
+                yield Button("Import", variant="primary", id="import")
+
+    @on(Button.Pressed, "#import")
+    async def handle_import(self):
+        """Execute import using existing CLI functionality."""
+        # Reuse logic from consoul/__main__.py:import_history
+        # Show progress in modal
+        # Update conversation list on success
+        pass
+```
+
+**Integration with Existing CLI:**
+- Reuse `consoul.formatters` module (no duplication)
+- Call same `export_multiple()` and `validate_import_data()` methods
+- TUI provides file selection and progress UI
+- CLI functionality remains accessible for scripting
+
+**Keyboard Shortcuts:**
+- `ctrl+e` → Open export modal
+- `ctrl+i` → Open import modal (from settings)
+
+---
+
+### 6. Multi-Line Input (MVP Feature)
+
+**Decision:** Include in Phase 2 using `TextArea`
+
+**Rationale:**
+- AI chats frequently require multi-line prompts (code snippets, formatted text)
+- User expectation aligns with Slack/Discord (shift+enter = new line, enter = send)
+- Textual's `TextArea` provides this out of the box
+
+**Implementation:**
+
+```python
+# consoul/tui/widgets/input_area.py
+from textual.widgets import TextArea
+
+class InputArea(Widget):
+    """Multi-line input area for user messages."""
+
+    def compose(self) -> ComposeResult:
+        yield TextArea(
+            id="user-input",
+            language="markdown",  # Syntax highlighting
+            theme="monokai"
+        )
+
+    def on_text_area_submitted(self, event: TextArea.Submitted):
+        """Handle Enter key (send message)."""
+        content = event.text_area.text.strip()
+
+        if content:
+            self.post_message(SendMessage(content=content))
+            event.text_area.clear()
+
+    def on_key(self, event: Key):
+        """Handle shift+enter (new line) vs enter (send)."""
+        # TextArea handles this automatically:
+        # - Enter → submit event
+        # - Shift+Enter → insert newline
+        pass
+```
+
+**UX:**
+- Default: Empty `TextArea` with placeholder "Type your message... (Shift+Enter for new line)"
+- Enter key: Sends message
+- Shift+Enter: Adds new line
+- Auto-resize: TextArea expands up to 10 lines, then scrolls
+
+---
+
 ## Questions to Resolve
 
 1. **Markdown Rendering:** Use Textual's built-in `Markdown` widget or Rich's `Markdown`?
-   - **Recommendation:** Textual's widget (better integration, scrolling)
+   - **Updated Decision:** Prototype both in Phase 2, use Markdown widget for MVP with RichLog as fallback
 
 2. **Code Highlighting:** How to highlight code blocks in streamed markdown?
-   - **Recommendation:** Use Pygments with TextArea or Rich syntax highlighting
+   - **Updated Decision:** Textual's Markdown widget with Pygments for syntax highlighting
 
 3. **Conversation Storage:** Keep SQLite ConversationDatabase or add in-memory cache?
-   - **Recommendation:** Keep SQLite, add LRU cache for active conversations
+   - **Updated Decision:** Keep SQLite, add LRU cache for active conversations, use virtualization for list
 
 4. **Model Selection:** Modal or sidebar panel?
-   - **Recommendation:** Modal (like Postings' collection selector), less screen clutter
+   - **Updated Decision:** Modal (like Postings' collection selector), less screen clutter
 
 5. **Input Multi-Line:** Support multi-line input (shift+enter) like Slack?
-   - **Recommendation:** Yes, use TextArea instead of Input
+   - **Updated Decision:** YES - MVP feature in Phase 2 using TextArea
 
 6. **Vim Mode:** Implement vim-like navigation?
-   - **Recommendation:** Phase 4 enhancement, not MVP
+   - **Updated Decision:** Phase 4 enhancement, not MVP
+
+7. **Theme System:** Pure TCSS, hybrid, or JSON-based?
+   - **Updated Decision:** Hybrid TCSS + Python for runtime theme switching and computed palettes
 
 ---
 
