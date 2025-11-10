@@ -112,6 +112,39 @@ ChatView:focus {
 }
 
 /* Message metadata */
+.message-metadata {
+    width: 100%;
+    height: auto;
+    layout: horizontal;
+    align: left middle;
+    padding-top: 1;
+}
+
+.metadata-text {
+    width: 1fr;
+    height: auto;
+}
+
+.copy-button {
+    width: auto;
+    min-width: 5;
+    height: 1;
+    padding: 0 1;
+    background: transparent;
+    color: $text-muted;
+    border: none;
+}
+
+.copy-button:hover {
+    background: $surface-lighten-1;
+    color: $accent;
+}
+
+.copy-button:focus {
+    background: $surface-lighten-1;
+    color: $primary;
+}
+
 .message-timestamp {
     color: $text-muted;
     text-style: italic;
@@ -271,6 +304,7 @@ InputArea TextArea:focus {
 StreamingResponse {
     width: 100%;
     height: auto;
+    background: transparent;
     color: $text;
     padding: 1 2;
     border: round $success;
@@ -278,6 +312,7 @@ StreamingResponse {
 }
 
 StreamingResponse.streaming {
+    background: transparent;
     border: round $accent;
     border-title-color: $accent;
 }

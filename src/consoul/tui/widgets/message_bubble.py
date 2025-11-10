@@ -7,18 +7,23 @@ styling, markdown formatting, and optional metadata display.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
-from rich.console import Group, RenderableType
 from rich.markdown import Markdown
 from rich.text import Text
+from textual import on
+from textual.containers import Container, Horizontal
 from textual.reactive import reactive
-from textual.widgets import Static
+from textual.widgets import Button, Static
+
+if TYPE_CHECKING:
+    from rich.console import RenderableType
+    from textual.app import ComposeResult
 
 __all__ = ["MessageBubble"]
 
 
-class MessageBubble(Static):
+class MessageBubble(Container):
     """Message bubble widget with role-specific styling and markdown rendering.
 
     Displays a single message with appropriate styling based on the sender role.
@@ -64,10 +69,22 @@ class MessageBubble(Static):
         # Set role last (triggers watcher which needs other attributes)
         self.role = role
 
+    def compose(self) -> ComposeResult:
+        """Compose the message bubble with content and metadata."""
+        # Create content static widget
+        yield Static(id="message-content", classes="message-content")
+
+        # Add metadata footer if enabled
+        if self.show_metadata:
+            with Horizontal(classes="message-metadata"):
+                yield Static(id="metadata-text", classes="metadata-text")
+                yield Button("📋", id="copy-button", classes="copy-button")
+
     def on_mount(self) -> None:
         """Initialize message bubble on mount."""
         self._update_styling()
-        self._render_message()
+        # Wait a moment for child widgets to be available
+        self.call_later(self._render_message)
 
     def _update_styling(self) -> None:
         """Update widget styling based on role.
@@ -98,6 +115,14 @@ class MessageBubble(Static):
 
     def _render_message(self) -> None:
         """Render message content with markdown and optional metadata."""
+        # Try to get child widgets - if they don't exist yet, schedule retry
+        try:
+            content_widget = self.query_one("#message-content", Static)
+        except Exception:
+            # Child widgets not available yet, retry later
+            self.call_later(self._render_message)
+            return
+
         # Check if markdown previously failed - skip markdown if so
         if self._markdown_failed:
             # Use plain text directly without retrying markdown
@@ -111,17 +136,21 @@ class MessageBubble(Static):
                 self._markdown_failed = True
                 content_renderable = Text(self.content_text)
 
-        # Add metadata footer if enabled
-        if self.show_metadata:
-            metadata = self._build_metadata_footer()
-            # Combine content and metadata using Group
-            combined = Group(content_renderable, metadata)
-            self.update(combined)
-        else:
-            self.update(content_renderable)
+        # Update content widget
+        content_widget.update(content_renderable)
 
-    def _build_metadata_footer(self) -> Text:
-        """Build metadata footer with timestamp and optional token count.
+        # Update metadata if present
+        if self.show_metadata:
+            try:
+                metadata_text = self._build_metadata_text()
+                metadata_widget = self.query_one("#metadata-text", Static)
+                metadata_widget.update(metadata_text)
+            except Exception:
+                # Metadata widget not available yet
+                pass
+
+    def _build_metadata_text(self) -> Text:
+        """Build metadata text with timestamp and optional token count.
 
         Returns:
             Rich Text object with styled metadata
@@ -140,6 +169,18 @@ class MessageBubble(Static):
             footer.append(f"{self.token_count} tokens", style="bold cyan")
 
         return footer
+
+    @on(Button.Pressed, "#copy-button")
+    async def copy_to_clipboard(self) -> None:
+        """Copy message content to clipboard when copy button is pressed."""
+        import pyperclip
+
+        try:
+            pyperclip.copy(self.content_text)
+            # Show notification
+            self.app.notify("Message copied to clipboard!", severity="information")
+        except Exception as e:
+            self.app.notify(f"Failed to copy: {e}", severity="error")
 
     def watch_role(self, new_role: str) -> None:
         """Update styling when role changes.
