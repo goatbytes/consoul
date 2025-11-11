@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-09T20:15:47.414952",
-  "updated_at": "2025-11-09T20:15:47.414961",
+  "updated_at": "2025-11-11T01:43:39.324926Z",
   "id": "SOUL-46",
   "uuid": "800deb2b-6b16-46f6-a21b-f3d4d150ad37",
   "title": "Create export/import UI for conversations",
   "description": "Implement ctrl+e export modal. Reuse CLI export formatters (JSON/MD/TXT), add format selection, scope (current/all), progress indicator. Import from file selector.",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "low",
   "labels": [

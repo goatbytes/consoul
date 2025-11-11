@@ -634,7 +634,9 @@ class ConsoulApp(App[None]):
                 self.notify(f"Exported to {filepath}", severity="information")
 
         current_session_id = self.conversation.session_id if self.conversation else None
-        modal = ExportModal(current_session_id=current_session_id, db=self.db)
+        modal = ExportModal(
+            current_session_id=current_session_id, db=self.conversation_list.db
+        )
         self.push_screen(modal, on_export)
 
     def action_import_conversation(self) -> None:
@@ -647,7 +649,7 @@ class ConsoulApp(App[None]):
                 # Reload conversation list
                 self.conversation_list.load_conversations()
 
-        modal = ImportModal(db=self.db)
+        modal = ImportModal(db=self.conversation_list.db)
         self.push_screen(modal, on_import)
 
     def action_search_history(self) -> None:
