@@ -412,6 +412,9 @@ class ConsoulApp(App[None]):
 
             message_queue: asyncio.Queue[AIMessage | None] = asyncio.Queue()
 
+            # Queue to send exceptions from background thread
+            exception_queue: asyncio.Queue[Exception | None] = asyncio.Queue()
+
             # Get the current event loop (Textual's loop)
             event_loop = asyncio.get_running_loop()
 
@@ -420,8 +423,10 @@ class ConsoulApp(App[None]):
 
                 Sends None as sentinel when complete or cancelled.
                 Collects chunks to reconstruct final AIMessage with tool_calls.
+                Sends exceptions via exception_queue to trigger error handling.
                 """
                 collected_chunks: list[AIMessage] = []
+                exception_caught: Exception | None = None
                 try:
                     for chunk in self.chat_model.stream(messages_dict):  # type: ignore[union-attr]
                         # Check for cancellation
@@ -435,25 +440,37 @@ class ConsoulApp(App[None]):
                         if not chunk.content:
                             continue
 
+                        # Handle content that may be string or list of blocks
                         token = chunk.content
+                        if isinstance(token, list):
+                            # Skip list-style chunks for UI (tool_calls, structured outputs)
+                            continue
+
                         # Push token to queue (thread-safe)
                         asyncio.run_coroutine_threadsafe(
                             token_queue.put(token), event_loop
                         )
 
                 except Exception as e:
-                    # Push exception as string
-                    asyncio.run_coroutine_threadsafe(
-                        token_queue.put(f"ERROR: {e}"), event_loop
-                    )
+                    # Store exception to send to main thread
+                    exception_caught = e
                 finally:
                     # Send sentinel to signal completion
                     asyncio.run_coroutine_threadsafe(token_queue.put(None), event_loop)
 
+                    # Send exception if any (so main thread can handle it properly)
+                    asyncio.run_coroutine_threadsafe(
+                        exception_queue.put(exception_caught), event_loop
+                    )
+
                     # Combine chunks into final AIMessage
                     # Tool calls are typically in the last chunk
                     final_message: AIMessage | None = None
-                    if collected_chunks and not self._stream_cancelled:
+                    if (
+                        collected_chunks
+                        and not self._stream_cancelled
+                        and not exception_caught
+                    ):
                         try:
                             # Get tool_calls from last chunk (if present)
                             tool_calls = []
@@ -462,11 +479,20 @@ class ConsoulApp(App[None]):
                                     tool_calls = chunk.tool_calls
                                     break
 
+                            # Reconstruct content from chunks
+                            # Handle both string content and list-style blocks
+                            content_parts: list[str] = []
+                            for c in collected_chunks:
+                                if not c.content:
+                                    continue
+                                if isinstance(c.content, str):
+                                    content_parts.append(c.content)
+                                # Skip list-style content (tool_calls, structured outputs)
+                                # The actual text content is in string chunks
+
                             # Create final message with all content and tool_calls
                             final_message = AIMessage(
-                                content="".join(
-                                    c.content for c in collected_chunks if c.content
-                                ),
+                                content="".join(content_parts),
                                 tool_calls=tool_calls if tool_calls else [],
                             )
                         except Exception:
@@ -538,6 +564,12 @@ class ConsoulApp(App[None]):
 
             # Get complete response
             full_response = "".join(collected_tokens)
+
+            # Check if background thread encountered an exception
+            stream_exception = await exception_queue.get()
+            if stream_exception:
+                # Re-raise to trigger error handling (same as sync errors)
+                raise stream_exception
 
             # Get final AIMessage with potential tool_calls
             final_message = await message_queue.get()
