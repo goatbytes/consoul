@@ -31,7 +31,9 @@ def tool_config():
 @pytest.fixture
 def registry(tool_config):
     """Create a ToolRegistry for testing."""
-    return ToolRegistry(tool_config)
+    from tests.ai.tools.test_approval import MockApproveProvider
+
+    return ToolRegistry(tool_config, approval_provider=MockApproveProvider())
 
 
 @pytest.fixture
@@ -66,7 +68,9 @@ class TestToolRegistryInit:
 
     def test_init_with_config(self, tool_config):
         """Test registry initializes with config."""
-        registry = ToolRegistry(tool_config)
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        registry = ToolRegistry(tool_config, approval_provider=MockApproveProvider())
         assert registry.config == tool_config
         assert len(registry) == 0
 
@@ -223,8 +227,10 @@ class TestSecurityPolicies:
 
     def test_is_allowed_with_whitelist(self, sample_tool):
         """Test whitelist enforcement."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
         config = ToolConfig(allowed_tools=["multiply"])
-        registry = ToolRegistry(config)
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
         registry.register(sample_tool)
 
         @tool
@@ -256,8 +262,10 @@ class TestApprovalWorkflows:
 
     def test_needs_approval_always_mode(self, sample_tool):
         """Test 'always' approval mode requires approval every time."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
         config = ToolConfig(approval_mode="always")
-        registry = ToolRegistry(config)
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
         registry.register(sample_tool)
 
         assert registry.needs_approval("multiply") is True
@@ -266,8 +274,10 @@ class TestApprovalWorkflows:
 
     def test_needs_approval_once_per_session_mode(self, sample_tool):
         """Test 'once_per_session' approval mode."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
         config = ToolConfig(approval_mode="once_per_session")
-        registry = ToolRegistry(config)
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
         registry.register(sample_tool)
 
         assert registry.needs_approval("multiply") is True
@@ -276,8 +286,10 @@ class TestApprovalWorkflows:
 
     def test_needs_approval_whitelist_mode(self, sample_tool):
         """Test 'whitelist' approval mode."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
         config = ToolConfig(approval_mode="whitelist", allowed_tools=["multiply"])
-        registry = ToolRegistry(config)
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
         registry.register(sample_tool)
 
         @tool
@@ -294,18 +306,22 @@ class TestApprovalWorkflows:
 
     def test_auto_approve_skips_approval(self, sample_tool):
         """Test auto_approve bypasses approval (DANGEROUS)."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
         # Should trigger warning when creating ToolConfig
         with pytest.warns(UserWarning, match="DANGEROUS"):
             config = ToolConfig(auto_approve=True)
 
-        registry = ToolRegistry(config)
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
         registry.register(sample_tool)
         assert registry.needs_approval("multiply") is False
 
     def test_clear_session_approvals(self, sample_tool):
         """Test clearing session approvals."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
         config = ToolConfig(approval_mode="once_per_session")
-        registry = ToolRegistry(config)
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
         registry.register(sample_tool)
 
         registry.mark_approved("multiply")

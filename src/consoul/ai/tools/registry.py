@@ -436,30 +436,36 @@ class ToolRegistry:
     def _get_default_provider(self) -> ApprovalProvider:
         """Get default approval provider.
 
-        Tries to import TuiApprovalProvider (optional TUI dependency).
-        If not available, raises RuntimeError indicating provider is required.
-
-        Returns:
-            Default approval provider
+        Note: This method cannot create TuiApprovalProvider since it requires
+        an app instance. TUI applications should explicitly provide the provider.
 
         Raises:
-            RuntimeError: If no provider available and TUI not installed
-        """
-        try:
-            # Try to import TUI provider (optional dependency)
-            from consoul.tui.tools.approval import TuiApprovalProvider
+            RuntimeError: Always raised, indicating provider is required
 
-            return TuiApprovalProvider()  # type: ignore[no-any-return]
-        except ImportError as e:
-            # TUI not available - require explicit provider
-            raise RuntimeError(
-                "No approval provider specified and TUI not available. "
-                "Please provide an approval_provider to ToolRegistry. "
-                "Example:\n"
-                "  from consoul.ai.tools.providers import CliApprovalProvider\n"
-                "  provider = CliApprovalProvider()\n"
-                "  registry = ToolRegistry(config, approval_provider=provider)"
-            ) from e
+        Example:
+            # TUI app should provide provider:
+            >>> from consoul.tui.tools import TuiApprovalProvider
+            >>> provider = TuiApprovalProvider(app)
+            >>> registry = ToolRegistry(config, approval_provider=provider)
+            >>>
+            # CLI/SDK should provide provider:
+            >>> from consoul.ai.tools.providers import CliApprovalProvider
+            >>> provider = CliApprovalProvider()
+            >>> registry = ToolRegistry(config, approval_provider=provider)
+        """
+        raise RuntimeError(
+            "No approval provider specified. "
+            "ToolRegistry requires an explicit approval_provider. "
+            "Examples:\n\n"
+            "  # For TUI applications:\n"
+            "  from consoul.tui.tools import TuiApprovalProvider\n"
+            "  provider = TuiApprovalProvider(app)\n"
+            "  registry = ToolRegistry(config, approval_provider=provider)\n\n"
+            "  # For CLI/SDK applications:\n"
+            "  from consoul.ai.tools.providers import CliApprovalProvider\n"
+            "  provider = CliApprovalProvider()\n"
+            "  registry = ToolRegistry(config, approval_provider=provider)"
+        )
 
     async def request_tool_approval(
         self,
