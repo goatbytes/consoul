@@ -25,7 +25,7 @@ class TuiConfig(BaseModel):
     show_sidebar: bool = Field(
         default=True, description="Show conversation list sidebar"
     )
-    sidebar_width: str = Field(default="30%", description="Sidebar width (CSS units)")
+    sidebar_width: str = Field(default="20%", description="Sidebar width (CSS units)")
     show_timestamps: bool = Field(default=True, description="Show message timestamps")
     show_token_count: bool = Field(
         default=True, description="Show token usage in messages"

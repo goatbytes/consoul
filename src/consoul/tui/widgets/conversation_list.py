@@ -94,9 +94,9 @@ class ConversationList(Container):
         self.border_title = "Conversations"
         self.add_class("conversation-list")
 
-        # Setup table columns
+        # Setup table columns (single column, no headers)
         self.table.add_column("Title", key="title")
-        self.table.add_column("Date", key="date", width=12)
+        self.table.show_header = False
 
         # Load initial conversations
         self.load_conversations()
@@ -119,13 +119,8 @@ class ConversationList(Container):
             # Get title from first user message or use "Untitled"
             title = self._get_conversation_title(conv)
 
-            # Format date
-            created_at = datetime.fromisoformat(conv["created_at"])
-            date_str = created_at.strftime("%Y-%m-%d")
-
             self.table.add_row(
                 title,
-                date_str,
                 key=conv["session_id"],
             )
             self.loaded_count += 1
@@ -223,13 +218,8 @@ class ConversationList(Container):
             # Get title
             title = self._get_conversation_title(conv)
 
-            # Format date
-            created_at = datetime.fromisoformat(conv["created_at"])
-            date_str = created_at.strftime("%Y-%m-%d")
-
             self.table.add_row(
                 title,
-                date_str,
                 key=conv["session_id"],
             )
 
