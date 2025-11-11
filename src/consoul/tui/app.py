@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import gc
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Footer, Input
 
@@ -21,16 +22,72 @@ if TYPE_CHECKING:
     from textual.binding import BindingType
 
     from consoul.ai.history import ConversationHistory
-    from consoul.ai.tools.approval import ToolApprovalResponse
     from consoul.ai.tools.parser import ParsedToolCall
     from consoul.config import ConsoulConfig
-    from consoul.tui.widgets import ContextualTopBar, InputArea, StreamingResponse
+    from consoul.tui.widgets import (
+        ContextualTopBar,
+        InputArea,
+        StreamingResponse,
+        ToolCallWidget,
+    )
 
 from consoul.tui.config import TuiConfig
 from consoul.tui.css.themes import load_theme
 from consoul.tui.widgets import MessageBubble
 
 __all__ = ["ConsoulApp"]
+
+
+# Custom Messages for tool approval workflow
+class ToolApprovalRequested(Message):
+    """Message emitted when tool approval is needed.
+
+    This message is sent to trigger the approval modal outside
+    the streaming context, allowing proper modal interaction.
+    """
+
+    def __init__(
+        self,
+        tool_call: ParsedToolCall,
+        widget: ToolCallWidget,
+    ) -> None:
+        """Initialize tool approval request message.
+
+        Args:
+            tool_call: Parsed tool call needing approval
+            widget: ToolCallWidget to update with status
+        """
+        super().__init__()
+        self.tool_call = tool_call
+        self.widget = widget
+
+
+class ToolApprovalResult(Message):
+    """Message emitted after user approves/denies tool.
+
+    This message triggers tool execution and AI continuation.
+    """
+
+    def __init__(
+        self,
+        tool_call: ParsedToolCall,
+        widget: ToolCallWidget,
+        approved: bool,
+        reason: str | None = None,
+    ) -> None:
+        """Initialize tool approval result message.
+
+        Args:
+            tool_call: Parsed tool call that was approved/denied
+            widget: ToolCallWidget to update with result
+            approved: Whether user approved execution
+            reason: Reason for denial (if not approved)
+        """
+        super().__init__()
+        self.tool_call = tool_call
+        self.widget = widget
+        self.approved = approved
+        self.reason = reason
 
 
 class ConsoulApp(App[None]):
@@ -252,6 +309,10 @@ class ConsoulApp(App[None]):
         # Streaming state
         self._current_stream: StreamingResponse | None = None
         self._stream_cancelled = False
+
+        # Tool execution state (for tracking pending tool approvals)
+        self._pending_tool_calls: list[ParsedToolCall] = []
+        self._tool_results: dict[str, ToolMessage] = {}  # Map tool_call_id -> result
 
     def on_mount(self) -> None:
         """Initialize app after mounting (message pump is running).
@@ -551,12 +612,107 @@ class ConsoulApp(App[None]):
                         and not exception_caught
                     ):
                         try:
-                            # Get tool_calls from last chunk (if present)
+                            # Debug: Log chunk collection
+                            import logging
+
+                            logger = logging.getLogger(__name__)
+                            logger.debug(f"Collected {len(collected_chunks)} chunks")
+
+                            # Debug: Log ALL chunks with full tool_call_chunks details
+                            for i, chunk in enumerate(collected_chunks):
+                                tc_detail = None
+                                if (
+                                    hasattr(chunk, "tool_call_chunks")
+                                    and chunk.tool_call_chunks
+                                ):
+                                    tc_detail = [
+                                        dict(tc) if hasattr(tc, "__dict__") else tc
+                                        for tc in chunk.tool_call_chunks
+                                    ]
+                                logger.debug(
+                                    f"Chunk {i}: content={repr(chunk.content)[:50]}, tool_call_chunks={tc_detail}"
+                                )
+
+                            # Accumulate tool_call_chunks from all chunks
+                            # OpenAI streams tool calls incrementally across chunks as strings:
+                            # - Early chunks have name, id, and args='' (empty string)
+                            # - Later chunks have incremental args updates like '{"', 'command', '":"', 'ls', '"}'
+                            # - We need to concatenate args strings by index, then parse final JSON
+                            tool_calls_by_index: dict[int, dict[str, Any]] = {}
+
+                            for chunk in collected_chunks:
+                                # Use tool_call_chunks (raw streaming data), not tool_calls (pre-parsed)
+                                if (
+                                    not hasattr(chunk, "tool_call_chunks")
+                                    or not chunk.tool_call_chunks
+                                ):
+                                    continue
+
+                                for tc in chunk.tool_call_chunks:
+                                    if not isinstance(tc, dict):
+                                        continue
+
+                                    # Use explicit index if provided, default to 0
+                                    tc_index = tc.get("index", 0)
+
+                                    if tc_index not in tool_calls_by_index:
+                                        tool_calls_by_index[tc_index] = {
+                                            "name": "",
+                                            "args": "",  # Initialize as empty STRING, not dict
+                                            "id": None,
+                                            "type": "tool_call",
+                                        }
+
+                                    # Concatenate string fields from chunks
+                                    if tc.get("name"):
+                                        tool_calls_by_index[tc_index]["name"] = tc[
+                                            "name"
+                                        ]
+                                    if tc.get("id"):
+                                        tool_calls_by_index[tc_index]["id"] = tc["id"]
+                                    if tc.get("args"):
+                                        # Concatenate args as strings (e.g., '{"' + 'command' + '":"' ...)
+                                        tool_calls_by_index[tc_index]["args"] += tc[
+                                            "args"
+                                        ]
+
+                            # Parse the concatenated JSON args strings into dicts
                             tool_calls = []
-                            for chunk in reversed(collected_chunks):
-                                if hasattr(chunk, "tool_calls") and chunk.tool_calls:
-                                    tool_calls = chunk.tool_calls
-                                    break
+                            for tc_data in tool_calls_by_index.values():
+                                args_str = tc_data["args"]
+                                try:
+                                    # Parse accumulated JSON string into dict
+                                    import json
+
+                                    parsed_args = (
+                                        json.loads(args_str) if args_str else {}
+                                    )
+                                    tool_calls.append(
+                                        {
+                                            "name": tc_data["name"],
+                                            "args": parsed_args,
+                                            "id": tc_data["id"],
+                                            "type": "tool_call",
+                                        }
+                                    )
+                                except json.JSONDecodeError as e:
+                                    logger.warning(
+                                        f"Failed to parse tool call args: {args_str!r}, error: {e}"
+                                    )
+                                    # Include anyway with empty args
+                                    tool_calls.append(
+                                        {
+                                            "name": tc_data["name"],
+                                            "args": {},
+                                            "id": tc_data["id"],
+                                            "type": "tool_call",
+                                        }
+                                    )
+
+                            logger.debug(
+                                f"Found {len(tool_calls)} tool_calls after merging chunks"
+                            )
+                            logger.debug(f"Final tool_calls: {tool_calls}")
 
                             # Reconstruct content from chunks
                             # Normalize all content (handles str, list blocks, None)
@@ -570,6 +726,9 @@ class ConsoulApp(App[None]):
                             final_message = AIMessage(
                                 content="".join(content_parts),
                                 tool_calls=tool_calls if tool_calls else [],
+                            )
+                            logger.debug(
+                                f"Final message has {len(final_message.tool_calls) if final_message.tool_calls else 0} tool_calls"
                             )
                         except Exception:
                             # If message reconstruction fails, don't block completion
@@ -613,32 +772,33 @@ class ConsoulApp(App[None]):
                 # If no tokens but not cancelled, might be tool calls with empty content
                 # Don't return yet - let it continue to check for tool calls below
                 # The stream widget will be removed if we have tool calls
+                # Skip token consumption loop since there are no tokens
                 pass
             else:
                 # Add first token (only if we have one)
                 collected_tokens.append(first_token)
                 await stream_widget.add_token(first_token)
 
-            # Consume remaining tokens from queue and update UI in real-time
-            while True:
-                token = await token_queue.get()
+                # Consume remaining tokens from queue and update UI in real-time
+                while True:
+                    token = await token_queue.get()
 
-                # None = sentinel, stream is done
-                if token is None:
-                    break
+                    # None = sentinel, stream is done
+                    if token is None:
+                        break
 
-                # Check for cancellation
-                if self._stream_cancelled:
-                    break
+                    # Check for cancellation
+                    if self._stream_cancelled:
+                        break
 
-                # Add token to UI immediately
-                collected_tokens.append(token)
-                await stream_widget.add_token(token)
+                    # Add token to UI immediately
+                    collected_tokens.append(token)
+                    await stream_widget.add_token(token)
 
-                # Yield to event loop to allow screen refresh
-                import asyncio
+                    # Yield to event loop to allow screen refresh
+                    import asyncio
 
-                await asyncio.sleep(0)
+                    await asyncio.sleep(0)
 
             # Finalize streaming widget
             await stream_widget.finalize_stream()
@@ -679,16 +839,14 @@ class ConsoulApp(App[None]):
                     from consoul.ai.tools.parser import has_tool_calls, parse_tool_calls
 
                     if has_tool_calls(final_message):
-                        self.log.debug("Tool calls detected in streaming response")
                         parsed_calls = parse_tool_calls(final_message)
-                        self.log.debug(f"Parsed {len(parsed_calls)} tool call(s)")
+                        self.log.info(
+                            f"Tool calls detected: {len(parsed_calls)} call(s)"
+                        )
 
                         # If stream widget is empty (no content), remove it
                         # Tool call widgets will replace it
                         if not full_response.strip():
-                            self.log.debug(
-                                "Removing empty stream widget (tool calls only)"
-                            )
                             await stream_widget.remove()
 
                         # Handle tool calls
@@ -788,51 +946,6 @@ class ConsoulApp(App[None]):
             # Restore focus to input area
             self.input_area.text_area.focus()
 
-    async def _request_tool_approval(
-        self, tool_call: ParsedToolCall
-    ) -> ToolApprovalResponse:
-        """Request user approval for tool execution.
-
-        Shows ToolApprovalModal and returns user's decision.
-
-        Args:
-            tool_call: Parsed tool call with name, arguments, id
-
-        Returns:
-            ToolApprovalResponse with approval decision and reason
-
-        Example:
-            >>> response = await self._request_tool_approval(tool_call)
-            >>> if response.approved:
-            ...     result = await self._execute_tool(tool_call)
-        """
-        from consoul.ai.tools import (
-            RiskLevel,
-            ToolApprovalRequest,
-            ToolApprovalResponse,
-        )
-        from consoul.tui.widgets import ToolApprovalModal
-
-        # Determine risk level (for now, all tools are DANGEROUS)
-        # Future: Get from registry metadata
-        risk_level = RiskLevel.DANGEROUS
-
-        # Create approval request
-        request = ToolApprovalRequest(
-            tool_name=tool_call.name,
-            arguments=tool_call.arguments,
-            risk_level=risk_level,
-            tool_call_id=tool_call.id,
-        )
-
-        # Show approval modal and wait for user decision
-        approved = await self.push_screen_wait(ToolApprovalModal(request))
-
-        return ToolApprovalResponse(
-            approved=approved,
-            reason=None if approved else "User denied execution via modal",
-        )
-
     async def _execute_tool(self, tool_call: ParsedToolCall) -> str:
         """Execute a tool and return its result.
 
@@ -910,29 +1023,31 @@ class ConsoulApp(App[None]):
             await self.chat_view.add_message(error_bubble)
 
     async def _handle_tool_calls(self, parsed_calls: list[ParsedToolCall]) -> None:
-        """Execute tool calling loop: approve → execute → feed results to AI.
+        """Handle tool calls by creating widgets and requesting approval.
 
-        Implements complete tool execution flow (SOUL-62, SOUL-63):
-        1. Create widget with PENDING status
-        2. Request approval for each tool call
-        3. Update widget to EXECUTING if approved
-        4. Execute approved tools
-        5. Update widget with result and final status
-        6. Feed results back to AI for final response
+        NEW EVENT-DRIVEN FLOW (SOUL-62, SOUL-63):
+        1. Create widget with PENDING status for each tool call
+        2. Emit ToolApprovalRequested message (non-blocking)
+        3. Return immediately (approval happens in message handler)
+
+        The approval flow continues via message handlers:
+        - on_tool_approval_requested: Shows modal and waits for user
+        - on_tool_approval_result: Executes tool and updates widget
+        - After all tools complete, continues AI response
 
         Args:
             parsed_calls: List of ParsedToolCall objects from parser
 
         Note:
-            Tool results are accumulated and sent together to the model
-            for a final response that incorporates all tool execution results.
+            This method is non-blocking. Tool execution happens asynchronously
+            via the message passing system.
         """
-        from langchain_core.messages import ToolMessage
-
         from consoul.ai.tools import ToolStatus
         from consoul.tui.widgets import ToolCallWidget
 
-        tool_results: list[ToolMessage] = []
+        # Store pending tool calls for tracking
+        self._pending_tool_calls = list(parsed_calls)
+        self._tool_results = {}  # Reset results
 
         for tool_call in parsed_calls:
             self.log.info(
@@ -947,32 +1062,101 @@ class ConsoulApp(App[None]):
             )
             await self.chat_view.add_message(widget)
 
-            # 2. Request approval
-            approval_response = await self._request_tool_approval(tool_call)
+            # 2. Emit approval request message (non-blocking)
+            # This will be handled by on_tool_approval_requested outside streaming context
+            self.post_message(ToolApprovalRequested(tool_call, widget))
 
-            if approval_response.approved:
-                # 3. Update widget to EXECUTING
-                widget.update_status(ToolStatus.EXECUTING)
+    # Message handlers for tool approval workflow
 
-                # 4. Execute tool
-                try:
-                    result = await self._execute_tool(tool_call)
-                    # 5. Update widget with SUCCESS
-                    widget.update_result(result, ToolStatus.SUCCESS)
-                except Exception as e:
-                    # Execution failed - update widget with ERROR
-                    result = f"Tool execution failed: {e}"
-                    widget.update_result(result, ToolStatus.ERROR)
-            else:
-                # Tool denied - update widget with DENIED status
-                result = f"Tool execution denied: {approval_response.reason}"
-                widget.update_result(result, ToolStatus.DENIED)
+    def on_tool_approval_requested(self, message: ToolApprovalRequested) -> None:
+        """Handle tool approval request by showing modal.
 
-            # 6. Create ToolMessage with result
-            tool_results.append(ToolMessage(content=result, tool_call_id=tool_call.id))
+        Uses callback pattern to handle approval result asynchronously.
+        This is the correct pattern for showing modals from message handlers.
 
-        # 7. Feed results back to AI and get final response
-        await self._continue_with_tool_results(tool_results)
+        Args:
+            message: ToolApprovalRequested with tool_call and widget
+        """
+        from consoul.ai.tools import RiskLevel, ToolApprovalRequest
+        from consoul.tui.widgets import ToolApprovalModal
+
+        # Determine risk level (for now, all tools are DANGEROUS)
+        # Future: Get from registry metadata
+        risk_level = RiskLevel.DANGEROUS
+
+        # Create approval request
+        request = ToolApprovalRequest(
+            tool_name=message.tool_call.name,
+            arguments=message.tool_call.arguments,
+            risk_level=risk_level,
+            tool_call_id=message.tool_call.id,
+        )
+
+        # Define callback to handle result
+        def on_approval_result(approved: bool | None) -> None:
+            """Handle approval modal dismissal."""
+            # Convert None to False (treat no response as denial)
+            if approved is None:
+                approved = False
+
+            # Emit result message to trigger execution
+            reason = None if approved else "User denied execution via modal"
+            self.post_message(
+                ToolApprovalResult(
+                    tool_call=message.tool_call,
+                    widget=message.widget,
+                    approved=bool(approved),
+                    reason=reason,
+                )
+            )
+
+        # Show modal with callback (non-blocking)
+        # This is the correct pattern: push_screen with callback, not await
+        modal = ToolApprovalModal(request)
+        self.push_screen(modal, on_approval_result)
+
+    async def on_tool_approval_result(self, message: ToolApprovalResult) -> None:
+        """Handle tool approval result by executing tool.
+
+        After execution, checks if all tools are done and continues AI response.
+
+        Args:
+            message: ToolApprovalResult with approval decision
+        """
+        from langchain_core.messages import ToolMessage
+
+        from consoul.ai.tools import ToolStatus
+
+        if message.approved:
+            # Update widget to EXECUTING
+            message.widget.update_status(ToolStatus.EXECUTING)
+
+            # Execute tool
+            try:
+                result = await self._execute_tool(message.tool_call)
+                # Update widget with SUCCESS
+                message.widget.update_result(result, ToolStatus.SUCCESS)
+            except Exception as e:
+                # Execution failed - update widget with ERROR
+                result = f"Tool execution failed: {e}"
+                message.widget.update_result(result, ToolStatus.ERROR)
+                self.log.error(f"Tool execution failed: {e}", exc_info=True)
+        else:
+            # Tool denied - update widget with DENIED status
+            result = f"Tool execution denied: {message.reason}"
+            message.widget.update_result(result, ToolStatus.DENIED)
+
+        # Store result
+        tool_message = ToolMessage(content=result, tool_call_id=message.tool_call.id)
+        self._tool_results[message.tool_call.id] = tool_message
+
+        # Check if all tools are done
+        if len(self._tool_results) == len(self._pending_tool_calls):
+            # All tools completed - feed results back to AI
+            tool_results = [
+                self._tool_results[tc.id] for tc in self._pending_tool_calls
+            ]
+            await self._continue_with_tool_results(tool_results)
 
     # Action handlers (placeholders for Phase 2+)
 

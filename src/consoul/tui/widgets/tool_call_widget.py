@@ -65,17 +65,21 @@ class ToolCallWidget(Container):
             status: Initial execution status
             **kwargs: Additional Container arguments
         """
-        super().__init__(**kwargs)
+        # Import here to avoid circular dependency
+        from consoul.ai.tools.status import ToolStatus
+
+        # Set non-reactive attributes first
         self.tool_name = tool_name
         self.arguments = arguments
         self.result: str | None = None
         self._output_container: Collapsible | None = None
+        self._initial_status = status or ToolStatus.PENDING
 
-        # Import here to avoid circular dependency
-        from consoul.ai.tools.status import ToolStatus
+        # Call super().__init__() BEFORE setting reactive properties
+        super().__init__(**kwargs)
 
-        # Set status after attributes are initialized
-        self.status = status or ToolStatus.PENDING
+        # Set reactive status AFTER super().__init__()
+        self.status = self._initial_status
 
     def compose(self) -> ComposeResult:
         """Compose the tool call widget structure."""
@@ -100,20 +104,21 @@ class ToolCallWidget(Container):
             classes="tool-status",
         )
 
-        # Output section (initially empty, populated on update_result)
-        if self.result:
-            with Vertical(id="tool-output-container"):
-                collapsed = self._should_collapse_output()
-                with Collapsible(
-                    title="Output",
-                    collapsed=collapsed,
-                    id="tool-output-collapsible",
-                ):
-                    yield Static(
-                        self.result,
-                        id="tool-output",
-                        classes="tool-output",
-                    )
+        # Output section - always create structure, hide if no result yet
+        with Vertical(
+            id="tool-output-container", classes="hidden" if not self.result else ""
+        ):
+            collapsed = self._should_collapse_output()
+            with Collapsible(
+                title="Output",
+                collapsed=collapsed,
+                id="tool-output-collapsible",
+            ):
+                yield Static(
+                    self.result or "",
+                    id="tool-output",
+                    classes="tool-output",
+                )
 
     def on_mount(self) -> None:
         """Initialize widget styling on mount."""
@@ -157,6 +162,16 @@ class ToolCallWidget(Container):
         """
         status_text = Text()
 
+        # During compose(), status may not be set yet - use _initial_status
+        current_status = getattr(self, "status", None) or getattr(
+            self, "_initial_status", None
+        )
+
+        # Handle None status (shouldn't happen but defensive)
+        if current_status is None:
+            status_text.append("⏳ Initializing...", style="bold yellow")
+            return status_text
+
         # Get status color based on state
         color_map = {
             "PENDING": "yellow",
@@ -166,8 +181,8 @@ class ToolCallWidget(Container):
             "DENIED": "dim",
         }
 
-        color = color_map.get(self.status.name, "white")
-        status_text.append(f"{self.status.value}", style=f"bold {color}")
+        color = color_map.get(current_status.name, "white")
+        status_text.append(f"{current_status.value}", style=f"bold {color}")
 
         return status_text
 
@@ -192,13 +207,19 @@ class ToolCallWidget(Container):
         # Add base class
         self.add_class("tool-call-widget")
 
-        # Add current status class
-        if self.status:
-            status_class = f"tool-{self.status.name.lower()}"
-            self.add_class(status_class)
+        # Get current status (fallback to _initial_status if reactive not set)
+        current_status = getattr(self, "status", None) or getattr(
+            self, "_initial_status", None
+        )
 
-        # Update border title with status
-        self.border_title = f"Tool Call - {self.status.value}"
+        # Add current status class
+        if current_status:
+            status_class = f"tool-{current_status.name.lower()}"
+            self.add_class(status_class)
+            # Update border title with status
+            self.border_title = f"Tool Call - {current_status.value}"
+        else:
+            self.border_title = "Tool Call"
 
     def update_result(self, result: str, status: ToolStatus) -> None:
         """Update tool execution result and status.
@@ -213,40 +234,20 @@ class ToolCallWidget(Container):
         self.result = result
         self.status = status
 
-        # Update output section
-        try:
-            # Check if output container exists
-            output_container = self.query_one("#tool-output-container", Vertical)
+        # Update output section - widgets already exist from compose()
+        # Just update content and visibility
+        output_container = self.query_one("#tool-output-container", Vertical)
+        output_widget = self.query_one("#tool-output", Static)
+        collapsible = self.query_one("#tool-output-collapsible", Collapsible)
 
-            # Update existing output
-            output_widget = self.query_one("#tool-output", Static)
-            output_widget.update(result)
+        # Update content
+        output_widget.update(result)
 
-            # Update collapsible state
-            collapsible = self.query_one("#tool-output-collapsible", Collapsible)
-            collapsible.collapsed = self._should_collapse_output()
+        # Update collapsible state
+        collapsible.collapsed = self._should_collapse_output()
 
-        except Exception:
-            # Output container doesn't exist yet, mount it
-            collapsed = self._should_collapse_output()
-
-            # Create output container
-            output_container = Vertical(id="tool-output-container")
-            collapsible = Collapsible(
-                title="Output",
-                collapsed=collapsed,
-                id="tool-output-collapsible",
-            )
-            output_widget = Static(
-                result,
-                id="tool-output",
-                classes="tool-output",
-            )
-
-            # Mount the structure
-            collapsible.mount(output_widget)
-            output_container.mount(collapsible)
-            self.mount(output_container)
+        # Show the container (remove hidden class)
+        output_container.remove_class("hidden")
 
     def update_status(self, status: ToolStatus) -> None:
         """Update execution status without changing result.

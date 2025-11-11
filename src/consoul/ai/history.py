@@ -31,7 +31,7 @@ Example:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import (
     AIMessage,
@@ -96,14 +96,17 @@ def to_langchain_message(role: str, content: str) -> BaseMessage:
         )
 
 
-def to_dict_message(message: BaseMessage) -> dict[str, str]:
+def to_dict_message(message: BaseMessage) -> dict[str, Any]:
     """Convert LangChain BaseMessage to role/content dict.
+
+    Preserves tool-related fields (tool_calls, tool_call_id) required for
+    tool calling workflows.
 
     Args:
         message: LangChain message object
 
     Returns:
-        Dict with 'role' and 'content' keys
+        Dict with 'role' and 'content' keys, plus tool-related fields if present
 
     Example:
         >>> from langchain_core.messages import HumanMessage
@@ -137,7 +140,21 @@ def to_dict_message(message: BaseMessage) -> dict[str, str]:
     else:
         content = str(content)
 
-    return {"role": role, "content": content}
+    result: dict[str, Any] = {"role": role, "content": content}
+
+    # Preserve tool_calls for AIMessage (required for tool calling)
+    if (
+        isinstance(message, AIMessage)
+        and hasattr(message, "tool_calls")
+        and message.tool_calls
+    ):
+        result["tool_calls"] = message.tool_calls
+
+    # Preserve tool_call_id for ToolMessage (required for tool results)
+    if isinstance(message, ToolMessage) and hasattr(message, "tool_call_id"):
+        result["tool_call_id"] = message.tool_call_id
+
+    return result
 
 
 class ConversationHistory:
