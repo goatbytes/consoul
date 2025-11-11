@@ -34,28 +34,24 @@ MODEL_INFO = {
         "provider": "openai",
         "context": "128K",
         "cost": "moderate",
-        "rating": "⭐⭐⭐",
         "description": "Optimized GPT-4 model with vision",
     },
     "gpt-4-turbo": {
         "provider": "openai",
         "context": "128K",
         "cost": "expensive",
-        "rating": "⭐⭐⭐",
         "description": "Latest GPT-4 with larger context",
     },
     "gpt-4": {
         "provider": "openai",
         "context": "8K",
         "cost": "expensive",
-        "rating": "⭐⭐⭐",
         "description": "Original GPT-4 model",
     },
     "gpt-3.5-turbo": {
         "provider": "openai",
         "context": "16K",
         "cost": "cheap",
-        "rating": "⭐⭐",
         "description": "Fast and affordable",
     },
     # Anthropic models
@@ -63,28 +59,24 @@ MODEL_INFO = {
         "provider": "anthropic",
         "context": "200K",
         "cost": "moderate",
-        "rating": "⭐⭐⭐",
         "description": "Latest Claude 3.5 Sonnet",
     },
     "claude-3-opus-20240229": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "expensive",
-        "rating": "⭐⭐⭐",
         "description": "Most capable Claude model",
     },
     "claude-3-sonnet-20240229": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "moderate",
-        "rating": "⭐⭐⭐",
         "description": "Balanced Claude model",
     },
     "claude-3-haiku-20240307": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "cheap",
-        "rating": "⭐⭐",
         "description": "Fast Claude model",
     },
     # Google models
@@ -92,38 +84,15 @@ MODEL_INFO = {
         "provider": "google",
         "context": "2M",
         "cost": "expensive",
-        "rating": "⭐⭐⭐",
         "description": "Huge context window",
     },
     "gemini-pro": {
         "provider": "google",
         "context": "32K",
         "cost": "moderate",
-        "rating": "⭐⭐",
         "description": "Google's capable model",
     },
-    # Ollama models (local, dynamic)
-    "llama3": {
-        "provider": "ollama",
-        "context": "8K",
-        "cost": "free",
-        "rating": "⭐⭐",
-        "description": "Meta's Llama 3 model",
-    },
-    "mistral": {
-        "provider": "ollama",
-        "context": "8K",
-        "cost": "free",
-        "rating": "⭐⭐",
-        "description": "Mistral AI model",
-    },
-    "codellama": {
-        "provider": "ollama",
-        "context": "16K",
-        "cost": "free",
-        "rating": "⭐⭐",
-        "description": "Code-specialized Llama",
-    },
+    # Note: Ollama models are fetched dynamically from local service
 }
 
 
@@ -244,13 +213,18 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         self._table: DataTable[Any] | None = None
         self._model_map: dict[str, dict[str, str]] = {}  # row_key -> model metadata
 
+        # Check if Ollama is available
+        from consoul.ai.providers import is_ollama_running
+
+        self._ollama_available = is_ollama_running()
+
         super().__init__(**kwargs)
         self.current_model = current_model
         self.current_provider = current_provider
         self.active_provider = current_provider.value
         log.info(
             f"ModelPickerModal: Initialized with current_model={current_model}, "
-            f"current_provider={current_provider}"
+            f"current_provider={current_provider}, ollama_available={self._ollama_available}"
         )
 
     def compose(self) -> ComposeResult:
@@ -259,9 +233,13 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             # Header
             yield Label("Select AI Model & Provider", classes="modal-header")
 
-            # Provider tabs
+            # Provider tabs (conditionally include Ollama)
             with Horizontal(id="provider-tabs"):
-                for provider in ["openai", "anthropic", "google", "ollama"]:
+                providers = ["openai", "anthropic", "google"]
+                if self._ollama_available:
+                    providers.append("ollama")
+
+                for provider in providers:
                     tab_classes = "provider-tab"
                     if provider == self.active_provider:
                         tab_classes += " -active"
@@ -296,10 +274,9 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
 
         # Initialize table
         self._table = self.query_one("#models-table", DataTable)
-        self._table.add_column("Model", width=30)
-        self._table.add_column("Context", width=10)
-        self._table.add_column("Cost", width=10)
-        self._table.add_column("Rating", width=8)
+        self._table.add_column("Model", width=35)
+        self._table.add_column("Context", width=12)
+        self._table.add_column("Cost", width=12)
         self._table.cursor_type = "row"
         self._table.focus()
 
@@ -371,7 +348,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                             "provider": "ollama",
                             "context": context_str,
                             "cost": "free",
-                            "rating": "⭐⭐",
                             "description": "Local Ollama model",
                         }
 
@@ -413,11 +389,8 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             model_col = f"✓ {name}" if is_current else f"  {name}"
             context_col = info["context"]
             cost_col = info["cost"].title()
-            rating_col = info.get("rating", "")
 
-            self._table.add_row(
-                model_col, context_col, cost_col, rating_col, key=row_key
-            )
+            self._table.add_row(model_col, context_col, cost_col, key=row_key)
 
             # Highlight current model row
             if is_current:
