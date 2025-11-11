@@ -20,6 +20,7 @@ from consoul.tui.widgets.search_bar import SearchBar
 from consoul.tui.widgets.settings_screen import SettingsScreen
 from consoul.tui.widgets.streaming_response import StreamingResponse
 from consoul.tui.widgets.tool_approval_modal import ToolApprovalModal
+from consoul.tui.widgets.tool_call_widget import ToolCallWidget
 from consoul.tui.widgets.typing_indicator import TypingIndicator
 
 __all__ = [
@@ -37,5 +38,6 @@ __all__ = [
     "SettingsScreen",
     "StreamingResponse",
     "ToolApprovalModal",
+    "ToolCallWidget",
     "TypingIndicator",
 ]

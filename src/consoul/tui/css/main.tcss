@@ -156,6 +156,69 @@ ChatView:focus {
 }
 
 /* ============================================================================
+ * Tool Call Widget
+ * ============================================================================ */
+
+.tool-call-widget {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    margin: 1 0;
+    border: round $accent;
+}
+
+.tool-pending {
+    border: round $warning;
+    border-title-color: $warning;
+}
+
+.tool-executing {
+    border: round $primary;
+    border-title-color: $primary;
+}
+
+.tool-success {
+    border: round $success;
+    border-title-color: $success;
+}
+
+.tool-error {
+    border: thick $error;
+    border-title-color: $error;
+}
+
+.tool-denied {
+    border: round $text-muted;
+    border-title-color: $text-muted;
+}
+
+.tool-header {
+    width: 100%;
+    height: auto;
+    color: $text;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+.tool-arguments {
+    width: 100%;
+    height: auto;
+    padding: 1 0;
+}
+
+.tool-status {
+    width: 100%;
+    height: auto;
+    padding: 1 0;
+}
+
+.tool-output {
+    width: 100%;
+    height: auto;
+    color: $text;
+}
+
+/* ============================================================================
  * Input Area
  * ============================================================================ */
 

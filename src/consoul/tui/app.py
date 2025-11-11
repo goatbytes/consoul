@@ -842,49 +842,6 @@ class ConsoulApp(App[None]):
             self.log.error(f"Tool execution error: {e}", exc_info=True)
             return f"Tool execution failed: {e}"
 
-    async def _display_tool_result(
-        self, tool_name: str, result: str, approved: bool
-    ) -> None:
-        """Display tool execution result in chat view.
-
-        Shows result as system message with appropriate styling.
-
-        Args:
-            tool_name: Name of the tool that was executed
-            result: Tool execution result or error message
-            approved: Whether tool was approved and executed
-
-        Example:
-            >>> await self._display_tool_result("bash_execute", "file1.txt", True)
-        """
-        from consoul.tui.widgets import MessageBubble
-
-        if approved:
-            # Tool was executed
-            status = "✅"
-            prefix = "Tool executed"
-        else:
-            # Tool was denied
-            status = "❌"
-            prefix = "Tool denied"
-
-        # Truncate long results for display
-        display_result = result
-        if len(result) > 500:
-            display_result = result[:500] + "\n\n... (truncated)"
-
-        message = (
-            f"{status} **{prefix}:** `{tool_name}`\n\n"
-            f"**Result:**\n```\n{display_result}\n```"
-        )
-
-        result_bubble = MessageBubble(
-            message,
-            role="system",
-            show_metadata=False,
-        )
-        await self.chat_view.add_message(result_bubble)
-
     async def _continue_with_tool_results(
         self, tool_results: list[ToolMessage]
     ) -> None:
@@ -932,11 +889,13 @@ class ConsoulApp(App[None]):
     async def _handle_tool_calls(self, parsed_calls: list[ParsedToolCall]) -> None:
         """Execute tool calling loop: approve → execute → feed results to AI.
 
-        Implements complete tool execution flow (SOUL-62):
-        1. Request approval for each tool call
-        2. Execute approved tools
-        3. Display results in chat
-        4. Feed results back to AI for final response
+        Implements complete tool execution flow (SOUL-62, SOUL-63):
+        1. Create widget with PENDING status
+        2. Request approval for each tool call
+        3. Update widget to EXECUTING if approved
+        4. Execute approved tools
+        5. Update widget with result and final status
+        6. Feed results back to AI for final response
 
         Args:
             parsed_calls: List of ParsedToolCall objects from parser
@@ -947,6 +906,9 @@ class ConsoulApp(App[None]):
         """
         from langchain_core.messages import ToolMessage
 
+        from consoul.ai.tools import ToolStatus
+        from consoul.tui.widgets import ToolCallWidget
+
         tool_results: list[ToolMessage] = []
 
         for tool_call in parsed_calls:
@@ -954,25 +916,39 @@ class ConsoulApp(App[None]):
                 f"Tool call detected: {tool_call.name} with args: {tool_call.arguments}"
             )
 
-            # 1. Request approval
+            # 1. Create widget with PENDING status and add to chat
+            widget = ToolCallWidget(
+                tool_name=tool_call.name,
+                arguments=tool_call.arguments,
+                status=ToolStatus.PENDING,
+            )
+            await self.chat_view.add_message(widget)
+
+            # 2. Request approval
             approval_response = await self._request_tool_approval(tool_call)
 
             if approval_response.approved:
-                # 2. Execute tool
-                result = await self._execute_tool(tool_call)
-            else:
-                # Tool denied
-                result = f"Tool execution denied: {approval_response.reason}"
+                # 3. Update widget to EXECUTING
+                widget.update_status(ToolStatus.EXECUTING)
 
-            # 3. Create ToolMessage with result
+                # 4. Execute tool
+                try:
+                    result = await self._execute_tool(tool_call)
+                    # 5. Update widget with SUCCESS
+                    widget.update_result(result, ToolStatus.SUCCESS)
+                except Exception as e:
+                    # Execution failed - update widget with ERROR
+                    result = f"Tool execution failed: {e}"
+                    widget.update_result(result, ToolStatus.ERROR)
+            else:
+                # Tool denied - update widget with DENIED status
+                result = f"Tool execution denied: {approval_response.reason}"
+                widget.update_result(result, ToolStatus.DENIED)
+
+            # 6. Create ToolMessage with result
             tool_results.append(ToolMessage(content=result, tool_call_id=tool_call.id))
 
-            # 4. Show result in chat
-            await self._display_tool_result(
-                tool_call.name, result, approval_response.approved
-            )
-
-        # 5. Feed results back to AI and get final response
+        # 7. Feed results back to AI and get final response
         await self._continue_with_tool_results(tool_results)
 
     # Action handlers (placeholders for Phase 2+)

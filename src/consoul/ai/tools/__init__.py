@@ -45,6 +45,7 @@ from consoul.ai.tools.parser import (
     parse_tool_calls,
 )
 from consoul.ai.tools.registry import ToolRegistry
+from consoul.ai.tools.status import ToolStatus
 
 __all__ = [
     "ApprovalError",
@@ -59,6 +60,7 @@ __all__ = [
     "ToolMetadata",
     "ToolNotFoundError",
     "ToolRegistry",
+    "ToolStatus",
     "ToolValidationError",
     "bash_execute",
     "has_tool_calls",
