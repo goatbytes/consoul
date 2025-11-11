@@ -240,12 +240,14 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             current_model: Name of currently active model
             current_provider: Currently active provider
         """
+        # Initialize attributes before super().__init__ to avoid watcher issues
+        self._table: DataTable[Any] | None = None
+        self._model_map: dict[str, dict[str, str]] = {}  # row_key -> model metadata
+
         super().__init__(**kwargs)
         self.current_model = current_model
         self.current_provider = current_provider
         self.active_provider = current_provider.value
-        self._table: DataTable[Any] | None = None
-        self._model_map: dict[str, dict[str, str]] = {}  # row_key -> model metadata
         log.info(
             f"ModelPickerModal: Initialized with current_model={current_model}, "
             f"current_provider={current_provider}"
