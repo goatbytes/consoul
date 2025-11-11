@@ -632,14 +632,13 @@ class ConversationDatabase:
                         c.created_at,
                         c.updated_at,
                         c.metadata,
-                        COUNT(DISTINCT m.id) as message_count,
-                        MIN(bm25(messages_fts)) as rank
+                        COUNT(DISTINCT m.id) as message_count
                     FROM messages_fts
                     JOIN messages m ON messages_fts.message_id = m.id
                     JOIN conversations c ON m.conversation_id = c.session_id
                     WHERE messages_fts MATCH ?
                     GROUP BY c.session_id
-                    ORDER BY rank ASC, c.updated_at DESC
+                    ORDER BY c.updated_at DESC
                     LIMIT ?
                     """,
                     (query, limit),
