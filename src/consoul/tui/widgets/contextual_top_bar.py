@@ -353,6 +353,8 @@ class ContextualTopBar(Static):
                 self.post_message(self.SearchChanged(query))
             else:
                 self.post_message(self.SearchCleared())
+            # Prevent event from bubbling to avoid focus changes
+            event.stop()
 
     def on_key(self, event: textual.events.Key) -> None:
         """Handle key presses for search shortcuts."""
