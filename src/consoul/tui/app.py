@@ -878,7 +878,9 @@ class ConsoulApp(App[None]):
             )
 
         except Exception as e:
-            self.notify(f"Failed to switch profile: {e}", severity="error")
+            # Disable markup to avoid markup errors from validation messages
+            error_msg = str(e).replace("[", "\\[")
+            self.notify(f"Failed to switch profile: {error_msg}", severity="error")
             self.log.error(f"Profile switch failed: {e}", exc_info=True)
 
     def _switch_provider_and_model(self, provider: str, model_name: str) -> None:
@@ -930,5 +932,9 @@ class ConsoulApp(App[None]):
             )
 
         except Exception as e:
-            self.notify(f"Failed to switch model/provider: {e}", severity="error")
+            # Disable markup to avoid markup errors from Pydantic validation messages
+            error_msg = str(e).replace("[", "\\[")
+            self.notify(
+                f"Failed to switch model/provider: {error_msg}", severity="error"
+            )
             self.log.error(f"Model/provider switch failed: {e}", exc_info=True)
