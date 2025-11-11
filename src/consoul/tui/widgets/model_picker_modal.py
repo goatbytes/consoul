@@ -343,6 +343,24 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             if info["provider"] == provider_value
         }
 
+        # For Ollama, fetch dynamic models from the service
+        if provider_value == "ollama":
+            from consoul.ai.providers import get_ollama_models, is_ollama_running
+
+            if is_ollama_running():
+                ollama_models = get_ollama_models()
+                for model_info in ollama_models:
+                    model_name = model_info.get("name", "")
+                    if model_name and model_name not in provider_models:
+                        # Add dynamic Ollama model
+                        provider_models[model_name] = {
+                            "provider": "ollama",
+                            "context": "?",
+                            "cost": "free",
+                            "rating": "⭐⭐",
+                            "description": "Local Ollama model",
+                        }
+
         # Apply search filter if provided
         if search_query:
             query_lower = search_query.lower()

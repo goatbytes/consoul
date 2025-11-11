@@ -511,9 +511,8 @@ class ConsoulConfig(BaseModel):
         elif self.current_provider == Provider.GOOGLE:
             return GoogleModelConfig(**model_params)
         else:  # OLLAMA
-            model_params["api_base"] = (
-                provider_config.api_base or "http://localhost:11434"
-            )
+            # Note: api_base is retrieved from provider_config by get_chat_model(),
+            # not stored in OllamaModelConfig
             return OllamaModelConfig(**model_params)
 
     def get_api_key(self, provider: Provider) -> SecretStr | None:
