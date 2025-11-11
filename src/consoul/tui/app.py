@@ -56,7 +56,6 @@ class ConsoulApp(App[None]):
         Binding("/", "focus_input", "Input", show=False),
         # UI
         Binding("ctrl+comma", "settings", "Settings", show=False),
-        Binding("ctrl+t", "cycle_theme", "Theme", show=False),
         Binding("f1", "help", "Help", show=False),
     ]
 
@@ -668,17 +667,27 @@ class ConsoulApp(App[None]):
         """Focus the input area."""
         self.notify("Focus input (Phase 2)")
 
-    def action_settings(self) -> None:
+    async def action_settings(self) -> None:
         """Show settings screen."""
-        self.notify("Settings (Phase 4)")
+        from consoul.tui.widgets.settings_screen import SettingsScreen
 
-    def action_cycle_theme(self) -> None:
-        """Cycle to next theme."""
-        self.notify("Theme cycling (Phase 4)")
+        result = await self.push_screen(
+            SettingsScreen(config=self.config, consoul_config=self.consoul_config)
+        )
+        if result:
+            self.notify("Settings saved successfully", severity="information")
 
-    def action_help(self) -> None:
+    async def action_help(self) -> None:
         """Show help modal."""
-        self.notify("Help (Phase 4)")
+        from consoul.tui.widgets.help_modal import HelpModal
+
+        await self.push_screen(
+            HelpModal(
+                theme=self.theme,
+                profile=self.current_profile,
+                model=self.current_model,
+            )
+        )
 
     def _should_generate_title(self) -> bool:
         """Check if we should generate a title for current conversation.
@@ -808,13 +817,13 @@ class ConsoulApp(App[None]):
         self, event: ContextualTopBar.SettingsRequested
     ) -> None:
         """Handle settings button click from top bar."""
-        self.notify("Settings - Coming in SOUL-47", severity="information")
+        await self.action_settings()
 
     async def on_contextual_top_bar_help_requested(
         self, event: ContextualTopBar.HelpRequested
     ) -> None:
         """Handle help button click from top bar."""
-        self.notify("Help - Coming in SOUL-48", severity="information")
+        await self.action_help()
 
     async def on_contextual_top_bar_theme_switch_requested(
         self, event: ContextualTopBar.ThemeSwitchRequested
