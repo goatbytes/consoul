@@ -602,8 +602,10 @@ class ConversationDatabase:
         Searches through message content and returns matching conversations
         ordered by relevance (FTS5 rank) and recency.
 
+        Supports partial word matching by automatically adding wildcards.
+
         Args:
-            query: Search query string (FTS5 syntax supported)
+            query: Search query string (supports partial matching)
             limit: Maximum number of conversations to return (default: 50)
 
         Returns:
@@ -617,11 +619,19 @@ class ConversationDatabase:
             >>> db = ConversationDatabase()
             >>> db.create_conversation("gpt-4o")
             >>> db.save_message(session_id, "user", "Python tutorial", 5)
-            >>> results = db.search_conversations("Python")
+            >>> results = db.search_conversations("Pyth")  # Partial match
             >>> len(results) >= 1
             True
         """
         try:
+            # Convert query to support partial matching with wildcards
+            # Split on whitespace and add * suffix to each term for prefix matching
+            if query.strip():
+                terms = query.strip().split()
+                fts_query = " ".join(f"{term}*" for term in terms)
+            else:
+                fts_query = query
+
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.execute(
@@ -641,7 +651,7 @@ class ConversationDatabase:
                     ORDER BY c.updated_at DESC
                     LIMIT ?
                     """,
-                    (query, limit),
+                    (fts_query, limit),
                 )
                 conversations = []
                 for row in cursor.fetchall():
