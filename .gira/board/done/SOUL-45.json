@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-09T20:15:45.471694",
-  "updated_at": "2025-11-10T21:37:01.219272Z",
+  "updated_at": "2025-11-11T01:03:32.417288Z",
   "id": "SOUL-45",
   "uuid": "cfed52c2-78c8-4cf4-b145-8c9adcb13885",
   "title": "Add search functionality for conversation history",
   "description": "# Add Search Functionality for Conversation History\n\n## User Story\n**As a** Consoul user\n**I want** to search through my conversation history\n**So that** I can quickly find past discussions and reference previous AI responses\n\n## Description\n\nImplement search functionality integrated into the ContextualTopBar (SOUL-55). The search feature should leverage the existing FTS5 full-text search capabilities in the ConversationList widget.\n\n## Context\n\nThe ContextualTopBar (SOUL-55) provides a dedicated search input area. This ticket implements the search functionality that connects the top bar search input to the ConversationList.search() FTS5 method, displays filtered results, and handles search interactions.\n\nReference: ConversationList already has FTS5 search implemented (conversation_list.py search() method)\n\n## Technical Notes\n\n**Integration:**\n- Add SearchBar widget to ContextualTopBar center zone\n- Wire SearchBar input changes to ConversationList.search()\n- Display search results in ConversationList\n- Highlight matching conversations\n- Handle search clear/reset\n\n**Search Features:**\n- Real-time search as user types\n- FTS5 full-text search across conversation messages\n- Show result count in UI\n- Clear button to reset search\n- Keyboard shortcuts (Ctrl+S to focus search, Esc to clear)\n\n## Acceptance Criteria\n\n**Given** I type in the search bar in ContextualTopBar\n**When** I enter search terms\n**Then** the ConversationList filters to show matching conversations\n\n**Given** I have search results displayed\n**When** I clear the search input\n**Then** the ConversationList shows all conversations again\n\n**Given** I press Ctrl+S\n**When** the keyboard shortcut is triggered\n**Then** focus moves to the search input in the top bar\n\n**Given** I search for a specific term\n**When** matches are found\n**Then** the result count displays in the top bar\n\n## Dependencies\n\n**Prerequisites:**\n- SOUL-55 (ContextualTopBar must exist with search input area)\n- ConversationList search() method (already implemented)",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "medium",
   "labels": [

@@ -633,11 +633,11 @@ class ConversationDatabase:
                         c.updated_at,
                         c.metadata,
                         COUNT(DISTINCT m.id) as message_count,
-                        MIN(fts.rank) as rank
-                    FROM conversations c
-                    INNER JOIN messages_fts fts ON c.session_id = fts.conversation_id
-                    LEFT JOIN messages m ON c.session_id = m.conversation_id
-                    WHERE fts MATCH ?
+                        MIN(bm25(messages_fts)) as rank
+                    FROM messages_fts
+                    JOIN messages m ON messages_fts.message_id = m.id
+                    JOIN conversations c ON m.conversation_id = c.session_id
+                    WHERE messages_fts MATCH ?
                     GROUP BY c.session_id
                     ORDER BY rank ASC, c.updated_at DESC
                     LIMIT ?
