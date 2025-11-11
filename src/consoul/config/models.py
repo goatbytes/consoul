@@ -20,6 +20,8 @@ from pydantic import (
     model_validator,
 )
 
+# Import RiskLevel for ToolConfig (lazy import to avoid circular dependency)
+
 if TYPE_CHECKING:
     from consoul.config.env import EnvSettings
     from consoul.tui.config import TuiConfig
@@ -347,6 +349,69 @@ class ContextConfig(BaseModel):
         )
 
 
+class ToolConfig(BaseModel):
+    """Configuration for tool calling system.
+
+    Controls tool execution behavior, security policies, and approval workflows.
+    This configuration is SDK-level (not TUI-specific) to support headless usage.
+
+    Example:
+        >>> config = ToolConfig(
+        ...     enabled=True,
+        ...     timeout=30,
+        ...     allowed_tools=["bash", "python"],
+        ...     approval_mode="always"
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    enabled: bool = Field(
+        default=True,
+        description="Enable tool calling system (master switch)",
+    )
+    auto_approve: bool = Field(
+        default=False,
+        description="DANGEROUS: Auto-approve all tool executions (NEVER set to True in production)",
+    )
+    allowed_tools: list[str] = Field(
+        default_factory=list,
+        description="Whitelist of allowed tools (empty = all tools allowed with approval)",
+    )
+    approval_mode: Literal["always", "once_per_session", "whitelist"] = Field(
+        default="always",
+        description="When to request approval: 'always' (every execution), 'once_per_session' (first use only), 'whitelist' (only for non-whitelisted tools)",
+    )
+    timeout: int = Field(
+        default=30,
+        gt=0,
+        le=600,
+        description="Default timeout for tool execution in seconds (max 10 minutes)",
+    )
+
+    @field_validator("auto_approve")
+    @classmethod
+    def validate_auto_approve(cls, v: bool) -> bool:
+        """Validate auto_approve is not enabled (security check).
+
+        Raises a warning in logs if auto_approve is True, but allows it
+        for testing purposes. Production code should never set this to True.
+        """
+        if v:
+            import warnings
+
+            warnings.warn(
+                "auto_approve=True is DANGEROUS and should NEVER be used in production. "
+                "All tool executions will be approved automatically without user confirmation.",
+                UserWarning,
+                stacklevel=2,
+            )
+        return v
+
+
 class ProfileConfig(BaseModel):
     """Configuration profile with conversation and context settings.
 
@@ -438,6 +503,10 @@ class ConsoulConfig(BaseModel):
     tui: TuiConfig = Field(
         default_factory=lambda: _get_tui_config(),
         description="TUI-specific settings (only loaded when TUI module is used)",
+    )
+    tools: ToolConfig = Field(
+        default_factory=ToolConfig,
+        description="Tool calling configuration (SDK-level, not TUI-specific)",
     )
     global_settings: dict[str, Any] = Field(
         default_factory=dict,

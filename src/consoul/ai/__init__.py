@@ -2,6 +2,9 @@
 
 Handles integration with various AI providers through LangChain abstraction.
 Supports OpenAI, Anthropic, Google, and other LangChain-compatible providers.
+
+Includes tool calling system for executing tools (bash, Python, file operations)
+with security controls, user approval, and audit logging.
 """
 
 from consoul.ai.context import (
@@ -27,8 +30,19 @@ from consoul.ai.providers import (
     validate_provider_dependencies,
 )
 from consoul.ai.streaming import stream_response
+from consoul.ai.tools import (
+    BlockedCommandError,
+    RiskLevel,
+    ToolError,
+    ToolExecutionError,
+    ToolMetadata,
+    ToolNotFoundError,
+    ToolRegistry,
+    ToolValidationError,
+)
 
 __all__ = [
+    "BlockedCommandError",
     "ConsoulAIError",
     "ContextError",
     "ConversationHistory",
@@ -36,8 +50,15 @@ __all__ = [
     "MissingAPIKeyError",
     "MissingDependencyError",
     "ProviderInitializationError",
+    "RiskLevel",
     "StreamingError",
     "TokenLimitExceededError",
+    "ToolError",
+    "ToolExecutionError",
+    "ToolMetadata",
+    "ToolNotFoundError",
+    "ToolRegistry",
+    "ToolValidationError",
     "build_model_params",
     "count_message_tokens",
     "create_token_counter",

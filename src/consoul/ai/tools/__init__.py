@@ -1,0 +1,44 @@
+"""Tool calling system for Consoul AI.
+
+This module provides a centralized tool registry and configuration system
+for LangChain tool calling. It enables AI models to execute tools (bash commands,
+Python code, file operations) with security controls, user approval, and audit logging.
+
+Architecture:
+- SDK-first design: No TUI dependencies, works in headless environments
+- Protocol-based extension points: ApprovalProvider, AuditLogger
+- Security-first: Always require approval, blocked commands, timeouts
+- Configuration: Tools configured via ConsoulConfig (not TUI-specific)
+
+Example:
+    >>> from consoul.config.models import ConsoulConfig, ToolConfig
+    >>> from consoul.ai.tools import ToolRegistry, RiskLevel
+    >>>
+    >>> config = ConsoulConfig(
+    ...     profiles={"default": ...},
+    ...     tools=ToolConfig(enabled=True, timeout=30)
+    ... )
+    >>> registry = ToolRegistry(config.tools)
+    >>> # Register tools, bind to model, execute with approval
+"""
+
+from consoul.ai.tools.base import RiskLevel, ToolMetadata
+from consoul.ai.tools.exceptions import (
+    BlockedCommandError,
+    ToolError,
+    ToolExecutionError,
+    ToolNotFoundError,
+    ToolValidationError,
+)
+from consoul.ai.tools.registry import ToolRegistry
+
+__all__ = [
+    "BlockedCommandError",
+    "RiskLevel",
+    "ToolError",
+    "ToolExecutionError",
+    "ToolMetadata",
+    "ToolNotFoundError",
+    "ToolRegistry",
+    "ToolValidationError",
+]
