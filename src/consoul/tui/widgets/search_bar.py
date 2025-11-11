@@ -8,6 +8,7 @@ from textual.containers import Horizontal
 from textual.widgets import Input, Label, Static
 
 if TYPE_CHECKING:
+    import textual.events
     from textual.app import ComposeResult
     from textual.events import Click
 
@@ -170,21 +171,38 @@ class SearchBar(Static):
     def on_click(self, event: Click) -> None:
         """Handle click events (clear button)."""
         if hasattr(event.widget, "id") and event.widget.id == "clear-button":
-            try:
-                # Clear the search
-                search_input = self.query_one("#search-input", Input)
-                search_input.value = ""
-                self._search_query = ""
-                self._match_count = 0
+            self._clear_search()
+            event.stop()
 
-                # Hide UI elements
-                self.query_one("#clear-button", Static).display = False
-                self.query_one("#match-counter", Label).display = False
+    def on_key(self, event: textual.events.Key) -> None:
+        """Handle key presses.
 
-                # Stop event propagation
-                event.stop()
-            except Exception:
-                pass
+        Args:
+            event: The key event
+        """
+        # Escape key clears search and removes focus
+        if event.key == "escape":
+            self._clear_search()
+            event.prevent_default()
+            event.stop()
+
+    def _clear_search(self) -> None:
+        """Clear the search and remove focus from search input."""
+        try:
+            # Clear the search
+            search_input = self.query_one("#search-input", Input)
+            search_input.value = ""
+            self._search_query = ""
+            self._match_count = 0
+
+            # Hide UI elements
+            self.query_one("#clear-button", Static).display = False
+            self.query_one("#match-counter", Label).display = False
+
+            # Remove focus from search input
+            self.app.set_focus(None)
+        except Exception:
+            pass
 
     def get_search_query(self) -> str:
         """Get the current search query.
