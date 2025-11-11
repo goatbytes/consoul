@@ -5,6 +5,11 @@ Provides secure bash command execution with:
 - Timeout enforcement
 - Working directory control
 - Detailed output capture (stdout/stderr/exit code)
+
+Note:
+    This tool explicitly invokes /bin/bash to ensure bash-specific features
+    (process substitutions, [[ ... ]], etc.) work consistently across systems
+    where /bin/sh may be dash (e.g., Ubuntu).
 """
 
 from __future__ import annotations
@@ -17,6 +22,32 @@ from langchain_core.tools import tool
 
 from consoul.ai.tools.exceptions import BlockedCommandError, ToolExecutionError
 from consoul.config.models import BashToolConfig
+
+# Module-level config that can be set by the registry
+_TOOL_CONFIG: BashToolConfig | None = None
+
+
+def set_bash_config(config: BashToolConfig) -> None:
+    """Set the module-level config for bash tool.
+
+    This should be called by the ToolRegistry when registering bash_execute
+    to inject the profile's configured settings.
+
+    Args:
+        config: BashToolConfig from the active profile's ToolConfig.bash
+    """
+    global _TOOL_CONFIG
+    _TOOL_CONFIG = config
+
+
+def get_bash_config() -> BashToolConfig:
+    """Get the current bash tool config.
+
+    Returns:
+        The configured BashToolConfig, or a new default instance if not set.
+    """
+    return _TOOL_CONFIG if _TOOL_CONFIG is not None else BashToolConfig()
+
 
 # Default blocked command patterns (security-critical)
 DEFAULT_BLOCKED_PATTERNS = [
@@ -70,6 +101,9 @@ def _run_command(
 ) -> tuple[str, str, int]:
     """Run bash command with timeout and capture output.
 
+    Explicitly uses /bin/bash to ensure bash-specific features work consistently
+    across systems where /bin/sh may be dash or another shell.
+
     Args:
         command: The bash command to execute
         timeout: Timeout in seconds
@@ -97,9 +131,11 @@ def _run_command(
         cwd = str(cwd_path)
 
     try:
+        # Explicitly use /bin/bash to ensure bash-specific features work
+        # (process substitutions, [[ ... ]], etc.) even on systems where
+        # /bin/sh is dash (e.g., Ubuntu)
         result = subprocess.run(
-            command,
-            shell=True,
+            ["/bin/bash", "-c", command],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -125,9 +161,13 @@ def bash_execute(
 
     This tool executes bash commands with strict security controls including:
     - Command validation (blocks dangerous patterns like sudo, rm -rf /, etc.)
-    - Timeout enforcement (default 30 seconds)
+    - Timeout enforcement (default from profile config)
     - Working directory control
     - Detailed output capture
+
+    The tool uses the BashToolConfig from the active profile's ToolConfig.bash
+    settings. Call set_bash_config() to inject the profile configuration before
+    tool registration.
 
     Args:
         command: The bash command to execute
@@ -146,9 +186,8 @@ def bash_execute(
         >>> bash_execute("sudo rm -rf /")
         'Command blocked: matches pattern \\'sudo\\\\s\\'...'
     """
-    # Load config (this will be injected by the tool system in the future)
-    # For now, use defaults
-    config = BashToolConfig()
+    # Get config from module-level (set by registry via set_bash_config)
+    config = get_bash_config()
 
     # Use config timeout if not specified
     actual_timeout = timeout if timeout is not None else config.timeout

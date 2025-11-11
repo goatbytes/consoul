@@ -304,3 +304,97 @@ class TestBashToolRegistryIntegration:
         result = metadata.tool.invoke({"command": "echo test"})
 
         assert "test" in result
+
+
+class TestBashConfigInjection:
+    """Tests for bash config injection via set_bash_config."""
+
+    def test_set_and_get_bash_config(self):
+        """Test setting and getting bash config."""
+        from consoul.ai.tools.implementations.bash import (
+            get_bash_config,
+            set_bash_config,
+        )
+
+        # Create custom config
+        custom_config = BashToolConfig(timeout=60, working_directory="/tmp")
+
+        # Set config
+        set_bash_config(custom_config)
+
+        # Get config and verify
+        retrieved = get_bash_config()
+        assert retrieved.timeout == 60
+        assert retrieved.working_directory == "/tmp"
+
+    def test_bash_execute_uses_injected_config_timeout(self):
+        """Test that bash_execute uses injected config timeout."""
+        from consoul.ai.tools.implementations.bash import set_bash_config
+
+        # Set config with custom timeout
+        custom_config = BashToolConfig(timeout=2)
+        set_bash_config(custom_config)
+
+        # Execute command that should timeout with 2 second limit
+        result = bash_execute.invoke({"command": "sleep 5"})
+
+        assert "timed out" in result.lower() or "❌" in result
+
+    def test_bash_execute_uses_injected_config_working_dir(self, tmp_path):
+        """Test that bash_execute uses injected config working directory."""
+        from consoul.ai.tools.implementations.bash import set_bash_config
+
+        # Set config with custom working directory
+        custom_config = BashToolConfig(working_directory=str(tmp_path))
+        set_bash_config(custom_config)
+
+        # Execute pwd without specifying working_directory
+        result = bash_execute.invoke({"command": "pwd"})
+
+        assert str(tmp_path) in result
+
+    def test_bash_execute_uses_injected_config_blocked_patterns(self):
+        """Test that bash_execute uses injected config blocked patterns."""
+        from consoul.ai.tools.implementations.bash import set_bash_config
+
+        # Set config with custom blocked patterns (only block 'evil')
+        custom_config = BashToolConfig(blocked_patterns=[r"evil"])
+        set_bash_config(custom_config)
+
+        # sudo should now be allowed (not in custom patterns)
+        result1 = bash_execute.invoke({"command": "echo sudo test"})
+        assert "sudo test" in result1
+
+        # But 'evil' should be blocked
+        result2 = bash_execute.invoke({"command": "evil command"})
+        assert "blocked" in result2.lower() or "❌" in result2
+
+    def test_bash_execute_parameter_override_config(self, tmp_path):
+        """Test that explicit parameters override config."""
+        from consoul.ai.tools.implementations.bash import set_bash_config
+
+        # Set config with defaults
+        custom_config = BashToolConfig(timeout=60, working_directory="/tmp")
+        set_bash_config(custom_config)
+
+        # Override with explicit parameter
+        result = bash_execute.invoke(
+            {
+                "command": "pwd",
+                "working_directory": str(tmp_path),
+            }
+        )
+
+        # Should use explicit parameter, not config default
+        assert str(tmp_path) in result
+        assert "/tmp" not in result
+
+    def test_bash_uses_bash_not_sh(self):
+        """Test that commands use /bin/bash, not /bin/sh."""
+        # This tests that bash-specific features work
+        # [[ ... ]] is bash-specific and would fail in dash
+        result = bash_execute.invoke(
+            {"command": '[[ "test" == "test" ]] && echo "bash works"'}
+        )
+
+        assert "bash works" in result
