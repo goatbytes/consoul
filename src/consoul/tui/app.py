@@ -382,6 +382,9 @@ class ConsoulApp(App[None]):
         from consoul.ai.history import to_dict_message
         from consoul.tui.widgets import MessageBubble, StreamingResponse
 
+        # Hide typing indicator before showing streaming response
+        await self.chat_view.hide_typing_indicator()
+
         # Create streaming response widget
         stream_widget = StreamingResponse(renderer="hybrid")
         await self.chat_view.add_message(stream_widget)
@@ -451,7 +454,6 @@ class ConsoulApp(App[None]):
             stream_thread.start()
 
             # Consume tokens from queue and update UI in real-time
-            first_token = True
             while True:
                 token = await token_queue.get()
 
@@ -462,11 +464,6 @@ class ConsoulApp(App[None]):
                 # Check for cancellation
                 if self._stream_cancelled:
                     break
-
-                # Hide typing indicator on first token
-                if first_token:
-                    await self.chat_view.hide_typing_indicator()
-                    first_token = False
 
                 # Add token to UI immediately
                 collected_tokens.append(token)
