@@ -856,6 +856,13 @@ class ConsoulApp(App[None]):
         self.top_bar.search_result_count = result_count
         self.log.info(f"Search query='{event.query}', results={result_count}")
 
+        # Restore focus to search input after table update
+        try:
+            search_input = self.query_one("#search-input", Input)
+            search_input.focus()
+        except Exception:
+            pass
+
     async def on_contextual_top_bar_search_cleared(
         self, event: ContextualTopBar.SearchCleared
     ) -> None:
@@ -869,6 +876,13 @@ class ConsoulApp(App[None]):
         # Clear result count from top bar
         self.top_bar.search_result_count = None
         self.log.info("Search cleared, showing all conversations")
+
+        # Restore focus to search input after clearing
+        try:
+            search_input = self.query_one("#search-input", Input)
+            search_input.focus()
+        except Exception:
+            pass
 
     def _switch_profile(self, profile_name: str) -> None:
         """Switch to a different profile WITHOUT changing model/provider.
