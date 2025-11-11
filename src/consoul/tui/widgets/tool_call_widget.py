@@ -246,22 +246,26 @@ class ToolCallWidget(Container):
             # Output section doesn't exist yet - mount it dynamically
             collapsed = self._should_collapse_output()
 
-            container = Vertical(id="tool-output-container")
-            collapsible = Collapsible(
-                title="Output",
-                collapsed=collapsed,
-                id="tool-output-collapsible",
-            )
+            # Create output static first
             output_static = Static(
                 result,
                 id="tool-output",
                 classes="tool-output",
             )
 
-            # Mount the structure
+            # Create collapsible with the static as child
+            collapsible = Collapsible(
+                output_static,
+                title="Output",
+                collapsed=collapsed,
+                id="tool-output-collapsible",
+            )
+
+            # Create container with collapsible as child
+            container = Vertical(collapsible, id="tool-output-container")
+
+            # Mount the entire structure at once
             self.mount(container)
-            container.mount(collapsible)
-            collapsible.mount(output_static)
 
     def update_status(self, status: ToolStatus) -> None:
         """Update execution status without changing result.
