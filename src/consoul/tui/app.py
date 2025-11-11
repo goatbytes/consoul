@@ -51,6 +51,7 @@ class ConsoulApp(App[None]):
         Binding("ctrl+p", "switch_profile", "Profile", show=False),
         Binding("ctrl+m", "switch_model", "Model", show=False),
         Binding("ctrl+e", "export_conversation", "Export", show=False),
+        Binding("ctrl+i", "import_conversation", "Import", show=False),
         Binding("ctrl+s", "search_history", "Search", show=False),
         Binding("/", "focus_input", "Input", show=False),
         # UI
@@ -626,7 +627,28 @@ class ConsoulApp(App[None]):
 
     def action_export_conversation(self) -> None:
         """Show export modal."""
-        self.notify("Export (Phase 4)")
+        from consoul.tui.widgets.export_modal import ExportModal
+
+        def on_export(filepath: str | None) -> None:
+            if filepath:
+                self.notify(f"Exported to {filepath}", severity="information")
+
+        current_session_id = self.conversation.session_id if self.conversation else None
+        modal = ExportModal(current_session_id=current_session_id, db=self.db)
+        self.push_screen(modal, on_export)
+
+    def action_import_conversation(self) -> None:
+        """Show import modal."""
+        from consoul.tui.widgets.import_modal import ImportModal
+
+        def on_import(success: bool) -> None:
+            if success:
+                self.notify("Import successful", severity="success")
+                # Reload conversation list
+                self.conversation_list.load_conversations()
+
+        modal = ImportModal(db=self.db)
+        self.push_screen(modal, on_import)
 
     def action_search_history(self) -> None:
         """Focus search input in top bar."""

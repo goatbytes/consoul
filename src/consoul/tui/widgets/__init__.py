@@ -9,6 +9,8 @@ from __future__ import annotations
 from consoul.tui.widgets.chat_view import ChatView
 from consoul.tui.widgets.contextual_top_bar import ContextualTopBar
 from consoul.tui.widgets.conversation_list import ConversationList
+from consoul.tui.widgets.export_modal import ExportModal
+from consoul.tui.widgets.import_modal import ImportModal
 from consoul.tui.widgets.input_area import InputArea
 from consoul.tui.widgets.message_bubble import MessageBubble
 from consoul.tui.widgets.model_picker_modal import ModelPickerModal
@@ -20,6 +22,8 @@ __all__ = [
     "ChatView",
     "ContextualTopBar",
     "ConversationList",
+    "ExportModal",
+    "ImportModal",
     "InputArea",
     "MessageBubble",
     "ModelPickerModal",
