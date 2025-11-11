@@ -86,6 +86,7 @@ class TypingIndicator(Container):
         # Cycle through 0-3 dots
         self.dot_count = (self.dot_count + 1) % 4
 
-        # Update dots display
+        # Update dots display (use non-breaking space to maintain height)
         dots_widget = self.query_one("#typing-dots", Static)
-        dots_widget.update("." * self.dot_count)
+        dots_text = "." * self.dot_count if self.dot_count > 0 else "\u00a0"
+        dots_widget.update(dots_text)
