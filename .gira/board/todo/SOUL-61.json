@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-10T19:46:38.277701",
+  "updated_at": "2025-11-10T19:46:38.277720",
+  "id": "SOUL-61",
+  "uuid": "01d01a2b-4ffc-4ec6-8c8a-ac9478f14327",
+  "title": "Detect and parse tool calls in streaming responses",
+  "description": "**As a** Consoul developer\n**I want** to detect tool_calls in streaming LLM responses\n**So that** I can pause streaming, trigger approval, and resume with tool results\n\n**Context:**\nLangChain models with tool calling return tool_calls in the response message. When streaming, tool calls may arrive mid-stream or at the end. We need to:\n1. Detect when model requests a tool\n2. Pause the streaming display\n3. Extract tool name and arguments\n4. Trigger approval flow\n5. Execute approved tools\n6. Resume streaming with tool results\n\nClaude's fine-grained tool streaming (2025-05-14 header) provides partial JSON tool inputs. OpenAI, Anthropic, and Google all support tool_calls in message responses.\n\n**Technical Notes:**\n- Tool calls arrive in AIMessage.tool_calls:\n  ```python\n  message.tool_calls = [\n      {\n          'name': 'bash_execute',\n          'args': {'command': 'ls -la'},\n          'id': 'call_abc123'\n      }\n  ]\n  ```\n- During streaming, check each chunk for tool_calls\n- src/consoul/tui/app.py _stream_ai_response() needs modification\n- May need to buffer final message to detect tool calls\n- Some providers send tool_calls at stream end, others mid-stream\n- Reference current streaming logic in src/consoul/tui/app.py:371-580\n\n**Acceptance Criteria:**\n\n**Given** AI model returns a tool_call during streaming\n**When** tool_call is detected\n**Then** streaming pauses and tool info is extracted\n\n**Given** tool_call with valid name and arguments\n**When** parsing the tool_call\n**Then** tool name and args dict are successfully extracted\n\n**Given** tool_call with invalid JSON in args\n**When** parsing fails\n**Then** error is logged and user is notified\n\n**Given** multiple parallel tool_calls requested\n**When** detecting tool calls\n**Then** all tool calls are identified and queued\n\n**Given** no tool_calls in streaming response\n**When** stream completes\n**Then** normal message display continues without interruption\n\n**Testing Considerations:**\n- Mock streaming responses with tool_calls\n- Test single tool call detection\n- Test multiple parallel tool calls\n- Test malformed tool call handling\n- Test tool call at different stream positions (early/mid/late)\n- Integration test with actual provider responses\n\n**Implementation Hints:**\n- Check for tool_calls after stream completes:\n  ```python\n  # After collecting all tokens\n  if hasattr(message, 'tool_calls') and message.tool_calls:\n      for tool_call in message.tool_calls:\n          await self._handle_tool_call(tool_call)\n  ```\n- Or check during streaming (provider-dependent):\n  ```python\n  for chunk in model.stream(messages):\n      if hasattr(chunk, 'tool_calls') and chunk.tool_calls:\n          # Buffer and pause\n          pass\n  ```\n- Tool call structure:\n  ```python\n  @dataclass\n  class ParsedToolCall:\n      id: str\n      name: str\n      arguments: dict[str, Any]\n  ```\n\n**Files to Modify:**\n- src/consoul/tui/app.py (_stream_ai_response method)\n- src/consoul/ai/streaming.py (if needed for detection logic)\n\n**Files to Create:**\n- src/consoul/ai/tools/parser.py (tool call parsing utilities)\n\n**Dependencies:**\n- Current streaming implementation (already exists)\n- Tool registry (SOUL-58)\n\nStory Points: 5",
+  "status": "todo",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "ai",
+    "streaming",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-004",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

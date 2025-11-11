@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-10T19:47:49.827379",
+  "updated_at": "2025-11-10T19:47:49.827389",
+  "id": "SOUL-63",
+  "uuid": "30e657d1-56d3-40a3-a756-1457264dbc0b",
+  "title": "Create tool result display widget for chat view",
+  "description": "**As a** Consoul user\n**I want** to see tool execution results clearly displayed in the chat\n**So that** I can understand what tools ran and their outputs\n\n**Context:**\nTool calls and results need visual representation in the chat history to provide transparency and context. Similar to how MessageBubble displays user/assistant messages, we need a ToolCallWidget that shows:\n- Tool name and arguments (before execution)\n- Execution status (pending, success, error, denied)\n- Tool output/result (after execution)\n- Expandable/collapsible for long outputs\n- Visual distinction from regular messages\n\nThis improves UX by making tool interactions visible and auditable.\n\n**Technical Notes:**\n- Create ToolCallWidget extending Textual Container\n- Similar pattern to MessageBubble in src/consoul/tui/widgets/message_bubble.py\n- Show tool name as title/header\n- Display arguments in code block\n- Show status indicator (⏳ pending, ✓ success, ✗ error, 🚫 denied)\n- Collapsible output section for long results\n- Syntax highlighting for bash commands\n- Add to chat view via ChatView.add_message()\n- CSS styling in main.tcss\n\n**Acceptance Criteria:**\n\n**Given** tool call is requested by AI\n**When** approval modal is shown\n**Then** ToolCallWidget appears in chat with 'pending' status\n\n**Given** tool execution succeeds\n**When** result is returned\n**Then** ToolCallWidget updates to show output and success indicator\n\n**Given** tool execution fails\n**When** error occurs\n**Then** ToolCallWidget shows error message in red\n\n**Given** tool execution is denied\n**When** user denies approval\n**Then** ToolCallWidget shows 'denied by user' status\n\n**Given** tool output exceeds 20 lines\n**When** ToolCallWidget is displayed\n**Then** output is collapsible with 'Show More/Less' toggle\n\n**Given** bash command is displayed\n**When** ToolCallWidget renders\n**Then** command has syntax highlighting\n\n**Testing Considerations:**\n- Unit test widget composition\n- Test status transitions (pending → success/error/denied)\n- Test long output truncation/expansion\n- Test syntax highlighting\n- Textual pilot testing for UI\n- Integration test with chat view\n\n**Implementation Hints:**\n- Widget structure:\n  ```python\n  class ToolCallWidget(Container):\n      def __init__(\n          self,\n          tool_name: str,\n          arguments: dict,\n          status: ToolStatus = ToolStatus.PENDING\n      ):\n          self.tool_name = tool_name\n          self.arguments = arguments\n          self.status = reactive(status)\n          self.result: str | None = None\n      \n      def compose(self) -> ComposeResult:\n          yield Label(f'🔧 Tool: {self.tool_name}')\n          yield Static(self._format_args(), classes='code-block')\n          yield StatusIndicator(self.status)\n          if self.result:\n              yield Collapsible(Static(self.result), title='Output')\n      \n      def update_result(self, result: str, status: ToolStatus):\n          self.result = result\n          self.status = status\n          self.refresh()\n  ```\n- Status enum:\n  ```python\n  class ToolStatus(Enum):\n      PENDING = '⏳ Awaiting approval'\n      EXECUTING = '⚙️ Executing...'\n      SUCCESS = '✓ Completed'\n      ERROR = '✗ Failed'\n      DENIED = '🚫 Denied'\n  ```\n- CSS styling:\n  ```css\n  ToolCallWidget {\n      border: round ;\n      padding: 1 2;\n      margin: 1 0;\n  }\n  \n  ToolCallWidget.success {\n      border-title-color: ;\n  }\n  \n  ToolCallWidget.error {\n      border-title-color: ;\n  }\n  ```\n\n**Files to Create:**\n- src/consoul/tui/widgets/tool_call_widget.py\n\n**Files to Modify:**\n- src/consoul/tui/widgets/__init__.py\n- src/consoul/tui/css/main.tcss\n- src/consoul/tui/app.py (add ToolCallWidget to chat)\n\n**Dependencies:**\n- Existing MessageBubble pattern\n- ChatView widget\n\nStory Points: 3",
+  "status": "todo",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "ux-improvement",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-004",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

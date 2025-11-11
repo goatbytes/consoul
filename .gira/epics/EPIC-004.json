@@ -1,0 +1,25 @@
+{
+  "created_at": "2025-11-10T19:44:26.056354",
+  "updated_at": "2025-11-10T19:44:26.056355",
+  "id": "EPIC-004",
+  "title": "Tool Calling & Function Execution System",
+  "description": "Enable Consoul to execute tools (bash commands, Python code, file operations) requested by AI models with user approval workflows, security controls, and real-time result display.\n\n## Vision\nTransform Consoul from a chat-only interface into an interactive AI assistant that can take real-world actions through LangChain's tool calling API. Models like Claude 3.5, GPT-4, and Gemini can request tool execution, but all tools require explicit user approval with clear visibility into what will be executed.\n\n## Goals\n1. **Safety First**: Never auto-execute - always require user confirmation\n2. **Provider Support**: Work with all LangChain tool-calling models (OpenAI, Anthropic, Google, Ollama)\n3. **Extensibility**: Plugin architecture for custom tools\n4. **Visibility**: Clear UI showing what tools will execute and their results\n5. **Security**: Configurable whitelists/blacklists, timeouts, and sandboxing options\n\n## MVP Scope (Phase 1)\n- Tool registry and configuration system\n- User approval modal with risk indicators\n- Bash tool with strict safety controls\n- Tool call detection in streaming responses\n- Tool result display in chat view\n- Conversation history with tool calls/results\n\n## Future Phases\n- Phase 2: Python code execution, file operations (read/write)\n- Phase 3: Web search, HTTP requests, git operations\n- Phase 4: Custom user-defined tools, plugin system\n- Phase 5: MCP (Model Context Protocol) integration\n\n## Security Principles\n- Principle of least privilege\n- Blocked commands by default (rm -rf, sudo, etc.)\n- Timeout enforcement\n- Human-in-the-loop for all executions\n- Detailed audit logging\n\n## References\n- LangChain Tool Calling: https://python.langchain.com/docs/concepts/tool_calling/\n- Claude Tool Use: https://docs.anthropic.com/en/docs/build-with-claude/tool-use\n- Aider shell command approval patterns\n- OpenAI function calling best practices",
+  "status": "draft",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2025-12-15",
+  "labels": [],
+  "tickets": [
+    "SOUL-58",
+    "SOUL-59",
+    "SOUL-60",
+    "SOUL-61",
+    "SOUL-62",
+    "SOUL-63",
+    "SOUL-65"
+  ],
+  "comments": [],
+  "comment_count": 0,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}

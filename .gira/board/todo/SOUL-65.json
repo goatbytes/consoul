@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-10T19:48:19.661515",
+  "updated_at": "2025-11-10T19:48:19.661526",
+  "id": "SOUL-65",
+  "uuid": "9c9d5478-ea8a-4cfa-854c-081088ec3196",
+  "title": "Add tool calling documentation and examples",
+  "description": "**As a** Consoul user\n**I want** comprehensive documentation on tool calling features\n**So that** I understand how to configure, use, and extend tool calling safely\n\n**Context:**\nTool calling is a powerful but potentially dangerous feature. Users need clear documentation covering:\n- What tools are available\n- How to configure tool settings\n- Security implications and best practices\n- How to approve/deny tool requests\n- How to add custom tools\n- Troubleshooting common issues\n\n**Technical Notes:**\n- Add docs/tools.md with comprehensive guide\n- Update README.md with tool calling overview\n- Add example configurations to docs/examples/\n- Document security model and risks\n- Provide custom tool development guide\n- Add troubleshooting section\n- Include screenshots/examples\n\n**Acceptance Criteria:**\n\n**Given** I'm new to Consoul tool calling\n**When** I read docs/tools.md\n**Then** I understand how to enable and configure tools safely\n\n**Given** I want to customize tool security\n**When** I check configuration examples\n**Then** I see examples of whitelist/blacklist/timeout settings\n\n**Given** I want to create a custom tool\n**When** I read the developer guide\n**Then** I can implement a new tool with proper validation\n\n**Given** tool execution fails\n**When** I check troubleshooting section\n**Then** I find solutions for common errors\n\n**Files to Create:**\n- docs/tools.md\n- docs/examples/tool-calling-config.yaml\n- docs/examples/custom-tool-example.py\n\n**Files to Modify:**\n- README.md (add tool calling section)\n- docs/configuration.md (add tools configuration)\n\nStory Points: 2",
+  "status": "todo",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "documentation",
+    "tools",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-004",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

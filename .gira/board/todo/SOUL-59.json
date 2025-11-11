@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-11-10T19:45:32.743539",
+  "updated_at": "2025-11-10T19:45:32.743551",
+  "id": "SOUL-59",
+  "uuid": "9ee50314-394b-489d-b339-bed502ded1fa",
+  "title": "Create tool approval modal widget",
+  "description": "**As a** Consoul user\n**I want** a clear approval modal before any tool executes\n**So that** I can review and approve/deny tool calls with full visibility\n\n**Context:**\nSecurity best practice requires human-in-the-loop for all tool executions. Similar to aider's 'Run shell command? (Y)es/(N)o' prompt, we need a Textual modal that:\n- Shows tool name and full arguments\n- Displays risk level (safe, caution, dangerous)\n- Provides Approve/Deny buttons\n- Shows command preview with syntax highlighting\n- Supports keyboard shortcuts (Y/N, Enter/Esc)\n\nResearch shows OpenAI recommends user confirmation for actions with real-world impact, and Claude's tool use documentation emphasizes user review before execution.\n\n**Technical Notes:**\n- Extend Textual ModalScreen pattern (like SettingsScreen, HelpModal)\n- Similar to src/consoul/tui/widgets/help_modal.py pattern\n- Create ToolApprovalModal in src/consoul/tui/widgets/tool_approval_modal.py\n- Use color coding for risk levels (green/yellow/red borders)\n- Support async approval flow with callback\n- Add keyboard bindings (y/n for approve/deny, esc for deny)\n- Show command in code block with syntax highlighting\n\n**Acceptance Criteria:**\n\n**Given** AI requests a bash tool call\n**When** tool approval modal appears\n**Then** I see tool name, command, arguments, and risk level\n\n**Given** approval modal is shown\n**When** I press 'Y' or click Approve\n**Then** modal closes and returns approval=True\n\n**Given** approval modal is shown\n**When** I press 'N', Esc, or click Deny\n**Then** modal closes and returns approval=False\n\n**Given** a dangerous command is requested (rm -rf, sudo)\n**When** approval modal appears\n**Then** risk indicator shows 'DANGEROUS' in red\n\n**Given** approval modal displays a long command\n**When** command exceeds visible area\n**Then** scrollable code block shows full command\n\n**Testing Considerations:**\n- Unit test modal composition\n- Test keyboard bindings (Y, N, Esc, Enter)\n- Test risk level color coding\n- Test long command scrolling\n- Integration test with tool execution flow\n- Textual pilot testing for UI interactions\n\n**Implementation Hints:**\n- Modal structure:\n  ```python\n  class ToolApprovalModal(ModalScreen[bool]):\n      def __init__(self, tool_name: str, arguments: dict, risk_level: RiskLevel):\n          self.tool_name = tool_name\n          self.arguments = arguments\n          self.risk_level = risk_level\n      \n      def compose(self) -> ComposeResult:\n          with Container():\n              yield Label(f'Tool Request: {self.tool_name}')\n              yield Static(self._format_command(), classes='code-block')\n              yield RiskIndicator(self.risk_level)\n              with Horizontal():\n                  yield Button('Approve (Y)', variant='success', id='approve')\n                  yield Button('Deny (N)', variant='error', id='deny')\n  ```\n- Risk levels:\n  ```python\n  class RiskLevel(Enum):\n      SAFE = 'safe'        # ls, pwd, echo\n      CAUTION = 'caution'  # cat, grep, find\n      DANGEROUS = 'dangerous'  # rm, sudo, chmod\n  ```\n- Color scheme:\n  ```css\n  ToolApprovalModal.safe { border: thick ; }\n  ToolApprovalModal.caution { border: thick ; }\n  ToolApprovalModal.dangerous { border: thick ; }\n  ```\n\n**Files to Create:**\n- src/consoul/tui/widgets/tool_approval_modal.py\n\n**Files to Modify:**\n- src/consoul/tui/widgets/__init__.py\n- src/consoul/tui/css/main.tcss (add tool approval styles)\n\nStory Points: 5",
+  "status": "todo",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "tui",
+    "security",
+    "ux-improvement",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-004",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}
