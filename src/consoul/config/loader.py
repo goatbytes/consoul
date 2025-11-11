@@ -6,13 +6,14 @@ configuration from multiple sources with clear precedence rules.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from consoul.config.env import load_env_settings
-from consoul.config.models import ConsoulConfig, ProfileConfig
+from consoul.config.models import ConsoulConfig, ProfileConfig, Provider
 from consoul.config.profiles import get_builtin_profiles
 
 
@@ -197,19 +198,76 @@ def load_env_config(env_settings: Any | None = None) -> dict[str, Any]:
     return env_config
 
 
+def select_intelligent_default_model() -> tuple[Provider, str]:
+    """Intelligently select a default model based on available API keys and services.
+
+    Priority order:
+    1. If Anthropic API key exists -> use Claude
+    2. If OpenAI API key exists -> use GPT-4
+    3. If Google API key exists -> use Gemini
+    4. If Ollama is running -> use best available Ollama model
+    5. Fallback -> Anthropic Claude (even without key, for better error message)
+
+    Returns:
+        Tuple of (Provider, model_name)
+    """
+    # Check for API keys in environment
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    openai_key = os.getenv("OPENAI_API_KEY")
+    google_key = os.getenv("GOOGLE_API_KEY")
+
+    # Priority 1: Anthropic (most capable general model)
+    if anthropic_key:
+        return (Provider.ANTHROPIC, "claude-3-5-sonnet-20241022")
+
+    # Priority 2: OpenAI
+    if openai_key:
+        return (Provider.OPENAI, "gpt-4o")
+
+    # Priority 3: Google
+    if google_key:
+        return (Provider.GOOGLE, "gemini-2.0-flash")
+
+    # Priority 4: Ollama (free, local)
+    try:
+        import requests
+
+        response = requests.get("http://localhost:11434/api/tags", timeout=1)
+        if response.status_code == 200:
+            models = response.json().get("models", [])
+            if models:
+                # Prefer larger, more capable models
+                # Look for qwen, llama, or other high-quality models
+                for preferred_pattern in ["qwen2.5", "qwen3", "llama3", "mistral"]:
+                    for model in models:
+                        model_name = model.get("name", "")
+                        if preferred_pattern in model_name.lower():
+                            return (Provider.OLLAMA, model_name)
+                # If no preferred model, use the first available
+                return (Provider.OLLAMA, models[0]["name"])
+    except Exception:
+        pass  # Ollama not available
+
+    # Fallback: Default to Anthropic (will error gracefully if no API key)
+    return (Provider.ANTHROPIC, "claude-3-5-sonnet-20241022")
+
+
 def create_default_config() -> dict[str, Any]:
     """Create default configuration with all built-in profiles.
+
+    Intelligently selects the default model based on available API keys and services.
 
     Returns:
         Default configuration dictionary with all built-in profiles.
     """
-    from consoul.config.models import Provider
+    # Select intelligent default based on what's available
+    default_provider, default_model = select_intelligent_default_model()
 
     return {
         "profiles": get_builtin_profiles(),
         "active_profile": "default",
-        "current_provider": Provider.ANTHROPIC.value,
-        "current_model": "claude-3-5-sonnet-20241022",
+        "current_provider": default_provider.value,
+        "current_model": default_model,
         "provider_configs": {
             Provider.OPENAI.value: {
                 "api_key_env": "OPENAI_API_KEY",

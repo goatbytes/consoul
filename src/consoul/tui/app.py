@@ -975,6 +975,25 @@ class ConsoulApp(App[None]):
             self.consoul_config.current_model = model_name
             self.current_model = model_name
 
+            # Persist model selection to config file
+            try:
+                from consoul.config.loader import find_config_files, save_config
+
+                # Determine which config file to save to
+                global_path, project_path = find_config_files()
+                save_path = project_path if project_path and project_path.exists() else global_path
+
+                if not save_path:
+                    # Default to global config
+                    save_path = Path.home() / ".consoul" / "config.yaml"
+
+                # Save updated config (preserves user's model choice)
+                save_config(self.consoul_config, save_path, include_api_keys=False)
+                self.log.info(f"Persisted model selection to {save_path}")
+            except Exception as e:
+                self.log.warning(f"Failed to persist model selection: {e}")
+                # Continue even if save fails - model is still switched in memory
+
             # Reinitialize chat model with new provider/model
             from consoul.ai import get_chat_model
 
