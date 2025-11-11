@@ -162,7 +162,7 @@ ChatView:focus {
 .tool-call-widget {
     width: 100%;
     height: auto;
-    padding: 0 2;
+    padding: 1 2;
     margin: 1 0;
     border: round $accent;
 }
@@ -197,26 +197,25 @@ ChatView:focus {
     height: auto;
     color: $text;
     text-style: bold;
+    padding-bottom: 1;
 }
 
 .tool-arguments {
     width: 100%;
     height: auto;
+    padding: 1 0;
 }
 
 .tool-status {
     width: 100%;
     height: auto;
+    padding: 1 0;
 }
 
 .tool-output {
     width: 100%;
     height: auto;
     color: $text;
-}
-
-.hidden {
-    display: none;
 }
 
 /* ============================================================================
