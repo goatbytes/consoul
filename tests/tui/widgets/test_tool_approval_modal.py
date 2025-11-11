@@ -106,10 +106,12 @@ class TestToolApprovalModalInitialization:
 
 
 class TestToolApprovalModalInteractions:
-    """Test ToolApprovalModal user interactions."""
+    """Test ToolApprovalModal user interactions with return value verification."""
 
-    async def test_approve_button_returns_true(self) -> None:
-        """Test clicking approve button returns True."""
+    async def test_approve_button_calls_dismiss_true(self) -> None:
+        """Test approve button handler calls dismiss(True)."""
+        from unittest.mock import MagicMock, Mock
+
         request = ToolApprovalRequest(
             tool_name="test",
             arguments={},
@@ -117,16 +119,26 @@ class TestToolApprovalModalInteractions:
             tool_call_id="call_5",
         )
         modal = ToolApprovalModal(request)
-        app = ToolApprovalModalTestApp(modal)
 
-        async with app.run_test() as pilot:
-            # Click approve button
-            await pilot.click("#approve-button")
-            # Modal should dismiss with True
-            # Note: Actual return value testing requires screen push_screen_wait
+        # Mock dismiss method
+        modal.dismiss = MagicMock()  # type: ignore[method-assign]
 
-    async def test_deny_button_returns_false(self) -> None:
-        """Test clicking deny button returns False."""
+        # Simulate button press event
+        button = Mock()
+        button.id = "approve-button"
+        event = Mock()
+        event.button = button
+
+        # Call the handler directly
+        await modal.on_button_pressed(event)
+
+        # Verify dismiss was called with True
+        modal.dismiss.assert_called_once_with(True)
+
+    async def test_deny_button_calls_dismiss_false(self) -> None:
+        """Test deny button handler calls dismiss(False)."""
+        from unittest.mock import MagicMock, Mock
+
         request = ToolApprovalRequest(
             tool_name="test",
             arguments={},
@@ -134,15 +146,26 @@ class TestToolApprovalModalInteractions:
             tool_call_id="call_6",
         )
         modal = ToolApprovalModal(request)
-        app = ToolApprovalModalTestApp(modal)
 
-        async with app.run_test() as pilot:
-            # Click deny button
-            await pilot.click("#deny-button")
-            # Modal should dismiss with False
+        # Mock dismiss method
+        modal.dismiss = MagicMock()  # type: ignore[method-assign]
 
-    async def test_y_key_approves(self) -> None:
-        """Test pressing Y key approves."""
+        # Simulate button press event
+        button = Mock()
+        button.id = "deny-button"
+        event = Mock()
+        event.button = button
+
+        # Call the handler directly
+        await modal.on_button_pressed(event)
+
+        # Verify dismiss was called with False
+        modal.dismiss.assert_called_once_with(False)
+
+    async def test_y_key_action_calls_dismiss_true(self) -> None:
+        """Test Y key action calls dismiss(True)."""
+        from unittest.mock import MagicMock
+
         request = ToolApprovalRequest(
             tool_name="test",
             arguments={},
@@ -150,15 +173,20 @@ class TestToolApprovalModalInteractions:
             tool_call_id="call_7",
         )
         modal = ToolApprovalModal(request)
-        app = ToolApprovalModalTestApp(modal)
 
-        async with app.run_test() as pilot:
-            # Press Y key
-            await pilot.press("y")
-            # Modal should dismiss with True
+        # Mock dismiss method
+        modal.dismiss = MagicMock()  # type: ignore[method-assign]
 
-    async def test_n_key_denies(self) -> None:
-        """Test pressing N key denies."""
+        # Call the action directly
+        modal.action_approve()
+
+        # Verify dismiss was called with True
+        modal.dismiss.assert_called_once_with(True)
+
+    async def test_n_key_action_calls_dismiss_false(self) -> None:
+        """Test N key action calls dismiss(False)."""
+        from unittest.mock import MagicMock
+
         request = ToolApprovalRequest(
             tool_name="test",
             arguments={},
@@ -166,15 +194,20 @@ class TestToolApprovalModalInteractions:
             tool_call_id="call_8",
         )
         modal = ToolApprovalModal(request)
-        app = ToolApprovalModalTestApp(modal)
 
-        async with app.run_test() as pilot:
-            # Press N key
-            await pilot.press("n")
-            # Modal should dismiss with False
+        # Mock dismiss method
+        modal.dismiss = MagicMock()  # type: ignore[method-assign]
 
-    async def test_escape_key_denies(self) -> None:
-        """Test pressing Escape key denies."""
+        # Call the action directly
+        modal.action_deny()
+
+        # Verify dismiss was called with False
+        modal.dismiss.assert_called_once_with(False)
+
+    async def test_escape_key_action_calls_dismiss_false(self) -> None:
+        """Test Escape key action calls dismiss(False)."""
+        from unittest.mock import MagicMock
+
         request = ToolApprovalRequest(
             tool_name="test",
             arguments={},
@@ -182,12 +215,15 @@ class TestToolApprovalModalInteractions:
             tool_call_id="call_9",
         )
         modal = ToolApprovalModal(request)
-        app = ToolApprovalModalTestApp(modal)
 
-        async with app.run_test() as pilot:
-            # Press Escape key
-            await pilot.press("escape")
-            # Modal should dismiss with False
+        # Mock dismiss method
+        modal.dismiss = MagicMock()  # type: ignore[method-assign]
+
+        # Call the action directly (escape is bound to action_deny)
+        modal.action_deny()
+
+        # Verify dismiss was called with False
+        modal.dismiss.assert_called_once_with(False)
 
 
 class TestToolApprovalModalArgumentFormatting:
