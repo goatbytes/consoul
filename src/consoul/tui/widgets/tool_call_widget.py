@@ -104,21 +104,20 @@ class ToolCallWidget(Container):
             classes="tool-status",
         )
 
-        # Output section - always create structure, hide if no result yet
-        with Vertical(
-            id="tool-output-container", classes="hidden" if not self.result else ""
-        ):
-            collapsed = self._should_collapse_output()
-            with Collapsible(
-                title="Output",
-                collapsed=collapsed,
-                id="tool-output-collapsible",
-            ):
-                yield Static(
-                    self.result or "",
-                    id="tool-output",
-                    classes="tool-output",
-                )
+        # Output section - conditionally render only when we have a result
+        if self.result:
+            with Vertical(id="tool-output-container"):
+                collapsed = self._should_collapse_output()
+                with Collapsible(
+                    title="Output",
+                    collapsed=collapsed,
+                    id="tool-output-collapsible",
+                ):
+                    yield Static(
+                        self.result,
+                        id="tool-output",
+                        classes="tool-output",
+                    )
 
     def on_mount(self) -> None:
         """Initialize widget styling on mount."""
@@ -234,20 +233,35 @@ class ToolCallWidget(Container):
         self.result = result
         self.status = status
 
-        # Update output section - widgets already exist from compose()
-        # Just update content and visibility
-        output_container = self.query_one("#tool-output-container", Vertical)
-        output_widget = self.query_one("#tool-output", Static)
-        collapsible = self.query_one("#tool-output-collapsible", Collapsible)
+        # Check if output section already exists
+        try:
+            output_widget = self.query_one("#tool-output", Static)
+            collapsible = self.query_one("#tool-output-collapsible", Collapsible)
 
-        # Update content
-        output_widget.update(result)
+            # Update existing widgets
+            output_widget.update(result)
+            collapsible.collapsed = self._should_collapse_output()
 
-        # Update collapsible state
-        collapsible.collapsed = self._should_collapse_output()
+        except Exception:
+            # Output section doesn't exist yet - mount it dynamically
+            collapsed = self._should_collapse_output()
 
-        # Show the container (remove hidden class)
-        output_container.remove_class("hidden")
+            container = Vertical(id="tool-output-container")
+            collapsible = Collapsible(
+                title="Output",
+                collapsed=collapsed,
+                id="tool-output-collapsible",
+            )
+            output_static = Static(
+                result,
+                id="tool-output",
+                classes="tool-output",
+            )
+
+            # Mount the structure
+            self.mount(container)
+            container.mount(collapsible)
+            collapsible.mount(output_static)
 
     def update_status(self, status: ToolStatus) -> None:
         """Update execution status without changing result.
