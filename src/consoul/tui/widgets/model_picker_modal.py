@@ -1,4 +1,8 @@
-"""ModelSelectorModal - Modal for selecting AI models within a provider."""
+"""ModelPickerModal - Modal for selecting AI models and providers.
+
+This modal provides a unified interface for switching between AI providers
+(OpenAI, Anthropic, Google, Ollama) and selecting specific models within each provider.
+"""
 
 from __future__ import annotations
 
@@ -7,111 +11,132 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
+from textual.reactive import reactive
 from textual.screen import ModalScreen
 from textual.widgets import Button, DataTable, Input, Label
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
+    from textual.events import Click
 
     from consoul.config.models import Provider
 
-__all__ = ["ModelSelectorModal"]
+__all__ = ["ModelPickerModal"]
 
 log = logging.getLogger(__name__)
 
 
 # Model information database (name -> metadata)
-# This is a simplified version - in production, you might fetch this from provider APIs
+# Updated with latest models as of January 2025
 MODEL_INFO = {
     # OpenAI models
-    "gpt-4": {
+    "gpt-4o": {
         "provider": "openai",
-        "context": "8K",
-        "cost": "expensive",
-        "description": "Most capable GPT-4 model",
+        "context": "128K",
+        "cost": "moderate",
+        "rating": "⭐⭐⭐",
+        "description": "Optimized GPT-4 model with vision",
     },
     "gpt-4-turbo": {
         "provider": "openai",
         "context": "128K",
         "cost": "expensive",
+        "rating": "⭐⭐⭐",
         "description": "Latest GPT-4 with larger context",
     },
-    "gpt-4o": {
+    "gpt-4": {
         "provider": "openai",
-        "context": "128K",
-        "cost": "moderate",
-        "description": "Optimized GPT-4 model",
+        "context": "8K",
+        "cost": "expensive",
+        "rating": "⭐⭐⭐",
+        "description": "Original GPT-4 model",
     },
     "gpt-3.5-turbo": {
         "provider": "openai",
         "context": "16K",
         "cost": "cheap",
+        "rating": "⭐⭐",
         "description": "Fast and affordable",
     },
     # Anthropic models
+    "claude-3-5-sonnet-20241022": {
+        "provider": "anthropic",
+        "context": "200K",
+        "cost": "moderate",
+        "rating": "⭐⭐⭐",
+        "description": "Latest Claude 3.5 Sonnet",
+    },
     "claude-3-opus-20240229": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "expensive",
+        "rating": "⭐⭐⭐",
         "description": "Most capable Claude model",
     },
     "claude-3-sonnet-20240229": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "moderate",
+        "rating": "⭐⭐⭐",
         "description": "Balanced Claude model",
     },
     "claude-3-haiku-20240307": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "cheap",
+        "rating": "⭐⭐",
         "description": "Fast Claude model",
     },
     # Google models
-    "gemini-pro": {
-        "provider": "google",
-        "context": "32K",
-        "cost": "moderate",
-        "description": "Google's capable model",
-    },
     "gemini-1.5-pro": {
         "provider": "google",
         "context": "2M",
         "cost": "expensive",
+        "rating": "⭐⭐⭐",
         "description": "Huge context window",
     },
-    # Ollama models are dynamic and would be fetched from local instance
-    # For now, we'll show common ones
+    "gemini-pro": {
+        "provider": "google",
+        "context": "32K",
+        "cost": "moderate",
+        "rating": "⭐⭐",
+        "description": "Google's capable model",
+    },
+    # Ollama models (local, dynamic)
     "llama3": {
         "provider": "ollama",
         "context": "8K",
         "cost": "free",
+        "rating": "⭐⭐",
         "description": "Meta's Llama 3 model",
     },
     "mistral": {
         "provider": "ollama",
         "context": "8K",
         "cost": "free",
+        "rating": "⭐⭐",
         "description": "Mistral AI model",
     },
     "codellama": {
         "provider": "ollama",
         "context": "16K",
         "cost": "free",
+        "rating": "⭐⭐",
         "description": "Code-specialized Llama",
     },
 }
 
 
-class ModelSelectorModal(ModalScreen[str | None]):
-    """Modal for selecting a model within the current provider.
+class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
+    """Modal for selecting AI provider and model.
 
     Features:
-    - DataTable showing available models with current one highlighted
-    - Filtered to show only models for current provider
+    - Provider tabs (OpenAI, Anthropic, Google, Ollama)
+    - DataTable showing models for selected provider
     - Live search/filter by model name
+    - Shows model metadata (context window, cost, rating)
     - Enter key to select, Escape to cancel
-    - Returns selected model name or None (cancel)
+    - Returns tuple[provider, model_name] or None (cancel)
     """
 
     BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [
@@ -120,19 +145,19 @@ class ModelSelectorModal(ModalScreen[str | None]):
     ]
 
     DEFAULT_CSS = """
-    ModelSelectorModal {
+    ModelPickerModal {
         align: center middle;
     }
 
-    ModelSelectorModal #modal-wrapper {
-        width: 100;
-        height: 70%;
+    ModelPickerModal #modal-wrapper {
+        width: 80;
+        height: 75%;
         background: $surface;
         border: thick $primary;
         padding: 1 2;
     }
 
-    ModelSelectorModal .modal-header {
+    ModelPickerModal .modal-header {
         width: 100%;
         height: auto;
         text-align: center;
@@ -141,19 +166,46 @@ class ModelSelectorModal(ModalScreen[str | None]):
         margin-bottom: 1;
     }
 
-    ModelSelectorModal #search-input {
+    ModelPickerModal #provider-tabs {
+        width: 100%;
+        height: auto;
+        layout: horizontal;
+        align: center middle;
+        margin: 0 0 1 0;
+    }
+
+    ModelPickerModal .provider-tab {
+        margin: 0 1;
+        padding: 0 2;
+        background: transparent;
+        color: $text-muted;
+    }
+
+    ModelPickerModal .provider-tab:hover {
+        background: $primary-lighten-1;
+        color: $text;
+        text-style: bold;
+    }
+
+    ModelPickerModal .provider-tab.-active {
+        background: $primary;
+        color: $accent;
+        text-style: bold;
+    }
+
+    ModelPickerModal #search-input {
         width: 100%;
         height: auto;
         margin: 0 0 1 0;
     }
 
-    ModelSelectorModal #models-table {
+    ModelPickerModal #models-table {
         width: 100%;
         height: 1fr;
         background: $surface;
     }
 
-    ModelSelectorModal .info-label {
+    ModelPickerModal .info-label {
         width: 100%;
         height: auto;
         color: $text-muted;
@@ -161,45 +213,63 @@ class ModelSelectorModal(ModalScreen[str | None]):
         text-align: center;
     }
 
-    ModelSelectorModal #button-row {
+    ModelPickerModal #button-row {
         width: 100%;
         height: auto;
         align: center middle;
         margin-top: 1;
     }
 
-    ModelSelectorModal Button {
+    ModelPickerModal Button {
         margin: 0 1;
     }
     """
 
+    # Reactive properties
+    active_provider: reactive[str] = reactive("openai")
+
     def __init__(
         self,
         current_model: str,
-        provider: Provider,
+        current_provider: Provider,
         **kwargs: Any,
     ) -> None:
         """Initialize the modal.
 
         Args:
             current_model: Name of currently active model
-            provider: Provider to filter models for
+            current_provider: Currently active provider
         """
         super().__init__(**kwargs)
         self.current_model = current_model
-        self.provider = provider
+        self.current_provider = current_provider
+        self.active_provider = current_provider.value
         self._table: DataTable[Any] | None = None
         self._model_map: dict[str, dict[str, str]] = {}  # row_key -> model metadata
         log.info(
-            f"ModelSelectorModal: Initialized with current_model={current_model}, provider={provider}"
+            f"ModelPickerModal: Initialized with current_model={current_model}, "
+            f"current_provider={current_provider}"
         )
 
     def compose(self) -> ComposeResult:
         """Compose the modal layout."""
         with Vertical(id="modal-wrapper"):
             # Header
-            provider_title = str(self.provider.value).title()
-            yield Label(f"Select {provider_title} Model", classes="modal-header")
+            yield Label("Select AI Model & Provider", classes="modal-header")
+
+            # Provider tabs
+            with Horizontal(id="provider-tabs"):
+                for provider in ["openai", "anthropic", "google", "ollama"]:
+                    tab_classes = "provider-tab"
+                    if provider == self.active_provider:
+                        tab_classes += " -active"
+                    tab_label = Label(
+                        provider.title(),
+                        classes=tab_classes,
+                        id=f"tab-{provider}",
+                    )
+                    tab_label.can_focus = True
+                    yield tab_label
 
             # Search/filter input
             yield Input(
@@ -220,18 +290,34 @@ class ModelSelectorModal(ModalScreen[str | None]):
 
     async def on_mount(self) -> None:
         """Load models and populate table when mounted."""
-        log.info("ModelSelectorModal: on_mount called, populating models")
+        log.info("ModelPickerModal: on_mount called, populating models")
 
         # Initialize table
         self._table = self.query_one("#models-table", DataTable)
-        self._table.add_column("Model")
-        self._table.add_column("Context")
-        self._table.add_column("Cost")
-        self._table.add_column("Description")
+        self._table.add_column("Model", width=30)
+        self._table.add_column("Context", width=10)
+        self._table.add_column("Cost", width=10)
+        self._table.add_column("Rating", width=8)
         self._table.cursor_type = "row"
         self._table.focus()
 
         # Populate table
+        self._populate_table()
+
+    def watch_active_provider(self, provider: str) -> None:
+        """React to provider tab changes."""
+        # Update tab styling
+        for tab_id in ["tab-openai", "tab-anthropic", "tab-google", "tab-ollama"]:
+            try:
+                tab = self.query_one(f"#{tab_id}", Label)
+                if tab_id == f"tab-{provider}":
+                    tab.add_class("-active")
+                else:
+                    tab.remove_class("-active")
+            except Exception:
+                pass
+
+        # Refresh model table
         self._populate_table()
 
     def _populate_table(self, search_query: str = "") -> None:
@@ -247,8 +333,8 @@ class ModelSelectorModal(ModalScreen[str | None]):
         self._table.clear()
         self._model_map.clear()
 
-        # Filter models by provider
-        provider_value = self.provider.value
+        # Filter models by active provider
+        provider_value = self.active_provider
         provider_models = {
             name: info
             for name, info in MODEL_INFO.items()
@@ -265,12 +351,17 @@ class ModelSelectorModal(ModalScreen[str | None]):
                 or query_lower in info["description"].lower()
             }
 
-        # If current model is not in the database, add it
-        if self.current_model not in provider_models:
+        # If current model is not in the database and matches current provider, add it
+        current_provider_value = self.current_provider.value
+        if (
+            self.current_model not in provider_models
+            and provider_value == current_provider_value
+        ):
             provider_models[self.current_model] = {
                 "provider": provider_value,
                 "context": "?",
                 "cost": "?",
+                "rating": "?",
                 "description": "Custom model",
             }
 
@@ -282,18 +373,16 @@ class ModelSelectorModal(ModalScreen[str | None]):
             self._model_map[row_key] = info
 
             # Format columns
-            is_current = name == self.current_model
+            is_current = (
+                name == self.current_model and provider_value == current_provider_value
+            )
             model_col = f"✓ {name}" if is_current else f"  {name}"
             context_col = info["context"]
-            cost_col = info["cost"]
-            description_col = (
-                info["description"][:30] + "..."
-                if len(info["description"]) > 30
-                else info["description"]
-            )
+            cost_col = info["cost"].title()
+            rating_col = info.get("rating", "")
 
             self._table.add_row(
-                model_col, context_col, cost_col, description_col, key=row_key
+                model_col, context_col, cost_col, rating_col, key=row_key
             )
 
             # Highlight current model row
@@ -315,7 +404,8 @@ class ModelSelectorModal(ModalScreen[str | None]):
                     pass
 
         log.debug(
-            f"ModelSelectorModal: Populated table with {len(provider_models)} models"
+            f"ModelPickerModal: Populated table with {len(provider_models)} models "
+            f"for provider '{provider_value}'"
         )
 
     def on_input_changed(self, event: Input.Changed) -> None:
@@ -323,12 +413,30 @@ class ModelSelectorModal(ModalScreen[str | None]):
         if event.input.id == "search-input":
             self._populate_table(event.value)
 
+    async def on_click(self, event: Click) -> None:
+        """Handle click events on provider tabs."""
+        target_id = (
+            event.control.id
+            if hasattr(event, "control") and hasattr(event.control, "id")
+            else None
+        )
+
+        # Provider tab clicks
+        if target_id and target_id.startswith("tab-"):
+            provider = target_id.replace("tab-", "")
+            if provider in ["openai", "anthropic", "google", "ollama"]:
+                self.active_provider = provider
+                log.info(f"ModelPickerModal: Switched to provider '{provider}'")
+
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
-        """Handle row selection (Enter key)."""
+        """Handle row selection (Enter key or double-click)."""
         if event.row_key:
             selected_model = str(event.row_key.value)
-            log.info(f"ModelSelectorModal: Selected model '{selected_model}'")
-            self.dismiss(selected_model)
+            log.info(
+                f"ModelPickerModal: Selected provider='{self.active_provider}', "
+                f"model='{selected_model}'"
+            )
+            self.dismiss((self.active_provider, selected_model))
 
     def action_select(self) -> None:
         """Handle select action (Enter key)."""
@@ -344,12 +452,15 @@ class ModelSelectorModal(ModalScreen[str | None]):
         if 0 <= cursor_row < len(row_keys):
             row_key = row_keys[cursor_row]
             selected_model = str(row_key)
-            log.info(f"ModelSelectorModal: Selected model '{selected_model}'")
-            self.dismiss(selected_model)
+            log.info(
+                f"ModelPickerModal: Selected provider='{self.active_provider}', "
+                f"model='{selected_model}'"
+            )
+            self.dismiss((self.active_provider, selected_model))
 
     def action_cancel(self) -> None:
         """Handle cancel action (Escape key)."""
-        log.info("ModelSelectorModal: Cancel action")
+        log.info("ModelPickerModal: Cancel action")
         self.dismiss(None)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

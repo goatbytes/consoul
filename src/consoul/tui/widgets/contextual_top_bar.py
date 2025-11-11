@@ -140,6 +140,7 @@ class ContextualTopBar(Static):
     """
 
     # Reactive properties for dynamic content
+    current_provider: reactive[str] = reactive("")
     current_model: reactive[str] = reactive("")
     current_profile: reactive[str] = reactive("default")
     conversation_count: reactive[int] = reactive(0)
@@ -158,6 +159,9 @@ class ContextualTopBar(Static):
 
     class ModelSelectionRequested(Message):
         """Message sent when model selector is clicked."""
+
+    class ProfileSelectionRequested(Message):
+        """Message sent when profile selector is clicked."""
 
     class ThemeSwitchRequested(Message):
         """Message sent when theme switch is requested."""
@@ -233,17 +237,25 @@ class ContextualTopBar(Static):
                 "⚡ Streaming", classes="streaming-indicator", id="streaming-indicator"
             )
 
-        # Model info (clickable for SOUL-44)
-        model_text = f"Model: {self.current_model or 'default'}"
+        # Model info (clickable) - shows provider:model format
+        provider_display = (
+            self.current_provider.title() if self.current_provider else "?"
+        )
+        model_display = self.current_model or "default"
+        model_text = f"🤖 {provider_display}: {model_display}"
         model_label = Label(
             model_text, classes="status-label action-button", id="model-label"
         )
         model_label.can_focus = True
         yield model_label
 
-        # Profile info
+        # Profile info (clickable)
         profile_text = f"Profile: {self.current_profile}"
-        yield Label(profile_text, classes="status-label", id="profile-label")
+        profile_label = Label(
+            profile_text, classes="status-label action-button", id="profile-label"
+        )
+        profile_label.can_focus = True
+        yield profile_label
 
         # Quick action buttons
         settings_btn = Label("⚙️", classes="action-button", id="settings-btn")
@@ -266,11 +278,23 @@ class ContextualTopBar(Static):
         except Exception:
             pass
 
+    def watch_current_provider(self, provider: str) -> None:
+        """React to provider changes."""
+        self._update_model_label()
+
     def watch_current_model(self, model: str) -> None:
         """React to model changes."""
+        self._update_model_label()
+
+    def _update_model_label(self) -> None:
+        """Update the model label with provider:model format."""
         try:
             model_label = self.query_one("#model-label", Label)
-            model_label.update(f"Model: {model or 'default'}")
+            provider_display = (
+                self.current_provider.title() if self.current_provider else "?"
+            )
+            model_display = self.current_model or "default"
+            model_label.update(f"🤖 {provider_display}: {model_display}")
         except Exception:
             pass
 
@@ -304,3 +328,5 @@ class ContextualTopBar(Static):
             self.post_message(self.ThemeSwitchRequested())
         elif target_id == "model-label":
             self.post_message(self.ModelSelectionRequested())
+        elif target_id == "profile-label":
+            self.post_message(self.ProfileSelectionRequested())

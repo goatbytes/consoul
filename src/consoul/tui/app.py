@@ -286,10 +286,12 @@ class ConsoulApp(App[None]):
         if not hasattr(self, "top_bar"):
             return
 
-        # Update model name (from config, not profile)
+        # Update provider and model (from config, not profile)
         if self.consoul_config:
+            self.top_bar.current_provider = self.consoul_config.current_provider.value
             self.top_bar.current_model = self.consoul_config.current_model
         else:
+            self.top_bar.current_provider = ""
             self.top_bar.current_model = self.current_model
 
         # Update profile name
@@ -788,7 +790,32 @@ class ConsoulApp(App[None]):
     async def on_contextual_top_bar_model_selection_requested(
         self, event: ContextualTopBar.ModelSelectionRequested
     ) -> None:
-        """Handle model/profile selection request from top bar."""
+        """Handle model selection request from top bar."""
+        if not self.consoul_config:
+            self.notify("No configuration available", severity="error")
+            return
+
+        def on_model_selected(result: tuple[str, str] | None) -> None:
+            if result and self.consoul_config:
+                provider, model_name = result
+                if (
+                    provider != self.consoul_config.current_provider.value
+                    or model_name != self.current_model
+                ):
+                    self._switch_provider_and_model(provider, model_name)
+
+        from consoul.tui.widgets import ModelPickerModal
+
+        modal = ModelPickerModal(
+            current_model=self.current_model,
+            current_provider=self.consoul_config.current_provider,
+        )
+        self.push_screen(modal, on_model_selected)
+
+    async def on_contextual_top_bar_profile_selection_requested(
+        self, event: ContextualTopBar.ProfileSelectionRequested
+    ) -> None:
+        """Handle profile selection request from top bar."""
         if not self.consoul_config:
             self.notify("No configuration available", severity="error")
             return
