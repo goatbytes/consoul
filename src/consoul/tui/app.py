@@ -861,13 +861,17 @@ class ConsoulApp(App[None]):
                 # Perform search
                 if current_query:
                     await self.conversation_list.search(current_query)
+                    # Update match count in search bar (only when searching)
+                    result_count = len(self.conversation_list.table.rows)
+                    search_bar.update_match_count(result_count)
+                    self.log.info(
+                        f"Search query='{current_query}', results={result_count}"
+                    )
                 else:
                     await self.conversation_list.search("")
-
-                # Update match count in search bar
-                result_count = len(self.conversation_list.table.rows)
-                search_bar.update_match_count(result_count)
-                self.log.info(f"Search query='{current_query}', results={result_count}")
+                    # Clear match count when search is cleared
+                    search_bar.update_match_count(0)
+                    self.log.info("Search cleared, showing all conversations")
         except Exception:
             pass
 
