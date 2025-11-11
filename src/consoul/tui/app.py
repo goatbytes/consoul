@@ -418,6 +418,40 @@ class ConsoulApp(App[None]):
             # Get the current event loop (Textual's loop)
             event_loop = asyncio.get_running_loop()
 
+            def normalize_chunk_content(content: str | list[dict] | None) -> str:
+                """Normalize chunk content to string.
+
+                LangChain chunks can have content as:
+                - str: Direct text (OpenAI, most providers)
+                - list: Blocks like [{"type":"text","text":"foo"}] (Anthropic, Gemini)
+                - None: Empty chunk
+
+                Args:
+                    content: Chunk content from AIMessage
+
+                Returns:
+                    Normalized string content, empty string if None
+                """
+                if content is None:
+                    return ""
+                if isinstance(content, str):
+                    return content
+                if isinstance(content, list):
+                    # Extract text from block list (Anthropic/Gemini format)
+                    text_parts = []
+                    for block in content:
+                        if isinstance(block, dict):
+                            # Handle {"type": "text", "text": "content"}
+                            if block.get("type") == "text" and "text" in block:
+                                text_parts.append(block["text"])
+                            # Handle other block types if needed
+                        elif isinstance(block, str):
+                            # Some providers may send list of strings
+                            text_parts.append(block)
+                    return "".join(text_parts)
+                # Fallback: convert to string
+                return str(content)
+
             def sync_stream_producer() -> None:
                 """Background thread: stream tokens and push to queue.
 
@@ -436,14 +470,11 @@ class ConsoulApp(App[None]):
                         # Collect all chunks (even empty ones) for tool_calls
                         collected_chunks.append(chunk)
 
-                        # Skip empty chunks for UI display
-                        if not chunk.content:
-                            continue
+                        # Normalize content (handles str, list of blocks, None)
+                        token = normalize_chunk_content(chunk.content)
 
-                        # Handle content that may be string or list of blocks
-                        token = chunk.content
-                        if isinstance(token, list):
-                            # Skip list-style chunks for UI (tool_calls, structured outputs)
+                        # Skip empty tokens
+                        if not token:
                             continue
 
                         # Push token to queue (thread-safe)
@@ -480,15 +511,12 @@ class ConsoulApp(App[None]):
                                     break
 
                             # Reconstruct content from chunks
-                            # Handle both string content and list-style blocks
+                            # Normalize all content (handles str, list blocks, None)
                             content_parts: list[str] = []
                             for c in collected_chunks:
-                                if not c.content:
-                                    continue
-                                if isinstance(c.content, str):
-                                    content_parts.append(c.content)
-                                # Skip list-style content (tool_calls, structured outputs)
-                                # The actual text content is in string chunks
+                                normalized = normalize_chunk_content(c.content)
+                                if normalized:
+                                    content_parts.append(normalized)
 
                             # Create final message with all content and tool_calls
                             final_message = AIMessage(
