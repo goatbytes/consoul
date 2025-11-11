@@ -21,6 +21,63 @@ if TYPE_CHECKING:
 __all__ = ["InputArea"]
 
 
+class SendableTextArea(TextArea):
+    """TextArea that sends message on Enter, newline on Shift+Enter.
+
+    This subclass intercepts key events BEFORE TextArea processes them,
+    allowing us to handle Enter for sending while preserving Shift+Enter
+    for newlines.
+    """
+
+    class Submitted(Message):
+        """Posted when Enter (without Shift) is pressed.
+
+        Attributes:
+            text: The text content when submitted
+        """
+
+        def __init__(self, text: str) -> None:
+            """Initialize Submitted message.
+
+            Args:
+                text: The text content
+            """
+            super().__init__()
+            self.text = text
+
+    async def _on_key(self, event: events.Key) -> None:
+        """Intercept keys BEFORE TextArea processes them.
+
+        This is called BEFORE the default TextArea key handling,
+        allowing us to intercept Enter while letting Shift+Enter through.
+
+        Args:
+            event: The key event
+        """
+        # Check for plain Enter (without Shift modifier)
+        # When Shift is pressed, the key becomes "shift+enter", not "enter"
+        if event.key == "enter":
+            # Prevent TextArea from inserting a newline
+            event.prevent_default()
+            event.stop()
+
+            # Post submitted event to parent
+            self.post_message(self.Submitted(self.text))
+            return
+
+        # Handle Shift+Enter to insert newline manually
+        if event.key == "shift+enter":
+            event.prevent_default()
+            event.stop()
+
+            # Insert newline at cursor position
+            self.insert("\n")
+            return
+
+        # For all other keys, delegate to TextArea
+        await super()._on_key(event)
+
+
 class InputArea(Container):
     """Multi-line text input area for composing messages.
 
@@ -62,14 +119,15 @@ class InputArea(Container):
             **kwargs: Additional arguments passed to Container
         """
         super().__init__(**kwargs)
-        self.text_area = TextArea()
+        self.text_area = SendableTextArea()
         self.text_area.show_line_numbers = False
+        self.text_area.can_focus = True
 
-    def compose(self) -> list[TextArea]:
+    def compose(self) -> list[SendableTextArea]:
         """Compose the input area widgets.
 
         Returns:
-            List containing the TextArea widget
+            List containing the SendableTextArea widget
         """
         return [self.text_area]
 
@@ -106,30 +164,15 @@ class InputArea(Container):
         """Action to clear the input (bound to Escape key)."""
         self.clear()
 
-    async def on_key(self, event: events.Key) -> None:
-        """Handle keyboard shortcuts.
-
-        Shift+Enter = newline (TextArea default behavior)
-        Enter = send message
+    def on_sendable_text_area_submitted(
+        self, event: SendableTextArea.Submitted
+    ) -> None:
+        """Handle submission from SendableTextArea (Enter key pressed).
 
         Args:
-            event: The key event
+            event: Submitted event containing the text
         """
-        if event.key == "enter":
-            # Plain Enter: Send message
-            event.prevent_default()
-            event.stop()
-            await self._send_message()
-        # Note: shift+enter has event.key == "shift+enter", not "enter"
-        # So it falls through and TextArea handles it normally
-
-    async def _send_message(self) -> None:
-        """Send the current message.
-
-        Validates content, posts MessageSubmit event, and clears input.
-        Empty or whitespace-only messages are not sent.
-        """
-        content = self.text_area.text.strip()
+        content = event.text.strip()
 
         if not content:
             return  # Don't send empty messages

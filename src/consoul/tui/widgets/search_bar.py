@@ -51,7 +51,7 @@ class SearchBar(Static):
         margin: 0 1 0 0;
         padding: 0;
         background: transparent;
-        color: white 70%;
+        color: auto 70%;
         text-align: center;
     }
 
@@ -62,28 +62,28 @@ class SearchBar(Static):
         border: none;
         margin: 0;
         padding: 0 2;
-        color: white;
+        color: auto;
     }
 
     SearchBar .search-input > .input--cursor {
-        color: white;
+        color: auto;
         background: white 50%;
     }
 
     SearchBar .search-input > .input--placeholder {
-        color: white 50%;
+        color: auto 50%;
         text-style: italic;
     }
 
     SearchBar .search-input:focus {
         background: $accent 20%;
-        color: white;
+        color: auto;
         text-style: none;
         border: none;
     }
 
     SearchBar .search-input:focus > .input--cursor {
-        color: white;
+        color: auto;
         background: white;
     }
 
@@ -91,7 +91,7 @@ class SearchBar(Static):
     SearchBar .match-counter {
         width: auto;
         height: 1;
-        color: white 70%;
+        color: auto 70%;
         text-style: italic;
         background: transparent;
         margin: 0 2 0 0;
@@ -105,7 +105,7 @@ class SearchBar(Static):
         min-width: 3;
         height: 1;
         background: transparent;
-        color: white;
+        color: auto;
         text-style: bold;
         margin: 0;
         padding: 0;

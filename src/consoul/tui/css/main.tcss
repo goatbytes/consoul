@@ -63,7 +63,7 @@ ChatView {
 }
 
 ChatView:focus {
-    border: thick $primary;
+    border: round white 50%;
 }
 
 .chat-messages {
@@ -225,13 +225,12 @@ ChatView:focus {
 InputArea {
     dock: bottom;
     height: auto;
-    max-height: 12;
     background: $surface-lighten-1;
     padding: 1;
     border: round $accent;
 }
 
-InputArea TextArea {
+InputArea SendableTextArea {
     width: 100%;
     height: auto;
     min-height: 3;
@@ -241,8 +240,8 @@ InputArea TextArea {
     border: round $primary;
 }
 
-InputArea TextArea:focus {
-    border: thick $primary;
+InputArea SendableTextArea:focus {
+    border: round $primary 30%;
 }
 
 /* ============================================================================
@@ -255,7 +254,7 @@ InputArea TextArea:focus {
     max-width: 40;
     height: 100%;
     background: $surface-darken-1;
-    border-right: solid $accent;
+    # border-right: solid $accent;
     padding: 1;
 }
 
@@ -490,7 +489,7 @@ ConversationList {
     max-width: 40;
     height: 100%;
     background: $surface-darken-1;
-    border-right: solid $accent;
+    # border-right: solid $accent;
     padding: 0 1;
 }
 

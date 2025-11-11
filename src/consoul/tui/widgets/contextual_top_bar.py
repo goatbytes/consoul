@@ -63,14 +63,14 @@ class ContextualTopBar(Static):
     }
 
     ContextualTopBar .brand-logo {
-        color: $accent;
+        color: auto;
         text-style: bold;
         background: transparent;
         margin: 0 1 0 0;
     }
 
     ContextualTopBar .conversation-info {
-        color: white 70%;
+        color: auto 70%;
         text-style: italic;
         background: transparent;
         margin: 0 0 0 1;
@@ -107,7 +107,7 @@ class ContextualTopBar(Static):
     }
 
     ContextualTopBar .status-label {
-        color: white 80%;
+        color: auto 80%;
         margin: 0 1;
         background: transparent;
     }
@@ -115,7 +115,7 @@ class ContextualTopBar(Static):
     ContextualTopBar .action-button {
         margin: 0 1;
         background: transparent;
-        color: white 80%;
+        color: auto 80%;
         padding: 0 1;
     }
 
