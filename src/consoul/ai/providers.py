@@ -78,15 +78,18 @@ def is_ollama_running(base_url: str = "http://localhost:11434") -> bool:
         return False
 
 
-def get_ollama_models(base_url: str = "http://localhost:11434") -> list[dict[str, str]]:
+def get_ollama_models(
+    base_url: str = "http://localhost:11434", include_context: bool = False
+) -> list[dict[str, Any]]:
     """Get list of available Ollama models.
 
     Args:
         base_url: The base URL for the Ollama service. Defaults to http://localhost:11434.
+        include_context: Whether to fetch context length for each model (slower).
 
     Returns:
-        List of model dicts with 'name' and 'size' keys, sorted by size (smallest first).
-        Returns empty list if Ollama is not running or request fails.
+        List of model dicts with 'name', 'size', and optionally 'context_length' keys.
+        Sorted by size (smallest first). Returns empty list if Ollama is not running.
     """
     try:
         import requests
@@ -98,10 +101,41 @@ def get_ollama_models(base_url: str = "http://localhost:11434") -> list[dict[str
         data = response.json()
         models = data.get("models", [])
 
-        # Extract model info and sort by size
-        model_list = [
-            {"name": m.get("name", ""), "size": m.get("size", 0)} for m in models
-        ]
+        # Extract model info
+        model_list: list[dict[str, Any]] = []
+        for m in models:
+            model_info: dict[str, Any] = {
+                "name": m.get("name", ""),
+                "size": m.get("size", 0),
+            }
+
+            # Optionally fetch context length from model details
+            if include_context:
+                try:
+                    show_response = requests.post(
+                        f"{base_url}/api/show",
+                        json={"name": model_info["name"]},
+                        timeout=5,
+                    )
+                    if show_response.status_code == 200:
+                        show_data = show_response.json()
+                        model_info_data = show_data.get("model_info", {})
+
+                        # Try to find context_length from model_info
+                        # Different architectures use different keys
+                        context_length = None
+                        for key, value in model_info_data.items():
+                            if "context_length" in key.lower():
+                                context_length = value
+                                break
+
+                        if context_length:
+                            model_info["context_length"] = context_length
+                except Exception:
+                    pass  # Skip context fetching if it fails
+
+            model_list.append(model_info)
+
         # Sort by size (smallest first for faster title generation)
         model_list.sort(key=lambda m: m.get("size", float("inf")))
 
@@ -148,12 +182,12 @@ def select_best_ollama_model(
     # Check for any llama3.2 variant
     for name in model_names:
         if "llama3.2" in name.lower():
-            return name
+            return str(name)
 
     # Check for any llama3 variant
     for name in model_names:
         if "llama3" in name.lower():
-            return name
+            return str(name)
 
     # Fall back to smallest model
     return models[0]["name"] if models else None

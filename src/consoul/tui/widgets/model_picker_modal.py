@@ -348,14 +348,28 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             from consoul.ai.providers import get_ollama_models, is_ollama_running
 
             if is_ollama_running():
-                ollama_models = get_ollama_models()
+                # Fetch models with context length info
+                ollama_models = get_ollama_models(include_context=True)
                 for model_info in ollama_models:
                     model_name = model_info.get("name", "")
                     if model_name and model_name not in provider_models:
+                        # Format context length
+                        context_length = model_info.get("context_length")
+                        if context_length:
+                            # Convert to human-readable format (e.g., 262144 -> 256K)
+                            if context_length >= 1_000_000:
+                                context_str = f"{context_length // 1_000_000}M"
+                            elif context_length >= 1_000:
+                                context_str = f"{context_length // 1_000}K"
+                            else:
+                                context_str = str(context_length)
+                        else:
+                            context_str = "?"
+
                         # Add dynamic Ollama model
                         provider_models[model_name] = {
                             "provider": "ollama",
-                            "context": "?",
+                            "context": context_str,
                             "cost": "free",
                             "rating": "⭐⭐",
                             "description": "Local Ollama model",
