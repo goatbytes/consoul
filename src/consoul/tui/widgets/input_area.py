@@ -32,7 +32,7 @@ class InputArea(Container):
     """
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("enter", "send_message", "Send", priority=True, show=False),
+        # Note: Enter binding is handled in on_key to allow Shift+Enter for newlines
         Binding("escape", "clear_input", "Clear", show=False),
     ]
 
@@ -102,23 +102,26 @@ class InputArea(Container):
         else:
             self.border_title = "Message (Enter to send, Shift+Enter for newline)"
 
-    async def action_send_message(self) -> None:
-        """Action to send the message (bound to Enter key)."""
-        await self._send_message()
-
     def action_clear_input(self) -> None:
         """Action to clear the input (bound to Escape key)."""
         self.clear()
 
     async def on_key(self, event: events.Key) -> None:
-        """Handle keyboard shortcuts for Shift+Enter newline.
+        """Handle keyboard shortcuts.
+
+        Shift+Enter = newline (TextArea default behavior)
+        Enter = send message
 
         Args:
             event: The key event
         """
-        # Shift+Enter = newline (allow default TextArea behavior)
-        # This doesn't prevent default, so TextArea handles it
-        pass
+        if event.key == "enter":
+            # Plain Enter: Send message
+            event.prevent_default()
+            event.stop()
+            await self._send_message()
+        # Note: shift+enter has event.key == "shift+enter", not "enter"
+        # So it falls through and TextArea handles it normally
 
     async def _send_message(self) -> None:
         """Send the current message.

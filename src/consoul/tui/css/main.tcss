@@ -225,7 +225,7 @@ ChatView:focus {
 InputArea {
     dock: bottom;
     height: auto;
-    max-height: 10;
+    max-height: 12;
     background: $surface-lighten-1;
     padding: 1;
     border: round $accent;
@@ -235,6 +235,7 @@ InputArea TextArea {
     width: 100%;
     height: auto;
     min-height: 3;
+    max-height: 10;
     background: $panel;
     color: $text;
     border: round $primary;
