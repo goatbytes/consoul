@@ -26,6 +26,20 @@ class ToolRegistry:
 
     This registry is SDK-ready and works without TUI dependencies.
 
+    IMPORTANT - Approval Workflow Coordination:
+        The registry provides approval caching (once_per_session mode) but does
+        NOT handle user approval itself. You must implement an ApprovalProvider
+        (see SOUL-66) that:
+
+        1. Checks registry.needs_approval(tool_name)
+        2. If True: Shows approval UI and gets user decision
+        3. If approved: Calls registry.mark_approved(tool_name)
+        4. Executes the tool
+
+        The registry-level caching is an optimization to avoid showing the
+        approval modal multiple times for the same tool. It does NOT replace
+        the approval provider.
+
     Example:
         >>> from consoul.config.models import ToolConfig
         >>> from consoul.ai.tools import ToolRegistry, RiskLevel
@@ -220,23 +234,39 @@ class ToolRegistry:
     def needs_approval(self, tool_name: str) -> bool:
         """Determine if tool execution requires user approval.
 
+        IMPORTANT: This method checks registry-level approval caching ONLY.
+        It does NOT invoke the approval provider (see SOUL-66). The approval
+        provider must check needs_approval() first, then show approval UI if needed.
+
+        Workflow:
+        1. Approval provider calls registry.needs_approval(tool_name)
+        2. If True: Show approval modal/prompt, get user decision
+        3. If user approves: Call registry.mark_approved(tool_name)
+        4. Execute tool
+
         Based on approval_mode configuration:
-        - 'always': Always require approval
-        - 'once_per_session': Require approval on first use, then allow
+        - 'always': Always require approval (registry never caches)
+        - 'once_per_session': Require approval on first use, then cache approval
         - 'whitelist': Only require approval for tools not in allowed_tools
 
         Args:
             tool_name: Name of tool to check
 
         Returns:
-            True if approval is required, False otherwise
+            True if approval UI should be shown, False if cached/whitelisted
 
         Example:
             >>> config = ToolConfig(approval_mode="once_per_session")
             >>> registry = ToolRegistry(config)
             >>> registry.needs_approval("bash")  # True (first time)
+            >>> # ... approval provider shows modal, user approves ...
             >>> registry.mark_approved("bash")
-            >>> registry.needs_approval("bash")  # False (already approved)
+            >>> registry.needs_approval("bash")  # False (cached, skip modal)
+
+        Warning:
+            Never execute tools when needs_approval() returns True without
+            going through the approval provider first. The registry-level
+            caching is an optimization, not a replacement for user approval.
         """
         # Auto-approve if configured (DANGEROUS!)
         if self.config.auto_approve:
@@ -260,11 +290,29 @@ class ToolRegistry:
     def mark_approved(self, tool_name: str) -> None:
         """Mark a tool as approved for this session.
 
-        Used with 'once_per_session' approval mode to track which tools
-        have been approved by the user.
+        IMPORTANT: This method should ONLY be called by the approval provider
+        AFTER the user has explicitly approved the tool execution. Never call
+        this method directly without user approval.
+
+        Used with 'once_per_session' approval mode to cache approval decisions
+        so the user doesn't need to approve the same tool multiple times in
+        one session.
 
         Args:
             tool_name: Name of tool to mark as approved
+
+        Warning:
+            Calling this method bypasses the approval UI for future executions
+            of this tool in the current session. Only call after explicit user
+            approval through the approval provider (SOUL-66).
+
+        Example:
+            >>> # In approval provider implementation:
+            >>> if registry.needs_approval("bash"):
+            ...     user_approved = show_approval_modal("bash", args)
+            ...     if user_approved:
+            ...         registry.mark_approved("bash")  # Cache approval
+            ...         # Now execute tool
         """
         self._approved_this_session.add(tool_name)
 

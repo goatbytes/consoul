@@ -389,7 +389,9 @@ class ToolConfig(BaseModel):
         default=30,
         gt=0,
         le=600,
-        description="Default timeout for tool execution in seconds (max 10 minutes)",
+        description="Default timeout for tool execution in seconds (max 10 minutes). "
+        "NOTE: This field is reserved for future use in SOUL-60 (bash tool execution). "
+        "The registry does not enforce timeouts; individual tools must implement timeout handling.",
     )
 
     @field_validator("auto_approve")
