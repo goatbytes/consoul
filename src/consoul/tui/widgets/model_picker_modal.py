@@ -29,18 +29,24 @@ log = logging.getLogger(__name__)
 # Model information database (name -> metadata)
 # Updated with latest models as of January 2025
 MODEL_INFO = {
-    # OpenAI models
+    # OpenAI models (as of January 2025)
     "gpt-4o": {
         "provider": "openai",
         "context": "128K",
         "cost": "moderate",
-        "description": "Optimized GPT-4 model with vision",
+        "description": "Multimodal GPT-4 with vision",
+    },
+    "gpt-4o-mini": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "cheap",
+        "description": "Cost-efficient with 16K output",
     },
     "gpt-4-turbo": {
         "provider": "openai",
         "context": "128K",
         "cost": "expensive",
-        "description": "Latest GPT-4 with larger context",
+        "description": "High accuracy multimodal model",
     },
     "gpt-4": {
         "provider": "openai",
@@ -48,49 +54,68 @@ MODEL_INFO = {
         "cost": "expensive",
         "description": "Original GPT-4 model",
     },
-    "gpt-3.5-turbo": {
-        "provider": "openai",
-        "context": "16K",
-        "cost": "cheap",
-        "description": "Fast and affordable",
+    # Anthropic Claude models (as of January 2025)
+    "claude-sonnet-4-5": {
+        "provider": "anthropic",
+        "context": "200K",
+        "cost": "moderate",
+        "description": "Smartest for complex agents & coding",
     },
-    # Anthropic models
+    "claude-haiku-4-5": {
+        "provider": "anthropic",
+        "context": "200K",
+        "cost": "cheap",
+        "description": "Fastest with near-frontier intelligence",
+    },
+    "claude-opus-4-1": {
+        "provider": "anthropic",
+        "context": "200K",
+        "cost": "expensive",
+        "description": "Exceptional specialized reasoning",
+    },
+    # Legacy Claude models (for backward compatibility)
     "claude-3-5-sonnet-20241022": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "moderate",
-        "description": "Latest Claude 3.5 Sonnet",
+        "description": "Legacy Claude 3.5 Sonnet",
     },
     "claude-3-opus-20240229": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "expensive",
-        "description": "Most capable Claude model",
+        "description": "Legacy Claude 3 Opus",
     },
-    "claude-3-sonnet-20240229": {
-        "provider": "anthropic",
-        "context": "200K",
+    # Google Gemini models (as of January 2025)
+    "gemini-2.5-pro": {
+        "provider": "google",
+        "context": "1M",
+        "cost": "expensive",
+        "description": "State-of-the-art thinking model",
+    },
+    "gemini-2.5-flash": {
+        "provider": "google",
+        "context": "1M",
         "cost": "moderate",
-        "description": "Balanced Claude model",
+        "description": "Best price-performance ratio",
     },
-    "claude-3-haiku-20240307": {
-        "provider": "anthropic",
-        "context": "200K",
+    "gemini-2.5-flash-lite": {
+        "provider": "google",
+        "context": "1M",
         "cost": "cheap",
-        "description": "Fast Claude model",
+        "description": "Fastest, cost-efficient flash model",
     },
-    # Google models
+    "gemini-2.0-flash": {
+        "provider": "google",
+        "context": "1M",
+        "cost": "moderate",
+        "description": "Second gen workhorse model",
+    },
     "gemini-1.5-pro": {
         "provider": "google",
         "context": "2M",
         "cost": "expensive",
-        "description": "Huge context window",
-    },
-    "gemini-pro": {
-        "provider": "google",
-        "context": "32K",
-        "cost": "moderate",
-        "description": "Google's capable model",
+        "description": "Legacy with 2M context window",
     },
     # Note: Ollama models are fetched dynamically from local service
 }
