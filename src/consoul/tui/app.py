@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, ClassVar
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.reactive import reactive
-from textual.widgets import Footer
+from textual.widgets import Footer, Input
 
 if TYPE_CHECKING:
     from langchain_core.language_models.chat_models import BaseChatModel
@@ -626,8 +626,13 @@ class ConsoulApp(App[None]):
         self.notify("Export (Phase 4)")
 
     def action_search_history(self) -> None:
-        """Show search interface."""
-        self.notify("Search (Phase 4)")
+        """Focus search input in top bar."""
+        try:
+            search_input = self.query_one("#search-input", Input)
+            search_input.focus()
+            self.log.info("Focused search input via Ctrl+S")
+        except Exception as e:
+            self.log.warning(f"Could not focus search input: {e}")
 
     def action_focus_input(self) -> None:
         """Focus the input area."""
@@ -832,11 +837,38 @@ class ConsoulApp(App[None]):
         )
         self.push_screen(modal, on_profile_selected)
 
-    async def on_contextual_top_bar_search_requested(
-        self, event: ContextualTopBar.SearchRequested
+    async def on_contextual_top_bar_search_changed(
+        self, event: ContextualTopBar.SearchChanged
     ) -> None:
-        """Handle search request from top bar."""
-        self.notify("Search - Coming in SOUL-45", severity="information")
+        """Handle search query changes from top bar.
+
+        Args:
+            event: SearchChanged event with query string
+        """
+        if not hasattr(self, "conversation_list") or not self.conversation_list:
+            return
+
+        # Perform search using FTS5
+        await self.conversation_list.search(event.query)
+
+        # Update top bar with result count
+        result_count = len(self.conversation_list.table.rows)
+        self.top_bar.search_result_count = result_count
+        self.log.info(f"Search query='{event.query}', results={result_count}")
+
+    async def on_contextual_top_bar_search_cleared(
+        self, event: ContextualTopBar.SearchCleared
+    ) -> None:
+        """Handle search cleared from top bar."""
+        if not hasattr(self, "conversation_list") or not self.conversation_list:
+            return
+
+        # Clear search - reload all conversations
+        await self.conversation_list.search("")
+
+        # Clear result count from top bar
+        self.top_bar.search_result_count = None
+        self.log.info("Search cleared, showing all conversations")
 
     def _switch_profile(self, profile_name: str) -> None:
         """Switch to a different profile WITHOUT changing model/provider.
