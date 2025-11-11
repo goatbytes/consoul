@@ -13,6 +13,7 @@ from consoul.tui.widgets.input_area import InputArea
 from consoul.tui.widgets.message_bubble import MessageBubble
 from consoul.tui.widgets.model_picker_modal import ModelPickerModal
 from consoul.tui.widgets.profile_selector_modal import ProfileSelectorModal
+from consoul.tui.widgets.search_bar import SearchBar
 from consoul.tui.widgets.streaming_response import StreamingResponse
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     "MessageBubble",
     "ModelPickerModal",
     "ProfileSelectorModal",
+    "SearchBar",
     "StreamingResponse",
 ]

@@ -226,6 +226,9 @@ class ConsoulApp(App[None]):
                 self.config.gc_interval_seconds, self._idle_gc
             )
 
+        # Set up search polling timer (to avoid focus/freeze issues)
+        self.set_interval(0.2, self._poll_search_query)
+
         # Update top bar with initial state
         self._update_top_bar_state()
 
@@ -628,7 +631,10 @@ class ConsoulApp(App[None]):
     def action_search_history(self) -> None:
         """Focus search input in top bar."""
         try:
-            search_input = self.query_one("#search-input", Input)
+            from consoul.tui.widgets.search_bar import SearchBar
+
+            search_bar = self.query_one("#search-bar", SearchBar)
+            search_input = search_bar.query_one("#search-input", Input)
             search_input.focus()
             self.log.info("Focused search input via Ctrl+S")
         except Exception as e:
@@ -837,50 +843,31 @@ class ConsoulApp(App[None]):
         )
         self.push_screen(modal, on_profile_selected)
 
-    async def on_contextual_top_bar_search_changed(
-        self, event: ContextualTopBar.SearchChanged
-    ) -> None:
-        """Handle search query changes from top bar.
+    async def _poll_search_query(self) -> None:
+        """Poll search query from SearchBar to avoid focus issues."""
+        from consoul.tui.widgets.search_bar import SearchBar
 
-        Args:
-            event: SearchChanged event with query string
-        """
-        if not hasattr(self, "conversation_list") or not self.conversation_list:
-            return
-
-        # Perform search using FTS5
-        await self.conversation_list.search(event.query)
-
-        # Update top bar with result count
-        result_count = len(self.conversation_list.table.rows)
-        self.top_bar.search_result_count = result_count
-        self.log.info(f"Search query='{event.query}', results={result_count}")
-
-        # Restore focus to search input after table update
         try:
-            search_input = self.query_one("#search-input", Input)
-            search_input.focus()
-        except Exception:
-            pass
+            search_bar = self.query_one("#search-bar", SearchBar)
+            current_query = search_bar.get_search_query()
 
-    async def on_contextual_top_bar_search_cleared(
-        self, event: ContextualTopBar.SearchCleared
-    ) -> None:
-        """Handle search cleared from top bar."""
-        if not hasattr(self, "conversation_list") or not self.conversation_list:
-            return
+            # Check if query changed
+            if not hasattr(self, "_last_search_query"):
+                self._last_search_query = ""
 
-        # Clear search - reload all conversations
-        await self.conversation_list.search("")
+            if current_query != self._last_search_query:
+                self._last_search_query = current_query
 
-        # Clear result count from top bar
-        self.top_bar.search_result_count = None
-        self.log.info("Search cleared, showing all conversations")
+                # Perform search
+                if current_query:
+                    await self.conversation_list.search(current_query)
+                else:
+                    await self.conversation_list.search("")
 
-        # Restore focus to search input after clearing
-        try:
-            search_input = self.query_one("#search-input", Input)
-            search_input.focus()
+                # Update match count in search bar
+                result_count = len(self.conversation_list.table.rows)
+                search_bar.update_match_count(result_count)
+                self.log.info(f"Search query='{current_query}', results={result_count}")
         except Exception:
             pass
 

@@ -10,12 +10,13 @@ from typing import TYPE_CHECKING
 from textual.containers import Horizontal
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import Input, Label, Static
+from textual.widgets import Label, Static
 
 if TYPE_CHECKING:
-    import textual.events
     from textual.app import ComposeResult
     from textual.events import Click
+
+from consoul.tui.widgets.search_bar import SearchBar
 
 __all__ = ["ContextualTopBar"]
 
@@ -86,23 +87,12 @@ class ContextualTopBar(Static):
         padding: 0 1;
     }
 
-    ContextualTopBar #search-input {
-        width: 50;
+    ContextualTopBar .search-bar {
+        width: 1fr;
+        max-width: 60;
         height: 1;
-        background: $surface;
-        border: none;
-        margin: 0 2;
-    }
-
-    ContextualTopBar #search-input:focus {
-        border: tall $accent;
-    }
-
-    ContextualTopBar .search-result-badge {
-        color: $accent;
-        text-style: bold;
-        background: transparent;
-        margin: 0 1;
+        margin: 0;
+        padding: 0;
     }
 
     /* Right Zone - System Info */
@@ -159,7 +149,6 @@ class ContextualTopBar(Static):
     conversation_count: reactive[int] = reactive(0)
     streaming: reactive[bool] = reactive(False)
     terminal_width: reactive[int] = reactive(80)
-    search_result_count: reactive[int | None] = reactive(None)
 
     # Custom message types
     class SearchChanged(Message):
@@ -243,20 +232,8 @@ class ContextualTopBar(Static):
 
     def _compose_action_zone(self) -> ComposeResult:
         """Compose the action/search zone."""
-        # Search input
-        yield Input(
-            placeholder="🔍 Search conversations...",
-            id="search-input",
-        )
-
-        # Result count badge (shown when searching)
-        if self.search_result_count is not None:
-            result_text = f"🔍 {self.search_result_count} result{'s' if self.search_result_count != 1 else ''}"
-            yield Label(
-                result_text,
-                classes="search-result-badge",
-                id="search-result-badge",
-            )
+        # Search bar widget
+        yield SearchBar(id="search-bar", classes="search-bar")
 
     def _compose_status_zone(self) -> ComposeResult:
         """Compose the system info zone."""
@@ -339,36 +316,6 @@ class ContextualTopBar(Static):
         """React to streaming state changes."""
         # Trigger recompose to show/hide streaming indicator
         self.refresh(recompose=True)
-
-    def watch_search_result_count(self, count: int | None) -> None:
-        """React to search result count changes."""
-        # Trigger recompose to show/hide result badge
-        self.refresh(recompose=True)
-
-    def on_input_changed(self, event: Input.Changed) -> None:
-        """Handle search input changes."""
-        if event.input.id == "search-input":
-            query = event.value.strip()
-            if query:
-                self.post_message(self.SearchChanged(query))
-            else:
-                self.post_message(self.SearchCleared())
-            # Prevent event from bubbling to avoid focus changes
-            event.stop()
-
-    def on_key(self, event: textual.events.Key) -> None:
-        """Handle key presses for search shortcuts."""
-        # Check if search input is focused
-        try:
-            search_input = self.query_one("#search-input", Input)
-            if search_input.has_focus and event.key == "escape":
-                # Clear search on Escape
-                search_input.value = ""
-                self.post_message(self.SearchCleared())
-                event.stop()
-                event.prevent_default()
-        except Exception:
-            pass
 
     async def on_click(self, event: Click) -> None:
         """Handle click events on action buttons."""
