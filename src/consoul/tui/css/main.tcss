@@ -188,7 +188,7 @@ ChatView:focus {
 }
 
 .tool-denied {
-    border: round $text-muted;
+    border: round gray;
     border-title-color: $text-muted;
 }
 
