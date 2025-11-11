@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T16:23:25.386922",
-  "updated_at": "2025-11-08T16:56:47.158749",
+  "updated_at": "2025-11-11T04:27:46.253255Z",
   "id": "SOUL-17",
   "uuid": "6d728a4e-7f44-4d2b-8344-37fcb2158633",
   "title": "Implement YAML config loader with precedence",
@@ -13,6 +13,7 @@
     "enhancement",
     "yaml"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],

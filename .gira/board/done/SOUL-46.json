@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:15:47.414952",
-  "updated_at": "2025-11-11T01:43:39.324926Z",
+  "updated_at": "2025-11-11T04:27:46.248706Z",
   "id": "SOUL-46",
   "uuid": "800deb2b-6b16-46f6-a21b-f3d4d150ad37",
   "title": "Create export/import UI for conversations",
@@ -13,6 +13,7 @@
     "export",
     "import"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

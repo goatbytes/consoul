@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:13:40.068538",
-  "updated_at": "2025-11-10T06:50:39.243863Z",
+  "updated_at": "2025-11-11T04:27:46.235255Z",
   "id": "SOUL-39",
   "uuid": "d06fc3b7-145c-4da1-9ecc-ad1872deaba1",
   "title": "Create InputArea widget with multi-line support",
@@ -13,6 +13,7 @@
     "widgets",
     "input"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-01-10T00:00:00",
-  "updated_at": "2025-11-11T02:21:27.418468Z",
+  "updated_at": "2025-11-11T04:27:46.249041Z",
   "id": "SOUL-55",
   "uuid": "10c56765-ad42-47ce-9fc5-734e5073ae8a",
   "title": "Create ContextualTopBar widget as command center",
@@ -13,6 +13,7 @@
     "widgets",
     "ux-improvement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

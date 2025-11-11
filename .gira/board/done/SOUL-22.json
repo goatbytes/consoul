@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T16:29:05.922647",
-  "updated_at": "2025-11-09T20:25:01.720715Z",
+  "updated_at": "2025-11-11T04:27:46.237727Z",
   "id": "SOUL-22",
   "uuid": "af115352-5d96-4cad-89df-58e01ef1758c",
   "title": "Implement Anthropic provider support",
@@ -13,6 +13,7 @@
     "providers",
     "anthropic"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],

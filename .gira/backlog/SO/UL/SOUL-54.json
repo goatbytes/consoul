@@ -1,17 +1,18 @@
 {
   "created_at": "2025-11-09T20:16:29.532220",
-  "updated_at": "2025-11-09T20:16:29.532231",
+  "updated_at": "2025-11-11T04:29:58.986642Z",
   "id": "SOUL-54",
   "uuid": "bf8bfb91-b209-4b3b-9eab-4738efc71309",
   "title": "Write TUI documentation and user guide",
   "description": "Create TUI user guide. Document keyboard shortcuts, features, configuration options. Add screenshots/screencasts, troubleshooting section, API docs for library usage (Gira integration).",
-  "status": "todo",
+  "status": "backlog",
   "type": "task",
   "priority": "medium",
   "labels": [
     "tui",
     "documentation"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

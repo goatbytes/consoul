@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:15:53.788120",
-  "updated_at": "2025-11-11T02:20:43.340663Z",
+  "updated_at": "2025-11-11T04:27:46.253888Z",
   "id": "SOUL-49",
   "uuid": "3f3f2861-58ee-4ca1-b29d-75d29abdef74",
   "title": "Implement theme switching UI",
@@ -12,6 +12,7 @@
     "tui",
     "themes"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [

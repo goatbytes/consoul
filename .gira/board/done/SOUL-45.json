@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:15:45.471694",
-  "updated_at": "2025-11-11T01:03:32.417288Z",
+  "updated_at": "2025-11-11T04:27:46.243128Z",
   "id": "SOUL-45",
   "uuid": "cfed52c2-78c8-4cf4-b145-8c9adcb13885",
   "title": "Add search functionality for conversation history",
@@ -13,6 +13,7 @@
     "search",
     "fts5"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [

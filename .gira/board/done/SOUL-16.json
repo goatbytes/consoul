@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T16:23:23.724869",
-  "updated_at": "2025-11-08T16:47:40.520634",
+  "updated_at": "2025-11-11T04:27:46.246930Z",
   "id": "SOUL-16",
   "uuid": "dfac89d7-df92-4303-bee5-97864548d79e",
   "title": "Create Pydantic configuration models",
@@ -13,6 +13,7 @@
     "enhancement",
     "pydantic"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],

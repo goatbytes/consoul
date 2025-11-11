@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:15:05.999956",
-  "updated_at": "2025-11-10T08:24:59.705485Z",
+  "updated_at": "2025-11-11T04:27:46.236773Z",
   "id": "SOUL-41",
   "uuid": "22ba0f4b-21a0-4b0f-8cf6-9146c719c247",
   "title": "Connect TUI to AI providers for streaming responses",
@@ -13,6 +13,7 @@
     "ai-integration",
     "streaming"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-10T19:46:38.277701",
-  "updated_at": "2025-11-10T19:46:38.277720",
+  "updated_at": "2025-11-11T04:27:46.242745Z",
   "id": "SOUL-61",
   "uuid": "01d01a2b-4ffc-4ec6-8c8a-ac9478f14327",
   "title": "Detect and parse tool calls in streaming responses",
@@ -13,6 +13,7 @@
     "streaming",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-004",
   "blocked_by": [],

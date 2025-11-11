@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-10T20:11:03.238647",
-  "updated_at": "2025-11-10T20:11:03.238654",
+  "updated_at": "2025-11-11T04:27:59.717912Z",
   "id": "SOUL-68",
   "uuid": "364b0c29-515a-4704-9405-062dc9706710",
   "title": "Create SDK integration guide for tool calling system",
@@ -14,6 +14,7 @@
     "tools",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-004",
   "blocked_by": [],

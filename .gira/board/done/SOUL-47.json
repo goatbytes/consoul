@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:15:49.368836",
-  "updated_at": "2025-11-11T02:20:46.453624Z",
+  "updated_at": "2025-11-11T04:27:46.231281Z",
   "id": "SOUL-47",
   "uuid": "fb93c9c5-8c01-4426-a0ce-cf5eea9ce025",
   "title": "Implement settings screen",
@@ -12,6 +12,7 @@
     "tui",
     "settings"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [

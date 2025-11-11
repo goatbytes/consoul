@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T16:27:56.974893",
-  "updated_at": "2025-11-09T02:14:30.081063Z",
+  "updated_at": "2025-11-11T04:27:46.247623Z",
   "id": "SOUL-20",
   "uuid": "158b4a92-c2d4-4e60-912c-6d333cc8be42",
   "title": "Setup LangChain provider initialization",
@@ -13,6 +13,7 @@
     "providers",
     "langchain"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-10T20:09:01.081346",
-  "updated_at": "2025-11-10T20:09:01.081355",
+  "updated_at": "2025-11-11T04:27:59.715614Z",
   "id": "SOUL-67",
   "uuid": "0a934a1a-addd-4544-8b2f-aa327ee4bd93",
   "title": "Implement audit logging and approval history for tool executions",
@@ -14,6 +14,7 @@
     "audit",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-004",
   "blocked_by": [],

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T16:23:27.227871",
-  "updated_at": "2025-11-09T01:24:25.687558Z",
+  "updated_at": "2025-11-11T04:27:46.251949Z",
   "id": "SOUL-18",
   "uuid": "7580a0fc-a04f-48c7-864f-910c6b876d50",
   "title": "Add profile system with default profiles",
@@ -13,6 +13,7 @@
     "enhancement",
     "profiles"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],

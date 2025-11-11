@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:12:59.261542",
-  "updated_at": "2025-11-10T21:53:22.006407Z",
+  "updated_at": "2025-11-11T04:27:46.251603Z",
   "id": "SOUL-38",
   "uuid": "383e30c8-9a12-4a25-b2d5-a5933d3702ed",
   "title": "Create MessageBubble widget with markdown rendering",
@@ -13,6 +13,7 @@
     "widgets",
     "markdown"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

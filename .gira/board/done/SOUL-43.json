@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:15:22.710452",
-  "updated_at": "2025-11-09T20:15:22.710475",
+  "updated_at": "2025-11-11T04:27:46.234449Z",
   "id": "SOUL-43",
   "uuid": "69edd291-c746-4691-b37a-4269694b5cc6",
   "title": "Implement conversation switching functionality",
@@ -12,6 +12,7 @@
     "tui",
     "conversation"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

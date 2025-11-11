@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:12:23.492250",
-  "updated_at": "2025-11-10T06:01:09.121377Z",
+  "updated_at": "2025-11-11T04:27:46.244342Z",
   "id": "SOUL-37",
   "uuid": "8071234c-edc6-49a6-b67d-af65da70e628",
   "title": "Create StreamingResponse widget for real-time AI output",
@@ -13,6 +13,7 @@
     "widgets",
     "streaming"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

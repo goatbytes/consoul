@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:15:51.818073",
-  "updated_at": "2025-11-11T02:27:19.940746Z",
+  "updated_at": "2025-11-11T04:27:46.240734Z",
   "id": "SOUL-48",
   "uuid": "2680719e-aff3-4e26-9325-77cf89b57b01",
   "title": "Add help modal with keyboard shortcuts",
@@ -13,6 +13,7 @@
     "help",
     "documentation"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [

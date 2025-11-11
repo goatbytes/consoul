@@ -1,17 +1,18 @@
 {
   "created_at": "2025-11-09T20:16:13.372035",
-  "updated_at": "2025-11-09T20:16:13.372046",
+  "updated_at": "2025-11-11T04:29:43.383481Z",
   "id": "SOUL-50",
   "uuid": "748b1656-9ad8-4c15-a0e0-f70e4d7cf929",
   "title": "Implement comprehensive error handling",
   "description": "Add error handling utils. Graceful degradation for API errors, network failures, database issues. Display user-friendly error bubbles, log technical details, implement retry logic.",
-  "status": "todo",
+  "status": "backlog",
   "type": "feature",
   "priority": "high",
   "labels": [
     "tui",
     "error-handling"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

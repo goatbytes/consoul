@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T16:29:10.075023",
-  "updated_at": "2025-11-09T19:39:45.928037Z",
+  "updated_at": "2025-11-11T04:27:46.241951Z",
   "id": "SOUL-24",
   "uuid": "8d5050fc-7360-4c36-a1f4-407fb49839db",
   "title": "Implement Ollama provider support for local models",
@@ -14,6 +14,7 @@
     "ollama",
     "local"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],

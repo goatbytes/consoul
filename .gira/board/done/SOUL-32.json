@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T19:45:41.705933",
-  "updated_at": "2025-11-10T03:57:21.161837Z",
+  "updated_at": "2025-11-11T04:27:46.238546Z",
   "id": "SOUL-32",
   "uuid": "eb0e3374-1d67-421b-8f4a-7465f110658e",
   "title": "Setup TUI directory structure and base files",
@@ -13,6 +13,7 @@
     "foundation",
     "setup"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

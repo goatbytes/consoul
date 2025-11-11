@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:15:20.793288",
-  "updated_at": "2025-11-09T20:15:20.793298",
+  "updated_at": "2025-11-11T04:27:46.254563Z",
   "id": "SOUL-42",
   "uuid": "660bb356-4e57-4d21-ac7a-2cb74011852f",
   "title": "Integrate database for conversation persistence",
@@ -12,6 +12,7 @@
     "tui",
     "database"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

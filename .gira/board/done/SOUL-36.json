@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:11:43.189884",
-  "updated_at": "2025-11-10T05:32:31.239304Z",
+  "updated_at": "2025-11-11T04:27:46.252764Z",
   "id": "SOUL-36",
   "uuid": "c85355b1-7e7e-4c22-b4e9-fb3d692ef983",
   "title": "Create ChatView widget for message display",
@@ -13,6 +13,7 @@
     "widgets",
     "textual"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

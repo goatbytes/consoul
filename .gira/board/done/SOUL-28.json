@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T13:46:26.346461",
-  "updated_at": "2025-11-09T15:29:52.843845",
+  "updated_at": "2025-11-11T04:27:46.233588Z",
   "id": "SOUL-28",
   "uuid": "bdf00214-ca0d-40cc-838d-795430207fbb",
   "title": "Implement conversation summarization for context compression",
@@ -14,6 +14,7 @@
     "context",
     "cost-optimization"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],

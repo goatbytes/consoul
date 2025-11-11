@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T16:29:11.843308",
-  "updated_at": "2025-11-09T21:08:28.717051Z",
+  "updated_at": "2025-11-11T04:27:46.236097Z",
   "id": "SOUL-25",
   "uuid": "15c4deb8-22b3-4d84-9049-136201deb40d",
   "title": "Add streaming response handling",
@@ -13,6 +13,7 @@
     "streaming",
     "ux"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],

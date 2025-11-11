@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-10T19:48:19.661515",
-  "updated_at": "2025-11-10T19:48:19.661526",
+  "updated_at": "2025-11-11T04:27:59.717384Z",
   "id": "SOUL-65",
   "uuid": "9c9d5478-ea8a-4cfa-854c-081088ec3196",
   "title": "Add tool calling documentation and examples",
@@ -13,6 +13,7 @@
     "tools",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-004",
   "blocked_by": [],

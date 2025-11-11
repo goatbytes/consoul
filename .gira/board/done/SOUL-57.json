@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-10T18:55:58.075088",
-  "updated_at": "2025-11-11T03:04:29.213460Z",
+  "updated_at": "2025-11-11T04:27:46.239772Z",
   "id": "SOUL-57",
   "uuid": "cdef5f94-18da-4de2-ac88-de8f0b778eff",
   "title": "Add loading indicator before AI streaming starts",
@@ -9,6 +9,7 @@
   "type": "feature",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

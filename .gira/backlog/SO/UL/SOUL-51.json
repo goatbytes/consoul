@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-09T20:16:15.460002",
-  "updated_at": "2025-11-09T20:16:15.460013",
+  "updated_at": "2025-11-11T04:29:49.884120Z",
   "id": "SOUL-51",
   "uuid": "d2889971-1d92-41f5-8ced-2098277831ae",
   "title": "Optimize TUI performance",
   "description": "Profile TUI performance. Optimize GC settings, widget rendering, scroll performance. Benchmark streaming with 10K+ tokens, conversation list with 2K+ items. Target <500ms launch, <16ms frame time.",
-  "status": "todo",
+  "status": "backlog",
   "type": "task",
   "priority": "medium",
   "labels": [
@@ -13,6 +13,7 @@
     "performance",
     "optimization"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

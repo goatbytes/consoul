@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-10T14:35:31.774869",
-  "updated_at": "2025-11-10T14:35:31.774875",
+  "updated_at": "2025-11-11T04:27:46.246376Z",
   "id": "SOUL-56",
   "uuid": "ecc5ef8c-947c-4d06-ab61-0a2e2939b32e",
   "title": "Decouple profiles from model/provider configuration",
@@ -13,6 +13,7 @@
     "refactor",
     "breaking-change"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

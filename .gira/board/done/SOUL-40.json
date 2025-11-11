@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-09T20:14:21.579950",
-  "updated_at": "2025-11-09T20:14:21.579958",
+  "updated_at": "2025-11-11T04:27:46.249825Z",
   "id": "SOUL-40",
   "uuid": "daf6df01-636b-4bd9-88ce-b598dbba2882",
   "title": "Create ConversationList sidebar with virtualization",
@@ -13,6 +13,7 @@
     "widgets",
     "virtualization"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-003",
   "blocked_by": [],

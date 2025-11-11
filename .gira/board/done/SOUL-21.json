@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-08T16:29:04.062576",
-  "updated_at": "2025-11-09T08:08:13.509699Z",
+  "updated_at": "2025-11-11T04:27:46.251286Z",
   "id": "SOUL-21",
   "uuid": "d6e43385-04a8-4156-995e-7f0d6dbd9b3b",
   "title": "Implement OpenAI provider support",
@@ -13,6 +13,7 @@
     "providers",
     "openai"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],
