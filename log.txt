@@ -1,0 +1,119 @@
+2025-11-11 00:09:08,452 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./log.txt
+2025-11-11 00:09:09,527 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-11 00:09:09,535 - urllib3.connectionpool - DEBUG - http://localhost:11434 "GET /api/tags HTTP/1.1" 200 None
+2025-11-11 00:09:09,535 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-11 00:09:09,540 - urllib3.connectionpool - DEBUG - http://localhost:11434 "GET /api/tags HTTP/1.1" 200 None
+2025-11-11 00:09:09,541 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-11 00:09:09,546 - urllib3.connectionpool - DEBUG - http://localhost:11434 "GET /api/tags HTTP/1.1" 200 None
+2025-11-11 00:09:09,572 - asyncio - DEBUG - Using selector: KqueueSelector
+2025-11-11 00:09:12,289 - markdown_it.rules_block.code - DEBUG - entering code: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,289 - markdown_it.rules_block.fence - DEBUG - entering fence: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,290 - markdown_it.rules_block.blockquote - DEBUG - entering blockquote: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,290 - markdown_it.rules_block.hr - DEBUG - entering hr: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,290 - markdown_it.rules_block.list - DEBUG - entering list: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,290 - markdown_it.rules_block.reference - DEBUG - entering reference: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,290 - markdown_it.rules_block.html_block - DEBUG - entering html_block: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,290 - markdown_it.rules_block.heading - DEBUG - entering heading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,290 - markdown_it.rules_block.lheading - DEBUG - entering lheading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,290 - markdown_it.rules_block.paragraph - DEBUG - entering paragraph: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,291 - markdown_it.rules_block.code - DEBUG - entering code: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,291 - markdown_it.rules_block.fence - DEBUG - entering fence: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,291 - markdown_it.rules_block.blockquote - DEBUG - entering blockquote: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,291 - markdown_it.rules_block.hr - DEBUG - entering hr: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,291 - markdown_it.rules_block.list - DEBUG - entering list: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,291 - markdown_it.rules_block.reference - DEBUG - entering reference: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,291 - markdown_it.rules_block.html_block - DEBUG - entering html_block: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,291 - markdown_it.rules_block.heading - DEBUG - entering heading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,291 - markdown_it.rules_block.lheading - DEBUG - entering lheading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,291 - markdown_it.rules_block.paragraph - DEBUG - entering paragraph: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:12,292 - consoul.ai.history - INFO - Created new conversation session: b0add9a5-5cc5-4009-8703-9961a9f1eb9e
+2025-11-11 00:09:12,304 - openai._base_client - DEBUG - Request options: {'method': 'post', 'url': '/chat/completions', 'files': None, 'idempotency_key': 'stainless-python-retry-12cab75f-31ef-46eb-a24f-9bb8b24b3d3a', 'json_data': {'messages': [{'content': 'You are a helpful AI assistant.', 'role': 'system'}, {'content': 'Hello, how are you?', 'role': 'user'}], 'model': 'gpt-4o', 'max_completion_tokens': 4096, 'stream': True, 'stream_options': {'include_usage': True}, 'temperature': 1.0, 'tools': [{'type': 'function', 'function': {'name': 'bash_execute', 'description': 'Execute a bash command with security controls.\n\n    This tool executes bash commands with strict security controls including:\n    - Command validation (blocks dangerous patterns like sudo, rm -rf /, etc.)\n    - Timeout enforcement (default from profile config)\n    - Working directory control\n    - Detailed output capture\n\n    The tool uses the BashToolConfig from the active profile\'s ToolConfig.bash\n    settings. Call set_bash_config() to inject the profile configuration before\n    tool registration.\n\n    Args:\n        command: The bash command to execute\n        timeout: Optional timeout override in seconds (default from config)\n        working_directory: Optional working directory override (default from config)\n\n    Returns:\n        Command output. Format depends on result:\n        - Success (exit 0): stdout content\n        - Failure (exit != 0): "Command failed with exit code X:\\nstderr"\n        - Blocked: Error message with blocked pattern\n\n    Example:\n        >>> bash_execute("ls -la")\n        \'total 48\\ndrwxr-xr-x  12 user  staff   384 Nov 10 21:00 .\\n...\'\n        >>> bash_execute("sudo rm -rf /")\n        \'Command blocked: matches pattern \\\'sudo\\\\s\\\'...\'', 'parameters': {'properties': {'command': {'type': 'string'}, 'timeout': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None}, 'working_directory': {'anyOf': [{'type': 'string'}, {'type': 'null'}], 'default': None}}, 'required': ['command'], 'type': 'object'}}}]}}
+2025-11-11 00:09:12,339 - openai._base_client - DEBUG - Sending HTTP Request: POST https://api.openai.com/v1/chat/completions
+2025-11-11 00:09:12,347 - httpcore.connection - DEBUG - connect_tcp.started host='api.openai.com' port=443 local_address=None timeout=None socket_options=None
+2025-11-11 00:09:12,427 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x1203a6690>
+2025-11-11 00:09:12,427 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x117c665d0> server_hostname='api.openai.com' timeout=None
+2025-11-11 00:09:12,454 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x120883110>
+2025-11-11 00:09:12,454 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-11-11 00:09:12,454 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-11-11 00:09:12,454 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-11-11 00:09:12,454 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-11-11 00:09:12,454 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-11-11 00:09:13,003 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Tue, 11 Nov 2025 08:09:13 GMT'), (b'Content-Type', b'text/event-stream; charset=utf-8'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'access-control-expose-headers', b'X-Request-ID'), (b'openai-organization', b'sunny-health-m9gttv'), (b'openai-processing-ms', b'429'), (b'openai-project', b'proj_bNJzpxjdLUoFYBHjiMroaVUE'), (b'openai-version', b'2020-10-01'), (b'x-envoy-upstream-service-time', b'441'), (b'x-ratelimit-limit-requests', b'500'), (b'x-ratelimit-limit-tokens', b'30000'), (b'x-ratelimit-remaining-requests', b'499'), (b'x-ratelimit-remaining-tokens', b'29984'), (b'x-ratelimit-reset-requests', b'120ms'), (b'x-ratelimit-reset-tokens', b'32ms'), (b'x-request-id', b'req_ad32dcee3d37481480ae9c68535e0b0e'), (b'x-openai-proxy-wasm', b'v0.1'), (b'cf-cache-status', b'DYNAMIC'), (b'Set-Cookie', b'__cf_bm=tc7uFrwWPgGqKNEAxVGolnsLZ1SHvR.DnrDuzfpEUaM-1762848553-1.0.1.1-a2f1iXSR3wtxuZ.WwIr9CCvPXpG7.bp6PmlX24gqNa7IKscwEZb7DO3o2JGQ1Vpbc4eT98g4IbNeJiL1M1AFG.yl0nM.T3jN07PoqRKFhk4; path=/; expires=Tue, 11-Nov-25 08:39:13 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'Set-Cookie', b'_cfuvid=HPWogaQtvn4Vf5lf89Vx0kmWOzyCWKt51segH9HSPOg-1762848553037-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), (b'Server', b'cloudflare'), (b'CF-RAY', b'99cc4e5d4b147eb4-LAX'), (b'alt-svc', b'h3=":443"; ma=86400')])
+2025-11-11 00:09:13,006 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-11-11 00:09:13,007 - openai._base_client - DEBUG - HTTP Response: POST https://api.openai.com/v1/chat/completions "200 OK" Headers([('date', 'Tue, 11 Nov 2025 08:09:13 GMT'), ('content-type', 'text/event-stream; charset=utf-8'), ('transfer-encoding', 'chunked'), ('connection', 'keep-alive'), ('access-control-expose-headers', 'X-Request-ID'), ('openai-organization', 'sunny-health-m9gttv'), ('openai-processing-ms', '429'), ('openai-project', 'proj_bNJzpxjdLUoFYBHjiMroaVUE'), ('openai-version', '2020-10-01'), ('x-envoy-upstream-service-time', '441'), ('x-ratelimit-limit-requests', '500'), ('x-ratelimit-limit-tokens', '30000'), ('x-ratelimit-remaining-requests', '499'), ('x-ratelimit-remaining-tokens', '29984'), ('x-ratelimit-reset-requests', '120ms'), ('x-ratelimit-reset-tokens', '32ms'), ('x-request-id', 'req_ad32dcee3d37481480ae9c68535e0b0e'), ('x-openai-proxy-wasm', 'v0.1'), ('cf-cache-status', 'DYNAMIC'), ('set-cookie', '__cf_bm=tc7uFrwWPgGqKNEAxVGolnsLZ1SHvR.DnrDuzfpEUaM-1762848553-1.0.1.1-a2f1iXSR3wtxuZ.WwIr9CCvPXpG7.bp6PmlX24gqNa7IKscwEZb7DO3o2JGQ1Vpbc4eT98g4IbNeJiL1M1AFG.yl0nM.T3jN07PoqRKFhk4; path=/; expires=Tue, 11-Nov-25 08:39:13 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), ('strict-transport-security', 'max-age=31536000; includeSubDomains; preload'), ('x-content-type-options', 'nosniff'), ('set-cookie', '_cfuvid=HPWogaQtvn4Vf5lf89Vx0kmWOzyCWKt51segH9HSPOg-1762848553037-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), ('server', 'cloudflare'), ('cf-ray', '99cc4e5d4b147eb4-LAX'), ('alt-svc', 'h3=":443"; ma=86400')])
+2025-11-11 00:09:13,008 - openai._base_client - DEBUG - request_id: req_ad32dcee3d37481480ae9c68535e0b0e
+2025-11-11 00:09:13,009 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-11-11 00:09:13,196 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=1762848553196ms, total_len=5
+2025-11-11 00:09:13,196 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 5 chars
+2025-11-11 00:09:13,197 - markdown_it.rules_block.code - DEBUG - entering code: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,197 - markdown_it.rules_block.fence - DEBUG - entering fence: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,197 - markdown_it.rules_block.blockquote - DEBUG - entering blockquote: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,197 - markdown_it.rules_block.hr - DEBUG - entering hr: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,197 - markdown_it.rules_block.list - DEBUG - entering list: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,197 - markdown_it.rules_block.reference - DEBUG - entering reference: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,197 - markdown_it.rules_block.html_block - DEBUG - entering html_block: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,197 - markdown_it.rules_block.heading - DEBUG - entering heading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,197 - markdown_it.rules_block.lheading - DEBUG - entering lheading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,197 - markdown_it.rules_block.paragraph - DEBUG - entering paragraph: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,197 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=1ms, total_len=6
+2025-11-11 00:09:13,205 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=9ms, total_len=10
+2025-11-11 00:09:13,205 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=10ms, total_len=15
+2025-11-11 00:09:13,206 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=10ms, total_len=19
+2025-11-11 00:09:13,206 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=10ms, total_len=25
+2025-11-11 00:09:13,220 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=25ms, total_len=28
+2025-11-11 00:09:13,221 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=25ms, total_len=35
+2025-11-11 00:09:13,221 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=34, time_since=26ms, total_len=39
+2025-11-11 00:09:13,222 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=26ms, total_len=40
+2025-11-11 00:09:13,222 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=26ms, total_len=44
+2025-11-11 00:09:13,222 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=27ms, total_len=48
+2025-11-11 00:09:13,224 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=45, time_since=28ms, total_len=50
+2025-11-11 00:09:13,224 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=28ms, total_len=55
+2025-11-11 00:09:13,258 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=54, time_since=62ms, total_len=59
+2025-11-11 00:09:13,258 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=60, time_since=63ms, total_len=65
+2025-11-11 00:09:13,264 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=61, time_since=68ms, total_len=66
+2025-11-11 00:09:13,268 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-11-11 00:09:13,268 - httpcore.http11 - DEBUG - response_closed.started
+2025-11-11 00:09:13,268 - httpcore.http11 - DEBUG - response_closed.complete
+2025-11-11 00:09:13,276 - httpcore.connection - DEBUG - connect_tcp.started host='localhost' port=11434 local_address=None timeout=None socket_options=None
+2025-11-11 00:09:13,282 - markdown_it.rules_block.code - DEBUG - entering code: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,282 - markdown_it.rules_block.fence - DEBUG - entering fence: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,282 - markdown_it.rules_block.blockquote - DEBUG - entering blockquote: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,282 - markdown_it.rules_block.hr - DEBUG - entering hr: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,282 - markdown_it.rules_block.list - DEBUG - entering list: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,282 - markdown_it.rules_block.reference - DEBUG - entering reference: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,282 - markdown_it.rules_block.html_block - DEBUG - entering html_block: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,282 - markdown_it.rules_block.heading - DEBUG - entering heading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,282 - markdown_it.rules_block.lheading - DEBUG - entering lheading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,282 - markdown_it.rules_block.paragraph - DEBUG - entering paragraph: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,283 - markdown_it.rules_block.code - DEBUG - entering code: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,283 - markdown_it.rules_block.fence - DEBUG - entering fence: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,283 - markdown_it.rules_block.blockquote - DEBUG - entering blockquote: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,283 - markdown_it.rules_block.hr - DEBUG - entering hr: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,283 - markdown_it.rules_block.list - DEBUG - entering list: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,283 - markdown_it.rules_block.reference - DEBUG - entering reference: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,283 - markdown_it.rules_block.html_block - DEBUG - entering html_block: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,283 - markdown_it.rules_block.heading - DEBUG - entering heading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,283 - markdown_it.rules_block.lheading - DEBUG - entering lheading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,283 - markdown_it.rules_block.paragraph - DEBUG - entering paragraph: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,284 - markdown_it.rules_block.code - DEBUG - entering code: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,284 - markdown_it.rules_block.fence - DEBUG - entering fence: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,284 - markdown_it.rules_block.blockquote - DEBUG - entering blockquote: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,284 - markdown_it.rules_block.hr - DEBUG - entering hr: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,284 - markdown_it.rules_block.list - DEBUG - entering list: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,284 - markdown_it.rules_block.reference - DEBUG - entering reference: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,284 - markdown_it.rules_block.html_block - DEBUG - entering html_block: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,284 - markdown_it.rules_block.heading - DEBUG - entering heading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,284 - markdown_it.rules_block.lheading - DEBUG - entering lheading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,284 - markdown_it.rules_block.paragraph - DEBUG - entering paragraph: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-11 00:09:13,297 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x120703d40>
+2025-11-11 00:09:13,297 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-11-11 00:09:13,298 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-11-11 00:09:13,298 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-11-11 00:09:13,298 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-11-11 00:09:13,298 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-11-11 00:09:13,940 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Content-Type', b'application/x-ndjson'), (b'Date', b'Tue, 11 Nov 2025 08:09:13 GMT'), (b'Transfer-Encoding', b'chunked')])
+2025-11-11 00:09:13,941 - httpx - INFO - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2025-11-11 00:09:13,941 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-11-11 00:09:13,991 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-11-11 00:09:13,991 - httpcore.http11 - DEBUG - response_closed.started
+2025-11-11 00:09:13,991 - httpcore.http11 - DEBUG - response_closed.complete

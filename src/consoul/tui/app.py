@@ -464,7 +464,9 @@ class ConsoulApp(App[None]):
             # Get the current event loop (Textual's loop)
             event_loop = asyncio.get_running_loop()
 
-            def normalize_chunk_content(content: str | list[dict] | None) -> str:
+            def normalize_chunk_content(
+                content: str | list[dict[str, str]] | None,
+            ) -> str:
                 """Normalize chunk content to string.
 
                 LangChain chunks can have content as:
@@ -597,7 +599,7 @@ class ConsoulApp(App[None]):
 
             # Check if stream ended immediately or was cancelled
             if first_token is None or self._stream_cancelled:
-                # Stream ended before any tokens
+                # Stream ended before any tokens - could be tool call response with no content
                 if self._stream_cancelled:
                     await stream_widget.remove()
                     cancelled_bubble = MessageBubble(
@@ -606,11 +608,16 @@ class ConsoulApp(App[None]):
                         show_metadata=False,
                     )
                     await self.chat_view.add_message(cancelled_bubble)
-                return
+                    return
 
-            # Add first token
-            collected_tokens.append(first_token)
-            await stream_widget.add_token(first_token)
+                # If no tokens but not cancelled, might be tool calls with empty content
+                # Don't return yet - let it continue to check for tool calls below
+                # The stream widget will be removed if we have tool calls
+                pass
+            else:
+                # Add first token (only if we have one)
+                collected_tokens.append(first_token)
+                await stream_widget.add_token(first_token)
 
             # Consume remaining tokens from queue and update UI in real-time
             while True:
@@ -648,15 +655,23 @@ class ConsoulApp(App[None]):
             # Get final AIMessage with potential tool_calls
             final_message = await message_queue.get()
 
-            if not self._stream_cancelled and full_response.strip():
+            # Check if we have content OR tool calls (tool calls can come with empty content)
+            has_content = not self._stream_cancelled and full_response.strip()
+            has_tool_calls_in_message = (
+                final_message
+                and hasattr(final_message, "tool_calls")
+                and final_message.tool_calls
+            )
+
+            if has_content or has_tool_calls_in_message:
                 # Add to conversation history
                 # Important: Use final_message directly to preserve tool_calls attribute
                 if final_message:
                     self.conversation.messages.append(final_message)  # type: ignore[union-attr]
                     # Persist to DB (content only, tool_calls are transient)
                     self.conversation._persist_message(final_message)  # type: ignore[union-attr]
-                else:
-                    # Fallback if final_message reconstruction failed
+                elif has_content:
+                    # Fallback if final_message reconstruction failed but we have content
                     self.conversation.add_assistant_message(full_response)  # type: ignore[union-attr]
 
                 # Check for tool calls in the final message
@@ -668,7 +683,15 @@ class ConsoulApp(App[None]):
                         parsed_calls = parse_tool_calls(final_message)
                         self.log.debug(f"Parsed {len(parsed_calls)} tool call(s)")
 
-                        # Handle tool calls (stub for now, will be implemented in SOUL-62)
+                        # If stream widget is empty (no content), remove it
+                        # Tool call widgets will replace it
+                        if not full_response.strip():
+                            self.log.debug(
+                                "Removing empty stream widget (tool calls only)"
+                            )
+                            await stream_widget.remove()
+
+                        # Handle tool calls
                         await self._handle_tool_calls(parsed_calls)
 
                 # Generate title if this is the first exchange
@@ -833,7 +856,7 @@ class ConsoulApp(App[None]):
 
                 # Execute tool (bash_execute is a StructuredTool)
                 result = bash_execute.invoke(tool_call.arguments)
-                return result
+                return str(result)
             else:
                 return f"Unknown tool: {tool_call.name}"
 
