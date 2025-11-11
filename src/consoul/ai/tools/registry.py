@@ -8,6 +8,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from consoul.ai.tools.approval import (
+    ApprovalProvider,
+    ToolApprovalRequest,
+    ToolApprovalResponse,
+)
 from consoul.ai.tools.base import RiskLevel, ToolMetadata, get_tool_schema
 from consoul.ai.tools.exceptions import ToolNotFoundError, ToolValidationError
 
@@ -57,15 +62,21 @@ class ToolRegistry:
         >>> assert len(tools_list) == 1
     """
 
-    def __init__(self, config: ToolConfig):
+    def __init__(
+        self, config: ToolConfig, approval_provider: ApprovalProvider | None = None
+    ):
         """Initialize tool registry with configuration.
 
         Args:
             config: ToolConfig instance controlling tool behavior
+            approval_provider: Optional approval provider for tool execution.
+                If None, will attempt to use TuiApprovalProvider (if TUI available)
+                or raise error if no provider available.
         """
         self.config = config
         self._tools: dict[str, ToolMetadata] = {}
         self._approved_this_session: set[str] = set()
+        self.approval_provider = approval_provider or self._get_default_provider()
 
     def register(
         self,
@@ -421,6 +432,111 @@ class ToolRegistry:
     def __contains__(self, tool_name: str) -> bool:
         """Check if a tool is registered."""
         return tool_name in self._tools
+
+    def _get_default_provider(self) -> ApprovalProvider:
+        """Get default approval provider.
+
+        Tries to import TuiApprovalProvider (optional TUI dependency).
+        If not available, raises RuntimeError indicating provider is required.
+
+        Returns:
+            Default approval provider
+
+        Raises:
+            RuntimeError: If no provider available and TUI not installed
+        """
+        try:
+            # Try to import TUI provider (optional dependency)
+            from consoul.tui.tools.approval import TuiApprovalProvider
+
+            return TuiApprovalProvider()  # type: ignore[no-any-return]
+        except ImportError as e:
+            # TUI not available - require explicit provider
+            raise RuntimeError(
+                "No approval provider specified and TUI not available. "
+                "Please provide an approval_provider to ToolRegistry. "
+                "Example:\n"
+                "  from consoul.ai.tools.providers import CliApprovalProvider\n"
+                "  provider = CliApprovalProvider()\n"
+                "  registry = ToolRegistry(config, approval_provider=provider)"
+            ) from e
+
+    async def request_tool_approval(
+        self,
+        tool_name: str,
+        arguments: dict[str, Any],
+        tool_call_id: str = "",
+        context: dict[str, Any] | None = None,
+    ) -> ToolApprovalResponse:
+        """Request approval for tool execution.
+
+        Coordinates with approval provider and registry-level caching.
+
+        Workflow:
+        1. Check if approval needed (via needs_approval)
+        2. If cached/whitelisted: Auto-approve
+        3. Otherwise: Call approval provider
+        4. If approved: Mark as approved for session
+        5. Return response
+
+        Args:
+            tool_name: Name of tool to execute
+            arguments: Tool arguments
+            tool_call_id: Unique tool call ID from AI message
+            context: Additional context for approval provider
+
+        Returns:
+            ToolApprovalResponse with decision
+
+        Raises:
+            ToolNotFoundError: If tool not registered
+
+        Example:
+            >>> response = await registry.request_tool_approval(
+            ...     "bash_execute",
+            ...     {"command": "ls -la"},
+            ...     tool_call_id="call_123"
+            ... )
+            >>> if response.approved:
+            ...     # Execute tool
+            ...     pass
+        """
+        # Get tool metadata
+        metadata = self.get_tool(tool_name)
+
+        # Check if approval needed (registry-level caching)
+        if not self.needs_approval(tool_name):
+            return ToolApprovalResponse(
+                approved=True,
+                reason="Cached approval (once_per_session mode)",
+            )
+
+        # Build approval request
+        request = ToolApprovalRequest(
+            tool_name=tool_name,
+            arguments=arguments,
+            risk_level=metadata.risk_level,
+            tool_call_id=tool_call_id,
+            description=metadata.description,
+            context=context or {},
+        )
+
+        # Request approval from provider
+        try:
+            response = await self.approval_provider.request_approval(request)
+
+            # If approved, mark for session caching
+            if response.approved:
+                self.mark_approved(tool_name)
+
+            return response
+
+        except Exception as e:
+            # Approval provider error - treat as denial
+            return ToolApprovalResponse(
+                approved=False,
+                reason=f"Approval provider error: {e}",
+            )
 
     def __repr__(self) -> str:
         """Return string representation of registry."""

@@ -13,15 +13,23 @@ Architecture:
 Example:
     >>> from consoul.config.models import ConsoulConfig, ToolConfig
     >>> from consoul.ai.tools import ToolRegistry, RiskLevel
+    >>> from consoul.ai.tools.providers import CliApprovalProvider
     >>>
     >>> config = ConsoulConfig(
     ...     profiles={"default": ...},
     ...     tools=ToolConfig(enabled=True, timeout=30)
     ... )
-    >>> registry = ToolRegistry(config.tools)
+    >>> provider = CliApprovalProvider()
+    >>> registry = ToolRegistry(config.tools, approval_provider=provider)
     >>> # Register tools, bind to model, execute with approval
 """
 
+from consoul.ai.tools.approval import (
+    ApprovalError,
+    ApprovalProvider,
+    ToolApprovalRequest,
+    ToolApprovalResponse,
+)
 from consoul.ai.tools.base import RiskLevel, ToolMetadata
 from consoul.ai.tools.exceptions import (
     BlockedCommandError,
@@ -33,8 +41,12 @@ from consoul.ai.tools.exceptions import (
 from consoul.ai.tools.registry import ToolRegistry
 
 __all__ = [
+    "ApprovalError",
+    "ApprovalProvider",
     "BlockedCommandError",
     "RiskLevel",
+    "ToolApprovalRequest",
+    "ToolApprovalResponse",
     "ToolError",
     "ToolExecutionError",
     "ToolMetadata",
