@@ -27,53 +27,135 @@ log = logging.getLogger(__name__)
 
 
 # Model information database (name -> metadata)
-# Updated with latest models as of January 2025
+# Updated with complete 2025 model catalog
 MODEL_INFO = {
-    # OpenAI models (as of January 2025)
+    # OpenAI GPT-5 Series (Latest Flagship)
+    "gpt-5": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "expensive",
+        "description": "Flagship reasoning model",
+    },
+    "gpt-5-mini": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "moderate",
+        "description": "Fast & affordable reasoning",
+    },
+    "gpt-5-nano": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "cheap",
+        "description": "Fastest, most affordable reasoning",
+    },
+    "gpt-5-codex": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "expensive",
+        "description": "Optimized for agentic coding",
+    },
+    "gpt-5-chat-latest": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "moderate",
+        "description": "Non-reasoning chat model",
+    },
+    # OpenAI o-Series (Deep Reasoning)
+    "o3": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "expensive",
+        "description": "Advanced reasoning & problem-solving",
+    },
+    "o4-mini": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "moderate",
+        "description": "Fast reasoning with vision",
+    },
+    "o4-mini-high": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "moderate",
+        "description": "Budget STEM/tech reasoning",
+    },
+    "o3-mini": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "cheap",
+        "description": "Enhanced reasoning abilities",
+    },
+    "o3-deep-research": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "expensive",
+        "description": "Multi-step research with citations",
+    },
+    # OpenAI GPT-4.1 Series (1M context)
+    "gpt-4.1": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "expensive",
+        "description": "Improved coding & long context",
+    },
+    "gpt-4.1-mini": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "moderate",
+        "description": "GPT-4o performance, lower latency",
+    },
+    "gpt-4.1-nano": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "cheap",
+        "description": "Smallest GPT-4.1 variant",
+    },
+    # OpenAI GPT-4o Series (Multimodal)
     "gpt-4o": {
         "provider": "openai",
         "context": "128K",
         "cost": "moderate",
-        "description": "Multimodal GPT-4 with vision",
+        "description": "Multimodal flagship",
     },
     "gpt-4o-mini": {
         "provider": "openai",
         "context": "128K",
         "cost": "cheap",
-        "description": "Cost-efficient with 16K output",
+        "description": "Cost-efficient multimodal",
     },
-    "gpt-4-turbo": {
-        "provider": "openai",
-        "context": "128K",
-        "cost": "expensive",
-        "description": "High accuracy multimodal model",
-    },
-    "gpt-4": {
-        "provider": "openai",
-        "context": "8K",
-        "cost": "expensive",
-        "description": "Original GPT-4 model",
-    },
-    # Anthropic Claude models (as of January 2025)
+    # Anthropic Claude 4.5 Models (Latest - Sep/Oct 2025)
     "claude-sonnet-4-5": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "moderate",
-        "description": "Smartest for complex agents & coding",
+        "description": "Best coding model in world (Sep 2025)",
     },
     "claude-haiku-4-5": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "cheap",
-        "description": "Fastest with near-frontier intelligence",
+        "description": "Fastest, low latency (Oct 2025)",
     },
+    # Anthropic Claude 4 Models (May-Aug 2025)
     "claude-opus-4-1": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "expensive",
-        "description": "Exceptional specialized reasoning",
+        "description": "Agentic tasks & reasoning (Aug 2025)",
     },
-    # Legacy Claude models (for backward compatibility)
+    "claude-sonnet-4": {
+        "provider": "anthropic",
+        "context": "200K",
+        "cost": "moderate",
+        "description": "Claude Sonnet 4 (May 2025)",
+    },
+    "claude-opus-4": {
+        "provider": "anthropic",
+        "context": "200K",
+        "cost": "expensive",
+        "description": "Claude Opus 4 (May 2025)",
+    },
+    # Legacy Claude 3.x Models (for backward compatibility)
     "claude-3-5-sonnet-20241022": {
         "provider": "anthropic",
         "context": "200K",
@@ -86,36 +168,68 @@ MODEL_INFO = {
         "cost": "expensive",
         "description": "Legacy Claude 3 Opus",
     },
-    # Google Gemini models (as of January 2025)
+    # Google Gemini 2.5 Models (Latest)
     "gemini-2.5-pro": {
         "provider": "google",
         "context": "1M",
         "cost": "expensive",
-        "description": "State-of-the-art thinking model",
+        "description": "Most powerful with adaptive thinking",
     },
     "gemini-2.5-flash": {
         "provider": "google",
         "context": "1M",
         "cost": "moderate",
-        "description": "Best price-performance ratio",
+        "description": "Stable 2.5 flash model",
     },
     "gemini-2.5-flash-lite": {
         "provider": "google",
         "context": "1M",
         "cost": "cheap",
-        "description": "Fastest, cost-efficient flash model",
+        "description": "Speed & cost optimized",
+    },
+    "gemini-2.5-computer-use": {
+        "provider": "google",
+        "context": "1M",
+        "cost": "expensive",
+        "description": "Powers UI interaction agents",
+    },
+    "gemini-2.5-image": {
+        "provider": "google",
+        "context": "1M",
+        "cost": "moderate",
+        "description": "Native image generation",
+    },
+    # Google Gemini 2.0 Models
+    "gemini-2.0-pro": {
+        "provider": "google",
+        "context": "1M",
+        "cost": "expensive",
+        "description": "Released Feb 2025",
     },
     "gemini-2.0-flash": {
         "provider": "google",
         "context": "1M",
         "cost": "moderate",
-        "description": "Second gen workhorse model",
+        "description": "Default model (Jan 2025)",
     },
+    "gemini-2.0-flash-thinking": {
+        "provider": "google",
+        "context": "1M",
+        "cost": "moderate",
+        "description": "Details thinking process",
+    },
+    # Google Gemini 1.5 (Legacy, still available)
     "gemini-1.5-pro": {
         "provider": "google",
         "context": "2M",
         "cost": "expensive",
-        "description": "Legacy with 2M context window",
+        "description": "Legacy with 2M context",
+    },
+    "gemini-1.5-flash": {
+        "provider": "google",
+        "context": "1M",
+        "cost": "moderate",
+        "description": "Legacy flash model",
     },
     # Note: Ollama models are fetched dynamically from local service
 }
