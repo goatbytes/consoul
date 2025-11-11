@@ -1603,6 +1603,16 @@ class ConsoulApp(App[None]):
             model_config = self.consoul_config.get_current_model_config()
             self.chat_model = get_chat_model(model_config, config=self.consoul_config)
 
+            # Re-bind tools to the new model
+            if self.tool_registry:
+                tool_metadata_list = self.tool_registry.list_tools(enabled_only=True)
+                if tool_metadata_list:
+                    tools = [meta.tool for meta in tool_metadata_list]
+                    self.chat_model = self.chat_model.bind_tools(tools)
+                    self.log.info(
+                        f"Re-bound {len(tools)} tools to new model {model_name}"
+                    )
+
             # Preserve conversation by updating model reference
             if self.conversation:
                 self.conversation._model = self.chat_model
