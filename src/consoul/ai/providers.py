@@ -70,7 +70,7 @@ def is_ollama_running(base_url: str = "http://localhost:11434") -> bool:
         True if Ollama is running and accessible, False otherwise.
     """
     try:
-        import requests
+        import requests  # type: ignore[import-untyped]
 
         response = requests.get(f"{base_url}/api/tags", timeout=2)
         return bool(response.status_code == 200)

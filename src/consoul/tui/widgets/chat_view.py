@@ -36,6 +36,7 @@ class ChatView(VerticalScroll):
         """Initialize ChatView."""
         super().__init__()
         self.can_focus = True
+        self._typing_indicator: Widget | None = None
 
     def on_mount(self) -> None:
         """Initialize chat view on mount."""
@@ -76,3 +77,29 @@ class ChatView(VerticalScroll):
             self.border_title = f"Conversation ({count} messages)"
         else:
             self.border_title = "Conversation"
+
+    async def show_typing_indicator(self) -> None:
+        """Show typing indicator to signal AI is processing.
+
+        Displays animated "Thinking..." indicator below last message.
+        Call hide_typing_indicator() when first streaming token arrives.
+        """
+        from consoul.tui.widgets.typing_indicator import TypingIndicator
+
+        # Only show if not already showing
+        if self._typing_indicator is None:
+            self._typing_indicator = TypingIndicator()
+            await self.mount(self._typing_indicator)
+
+            if self.auto_scroll:
+                self.scroll_end(animate=True)
+
+    async def hide_typing_indicator(self) -> None:
+        """Hide typing indicator when streaming begins.
+
+        Removes the typing indicator widget if currently displayed.
+        Safe to call even if indicator is not showing.
+        """
+        if self._typing_indicator is not None:
+            await self._typing_indicator.remove()
+            self._typing_indicator = None

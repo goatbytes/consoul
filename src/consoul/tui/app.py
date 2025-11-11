@@ -7,6 +7,7 @@ terminal user interface for interactive AI conversations.
 from __future__ import annotations
 
 import gc
+from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 from textual.app import App, ComposeResult
@@ -362,6 +363,9 @@ class ConsoulApp(App[None]):
             self.conversation_list.reload_conversations()
             self._update_top_bar_state()  # Update conversation count
 
+        # Show typing indicator before streaming
+        await self.chat_view.show_typing_indicator()
+
         # Start streaming AI response
         await self._stream_ai_response()
 
@@ -447,6 +451,7 @@ class ConsoulApp(App[None]):
             stream_thread.start()
 
             # Consume tokens from queue and update UI in real-time
+            first_token = True
             while True:
                 token = await token_queue.get()
 
@@ -457,6 +462,11 @@ class ConsoulApp(App[None]):
                 # Check for cancellation
                 if self._stream_cancelled:
                     break
+
+                # Hide typing indicator on first token
+                if first_token:
+                    await self.chat_view.hide_typing_indicator()
+                    first_token = False
 
                 # Add token to UI immediately
                 collected_tokens.append(token)
@@ -528,6 +538,9 @@ class ConsoulApp(App[None]):
             # Handle streaming errors with partial response
             self.log.error(f"Streaming error: {e}")
 
+            # Hide typing indicator on error
+            await self.chat_view.hide_typing_indicator()
+
             await stream_widget.remove()
 
             error_message = f"**Error:** {e}"
@@ -546,6 +559,9 @@ class ConsoulApp(App[None]):
         except Exception as e:
             # Handle unexpected errors
             self.log.error(f"Unexpected error during streaming: {e}", exc_info=True)
+
+            # Hide typing indicator on error
+            await self.chat_view.hide_typing_indicator()
 
             await stream_widget.remove()
 
@@ -670,6 +686,10 @@ class ConsoulApp(App[None]):
     async def action_settings(self) -> None:
         """Show settings screen."""
         from consoul.tui.widgets.settings_screen import SettingsScreen
+
+        if self.consoul_config is None:
+            self.notify("Configuration not loaded", severity="error")
+            return
 
         result = await self.push_screen(
             SettingsScreen(config=self.config, consoul_config=self.consoul_config)
@@ -981,7 +1001,11 @@ class ConsoulApp(App[None]):
 
                 # Determine which config file to save to
                 global_path, project_path = find_config_files()
-                save_path = project_path if project_path and project_path.exists() else global_path
+                save_path = (
+                    project_path
+                    if project_path and project_path.exists()
+                    else global_path
+                )
 
                 if not save_path:
                     # Default to global config

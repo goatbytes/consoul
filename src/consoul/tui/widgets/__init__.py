@@ -19,6 +19,7 @@ from consoul.tui.widgets.profile_selector_modal import ProfileSelectorModal
 from consoul.tui.widgets.search_bar import SearchBar
 from consoul.tui.widgets.settings_screen import SettingsScreen
 from consoul.tui.widgets.streaming_response import StreamingResponse
+from consoul.tui.widgets.typing_indicator import TypingIndicator
 
 __all__ = [
     "ChatView",
@@ -34,4 +35,5 @@ __all__ = [
     "SearchBar",
     "SettingsScreen",
     "StreamingResponse",
+    "TypingIndicator",
 ]
