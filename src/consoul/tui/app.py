@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from textual.binding import BindingType
 
     from consoul.ai.history import ConversationHistory
+    from consoul.ai.tools.parser import ParsedToolCall
     from consoul.config import ConsoulConfig
     from consoul.tui.widgets import ContextualTopBar, InputArea, StreamingResponse
 
@@ -406,6 +407,11 @@ class ConsoulApp(App[None]):
 
             token_queue: asyncio.Queue[str | None] = asyncio.Queue()
 
+            # Queue to send final AIMessage with tool_calls
+            from langchain_core.messages import AIMessage
+
+            message_queue: asyncio.Queue[AIMessage | None] = asyncio.Queue()
+
             # Get the current event loop (Textual's loop)
             event_loop = asyncio.get_running_loop()
 
@@ -413,14 +419,19 @@ class ConsoulApp(App[None]):
                 """Background thread: stream tokens and push to queue.
 
                 Sends None as sentinel when complete or cancelled.
+                Collects chunks to reconstruct final AIMessage with tool_calls.
                 """
+                collected_chunks: list[AIMessage] = []
                 try:
                     for chunk in self.chat_model.stream(messages_dict):  # type: ignore[union-attr]
                         # Check for cancellation
                         if self._stream_cancelled:
                             break
 
-                        # Skip empty chunks
+                        # Collect all chunks (even empty ones) for tool_calls
+                        collected_chunks.append(chunk)
+
+                        # Skip empty chunks for UI display
                         if not chunk.content:
                             continue
 
@@ -438,6 +449,34 @@ class ConsoulApp(App[None]):
                 finally:
                     # Send sentinel to signal completion
                     asyncio.run_coroutine_threadsafe(token_queue.put(None), event_loop)
+
+                    # Combine chunks into final AIMessage
+                    # Tool calls are typically in the last chunk
+                    final_message: AIMessage | None = None
+                    if collected_chunks and not self._stream_cancelled:
+                        try:
+                            # Get tool_calls from last chunk (if present)
+                            tool_calls = []
+                            for chunk in reversed(collected_chunks):
+                                if hasattr(chunk, "tool_calls") and chunk.tool_calls:
+                                    tool_calls = chunk.tool_calls
+                                    break
+
+                            # Create final message with all content and tool_calls
+                            final_message = AIMessage(
+                                content="".join(
+                                    c.content for c in collected_chunks if c.content
+                                ),
+                                tool_calls=tool_calls if tool_calls else [],
+                            )
+                        except Exception:
+                            # If message reconstruction fails, don't block completion
+                            final_message = None
+
+                    # Send final message to main thread
+                    asyncio.run_coroutine_threadsafe(
+                        message_queue.put(final_message), event_loop
+                    )
 
             # Start background thread
             import threading
@@ -500,9 +539,24 @@ class ConsoulApp(App[None]):
             # Get complete response
             full_response = "".join(collected_tokens)
 
+            # Get final AIMessage with potential tool_calls
+            final_message = await message_queue.get()
+
             if not self._stream_cancelled and full_response.strip():
                 # Add to conversation history
                 self.conversation.add_assistant_message(full_response)  # type: ignore[union-attr]
+
+                # Check for tool calls in the final message
+                if final_message:
+                    from consoul.ai.tools.parser import has_tool_calls, parse_tool_calls
+
+                    if has_tool_calls(final_message):
+                        self.log.debug("Tool calls detected in streaming response")
+                        parsed_calls = parse_tool_calls(final_message)
+                        self.log.debug(f"Parsed {len(parsed_calls)} tool call(s)")
+
+                        # Handle tool calls (stub for now, will be implemented in SOUL-62)
+                        await self._handle_tool_calls(parsed_calls)
 
                 # Generate title if this is the first exchange
                 if self.title_generator and self._should_generate_title():
@@ -597,6 +651,44 @@ class ConsoulApp(App[None]):
 
             # Restore focus to input area
             self.input_area.text_area.focus()
+
+    async def _handle_tool_calls(self, parsed_calls: list[ParsedToolCall]) -> None:
+        """Handle detected tool calls from streaming response.
+
+        This is a stub implementation for SOUL-61 (detection only).
+        Full execution flow will be implemented in SOUL-62.
+
+        Args:
+            parsed_calls: List of ParsedToolCall objects from parser
+
+        Note:
+            Currently only logs tool call detection. SOUL-62 will add:
+            - Tool approval workflow
+            - Tool execution via registry
+            - Result display in chat
+            - Feeding results back to model
+        """
+        from consoul.tui.widgets import MessageBubble
+
+        # For each detected tool call, show a system message
+        for tool_call in parsed_calls:
+            self.log.info(
+                f"Tool call detected: {tool_call.name} with args: {tool_call.arguments}"
+            )
+
+            # Show system message to user about tool detection
+            tool_info_message = (
+                f"🔧 **Tool call detected:** `{tool_call.name}`\n\n"
+                f"**Arguments:**\n```json\n{tool_call.arguments}\n```\n\n"
+                f"_Tool execution will be implemented in SOUL-62_"
+            )
+
+            system_bubble = MessageBubble(
+                tool_info_message,
+                role="system",
+                show_metadata=False,
+            )
+            await self.chat_view.add_message(system_bubble)
 
     # Action handlers (placeholders for Phase 2+)
 

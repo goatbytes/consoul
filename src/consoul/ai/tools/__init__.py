@@ -39,12 +39,18 @@ from consoul.ai.tools.exceptions import (
     ToolValidationError,
 )
 from consoul.ai.tools.implementations.bash import bash_execute
+from consoul.ai.tools.parser import (
+    ParsedToolCall,
+    has_tool_calls,
+    parse_tool_calls,
+)
 from consoul.ai.tools.registry import ToolRegistry
 
 __all__ = [
     "ApprovalError",
     "ApprovalProvider",
     "BlockedCommandError",
+    "ParsedToolCall",
     "RiskLevel",
     "ToolApprovalRequest",
     "ToolApprovalResponse",
@@ -55,4 +61,6 @@ __all__ = [
     "ToolRegistry",
     "ToolValidationError",
     "bash_execute",
+    "has_tool_calls",
+    "parse_tool_calls",
 ]
