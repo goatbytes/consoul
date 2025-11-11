@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-10T19:45:32.743539",
-  "updated_at": "2025-11-10T19:45:32.743551",
+  "updated_at": "2025-11-10T20:08:33.788779",
   "id": "SOUL-59",
   "uuid": "9ee50314-394b-489d-b339-bed502ded1fa",
   "title": "Create tool approval modal widget",
@@ -18,10 +18,24 @@
   "epic_id": "EPIC-004",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-10T20:08:33.788675",
+      "updated_at": "2025-11-10T20:08:33.788676",
+      "id": "20251110200833-8967093c",
+      "ticket_id": "SOUL-59",
+      "author": "jared@goatbytes.io",
+      "content": "**SCOPE CLARIFICATION - TUI Layer Only**\n\nThis ticket implements the **Textual TUI approval UI** that sits on top of the headless approval API from SOUL-66.\n\n**Architecture:**\n```\n┌─────────────────────────────────────┐\n│ Host App (Gira, CLI, etc.)          │\n│   - Custom ApprovalProvider         │\n│   - Or use CliApprovalProvider      │\n└──────────────┬──────────────────────┘\n               │\n┌──────────────▼──────────────────────┐\n│ Core Approval API (SOUL-66)         │\n│   - ApprovalProvider protocol       │\n│   - ToolApprovalRequest/Response    │\n│   - SDK-ready, UI-agnostic          │\n└──────────────┬──────────────────────┘\n               │ (optional)\n┌──────────────▼──────────────────────┐\n│ TUI Approval Modal (THIS TICKET)   │\n│   - TuiApprovalProvider             │\n│   - ToolApprovalModal widget        │\n│   - Textual-specific UI             │\n└─────────────────────────────────────┘\n```\n\n**Key Changes:**\n1. **Depends on SOUL-66** - Core approval API must exist first\n2. **Implements ApprovalProvider** - TuiApprovalProvider wraps modal\n3. **Optional dependency** - SDK users can skip TUI entirely\n4. **No business logic** - Only UI presentation, approval logic in SOUL-66\n\n**Implementation:**\n```python\n# src/consoul/tui/tools/approval.py\nfrom consoul.ai.tools.approval import ApprovalProvider, ToolApprovalRequest\n\nclass TuiApprovalProvider(ApprovalProvider):\n    def __init__(self, app: ConsoulApp):\n        self.app = app\n    \n    async def request_approval(\n        self, request: ToolApprovalRequest\n    ) -> ToolApprovalResponse:\n        # Show modal, return response\n        return await self.app.push_screen(\n            ToolApprovalModal(request)\n        )\n```\n\n**Testing:**\n- Ensure this module is importable only when TUI deps installed\n- Test that SDK can work without importing this module\n- Integration test: TuiApprovalProvider + ToolApprovalModal\n\n**Blocks:** This ticket now depends on SOUL-66 completing first.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "order": 0,
   "custom_fields": {}
 }

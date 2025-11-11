@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-10T19:44:58.056717",
-  "updated_at": "2025-11-10T19:44:58.056725",
+  "updated_at": "2025-11-10T20:08:15.198165",
   "id": "SOUL-58",
   "uuid": "e4eedff7-ae6c-4729-a1de-ae1365f5c9c0",
   "title": "Create tool registry and configuration system",
@@ -18,10 +18,24 @@
   "epic_id": "EPIC-004",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-10T20:08:15.198085",
+      "updated_at": "2025-11-10T20:08:15.198086",
+      "id": "20251110200815-e71a6ea1",
+      "ticket_id": "SOUL-58",
+      "author": "jared@goatbytes.io",
+      "content": "**ARCHITECTURE UPDATE - SDK-First Design**\n\nPer Codex review: Tool configuration must live in **ConsoulConfig** (not TuiConfig) to support SDK integration where Consoul is embedded without TUI.\n\n**Key Changes:**\n1. **Move tool config to src/consoul/config/models.py**\n   - ToolConfig belongs in ConsoulConfig.tools\n   - Not in TuiConfig (UI-specific settings only)\n   \n2. **No UI dependencies in core tool code**\n   - src/consoul/ai/tools/ must NOT import from tui/\n   - Tool registry, execution, validation = UI-agnostic\n   \n3. **Configuration precedence**\n   - Profile-level tool overrides (per-profile tool policies)\n   - Global tool defaults\n   - CLI/env variable overrides\n   \n4. **SDK contract**\n   - Host apps must be able to:\n     - Load tool config without TUI\n     - Override tool policies via ConsoulConfig\n     - Register tools without UI imports\n\n**Implementation Notes:**\n```python\n# In src/consoul/config/models.py\nclass ToolConfig(BaseModel):\n    enabled: bool = True\n    auto_approve: bool = False  # Never True!\n    allowed_tools: list[str] = []\n    approval_mode: Literal['always', 'once_per_session', 'whitelist'] = 'always'\n    bash: BashToolConfig = Field(default_factory=BashToolConfig)\n\nclass ConsoulConfig(BaseModel):\n    # ... existing fields ...\n    tools: ToolConfig = Field(default_factory=ToolConfig)\n```\n\n**Testing Requirements:**\n- Verify ConsoulConfig can be instantiated without tui module\n- Test tool config loading in headless/CLI mode\n- Ensure no circular imports (config → tools → config)\n\nThis ensures Gira and other host applications can use Consoul's tool system without TUI dependencies.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "order": 0,
   "custom_fields": {}
 }

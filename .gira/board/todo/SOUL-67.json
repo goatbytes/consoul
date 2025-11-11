@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-11-10T20:09:01.081346",
+  "updated_at": "2025-11-10T20:09:01.081355",
+  "id": "SOUL-67",
+  "uuid": "0a934a1a-addd-4544-8b2f-aa327ee4bd93",
+  "title": "Implement audit logging and approval history for tool executions",
+  "description": "**As a** developer integrating Consoul or a security-conscious user\n**I want** comprehensive audit logging of all tool executions\n**So that** I can track what tools were executed, when, by whom, and with what results\n\n**Context:**\nSDK-first design requires audit capabilities for:\n- Compliance and security auditing\n- Debugging tool execution issues\n- Tracking approval decisions (approved/denied/timeout)\n- Multi-tenant safety in host applications\n- Persistent approval history for \"once per session\" mode\n\nHost applications need to inject their own audit backends (database, remote service, file, etc.).\n\n**Technical Notes:**\n- Create AuditLogger protocol/ABC for pluggable backends\n- Default file-based logger for simple use cases\n- Support structured logging (JSON, not plain text)\n- Include: timestamp, tool_name, arguments, approval_decision, result, duration, error\n- Integration point in ToolRegistry\n- SDK consumers can provide custom AuditLogger\n\n**Acceptance Criteria:**\n\n**Given** tool execution is requested\n**When** user approves and tool executes\n**Then** audit log records: request, approval, execution, result\n\n**Given** tool execution is denied\n**When** user denies approval\n**Then** audit log records: request, denial, reason\n\n**Given** tool execution times out\n**When** timeout occurs\n**Then** audit log records: timeout event with duration\n\n**Given** tool execution fails\n**When** error occurs\n**Then** audit log records: error details and stack trace\n\n**Given** SDK consumer provides custom AuditLogger\n**When** tools execute\n**Then** custom logger receives all audit events\n\n**Given** audit logging is disabled in config\n**When** tools execute\n**Then** audit events are not persisted (performance)\n\n**Testing Considerations:**\n- Unit test audit logger protocol\n- Test file-based logger\n- Test custom logger injection\n- Test structured JSON format\n- Test log rotation/size limits\n- Performance test (logging shouldn't block execution)\n\n**Implementation Hints:**\n- Audit logger protocol:\n  ```python\n  @dataclass\n  class AuditEvent:\n      timestamp: datetime\n      event_type: Literal['request', 'approval', 'denial', 'execution', 'error']\n      tool_name: str\n      arguments: dict[str, Any]\n      user: str | None\n      decision: bool | None\n      result: str | None\n      duration_ms: int | None\n      error: str | None\n      metadata: dict[str, Any]\n  \n  class AuditLogger(Protocol):\n      async def log_event(self, event: AuditEvent) -> None:\n          ...\n  ```\n- File logger:\n  ```python\n  class FileAuditLogger:\n      def __init__(self, log_file: Path):\n          self.log_file = log_file\n      \n      async def log_event(self, event: AuditEvent):\n          with self.log_file.open('a') as f:\n              f.write(json.dumps(event.dict()) + '\\n')\n  ```\n- Registry integration:\n  ```python\n  class ToolRegistry:\n      def __init__(\n          self,\n          approval_provider: ApprovalProvider,\n          audit_logger: AuditLogger | None = None\n      ):\n          self.audit_logger = audit_logger or FileAuditLogger()\n  ```\n- Configuration:\n  ```python\n  class ToolConfig(BaseModel):\n      audit_logging: bool = True\n      audit_log_file: Path = Path('~/.consoul/tool_audit.jsonl')\n  ```\n\n**Files to Create:**\n- src/consoul/ai/tools/audit.py (AuditLogger protocol, FileAuditLogger)\n\n**Files to Modify:**\n- src/consoul/ai/tools/registry.py (integrate audit logging)\n- src/consoul/config/models.py (add audit config)\n\n**Dependencies:**\n- SOUL-58 (Tool registry)\n\nStory Points: 3",
+  "status": "todo",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "security",
+    "tools",
+    "audit",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-004",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}
