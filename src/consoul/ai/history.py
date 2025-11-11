@@ -38,6 +38,7 @@ from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
     SystemMessage,
+    ToolMessage,
     trim_messages,
 )
 
@@ -62,7 +63,7 @@ def to_langchain_message(role: str, content: str) -> BaseMessage:
     """Convert role/content dict to LangChain BaseMessage.
 
     Args:
-        role: Message role ("system", "user", "assistant", or "human", "ai")
+        role: Message role ("system", "user", "assistant", "tool", or "human", "ai")
         content: Message content
 
     Returns:
@@ -84,10 +85,14 @@ def to_langchain_message(role: str, content: str) -> BaseMessage:
         return HumanMessage(content=content)
     elif role_lower in ("assistant", "ai"):
         return AIMessage(content=content)
+    elif role_lower in ("tool",):
+        # Note: ToolMessage requires tool_call_id, but we can't provide it here
+        # This is primarily for persistence compatibility
+        return ToolMessage(content=content, tool_call_id="unknown")
     else:
         raise ValueError(
             f"Unknown message role: {role}. "
-            f"Expected: 'system', 'user', 'assistant', 'human', or 'ai'"
+            f"Expected: 'system', 'user', 'assistant', 'tool', 'human', or 'ai'"
         )
 
 
@@ -112,11 +117,27 @@ def to_dict_message(message: BaseMessage) -> dict[str, str]:
         role = "user"
     elif isinstance(message, AIMessage):
         role = "assistant"
+    elif isinstance(message, ToolMessage):
+        role = "tool"
     else:
         # Fallback for unknown message types
         role = message.type
 
-    return {"role": role, "content": message.content}
+    # Convert content to string (handles list blocks from some providers)
+    content = message.content
+    if isinstance(content, list):
+        # Extract text from list blocks
+        text_parts = []
+        for block in content:
+            if isinstance(block, dict) and "text" in block:
+                text_parts.append(str(block["text"]))
+            elif isinstance(block, str):
+                text_parts.append(block)
+        content = "".join(text_parts)
+    else:
+        content = str(content)
+
+    return {"role": role, "content": content}
 
 
 class ConversationHistory:
@@ -303,6 +324,7 @@ class ConversationHistory:
                 SystemMessage: "system",
                 HumanMessage: "user",
                 AIMessage: "assistant",
+                ToolMessage: "tool",
             }
             role = role_map.get(type(message), message.type)
 

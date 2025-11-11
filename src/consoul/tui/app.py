@@ -17,12 +17,16 @@ from textual.widgets import Footer, Input
 
 if TYPE_CHECKING:
     from langchain_core.language_models.chat_models import BaseChatModel
+    from langchain_core.messages import ToolMessage
     from textual.binding import BindingType
 
     from consoul.ai.history import ConversationHistory
+    from consoul.ai.tools.approval import ToolApprovalResponse
     from consoul.ai.tools.parser import ParsedToolCall
     from consoul.config import ConsoulConfig
     from consoul.tui.widgets import ContextualTopBar, InputArea, StreamingResponse
+
+from consoul.tui.widgets import MessageBubble
 
 from consoul.tui.config import TuiConfig
 from consoul.tui.css.themes import load_theme
@@ -112,6 +116,7 @@ class ConsoulApp(App[None]):
         self.chat_model: BaseChatModel | None = None
         self.conversation: ConversationHistory | None = None
         self.active_profile = None
+        self.tool_registry = None
 
         if consoul_config is not None:
             try:
@@ -124,6 +129,8 @@ class ConsoulApp(App[None]):
 
                 model_config = consoul_config.get_current_model_config()
                 self.chat_model = get_chat_model(model_config, config=consoul_config)
+
+                # Note: Tools will be bound after registry is initialized (below)
 
                 # Initialize conversation history
                 from consoul.ai import ConversationHistory
@@ -150,6 +157,44 @@ class ConsoulApp(App[None]):
                     f"Initialized AI model: {consoul_config.current_model}, "
                     f"session: {self.conversation_id}"
                 )
+
+                # Initialize tool registry (approval handled via _request_tool_approval)
+                if consoul_config.tools and consoul_config.tools.enabled:
+                    from consoul.ai.tools import RiskLevel, ToolRegistry
+                    from consoul.ai.tools.implementations.bash import (
+                        bash_execute,
+                        set_bash_config,
+                    )
+
+                    # Configure bash tool with profile settings
+                    if consoul_config.tools.bash:
+                        set_bash_config(consoul_config.tools.bash)
+
+                    # Create registry (approval provider not needed - we handle it manually)
+                    self.tool_registry = ToolRegistry(
+                        config=consoul_config.tools,
+                        approval_provider=None,  # We handle approval in _request_tool_approval
+                    )
+
+                    # Register bash tool
+                    self.tool_registry.register(
+                        bash_execute, risk_level=RiskLevel.DANGEROUS, enabled=True
+                    )
+
+                    # Get tool metadata list
+                    tool_metadata_list = self.tool_registry.list_tools(
+                        enabled_only=True
+                    )
+
+                    self.log.info(
+                        f"Initialized tool registry with {len(tool_metadata_list)} tools"
+                    )
+
+                    # Bind tools to model (extract BaseTool from metadata)
+                    if tool_metadata_list:
+                        tools = [meta.tool for meta in tool_metadata_list]
+                        self.chat_model = self.chat_model.bind_tools(tools)
+                        self.log.info(f"Bound {len(tools)} tools to chat model")
 
             except Exception as e:
                 # Log error but allow app to start (graceful degradation)
@@ -604,7 +649,14 @@ class ConsoulApp(App[None]):
 
             if not self._stream_cancelled and full_response.strip():
                 # Add to conversation history
-                self.conversation.add_assistant_message(full_response)  # type: ignore[union-attr]
+                # Important: Use final_message directly to preserve tool_calls attribute
+                if final_message:
+                    self.conversation.messages.append(final_message)  # type: ignore[union-attr]
+                    # Persist to DB (content only, tool_calls are transient)
+                    self.conversation._persist_message(final_message)  # type: ignore[union-attr]
+                else:
+                    # Fallback if final_message reconstruction failed
+                    self.conversation.add_assistant_message(full_response)  # type: ignore[union-attr]
 
                 # Check for tool calls in the final message
                 if final_message:
@@ -712,43 +764,213 @@ class ConsoulApp(App[None]):
             # Restore focus to input area
             self.input_area.text_area.focus()
 
-    async def _handle_tool_calls(self, parsed_calls: list[ParsedToolCall]) -> None:
-        """Handle detected tool calls from streaming response.
+    async def _request_tool_approval(
+        self, tool_call: ParsedToolCall
+    ) -> ToolApprovalResponse:
+        """Request user approval for tool execution.
 
-        This is a stub implementation for SOUL-61 (detection only).
-        Full execution flow will be implemented in SOUL-62.
+        Shows ToolApprovalModal and returns user's decision.
+
+        Args:
+            tool_call: Parsed tool call with name, arguments, id
+
+        Returns:
+            ToolApprovalResponse with approval decision and reason
+
+        Example:
+            >>> response = await self._request_tool_approval(tool_call)
+            >>> if response.approved:
+            ...     result = await self._execute_tool(tool_call)
+        """
+        from consoul.ai.tools import (
+            RiskLevel,
+            ToolApprovalRequest,
+            ToolApprovalResponse,
+        )
+        from consoul.tui.widgets import ToolApprovalModal
+
+        # Determine risk level (for now, all tools are DANGEROUS)
+        # Future: Get from registry metadata
+        risk_level = RiskLevel.DANGEROUS
+
+        # Create approval request
+        request = ToolApprovalRequest(
+            tool_name=tool_call.name,
+            arguments=tool_call.arguments,
+            risk_level=risk_level,
+            tool_call_id=tool_call.id,
+        )
+
+        # Show approval modal and wait for user decision
+        approved = await self.push_screen_wait(ToolApprovalModal(request))
+
+        return ToolApprovalResponse(
+            approved=approved,
+            reason=None if approved else "User denied execution via modal",
+        )
+
+    async def _execute_tool(self, tool_call: ParsedToolCall) -> str:
+        """Execute a tool and return its result.
+
+        Handles execution errors gracefully, returning error message
+        as tool result (so AI can see what went wrong).
+
+        Args:
+            tool_call: Parsed tool call with name, arguments
+
+        Returns:
+            Tool execution result as string (stdout or error message)
+
+        Example:
+            >>> result = await self._execute_tool(tool_call)
+            >>> print(result)  # "file1.txt\nfile2.py" or "Tool execution failed: ..."
+        """
+        try:
+            # Currently only bash_execute is supported
+            if tool_call.name == "bash_execute":
+                from consoul.ai.tools.implementations.bash import bash_execute
+
+                # Execute tool (bash_execute is a StructuredTool)
+                result = bash_execute.invoke(tool_call.arguments)
+                return result
+            else:
+                return f"Unknown tool: {tool_call.name}"
+
+        except Exception as e:
+            # Return error as tool result (AI can see it and respond appropriately)
+            self.log.error(f"Tool execution error: {e}", exc_info=True)
+            return f"Tool execution failed: {e}"
+
+    async def _display_tool_result(
+        self, tool_name: str, result: str, approved: bool
+    ) -> None:
+        """Display tool execution result in chat view.
+
+        Shows result as system message with appropriate styling.
+
+        Args:
+            tool_name: Name of the tool that was executed
+            result: Tool execution result or error message
+            approved: Whether tool was approved and executed
+
+        Example:
+            >>> await self._display_tool_result("bash_execute", "file1.txt", True)
+        """
+        from consoul.tui.widgets import MessageBubble
+
+        if approved:
+            # Tool was executed
+            status = "✅"
+            prefix = "Tool executed"
+        else:
+            # Tool was denied
+            status = "❌"
+            prefix = "Tool denied"
+
+        # Truncate long results for display
+        display_result = result
+        if len(result) > 500:
+            display_result = result[:500] + "\n\n... (truncated)"
+
+        message = (
+            f"{status} **{prefix}:** `{tool_name}`\n\n"
+            f"**Result:**\n```\n{display_result}\n```"
+        )
+
+        result_bubble = MessageBubble(
+            message,
+            role="system",
+            show_metadata=False,
+        )
+        await self.chat_view.add_message(result_bubble)
+
+    async def _continue_with_tool_results(
+        self, tool_results: list[ToolMessage]
+    ) -> None:
+        """Continue AI response with tool results.
+
+        Appends tool results to conversation and invokes model again
+        to get final response incorporating the results.
+
+        Args:
+            tool_results: List of ToolMessage objects with execution results
+
+        Example:
+            >>> tool_results = [ToolMessage(content="...", tool_call_id="call_123")]
+            >>> await self._continue_with_tool_results(tool_results)
+        """
+        if not tool_results or not self.conversation or not self.chat_model:
+            return
+
+        try:
+            # Add tool results to conversation history
+            for tool_msg in tool_results:
+                self.conversation.messages.append(tool_msg)
+
+            # Stream AI's final response with tool results
+            # Reuse existing streaming infrastructure
+            await self._stream_ai_response()
+
+        except Exception as e:
+            self.log.error(f"Error continuing with tool results: {e}", exc_info=True)
+
+            # Hide typing indicator if shown
+            await self.chat_view.hide_typing_indicator()
+
+            # Show error to user
+            error_bubble = MessageBubble(
+                f"**Failed to get AI response after tool execution:**\n\n{e}\n\n"
+                f"The tool results have been saved to conversation history.",
+                role="error",
+                show_metadata=False,
+            )
+            await self.chat_view.add_message(error_bubble)
+
+    async def _handle_tool_calls(self, parsed_calls: list[ParsedToolCall]) -> None:
+        """Execute tool calling loop: approve → execute → feed results to AI.
+
+        Implements complete tool execution flow (SOUL-62):
+        1. Request approval for each tool call
+        2. Execute approved tools
+        3. Display results in chat
+        4. Feed results back to AI for final response
 
         Args:
             parsed_calls: List of ParsedToolCall objects from parser
 
         Note:
-            Currently only logs tool call detection. SOUL-62 will add:
-            - Tool approval workflow
-            - Tool execution via registry
-            - Result display in chat
-            - Feeding results back to model
+            Tool results are accumulated and sent together to the model
+            for a final response that incorporates all tool execution results.
         """
-        from consoul.tui.widgets import MessageBubble
+        from langchain_core.messages import ToolMessage
 
-        # For each detected tool call, show a system message
+        tool_results: list[ToolMessage] = []
+
         for tool_call in parsed_calls:
             self.log.info(
                 f"Tool call detected: {tool_call.name} with args: {tool_call.arguments}"
             )
 
-            # Show system message to user about tool detection
-            tool_info_message = (
-                f"🔧 **Tool call detected:** `{tool_call.name}`\n\n"
-                f"**Arguments:**\n```json\n{tool_call.arguments}\n```\n\n"
-                f"_Tool execution will be implemented in SOUL-62_"
+            # 1. Request approval
+            approval_response = await self._request_tool_approval(tool_call)
+
+            if approval_response.approved:
+                # 2. Execute tool
+                result = await self._execute_tool(tool_call)
+            else:
+                # Tool denied
+                result = f"Tool execution denied: {approval_response.reason}"
+
+            # 3. Create ToolMessage with result
+            tool_results.append(ToolMessage(content=result, tool_call_id=tool_call.id))
+
+            # 4. Show result in chat
+            await self._display_tool_result(
+                tool_call.name, result, approval_response.approved
             )
 
-            system_bubble = MessageBubble(
-                tool_info_message,
-                role="system",
-                show_metadata=False,
-            )
-            await self.chat_view.add_message(system_bubble)
+        # 5. Feed results back to AI and get final response
+        await self._continue_with_tool_results(tool_results)
 
     # Action handlers (placeholders for Phase 2+)
 
