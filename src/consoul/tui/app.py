@@ -26,10 +26,9 @@ if TYPE_CHECKING:
     from consoul.config import ConsoulConfig
     from consoul.tui.widgets import ContextualTopBar, InputArea, StreamingResponse
 
-from consoul.tui.widgets import MessageBubble
-
 from consoul.tui.config import TuiConfig
 from consoul.tui.css.themes import load_theme
+from consoul.tui.widgets import MessageBubble
 
 __all__ = ["ConsoulApp"]
 
@@ -165,15 +164,17 @@ class ConsoulApp(App[None]):
                         bash_execute,
                         set_bash_config,
                     )
+                    from consoul.ai.tools.providers import CliApprovalProvider
 
                     # Configure bash tool with profile settings
                     if consoul_config.tools.bash:
                         set_bash_config(consoul_config.tools.bash)
 
-                    # Create registry (approval provider not needed - we handle it manually)
+                    # Create registry with CLI provider (we override approval in _request_tool_approval)
+                    # The provider is required by registry but we don't use it - we show our own modal
                     self.tool_registry = ToolRegistry(
                         config=consoul_config.tools,
-                        approval_provider=None,  # We handle approval in _request_tool_approval
+                        approval_provider=CliApprovalProvider(),  # Required but unused
                     )
 
                     # Register bash tool
@@ -903,9 +904,11 @@ class ConsoulApp(App[None]):
             return
 
         try:
-            # Add tool results to conversation history
+            # Add tool results to conversation history and persist them
             for tool_msg in tool_results:
                 self.conversation.messages.append(tool_msg)
+                # Persist to database for audit trail (critical for security)
+                self.conversation._persist_message(tool_msg)
 
             # Stream AI's final response with tool results
             # Reuse existing streaming infrastructure
