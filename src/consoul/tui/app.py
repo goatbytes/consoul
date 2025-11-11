@@ -382,15 +382,7 @@ class ConsoulApp(App[None]):
         from consoul.ai.history import to_dict_message
         from consoul.tui.widgets import MessageBubble, StreamingResponse
 
-        # Hide typing indicator before showing streaming response
-        await self.chat_view.hide_typing_indicator()
-
-        # Create streaming response widget
-        stream_widget = StreamingResponse(renderer="hybrid")
-        await self.chat_view.add_message(stream_widget)
-
-        # Track for cancellation
-        self._current_stream = stream_widget
+        # Update streaming state
         self._stream_cancelled = False
         self.streaming = True  # Update reactive state
         self._update_top_bar_state()  # Update top bar streaming indicator
@@ -453,7 +445,35 @@ class ConsoulApp(App[None]):
             stream_thread = threading.Thread(target=sync_stream_producer, daemon=True)
             stream_thread.start()
 
-            # Consume tokens from queue and update UI in real-time
+            # Wait for first token, then replace typing indicator with streaming widget
+            first_token = await token_queue.get()
+
+            # Hide typing indicator and create streaming response widget
+            await self.chat_view.hide_typing_indicator()
+            stream_widget = StreamingResponse(renderer="hybrid")
+            await self.chat_view.add_message(stream_widget)
+
+            # Track for cancellation
+            self._current_stream = stream_widget
+
+            # Check if stream ended immediately or was cancelled
+            if first_token is None or self._stream_cancelled:
+                # Stream ended before any tokens
+                if self._stream_cancelled:
+                    await stream_widget.remove()
+                    cancelled_bubble = MessageBubble(
+                        "_Stream cancelled by user_",
+                        role="system",
+                        show_metadata=False,
+                    )
+                    await self.chat_view.add_message(cancelled_bubble)
+                return
+
+            # Add first token
+            collected_tokens.append(first_token)
+            await stream_widget.add_token(first_token)
+
+            # Consume remaining tokens from queue and update UI in real-time
             while True:
                 token = await token_queue.get()
 
