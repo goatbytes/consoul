@@ -349,6 +349,70 @@ class ContextConfig(BaseModel):
         )
 
 
+class BashToolConfig(BaseModel):
+    """Configuration for bash tool execution.
+
+    Controls security, timeouts, and command blocking for bash tool.
+
+    Example:
+        >>> config = BashToolConfig(
+        ...     timeout=30,
+        ...     working_directory="/tmp",
+        ...     allow_dangerous=False
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    timeout: int = Field(
+        default=30,
+        gt=0,
+        le=600,
+        description="Default timeout for bash commands in seconds (max 10 minutes)",
+    )
+    working_directory: str | None = Field(
+        default=None,
+        description="Default working directory for bash commands (None = current directory)",
+    )
+    blocked_patterns: list[str] = Field(
+        default_factory=lambda: [
+            r"^sudo\s",  # sudo commands
+            r"rm\s+(-[rf]+\s+)?/",  # rm with root paths
+            r"dd\s+if=",  # disk operations
+            r"chmod\s+777",  # dangerous permissions
+            r":\(\)\{.*:\|:.*\};:",  # fork bomb
+            r"wget.*\|.*bash",  # download-and-execute
+            r"curl.*\|.*sh",  # download-and-execute
+            r">\s*/dev/sd[a-z]",  # write to disk devices
+            r"mkfs",  # format filesystem
+            r"fdisk",  # partition operations
+        ],
+        description="Regex patterns for blocked commands",
+    )
+    allow_dangerous: bool = Field(
+        default=False,
+        description="DANGEROUS: Disable command blocking (for testing only)",
+    )
+
+    @field_validator("allow_dangerous")
+    @classmethod
+    def validate_allow_dangerous(cls, v: bool) -> bool:
+        """Validate allow_dangerous is not enabled (security check)."""
+        if v:
+            import warnings
+
+            warnings.warn(
+                "allow_dangerous=True is DANGEROUS and disables command blocking. "
+                "This should ONLY be used in testing environments.",
+                UserWarning,
+                stacklevel=2,
+            )
+        return v
+
+
 class ToolConfig(BaseModel):
     """Configuration for tool calling system.
 
@@ -390,8 +454,12 @@ class ToolConfig(BaseModel):
         gt=0,
         le=600,
         description="Default timeout for tool execution in seconds (max 10 minutes). "
-        "NOTE: This field is reserved for future use in SOUL-60 (bash tool execution). "
-        "The registry does not enforce timeouts; individual tools must implement timeout handling.",
+        "NOTE: This field is deprecated in favor of tool-specific timeout configs (e.g., bash.timeout). "
+        "Individual tools should use their own timeout configuration.",
+    )
+    bash: BashToolConfig = Field(
+        default_factory=BashToolConfig,
+        description="Bash tool-specific configuration",
     )
 
     @field_validator("auto_approve")

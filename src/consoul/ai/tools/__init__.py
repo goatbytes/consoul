@@ -38,6 +38,7 @@ from consoul.ai.tools.exceptions import (
     ToolNotFoundError,
     ToolValidationError,
 )
+from consoul.ai.tools.implementations.bash import bash_execute
 from consoul.ai.tools.registry import ToolRegistry
 
 __all__ = [
@@ -53,4 +54,5 @@ __all__ = [
     "ToolNotFoundError",
     "ToolRegistry",
     "ToolValidationError",
+    "bash_execute",
 ]
