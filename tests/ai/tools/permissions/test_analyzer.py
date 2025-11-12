@@ -364,3 +364,198 @@ class TestRiskDetails(TestCommandAnalyzer):
         risk = analyzer.analyze_command("sudo apt-get update")
         assert risk.suggestions
         assert len(risk.suggestions) > 0
+
+
+class TestRedirectionVulnerabilities(TestCommandAnalyzer):
+    """Tests for output redirection security vulnerabilities."""
+
+    def test_cat_with_redirect_to_system_file_is_blocked(self, analyzer):
+        """Test that cat with redirect to system files is BLOCKED."""
+        commands = [
+            "cat payload.txt > /etc/passwd",
+            "cat data.txt >> /etc/shadow",
+            "cat file.txt > /var/log/auth.log",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level in (RiskLevel.BLOCKED, RiskLevel.DANGEROUS), (
+                f"Command '{cmd}' should be BLOCKED or DANGEROUS, got {risk.level}"
+            )
+
+    def test_echo_with_redirect_to_ssh_is_blocked(self, analyzer):
+        """Test that echo with redirect to SSH files is BLOCKED."""
+        commands = [
+            "echo hacked >> ~/.ssh/authorized_keys",
+            "echo exploit > ~/.ssh/id_rsa",
+            "echo malicious >> /root/.ssh/authorized_keys",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.BLOCKED, (
+                f"Command '{cmd}' should be BLOCKED, got {risk.level}: {risk.reason}"
+            )
+
+    def test_printf_with_redirect_to_profile_is_blocked(self, analyzer):
+        """Test that printf with redirect to shell profiles is BLOCKED."""
+        commands = [
+            "printf 'export PATH=/bad:$PATH' >> ~/.bashrc",
+            "printf 'malicious' > ~/.zshrc",
+            "printf 'code' >> ~/.profile",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.BLOCKED, (
+                f"Command '{cmd}' should be BLOCKED, got {risk.level}: {risk.reason}"
+            )
+
+    def test_cat_without_redirect_is_safe(self, analyzer):
+        """Test that cat without redirect remains SAFE."""
+        commands = [
+            "cat file.txt",
+            "cat /var/log/system.log",
+            "cat /etc/hosts",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.SAFE, (
+                f"Command '{cmd}' should be SAFE, got {risk.level}: {risk.reason}"
+            )
+
+    def test_echo_without_redirect_is_safe(self, analyzer):
+        """Test that echo without redirect is SAFE."""
+        commands = [
+            "echo hello",
+            "echo 'test message'",
+            "echo $PATH",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.SAFE, (
+                f"Command '{cmd}' should be SAFE, got {risk.level}: {risk.reason}"
+            )
+
+    def test_redirect_to_user_file_is_caution(self, analyzer):
+        """Test that redirects to user files are CAUTION."""
+        commands = [
+            "echo test > output.txt",
+            "cat input.txt > /tmp/output.txt",
+            "printf 'data' >> ~/myfile.txt",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.CAUTION, (
+                f"Command '{cmd}' should be CAUTION, got {risk.level}: {risk.reason}"
+            )
+
+    def test_pipe_to_tee_system_file_is_detected(self, analyzer):
+        """Test that pipe to tee with system files is detected."""
+        commands = [
+            "echo malicious | tee -a /etc/passwd",
+            "cat payload | tee /var/log/system.log",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            # Should be at least CAUTION, ideally BLOCKED for system files
+            assert risk.level in (
+                RiskLevel.CAUTION,
+                RiskLevel.DANGEROUS,
+                RiskLevel.BLOCKED,
+            ), f"Command '{cmd}' should be risky, got {risk.level}: {risk.reason}"
+
+
+class TestSystemPathDeletionVulnerabilities(TestCommandAnalyzer):
+    """Tests for system path deletion without flags vulnerabilities."""
+
+    def test_rm_etc_passwd_without_flags_is_blocked(self, analyzer):
+        """Test that rm /etc/passwd without flags is BLOCKED."""
+        risk = analyzer.analyze_command("rm /etc/passwd")
+        assert risk.level == RiskLevel.BLOCKED, (
+            f"Expected BLOCKED for 'rm /etc/passwd', got {risk.level}: {risk.reason}"
+        )
+
+    def test_rm_system_files_without_flags_is_blocked(self, analyzer):
+        """Test that rm on system files without flags is BLOCKED."""
+        commands = [
+            "rm /etc/shadow",
+            "rm /var/log/auth.log",
+            "rm /usr/bin/bash",
+            "rm /sys/kernel/config",
+            "rm /boot/vmlinuz",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.BLOCKED, (
+                f"Command '{cmd}' should be BLOCKED, got {risk.level}: {risk.reason}"
+            )
+
+    def test_rm_system_dir_without_rf_is_blocked(self, analyzer):
+        """Test that rm on system directories without -rf is BLOCKED."""
+        commands = [
+            "rm /etc",
+            "rm -f /var",
+            "rm -i /usr",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.BLOCKED, (
+                f"Command '{cmd}' should be BLOCKED, got {risk.level}: {risk.reason}"
+            )
+
+    def test_rm_user_file_is_caution(self, analyzer):
+        """Test that rm on user files is CAUTION."""
+        commands = [
+            "rm file.txt",
+            "rm /tmp/test.txt",
+            "rm ~/document.pdf",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.CAUTION, (
+                f"Command '{cmd}' should be CAUTION, got {risk.level}: {risk.reason}"
+            )
+
+
+class TestWildcardRootDeletionVulnerabilities(TestCommandAnalyzer):
+    """Tests for wildcard root deletion vulnerabilities."""
+
+    def test_rm_rf_root_wildcard_is_blocked(self, analyzer):
+        """Test that rm -rf /* is BLOCKED."""
+        commands = [
+            "rm -rf /*",
+            "rm -rf / *",
+            "rm -fr /*",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.BLOCKED, (
+                f"Command '{cmd}' should be BLOCKED, got {risk.level}: {risk.reason}"
+            )
+
+    def test_rm_rf_system_wildcard_is_blocked(self, analyzer):
+        """Test that rm -rf /etc/* and similar are BLOCKED."""
+        commands = [
+            "rm -rf /etc/*",
+            "rm -rf /var/*",
+            "rm -rf /usr/*",
+            "rm -rf /sys/*",
+            "rm -rf /boot/*",
+            "rm -rf /lib/*",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.BLOCKED, (
+                f"Command '{cmd}' should be BLOCKED, got {risk.level}: {risk.reason}"
+            )
+
+    def test_rm_rf_user_wildcard_is_dangerous(self, analyzer):
+        """Test that rm -rf on user paths with wildcards is DANGEROUS."""
+        commands = [
+            "rm -rf /tmp/*",
+            "rm -rf ~/documents/*",
+            "rm -rf ./*",
+        ]
+        for cmd in commands:
+            risk = analyzer.analyze_command(cmd)
+            assert risk.level == RiskLevel.DANGEROUS, (
+                f"Command '{cmd}' should be DANGEROUS, got {risk.level}: {risk.reason}"
+            )

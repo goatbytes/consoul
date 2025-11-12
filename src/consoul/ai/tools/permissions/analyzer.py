@@ -129,10 +129,95 @@ class CommandAnalyzer:
             )
 
         # Check if this is a read-only operation first (base command check)
+        # But also check for redirects that would make it a write operation
         if self._is_read_only_operation(command, base_cmd):
+            # Even though the base command is read-only, check for redirects
+            if self._has_output_redirect(command):
+                if self._targets_sensitive_path(command):
+                    return CommandRisk(
+                        level=RiskLevel.BLOCKED,
+                        reason=f"Output redirection to system file: {base_cmd}",
+                        suggestions=["Redirecting to system files is prohibited"],
+                    )
+                return CommandRisk(
+                    level=RiskLevel.CAUTION,
+                    reason=f"Output redirection: {base_cmd}",
+                    suggestions=["Review redirect target path"],
+                )
             return CommandRisk(
                 level=RiskLevel.SAFE,
                 reason=f"Read-only operation: {base_cmd}",
+            )
+
+        # Handle commands with output redirects
+        # This includes echo/printf and read-only commands like cat that are redirected
+        read_only_cmds = {
+            "cat",
+            "less",
+            "more",
+            "head",
+            "tail",
+            "grep",
+            "egrep",
+            "fgrep",
+        }
+        display_cmds = {"echo", "printf"}
+
+        if base_cmd in display_cmds or (
+            base_cmd in read_only_cmds and self._has_output_redirect(command)
+        ):
+            if self._has_output_redirect(command):
+                # Check if redirect targets a sensitive path
+                if self._targets_sensitive_path(command):
+                    return CommandRisk(
+                        level=RiskLevel.BLOCKED,
+                        reason=f"Output redirection to system file: {base_cmd}",
+                        suggestions=["Redirecting to system files is prohibited"],
+                    )
+                return CommandRisk(
+                    level=RiskLevel.CAUTION,
+                    reason=f"Output redirection: {base_cmd}",
+                    suggestions=["Review redirect target path"],
+                )
+            # display commands without redirects are safe
+            if base_cmd in display_cmds:
+                return CommandRisk(
+                    level=RiskLevel.SAFE,
+                    reason=f"Display command without redirection: {base_cmd}",
+                )
+
+        # Handle rm separately - check for system paths regardless of flags
+        if base_cmd == "rm":
+            if self._rm_targets_system_path(command):
+                return CommandRisk(
+                    level=RiskLevel.BLOCKED,
+                    reason="Removing system files is prohibited",
+                    suggestions=[
+                        "System paths (/etc, /var, /usr, etc.) cannot be deleted",
+                        "Request admin assistance if needed",
+                    ],
+                )
+            # Check for dangerous recursive removal (both -r and -f together, or wildcards)
+            if re.search(r"rm\s+.*-[rf]*r[rf]*", command) and re.search(
+                r"rm\s+.*-[rf]*f[rf]*", command
+            ):
+                return CommandRisk(
+                    level=RiskLevel.DANGEROUS,
+                    reason="Recursive/forced file removal",
+                    suggestions=["Verify paths carefully before removal"],
+                )
+            # Check for wildcards with -f
+            if "-f" in command and "*" in command:
+                return CommandRisk(
+                    level=RiskLevel.DANGEROUS,
+                    reason="Forced file removal with wildcards",
+                    suggestions=["Verify paths carefully before removal"],
+                )
+            # Single file removal is caution (including with -f or -i flags)
+            return CommandRisk(
+                level=RiskLevel.CAUTION,
+                reason="File removal operation",
+                suggestions=["Verify file path before removal"],
             )
 
         # Check for SAFE patterns (matches full command or base command)
@@ -274,6 +359,8 @@ class CommandAnalyzer:
             >>> analyzer = CommandAnalyzer()
             >>> analyzer._is_read_only_operation("cat file.txt", "cat")
             True
+            >>> analyzer._is_read_only_operation("cat file.txt > output.txt", "cat")
+            False
         """
         # Common read-only commands
         read_only_commands = {
@@ -299,7 +386,123 @@ class CommandAnalyzer:
             "sha1sum",
         }
 
-        return base_cmd in read_only_commands
+        # Check if command uses redirection (which makes it a write operation)
+        if base_cmd in read_only_commands:
+            # Look for output redirects: >, >>, or | tee
+            # We need to be careful with quoted strings and escaped characters
+            # Simple approach: check for redirect operators outside of quotes
+            return not self._has_output_redirect(command)
+
+        return False
+
+    def _has_output_redirect(self, command: str) -> bool:
+        """Check if command contains output redirection operators.
+
+        Args:
+            command: Full command string
+
+        Returns:
+            True if command has output redirection (>, >>, | tee)
+
+        Example:
+            >>> analyzer = CommandAnalyzer()
+            >>> analyzer._has_output_redirect("cat file.txt > output.txt")
+            True
+            >>> analyzer._has_output_redirect("cat file.txt")
+            False
+        """
+        # Try to parse with shlex to handle quoting properly
+        try:
+            # Check for common redirect patterns
+            # Match > or >> followed by a path (not inside quotes)
+            if re.search(r'(?<!["\'])>+(?!["\'])', command):
+                return True
+            # Match | tee (pipe to tee is a write operation)
+            if re.search(r"\|\s*tee\b", command):
+                return True
+        except Exception:
+            # If we can't parse, be conservative - assume it has redirect
+            # if we see redirect chars
+            if ">" in command or "| tee" in command:
+                return True
+
+        return False
+
+    def _targets_sensitive_path(self, command: str) -> bool:
+        """Check if command redirects to a sensitive system path.
+
+        Args:
+            command: Full command string
+
+        Returns:
+            True if command targets sensitive paths like /etc, ~/.ssh, etc.
+
+        Example:
+            >>> analyzer = CommandAnalyzer()
+            >>> analyzer._targets_sensitive_path("echo foo > /etc/passwd")
+            True
+            >>> analyzer._targets_sensitive_path("echo foo > output.txt")
+            False
+        """
+        # Extract redirect target
+        redirect_match = re.search(r">+\s*([^\s;|&]+)", command)
+        if redirect_match:
+            target = redirect_match.group(1).strip()
+            # Check for sensitive paths
+            sensitive_patterns = [
+                r"^/etc/",
+                r"^/var/",
+                r"^/usr/",
+                r"^/sys/",
+                r"^/boot/",
+                r"^/lib/",
+                r"^/dev/",
+                r"^/proc/",
+                r"^/root/",
+                r"^~?/.ssh/",
+                r"^~?/.bash",
+                r"^~?/.zsh",
+                r"^~?/.profile",
+            ]
+            for pattern in sensitive_patterns:
+                if re.search(pattern, target):
+                    return True
+        return False
+
+    def _rm_targets_system_path(self, command: str) -> bool:
+        """Check if rm command targets system paths.
+
+        Args:
+            command: Full rm command string
+
+        Returns:
+            True if command targets system paths regardless of flags
+
+        Example:
+            >>> analyzer = CommandAnalyzer()
+            >>> analyzer._rm_targets_system_path("rm /etc/passwd")
+            True
+            >>> analyzer._rm_targets_system_path("rm -rf /etc")
+            True
+            >>> analyzer._rm_targets_system_path("rm file.txt")
+            False
+        """
+        # System path patterns that should always be blocked
+        system_patterns = [
+            r"\s+/etc(/|$|\s)",
+            r"\s+/var(/|$|\s)",
+            r"\s+/usr(/|$|\s)",
+            r"\s+/sys(/|$|\s)",
+            r"\s+/boot(/|$|\s)",
+            r"\s+/lib(/|$|\s)",
+            r"\s+/bin(/|$|\s)",
+            r"\s+/sbin(/|$|\s)",
+            r"\s+/dev(/|$|\s)",
+            r"\s+/proc(/|$|\s)",
+            # Also check for exact root
+            r"\s+/($|\s)",
+        ]
+        return any(re.search(pattern, command) for pattern in system_patterns)
 
     def _compile_safe_patterns(self) -> list[re.Pattern[str]]:
         """Compile regex patterns for SAFE commands.
@@ -312,9 +515,6 @@ class CommandAnalyzer:
             r"^ls(\s|$)",
             r"^pwd(\s|$)",
             r"^cd(\s|$)",
-            # Output and display
-            r"^echo(\s|$)",
-            r"^printf(\s|$)",
             # Environment
             r"^env(\s|$)",
             r"^export\s+\w+=",  # Setting env vars
@@ -348,9 +548,8 @@ class CommandAnalyzer:
             r"^cp(\s|$)",
             r"^mv(\s|$)",
             r"^ln(\s|$)",
-            # Single file removal (not recursive)
-            r"^rm\s+[^-]",  # rm without flags
-            r"^rm\s+-[fiv]\s+[^/]",  # rm with single flags, not root path
+            # Note: rm is now handled separately in analyze_command
+            # to check for system paths regardless of flags
             # Safe permissions
             r"^chmod\s+[0-7]{3}\s+[^/]",  # chmod octal on non-root paths
             # Git modifications
@@ -412,12 +611,20 @@ class CommandAnalyzer:
             r"^mkfs",  # format filesystem (match at start)
             r"^fdisk",  # partition operations (match at start)
             r"^parted",  # partition operations (match at start)
-            # Additional blocks
+            # Additional blocks for system paths (with or without wildcards)
             r"rm\s+.*-[rf]+.*/etc",  # rm -rf /etc
             r"rm\s+.*-[rf]+.*/var",  # rm -rf /var
             r"rm\s+.*-[rf]+.*/usr",  # rm -rf /usr
             r"rm\s+.*-[rf]+.*/sys",  # rm -rf /sys
             r"rm\s+.*-[rf]+.*/boot",  # rm -rf /boot
             r"rm\s+.*-[rf]+.*/lib",  # rm -rf /lib
+            # Wildcard root deletions
+            r"rm\s+.*-[rf]+.*\s+/\*",  # rm -rf /*
+            r"rm\s+.*-[rf]+.*/etc/\*",  # rm -rf /etc/*
+            r"rm\s+.*-[rf]+.*/var/\*",  # rm -rf /var/*
+            r"rm\s+.*-[rf]+.*/usr/\*",  # rm -rf /usr/*
+            r"rm\s+.*-[rf]+.*/sys/\*",  # rm -rf /sys/*
+            r"rm\s+.*-[rf]+.*/boot/\*",  # rm -rf /boot/*
+            r"rm\s+.*-[rf]+.*/lib/\*",  # rm -rf /lib/*
         ]
         return [re.compile(p, re.IGNORECASE) for p in patterns]

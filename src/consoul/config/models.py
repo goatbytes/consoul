@@ -20,12 +20,21 @@ from pydantic import (
     model_validator,
 )
 
-# Import RiskLevel for ToolConfig (lazy import to avoid circular dependency)
+# Import permission types (lazy import to avoid circular dependency)
 
 if TYPE_CHECKING:
+    from consoul.ai.tools.permissions.policy import PermissionPolicy
     from consoul.config.env import EnvSettings
     from consoul.tui.config import TuiConfig
 else:
+    # Lazy import PermissionPolicy to avoid circular import issues
+    # Keep PermissionPolicy as a callable that returns the actual enum
+    # This allows the default= to work properly
+    try:
+        from consoul.ai.tools.permissions.policy import PermissionPolicy
+    except ImportError:
+        PermissionPolicy = Any  # type: ignore[misc,assignment]
+
     EnvSettings = Any  # type: ignore[misc,assignment]
     TuiConfig = Any  # type: ignore[misc,assignment]
 
@@ -424,12 +433,23 @@ class ToolConfig(BaseModel):
     Controls tool execution behavior, security policies, and approval workflows.
     This configuration is SDK-level (not TUI-specific) to support headless usage.
 
-    Example:
+    Supports both predefined permission policies and manual configuration:
+    - Use permission_policy for preset security postures (PARANOID/BALANCED/TRUSTING/UNRESTRICTED)
+    - Use manual settings (approval_mode, auto_approve) for custom configurations
+    - Policy takes precedence over manual settings when both are specified
+
+    Example (with policy):
+        >>> from consoul.ai.tools.permissions import PermissionPolicy
         >>> config = ToolConfig(
         ...     enabled=True,
-        ...     timeout=30,
-        ...     allowed_tools=["bash", "python"],
-        ...     approval_mode="always"
+        ...     permission_policy=PermissionPolicy.BALANCED
+        ... )
+
+    Example (manual):
+        >>> config = ToolConfig(
+        ...     enabled=True,
+        ...     approval_mode="always",
+        ...     allowed_tools=["bash"]
         ... )
     """
 
@@ -442,17 +462,27 @@ class ToolConfig(BaseModel):
         default=True,
         description="Enable tool calling system (master switch)",
     )
+    permission_policy: PermissionPolicy | None = Field(
+        default=None,  # Will be set to BALANCED in model_validator if not specified
+        description="Predefined permission policy (overrides approval_mode/auto_approve when set). "
+        "Set to None to use manual settings.",
+    )
     auto_approve: bool = Field(
         default=False,
-        description="DANGEROUS: Auto-approve all tool executions (NEVER set to True in production)",
+        description="DANGEROUS: Auto-approve all tool executions (NEVER set to True in production). "
+        "Ignored if permission_policy is set.",
     )
     allowed_tools: list[str] = Field(
         default_factory=list,
         description="Whitelist of allowed tools (empty = all tools allowed with approval)",
     )
-    approval_mode: Literal["always", "once_per_session", "whitelist"] = Field(
+    approval_mode: Literal[
+        "always", "once_per_session", "whitelist", "risk_based", "never"
+    ] = Field(
         default="always",
-        description="When to request approval: 'always' (every execution), 'once_per_session' (first use only), 'whitelist' (only for non-whitelisted tools)",
+        description="When to request approval: 'always' (every execution), 'once_per_session' (first use only), "
+        "'whitelist' (only for non-whitelisted tools), 'risk_based' (based on risk level), "
+        "'never' (auto-approve all - DANGEROUS). Ignored if permission_policy is set.",
     )
     timeout: int = Field(
         default=30,
@@ -485,6 +515,33 @@ class ToolConfig(BaseModel):
                 stacklevel=2,
             )
         return v
+
+    @model_validator(mode="after")
+    def validate_permission_policy(self) -> ToolConfig:
+        """Validate permission policy and warn about dangerous configurations.
+
+        Checks for UNRESTRICTED policy and warns about security implications.
+        Also validates that policy settings are consistent.
+        Sets default policy to BALANCED if not specified.
+        """
+        # Lazy import to avoid circular dependency
+        from consoul.ai.tools.permissions.policy import PermissionPolicy
+
+        # Set default policy to BALANCED if not specified
+        if self.permission_policy is None:
+            self.permission_policy = PermissionPolicy.BALANCED
+
+        if self.permission_policy == PermissionPolicy.UNRESTRICTED:
+            import warnings
+
+            warnings.warn(
+                "UNRESTRICTED policy is DANGEROUS and should ONLY be used in testing environments. "
+                "All tool executions will be auto-approved without user confirmation.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        return self
 
 
 class ProfileConfig(BaseModel):
