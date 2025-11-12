@@ -47,6 +47,7 @@ class MessageBubble(Container):
         timestamp: datetime | None = None,
         token_count: int | None = None,
         show_metadata: bool = True,
+        tool_calls: list[dict[str, Any]] | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize MessageBubble widget.
@@ -57,6 +58,7 @@ class MessageBubble(Container):
             timestamp: Message timestamp (defaults to now)
             token_count: Optional token count to display
             show_metadata: Whether to show metadata footer
+            tool_calls: Optional list of tool call data dicts (for assistant messages)
             **kwargs: Additional arguments passed to Static
         """
         super().__init__(**kwargs)
@@ -65,6 +67,7 @@ class MessageBubble(Container):
         self.timestamp = timestamp or datetime.now()
         self.token_count = token_count
         self.show_metadata = show_metadata
+        self.tool_calls = tool_calls or []
         self._markdown_failed = False
         # Set role last (triggers watcher which needs other attributes)
         self.role = role
@@ -78,6 +81,15 @@ class MessageBubble(Container):
         if self.show_metadata:
             with Horizontal(classes="message-metadata"):
                 yield Static(id="metadata-text", classes="metadata-text")
+
+                # Add tool calls button if assistant message has tools
+                if self.tool_calls:
+                    yield Button(
+                        "🛠️",
+                        id="tools-button",
+                        classes="tools-button",
+                    )
+
                 yield Button("📋", id="copy-button", classes="copy-button")
 
     def on_mount(self) -> None:
@@ -181,6 +193,15 @@ class MessageBubble(Container):
             self.app.notify("Message copied to clipboard!", severity="information")
         except Exception as e:
             self.app.notify(f"Failed to copy: {e}", severity="error")
+
+    @on(Button.Pressed, "#tools-button")
+    async def show_tool_details(self) -> None:
+        """Show tool call details modal when tools button is pressed."""
+        from consoul.tui.widgets.tool_call_details_modal import ToolCallDetailsModal
+
+        if self.tool_calls:
+            modal = ToolCallDetailsModal(tool_calls=self.tool_calls)
+            await self.app.push_screen(modal)
 
     def watch_role(self, new_role: str) -> None:
         """Update styling when role changes.

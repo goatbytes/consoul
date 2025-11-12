@@ -28,7 +28,6 @@ if TYPE_CHECKING:
         ContextualTopBar,
         InputArea,
         StreamingResponse,
-        ToolCallWidget,
     )
 
 from consoul.tui.config import TuiConfig
@@ -49,17 +48,14 @@ class ToolApprovalRequested(Message):
     def __init__(
         self,
         tool_call: ParsedToolCall,
-        widget: ToolCallWidget,
     ) -> None:
         """Initialize tool approval request message.
 
         Args:
             tool_call: Parsed tool call needing approval
-            widget: ToolCallWidget to update with status
         """
         super().__init__()
         self.tool_call = tool_call
-        self.widget = widget
 
 
 class ToolApprovalResult(Message):
@@ -71,7 +67,6 @@ class ToolApprovalResult(Message):
     def __init__(
         self,
         tool_call: ParsedToolCall,
-        widget: ToolCallWidget,
         approved: bool,
         reason: str | None = None,
     ) -> None:
@@ -79,13 +74,11 @@ class ToolApprovalResult(Message):
 
         Args:
             tool_call: Parsed tool call that was approved/denied
-            widget: ToolCallWidget to update with result
             approved: Whether user approved execution
             reason: Reason for denial (if not approved)
         """
         super().__init__()
         self.tool_call = tool_call
-        self.widget = widget
         self.approved = approved
         self.reason = reason
 
@@ -313,6 +306,9 @@ class ConsoulApp(App[None]):
         # Tool execution state (for tracking pending tool approvals)
         self._pending_tool_calls: list[ParsedToolCall] = []
         self._tool_results: dict[str, ToolMessage] = {}  # Map tool_call_id -> result
+        self._tool_call_data: dict[
+            str, dict[str, Any]
+        ] = {}  # Map tool_call_id -> display data
 
     def on_mount(self) -> None:
         """Initialize app after mounting (message pump is running).
@@ -882,11 +878,19 @@ class ConsoulApp(App[None]):
                 # Replace StreamingResponse with MessageBubble for permanent display
                 await stream_widget.remove()
 
+                # Collect tool call data if any tools were executed
+                tool_calls_list = (
+                    list(self._tool_call_data.values())
+                    if self._tool_call_data
+                    else None
+                )
+
                 assistant_bubble = MessageBubble(
                     full_response,
                     role="assistant",
                     show_metadata=True,
                     token_count=len(collected_tokens),
+                    tool_calls=tool_calls_list,
                 )
                 await self.chat_view.add_message(assistant_bubble)
             elif self._stream_cancelled:
@@ -1042,29 +1046,28 @@ class ConsoulApp(App[None]):
             This method is non-blocking. Tool execution happens asynchronously
             via the message passing system.
         """
-        from consoul.ai.tools import ToolStatus
-        from consoul.tui.widgets import ToolCallWidget
 
         # Store pending tool calls for tracking
         self._pending_tool_calls = list(parsed_calls)
         self._tool_results = {}  # Reset results
+        self._tool_call_data = {}  # Reset tool call display data
 
         for tool_call in parsed_calls:
             self.log.info(
                 f"Tool call detected: {tool_call.name} with args: {tool_call.arguments}"
             )
 
-            # 1. Create widget with PENDING status and add to chat
-            widget = ToolCallWidget(
-                tool_name=tool_call.name,
-                arguments=tool_call.arguments,
-                status=ToolStatus.PENDING,
-            )
-            await self.chat_view.add_message(widget)
+            # Initialize tool call data with PENDING status
+            self._tool_call_data[tool_call.id] = {
+                "name": tool_call.name,
+                "arguments": tool_call.arguments,
+                "status": "PENDING",
+                "result": None,
+            }
 
-            # 2. Emit approval request message (non-blocking)
+            # Emit approval request message (non-blocking)
             # This will be handled by on_tool_approval_requested outside streaming context
-            self.post_message(ToolApprovalRequested(tool_call, widget))
+            self.post_message(ToolApprovalRequested(tool_call))
 
     # Message handlers for tool approval workflow
 
@@ -1104,7 +1107,6 @@ class ConsoulApp(App[None]):
             self.post_message(
                 ToolApprovalResult(
                     tool_call=message.tool_call,
-                    widget=message.widget,
                     approved=bool(approved),
                     reason=reason,
                 )
@@ -1125,26 +1127,27 @@ class ConsoulApp(App[None]):
         """
         from langchain_core.messages import ToolMessage
 
-        from consoul.ai.tools import ToolStatus
-
         if message.approved:
-            # Update widget to EXECUTING
-            message.widget.update_status(ToolStatus.EXECUTING)
+            # Update tool call data to EXECUTING
+            self._tool_call_data[message.tool_call.id]["status"] = "EXECUTING"
 
             # Execute tool
             try:
                 result = await self._execute_tool(message.tool_call)
-                # Update widget with SUCCESS
-                message.widget.update_result(result, ToolStatus.SUCCESS)
+                # Update tool call data with SUCCESS
+                self._tool_call_data[message.tool_call.id]["status"] = "SUCCESS"
+                self._tool_call_data[message.tool_call.id]["result"] = result
             except Exception as e:
-                # Execution failed - update widget with ERROR
+                # Execution failed - update tool call data with ERROR
                 result = f"Tool execution failed: {e}"
-                message.widget.update_result(result, ToolStatus.ERROR)
+                self._tool_call_data[message.tool_call.id]["status"] = "ERROR"
+                self._tool_call_data[message.tool_call.id]["result"] = result
                 self.log.error(f"Tool execution failed: {e}", exc_info=True)
         else:
-            # Tool denied - update widget with DENIED status
+            # Tool denied - update tool call data with DENIED status
             result = f"Tool execution denied: {message.reason}"
-            message.widget.update_result(result, ToolStatus.DENIED)
+            self._tool_call_data[message.tool_call.id]["status"] = "DENIED"
+            self._tool_call_data[message.tool_call.id]["result"] = result
 
         # Store result
         tool_message = ToolMessage(content=result, tool_call_id=message.tool_call.id)
