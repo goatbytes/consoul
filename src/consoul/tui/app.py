@@ -1084,12 +1084,37 @@ class ConsoulApp(App[None]):
         Args:
             message: ToolApprovalRequested with tool_call and widget
         """
-        from consoul.ai.tools import RiskLevel, ToolApprovalRequest
+        from consoul.ai.tools import ToolApprovalRequest
         from consoul.tui.widgets import ToolApprovalModal
 
-        # Determine risk level (for now, all tools are DANGEROUS)
-        # Future: Get from registry metadata
-        risk_level = RiskLevel.DANGEROUS
+        # Get dynamic risk assessment from registry
+        if self.tool_registry is None:
+            # Fallback to DANGEROUS if no registry (shouldn't happen)
+            from consoul.ai.tools import RiskLevel
+            from consoul.ai.tools.permissions.analyzer import CommandRisk
+
+            risk_assessment = CommandRisk(
+                level=RiskLevel.DANGEROUS,
+                reason="No tool registry available",
+            )
+        else:
+            risk_assessment = self.tool_registry.assess_risk(
+                message.tool_call.name,
+                message.tool_call.arguments,
+            )
+
+        # Extract risk level and reason
+        # assess_risk returns CommandRisk for all tools now
+        from consoul.ai.tools import RiskLevel
+
+        if hasattr(risk_assessment, "level"):
+            # CommandRisk object
+            risk_level: RiskLevel = risk_assessment.level
+            risk_reason: str = risk_assessment.reason
+        else:
+            # Plain RiskLevel (backward compatibility - shouldn't happen)
+            risk_level = risk_assessment  # type: ignore[assignment]
+            risk_reason = f"Static risk level: {risk_level.value}"
 
         # Create approval request
         request = ToolApprovalRequest(
@@ -1097,6 +1122,7 @@ class ConsoulApp(App[None]):
             arguments=message.tool_call.arguments,
             risk_level=risk_level,
             tool_call_id=message.tool_call.id,
+            description=risk_reason,  # Add risk reason as description
         )
 
         # Define callback to handle result

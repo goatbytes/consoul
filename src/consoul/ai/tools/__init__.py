@@ -44,6 +44,7 @@ from consoul.ai.tools.parser import (
     has_tool_calls,
     parse_tool_calls,
 )
+from consoul.ai.tools.permissions.analyzer import CommandAnalyzer, CommandRisk
 from consoul.ai.tools.registry import ToolRegistry
 from consoul.ai.tools.status import ToolStatus
 
@@ -51,6 +52,8 @@ __all__ = [
     "ApprovalError",
     "ApprovalProvider",
     "BlockedCommandError",
+    "CommandAnalyzer",
+    "CommandRisk",
     "ParsedToolCall",
     "RiskLevel",
     "ToolApprovalRequest",

@@ -22,13 +22,15 @@ class RiskLevel(str, Enum):
 
     Attributes:
         SAFE: Low-risk operations (ls, pwd, echo, cat read-only files)
-        CAUTION: Medium-risk operations (grep, find, network requests)
-        DANGEROUS: High-risk operations (rm, sudo, chmod, write operations)
+        CAUTION: Medium-risk operations (mkdir, cp, mv, git commit)
+        DANGEROUS: High-risk operations (rm -rf, dd, kill -9, chmod 777)
+        BLOCKED: Explicitly prohibited operations (sudo, rm -rf /, fork bombs)
     """
 
     SAFE = "safe"
     CAUTION = "caution"
     DANGEROUS = "dangerous"
+    BLOCKED = "blocked"
 
     def __str__(self) -> str:
         """Return string representation of risk level."""

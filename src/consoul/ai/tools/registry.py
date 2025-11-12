@@ -327,28 +327,48 @@ class ToolRegistry:
         """
         self._approved_this_session.add(tool_name)
 
-    def assess_risk(self, tool_name: str, arguments: dict[str, Any]) -> RiskLevel:
+    def assess_risk(self, tool_name: str, arguments: dict[str, Any]) -> Any:
         """Assess risk level for a tool execution.
 
-        Returns the tool's configured risk level. Can be overridden by
-        subclasses to implement dynamic risk assessment based on arguments.
+        For bash_execute tool, performs dynamic risk assessment using CommandAnalyzer.
+        For other tools, returns static risk level from metadata.
 
         Args:
             tool_name: Name of tool being executed
             arguments: Arguments that will be passed to tool
 
         Returns:
-            RiskLevel for this execution
+            CommandRisk for bash_execute (with level, reason, suggestions)
+            RiskLevel for other tools (static level)
 
         Raises:
             ToolNotFoundError: If tool is not registered
 
         Example:
+            >>> # Dynamic assessment for bash
             >>> risk = registry.assess_risk("bash_execute", {"command": "ls"})
-            >>> assert risk == RiskLevel.DANGEROUS  # bash is always dangerous
+            >>> assert risk.level == RiskLevel.SAFE
+            >>> assert "read-only" in risk.reason.lower()
+            >>>
+            >>> # Static assessment for other tools
+            >>> risk = registry.assess_risk("other_tool", {})
+            >>> assert isinstance(risk, RiskLevel)
         """
+        from consoul.ai.tools.permissions.analyzer import CommandAnalyzer, CommandRisk
+
         metadata = self.get_tool(tool_name)
-        return metadata.risk_level
+
+        # For bash_execute tool, use CommandAnalyzer for dynamic assessment
+        if tool_name == "bash_execute" and "command" in arguments:
+            analyzer = CommandAnalyzer()
+            return analyzer.analyze_command(arguments["command"])
+
+        # For other tools, return static risk level wrapped in CommandRisk
+        return CommandRisk(
+            level=metadata.risk_level,
+            reason=f"Static risk level for {tool_name}",
+            matched_pattern=None,
+        )
 
     def bind_to_model(
         self,

@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-11T17:26:23.032334",
+  "updated_at": "2025-11-11T17:26:23.032346",
+  "id": "SOUL-75",
+  "uuid": "20b693ca-e019-4c44-a8dc-cecd0f5cff07",
+  "title": "Optional audit logging for tool approvals",
+  "description": "As a Consoul user or organization, I want optional audit logging of tool approvals and executions, so that I can review command history, track security decisions, and comply with audit requirements.\n\n## Context\nCurrently no persistent record of tool approvals or executions exists. Users working in regulated environments or wanting to review AI command history need audit trails. This is optional functionality that should not impact performance when disabled.\n\n## Technical Notes\n- Create AuditLogger in consoul/ai/tools/permissions/audit.py\n- Storage-agnostic protocol design (file, DB, remote logging)\n- Log: timestamp, tool_name, arguments, risk_level, approval_decision, user_id\n- Configurable retention period and log rotation\n- Privacy-aware (optionally redact sensitive arguments)\n- Disabled by default for performance\n\n## Files to Modify\n- Create: src/consoul/ai/tools/permissions/audit.py\n- Modify: src/consoul/config/models.py (add audit_logging config section)\n- Modify: src/consoul/ai/tools/registry.py (log approval decisions)\n- Modify: src/consoul/tui/app.py (log tool executions)\n\n## Acceptance Criteria\n- [ ] AuditLogger protocol with file/DB implementations\n- [ ] Config option to enable/disable audit logging\n- [ ] Logs include timestamp, tool, args, risk, decision\n- [ ] Log rotation and retention policy configurable\n- [ ] Sensitive argument redaction supported\n- [ ] No performance impact when disabled\n- [ ] Query interface for log retrieval\n- [ ] Optional TUI screen to view audit logs\n\n## Testing\n- Test logging enabled/disabled behavior\n- Test log rotation and retention\n- Test sensitive data redaction\n- Test performance with logging disabled\n- Test log query functionality\n- Test storage backend abstraction\n\n## Implementation Hints\n- Use Python logging module with custom formatter\n- Default to JSON lines format for machine parsing\n- Store logs in .consoul/audit/ directory\n- Implement async logging to avoid blocking\n- Consider structured logging (timestamp, event_type, metadata)\n- Add sensitive_params field to tool metadata for redaction\n- Optional: integrate with external logging systems (syslog, CloudWatch)",
+  "status": "todo",
+  "type": "feature",
+  "priority": "low",
+  "labels": [
+    "tools",
+    "security",
+    "logging"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

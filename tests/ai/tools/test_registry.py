@@ -338,11 +338,15 @@ class TestRiskAssessment:
     """Tests for risk assessment functionality."""
 
     def test_assess_risk_returns_tool_risk(self, registry, sample_tool):
-        """Test risk assessment returns tool's risk level."""
+        """Test risk assessment returns tool's risk level (as CommandRisk)."""
+        from consoul.ai.tools.permissions.analyzer import CommandRisk
+
         registry.register(sample_tool, risk_level=RiskLevel.SAFE)
 
         risk = registry.assess_risk("multiply", {"a": 2, "b": 3})
-        assert risk == RiskLevel.SAFE
+        # assess_risk now returns CommandRisk for all tools
+        assert isinstance(risk, CommandRisk)
+        assert risk.level == RiskLevel.SAFE
 
     def test_assess_risk_nonexistent_tool_raises_error(self, registry):
         """Test risk assessment for non-existent tool raises error."""
