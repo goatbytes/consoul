@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-11T17:26:19.518629",
-  "updated_at": "2025-11-12T07:39:58.471396Z",
+  "updated_at": "2025-11-12T17:32:39.419115Z",
   "id": "SOUL-74",
   "uuid": "f73280df-772f-4120-a5de-30400e3a7026",
   "title": "TUI permission management screen",
@@ -13,6 +13,7 @@
     "ui",
     "config"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

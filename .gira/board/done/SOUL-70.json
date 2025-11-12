@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-11T17:26:03.861894",
-  "updated_at": "2025-11-12T02:00:01.756255Z",
+  "updated_at": "2025-11-12T17:32:39.423127Z",
   "id": "SOUL-70",
   "uuid": "6ae5b09e-cf9e-4477-95c5-46c34da90b51",
   "title": "Dynamic bash command risk assessment system",
@@ -13,6 +13,7 @@
     "tools",
     "security"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

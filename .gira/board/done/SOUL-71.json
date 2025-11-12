@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-11T17:26:07.975866",
-  "updated_at": "2025-11-12T02:39:03.899688Z",
+  "updated_at": "2025-11-12T17:32:39.420964Z",
   "id": "SOUL-71",
   "uuid": "98c65450-8327-45b0-b955-55be24110aab",
   "title": "Bash command whitelist management system",
@@ -13,6 +13,7 @@
     "security",
     "config"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

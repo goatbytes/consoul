@@ -464,7 +464,7 @@ class PermissionManagerScreen(ModalScreen[bool]):
 
     async def action_add_pattern(self) -> None:
         """Show modal to add new whitelist pattern."""
-        result = await self.app.push_screen_wait(AddPatternModal())
+        result = await self.app.push_screen(AddPatternModal(), wait_for_dismiss=True)
 
         if result:
             pattern, pattern_type, description = result

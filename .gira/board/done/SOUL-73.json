@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-11T17:26:15.882625",
-  "updated_at": "2025-11-12T07:26:20.444898Z",
+  "updated_at": "2025-11-12T17:32:39.421794Z",
   "id": "SOUL-73",
   "uuid": "43258bc2-e691-4148-a5ef-a0bd6e0758bb",
   "title": "Integrate permission SDK into Consoul TUI",
@@ -13,6 +13,7 @@
     "integration",
     "ai"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
