@@ -74,6 +74,11 @@ def is_whitelisted(
 
     Whitelisted commands bypass blocklist validation and approval prompts.
 
+    Security:
+        All patterns are treated as LITERAL/EXACT matches by default for safety.
+        To use regex patterns, prefix with "regex:" (e.g., "regex:git (status|log)")
+        This prevents accidental regex interpretation of commands like "./gradlew"
+
     Args:
         command: The bash command to check
         config: Optional config with whitelist patterns
@@ -87,6 +92,10 @@ def is_whitelisted(
         True
         >>> is_whitelisted("rm -rf /", config)
         False
+        >>> # Regex must be explicit
+        >>> config2 = BashToolConfig(whitelist_patterns=["regex:git (status|log)"])
+        >>> is_whitelisted("git status", config2)
+        True
     """
     if not config or not config.whitelist_patterns:
         return False
@@ -94,12 +103,31 @@ def is_whitelisted(
     # Create whitelist manager with patterns from config
     manager = WhitelistManager()
     for pattern in config.whitelist_patterns:
-        # Detect regex patterns (contain special regex characters)
-        is_regex = any(char in pattern for char in r".*+?[]{}()|^$\\")
-        manager.add_pattern(
-            pattern,
-            pattern_type="regex" if is_regex else "exact",
-        )
+        # Check for explicit regex prefix
+        if pattern.startswith("regex:"):
+            # Explicit regex pattern
+            regex_pattern = pattern[6:]  # Remove "regex:" prefix
+            try:
+                manager.add_pattern(
+                    regex_pattern,
+                    pattern_type="regex",
+                )
+            except ValueError as e:
+                # Invalid regex - log warning but don't crash
+                import warnings
+
+                warnings.warn(
+                    f"Invalid regex pattern '{regex_pattern}': {e}. Pattern will be ignored.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                continue
+        else:
+            # Treat as literal/exact match for safety
+            manager.add_pattern(
+                pattern,
+                pattern_type="exact",
+            )
 
     return manager.is_whitelisted(command)
 

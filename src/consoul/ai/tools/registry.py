@@ -257,10 +257,12 @@ class ToolRegistry:
         3. If user approves: Call registry.mark_approved(tool_name)
         4. Execute tool
 
-        Based on approval_mode configuration:
-        - 'always': Always require approval (registry never caches)
+        Based on approval_mode/permission_policy configuration:
+        - 'always': Always require approval (PARANOID policy)
+        - 'risk_based': Based on risk level vs threshold (BALANCED/TRUSTING policies)
         - 'once_per_session': Require approval on first use, then cache approval
         - 'whitelist': Only require approval for tools not in allowed_tools
+        - 'never': Never require approval (UNRESTRICTED policy - DANGEROUS)
 
         Special handling for bash_execute:
         - Checks command-level whitelist from BashToolConfig.whitelist_patterns
@@ -268,7 +270,7 @@ class ToolRegistry:
 
         Args:
             tool_name: Name of tool to check
-            arguments: Optional tool arguments (used for command-level whitelist checking)
+            arguments: Optional tool arguments (used for command-level whitelist and risk assessment)
 
         Returns:
             True if approval UI should be shown, False if cached/whitelisted
@@ -284,12 +286,60 @@ class ToolRegistry:
             >>> # Command-level whitelist
             >>> config = ToolConfig(bash=BashToolConfig(whitelist_patterns=["git status"]))
             >>> registry.needs_approval("bash_execute", {"command": "git status"})  # False (whitelisted)
+            >>>
+            >>> # Risk-based approval (BALANCED policy)
+            >>> from consoul.ai.tools.permissions import PermissionPolicy
+            >>> config = ToolConfig(permission_policy=PermissionPolicy.BALANCED)
+            >>> registry = ToolRegistry(config)
+            >>> # SAFE commands auto-approved, CAUTION+ require approval
 
         Warning:
             Never execute tools when needs_approval() returns True without
             going through the approval provider first. The registry-level
             caching is an optimization, not a replacement for user approval.
         """
+        # Use PolicyResolver if permission_policy is set
+        if (
+            hasattr(self.config, "permission_policy")
+            and self.config.permission_policy is not None
+        ):
+            from consoul.ai.tools.permissions.policy import PolicyResolver
+
+            resolver = PolicyResolver(self.config)
+            settings = resolver.get_effective_settings()
+
+            # Check whitelist first (highest priority)
+            if resolver._is_whitelisted(tool_name, arguments):
+                return False
+
+            # Handle 'never' mode (UNRESTRICTED policy)
+            if settings.approval_mode == "never":
+                return False
+
+            # Handle 'always' mode (PARANOID policy)
+            if settings.approval_mode == "always":
+                return True
+
+            # Handle 'risk_based' mode (BALANCED/TRUSTING policies)
+            if settings.approval_mode == "risk_based":
+                # Get risk assessment for this tool/command
+                risk_assessment = self.assess_risk(tool_name, arguments or {})
+
+                # Extract risk level from CommandRisk or RiskLevel
+                if hasattr(risk_assessment, "level"):
+                    risk_level = risk_assessment.level
+                else:
+                    risk_level = risk_assessment
+
+                # Use PolicyResolver to determine if approval is needed
+                return resolver.should_require_approval(
+                    tool_name, risk_level, arguments
+                )
+
+            # For other modes, fall through to legacy logic below
+
+        # Legacy approval logic (for backward compatibility when policy is None)
+
         # Auto-approve if configured (DANGEROUS!)
         if self.config.auto_approve:
             return False
@@ -313,8 +363,24 @@ class ToolRegistry:
         if self.config.approval_mode == "whitelist":
             return tool_name not in self.config.allowed_tools
 
-        # Default: require approval
-        return True
+        # Risk-based mode (manual config)
+        if self.config.approval_mode == "risk_based":
+            # Get risk assessment
+            risk_assessment = self.assess_risk(tool_name, arguments or {})
+            if hasattr(risk_assessment, "level"):
+                risk_level = risk_assessment.level
+            else:
+                risk_level = risk_assessment
+
+            # Default threshold for manual config is SAFE
+            # (auto-approve SAFE, require approval for CAUTION+)
+            risk_values = {"safe": 0, "caution": 1, "dangerous": 2, "blocked": 3}
+            tool_risk_value = risk_values.get(risk_level.value, 3)
+            threshold_value = risk_values.get(RiskLevel.SAFE.value, 0)
+            return tool_risk_value > threshold_value
+
+        # Never mode (manual config - DANGEROUS) or default: require approval
+        return self.config.approval_mode != "never"
 
     def mark_approved(self, tool_name: str) -> None:
         """Mark a tool as approved for this session.

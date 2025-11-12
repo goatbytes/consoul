@@ -45,6 +45,11 @@ from consoul.ai.tools.parser import (
     parse_tool_calls,
 )
 from consoul.ai.tools.permissions.analyzer import CommandAnalyzer, CommandRisk
+from consoul.ai.tools.permissions.policy import (
+    PermissionPolicy,
+    PolicyResolver,
+    PolicySettings,
+)
 from consoul.ai.tools.permissions.whitelist import WhitelistManager, WhitelistPattern
 from consoul.ai.tools.registry import ToolRegistry
 from consoul.ai.tools.status import ToolStatus
@@ -56,6 +61,9 @@ __all__ = [
     "CommandAnalyzer",
     "CommandRisk",
     "ParsedToolCall",
+    "PermissionPolicy",
+    "PolicyResolver",
+    "PolicySettings",
     "RiskLevel",
     "ToolApprovalRequest",
     "ToolApprovalResponse",

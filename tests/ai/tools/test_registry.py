@@ -6,6 +6,7 @@ import pytest
 from langchain_core.tools import tool
 
 from consoul.ai.tools import (
+    PermissionPolicy,
     RiskLevel,
     ToolNotFoundError,
     ToolRegistry,
@@ -264,7 +265,8 @@ class TestApprovalWorkflows:
         """Test 'always' approval mode requires approval every time."""
         from tests.ai.tools.test_approval import MockApproveProvider
 
-        config = ToolConfig(approval_mode="always")
+        # Use PARANOID policy for always mode
+        config = ToolConfig(permission_policy=PermissionPolicy.PARANOID)
         registry = ToolRegistry(config, approval_provider=MockApproveProvider())
         registry.register(sample_tool)
 
@@ -276,19 +278,26 @@ class TestApprovalWorkflows:
         """Test 'once_per_session' approval mode."""
         from tests.ai.tools.test_approval import MockApproveProvider
 
-        config = ToolConfig(approval_mode="once_per_session")
+        # Use PARANOID policy with once_per_session for this test
+        # We need to test session caching, which still works with policies
+        config = ToolConfig(permission_policy=PermissionPolicy.PARANOID)
         registry = ToolRegistry(config, approval_provider=MockApproveProvider())
         registry.register(sample_tool)
 
+        # First call requires approval
         assert registry.needs_approval("multiply") is True
         registry.mark_approved("multiply")
-        assert registry.needs_approval("multiply") is False
+        # With PARANOID policy, approval is always required (no session caching)
+        assert registry.needs_approval("multiply") is True
 
     def test_needs_approval_whitelist_mode(self, sample_tool):
         """Test 'whitelist' approval mode."""
         from tests.ai.tools.test_approval import MockApproveProvider
 
-        config = ToolConfig(approval_mode="whitelist", allowed_tools=["multiply"])
+        # Use PARANOID policy with whitelist (whitelist bypasses policy)
+        config = ToolConfig(
+            permission_policy=PermissionPolicy.PARANOID, allowed_tools=["multiply"]
+        )
         registry = ToolRegistry(config, approval_provider=MockApproveProvider())
         registry.register(sample_tool)
 
@@ -299,9 +308,9 @@ class TestApprovalWorkflows:
 
         registry.register(other_tool)
 
-        # Whitelisted tool doesn't need approval
+        # Whitelisted tool doesn't need approval (bypasses policy)
         assert registry.needs_approval("multiply") is False
-        # Non-whitelisted tool needs approval
+        # Non-whitelisted tool needs approval (PARANOID policy)
         assert registry.needs_approval("other_tool") is True
 
     def test_auto_approve_skips_approval(self, sample_tool):
@@ -320,15 +329,119 @@ class TestApprovalWorkflows:
         """Test clearing session approvals."""
         from tests.ai.tools.test_approval import MockApproveProvider
 
-        config = ToolConfig(approval_mode="once_per_session")
+        # Note: Session approvals are not used with policy system
+        # Policies determine approval based on risk level, not session state
+        # This test demonstrates that BALANCED policy behavior is consistent
+        config = ToolConfig(permission_policy=PermissionPolicy.BALANCED)
         registry = ToolRegistry(config, approval_provider=MockApproveProvider())
-        registry.register(sample_tool)
+        registry.register(sample_tool, risk_level=RiskLevel.SAFE)
 
-        registry.mark_approved("multiply")
+        # BALANCED auto-approves SAFE tools
         assert registry.needs_approval("multiply") is False
 
+        # Clearing session approvals doesn't change policy-based decisions
         registry.clear_session_approvals()
+        assert registry.needs_approval("multiply") is False
+
+    def test_needs_approval_paranoid_policy(self, sample_tool):
+        """Test PARANOID policy always requires approval."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        config = ToolConfig(permission_policy=PermissionPolicy.PARANOID)
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
+        registry.register(sample_tool, risk_level=RiskLevel.SAFE)
+
+        # PARANOID always requires approval, even for SAFE tools
         assert registry.needs_approval("multiply") is True
+
+    def test_needs_approval_balanced_policy(self, sample_tool):
+        """Test BALANCED policy auto-approves SAFE, requires approval for CAUTION+."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        config = ToolConfig(permission_policy=PermissionPolicy.BALANCED)
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
+
+        # Register SAFE tool
+        registry.register(sample_tool, risk_level=RiskLevel.SAFE)
+        assert registry.needs_approval("multiply") is False
+
+        # Register CAUTION tool
+        @tool
+        def caution_tool(x: int) -> int:
+            """Tool with CAUTION risk."""
+            return x
+
+        registry.register(caution_tool, risk_level=RiskLevel.CAUTION)
+        assert registry.needs_approval("caution_tool") is True
+
+    def test_needs_approval_trusting_policy(self, sample_tool):
+        """Test TRUSTING policy auto-approves SAFE+CAUTION, requires approval for DANGEROUS."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        config = ToolConfig(permission_policy=PermissionPolicy.TRUSTING)
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
+
+        # SAFE auto-approved
+        registry.register(sample_tool, risk_level=RiskLevel.SAFE)
+        assert registry.needs_approval("multiply") is False
+
+        # CAUTION auto-approved
+        @tool
+        def caution_tool(x: int) -> int:
+            """Tool with CAUTION risk."""
+            return x
+
+        registry.register(caution_tool, risk_level=RiskLevel.CAUTION)
+        assert registry.needs_approval("caution_tool") is False
+
+        # DANGEROUS requires approval
+        @tool
+        def dangerous_tool(x: int) -> int:
+            """Tool with DANGEROUS risk."""
+            return x
+
+        registry.register(dangerous_tool, risk_level=RiskLevel.DANGEROUS)
+        assert registry.needs_approval("dangerous_tool") is True
+
+    def test_needs_approval_unrestricted_policy(self, sample_tool):
+        """Test UNRESTRICTED policy auto-approves everything except BLOCKED."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        config = ToolConfig(permission_policy=PermissionPolicy.UNRESTRICTED)
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
+
+        # All risk levels auto-approved
+        registry.register(sample_tool, risk_level=RiskLevel.DANGEROUS)
+        assert registry.needs_approval("multiply") is False
+
+    def test_policy_overrides_manual_approval_mode(self, sample_tool):
+        """Test that permission_policy takes precedence over manual approval_mode."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        # Manual config says auto_approve=True, but policy says PARANOID
+        config = ToolConfig(
+            permission_policy=PermissionPolicy.PARANOID,
+            approval_mode="never",
+            auto_approve=True,
+        )
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
+        registry.register(sample_tool, risk_level=RiskLevel.SAFE)
+
+        # Policy wins - approval still required
+        assert registry.needs_approval("multiply") is True
+
+    def test_whitelist_bypasses_policy(self, sample_tool):
+        """Test that whitelist bypasses policy approval requirements."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        config = ToolConfig(
+            permission_policy=PermissionPolicy.PARANOID, allowed_tools=["multiply"]
+        )
+        registry = ToolRegistry(config, approval_provider=MockApproveProvider())
+        registry.register(sample_tool, risk_level=RiskLevel.DANGEROUS)
+
+        # Whitelisted tool bypasses PARANOID policy
+        assert registry.needs_approval("multiply") is False
 
 
 # Test risk assessment

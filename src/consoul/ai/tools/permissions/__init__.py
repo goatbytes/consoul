@@ -19,6 +19,19 @@ Example:
 """
 
 from consoul.ai.tools.permissions.analyzer import CommandAnalyzer, CommandRisk
+from consoul.ai.tools.permissions.policy import (
+    PermissionPolicy,
+    PolicyResolver,
+    PolicySettings,
+)
 from consoul.ai.tools.permissions.whitelist import WhitelistManager, WhitelistPattern
 
-__all__ = ["CommandAnalyzer", "CommandRisk", "WhitelistManager", "WhitelistPattern"]
+__all__ = [
+    "CommandAnalyzer",
+    "CommandRisk",
+    "PermissionPolicy",
+    "PolicyResolver",
+    "PolicySettings",
+    "WhitelistManager",
+    "WhitelistPattern",
+]

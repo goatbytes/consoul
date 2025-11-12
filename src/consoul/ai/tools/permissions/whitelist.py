@@ -66,6 +66,10 @@ class WhitelistPattern:
         Returns:
             True if command matches this pattern
 
+        Security:
+            For regex patterns, uses fullmatch() to prevent partial matches that could
+            allow command injection (e.g., "git status" should not match "git status && rm -rf /")
+
         Example:
             >>> pattern = WhitelistPattern("git status", pattern_type="exact")
             >>> pattern.matches("git status")
@@ -77,12 +81,15 @@ class WhitelistPattern:
             True
             >>> regex_pattern.matches("git log")
             True
+            >>> # Partial matches are rejected for security
+            >>> regex_pattern.matches("git status && rm -rf /")
+            False
         """
         if self.pattern_type == "exact":
             return command == self.pattern
         else:
-            # Regex pattern
-            return self.compiled is not None and bool(self.compiled.search(command))
+            # Regex pattern - use fullmatch to prevent command injection via partial matches
+            return self.compiled is not None and bool(self.compiled.fullmatch(command))
 
 
 class WhitelistManager:
