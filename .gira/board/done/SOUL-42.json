@@ -5,7 +5,7 @@
   "uuid": "660bb356-4e57-4d21-ac7a-2cb74011852f",
   "title": "Integrate database for conversation persistence",
   "description": "Wire TUI to SQLite database. Save/load conversations, persist message history, integrate with ConversationList widget. Load conversation on selection, save new messages automatically.",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "high",
   "labels": [

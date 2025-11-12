@@ -5,7 +5,7 @@
   "uuid": "69edd291-c746-4691-b37a-4269694b5cc6",
   "title": "Implement conversation switching functionality",
   "description": "Handle ConversationList.ConversationSelected event. Load selected conversation into ChatView, update current_conversation_id, clear/populate messages, maintain scroll position.",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "medium",
   "labels": [
