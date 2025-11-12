@@ -885,14 +885,17 @@ class ConsoulApp(App[None]):
                     else None
                 )
 
-                assistant_bubble = MessageBubble(
-                    full_response,
-                    role="assistant",
-                    show_metadata=True,
-                    token_count=len(collected_tokens),
-                    tool_calls=tool_calls_list,
-                )
-                await self.chat_view.add_message(assistant_bubble)
+                # Only create assistant bubble if there's content OR tool calls
+                # (don't create empty bubble for tool-only responses)
+                if full_response.strip() or tool_calls_list:
+                    assistant_bubble = MessageBubble(
+                        full_response,
+                        role="assistant",
+                        show_metadata=True,
+                        token_count=len(collected_tokens),
+                        tool_calls=tool_calls_list,
+                    )
+                    await self.chat_view.add_message(assistant_bubble)
             elif self._stream_cancelled:
                 # Show cancellation indicator
                 await stream_widget.remove()
