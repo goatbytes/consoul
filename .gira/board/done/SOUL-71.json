@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-11T17:26:07.975866",
-  "updated_at": "2025-11-11T17:26:07.975877",
+  "updated_at": "2025-11-12T02:39:03.899688Z",
   "id": "SOUL-71",
   "uuid": "98c65450-8327-45b0-b955-55be24110aab",
   "title": "Bash command whitelist management system",
   "description": "As a Consoul user, I want to whitelist specific bash commands or patterns, so that I can auto-approve trusted commands without repeated approval prompts while maintaining protection from dangerous operations.\n\n## Context\nCurrent BashToolConfig only has blocked_patterns (src/consoul/config/models.py:143-152), providing blocklist-only protection. Users need whitelist functionality to mark commands as always-approved. Existing approval_mode supports 'whitelist' (line 140) but has no implementation.\n\n## Technical Notes\n- Create WhitelistManager in consoul/ai/tools/permissions/whitelist.py\n- Support exact matches and regex patterns\n- Storage-agnostic design with protocol-based persistence\n- Integrate with ToolConfig.approval_mode = 'whitelist' (line 140)\n- Per-user and global whitelist support\n\n## Files to Modify\n- Create: src/consoul/ai/tools/permissions/whitelist.py\n- Modify: src/consoul/config/models.py:143-152 (add whitelist_patterns field)\n- Modify: src/consoul/ai/tools/registry.py:156-169 (check whitelist before approval)\n- Update: src/consoul/ai/tools/implementations/bash.py (whitelist integration)\n\n## Acceptance Criteria\n- [ ] WhitelistManager supports adding/removing patterns (exact and regex)\n- [ ] Pattern matching prioritizes whitelist over blocklist\n- [ ] Storage protocol allows file, DB, or in-memory backends\n- [ ] Config model includes whitelist_patterns field\n- [ ] Integration with approval_mode='whitelist' works correctly\n- [ ] Whitelisted commands bypass approval modals\n- [ ] Unit tests cover pattern matching edge cases\n- [ ] Documentation includes whitelist configuration examples\n\n## Testing\n- Test exact command whitelisting: 'git status', 'npm test'\n- Test regex patterns: 'git.*', 'npm (install|ci)'\n- Test whitelist priority over blocklist\n- Test persistence across sessions\n- Test invalid pattern handling\n- Test whitelist + risk assessment interaction\n\n## Implementation Hints\n- Use protocol-based StorageProvider for persistence flexibility\n- Default to YAML file storage in .consoul/whitelist.yaml\n- Implement pattern compilation caching for performance\n- Support comments in whitelist files for user documentation\n- Consider command normalization (whitespace, quotes) before matching",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "high",
   "labels": [

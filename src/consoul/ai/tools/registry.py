@@ -242,7 +242,9 @@ class ToolRegistry:
             self.config.allowed_tools and tool_name not in self.config.allowed_tools
         )
 
-    def needs_approval(self, tool_name: str) -> bool:
+    def needs_approval(
+        self, tool_name: str, arguments: dict[str, Any] | None = None
+    ) -> bool:
         """Determine if tool execution requires user approval.
 
         IMPORTANT: This method checks registry-level approval caching ONLY.
@@ -250,7 +252,7 @@ class ToolRegistry:
         provider must check needs_approval() first, then show approval UI if needed.
 
         Workflow:
-        1. Approval provider calls registry.needs_approval(tool_name)
+        1. Approval provider calls registry.needs_approval(tool_name, arguments)
         2. If True: Show approval modal/prompt, get user decision
         3. If user approves: Call registry.mark_approved(tool_name)
         4. Execute tool
@@ -260,8 +262,13 @@ class ToolRegistry:
         - 'once_per_session': Require approval on first use, then cache approval
         - 'whitelist': Only require approval for tools not in allowed_tools
 
+        Special handling for bash_execute:
+        - Checks command-level whitelist from BashToolConfig.whitelist_patterns
+        - Whitelisted commands bypass approval even in 'always' mode
+
         Args:
             tool_name: Name of tool to check
+            arguments: Optional tool arguments (used for command-level whitelist checking)
 
         Returns:
             True if approval UI should be shown, False if cached/whitelisted
@@ -269,10 +276,14 @@ class ToolRegistry:
         Example:
             >>> config = ToolConfig(approval_mode="once_per_session")
             >>> registry = ToolRegistry(config)
-            >>> registry.needs_approval("bash")  # True (first time)
+            >>> registry.needs_approval("bash_execute")  # True (first time)
             >>> # ... approval provider shows modal, user approves ...
-            >>> registry.mark_approved("bash")
-            >>> registry.needs_approval("bash")  # False (cached, skip modal)
+            >>> registry.mark_approved("bash_execute")
+            >>> registry.needs_approval("bash_execute")  # False (cached, skip modal)
+            >>>
+            >>> # Command-level whitelist
+            >>> config = ToolConfig(bash=BashToolConfig(whitelist_patterns=["git status"]))
+            >>> registry.needs_approval("bash_execute", {"command": "git status"})  # False (whitelisted)
 
         Warning:
             Never execute tools when needs_approval() returns True without
@@ -282,6 +293,13 @@ class ToolRegistry:
         # Auto-approve if configured (DANGEROUS!)
         if self.config.auto_approve:
             return False
+
+        # For bash_execute, check command-level whitelist
+        if tool_name == "bash_execute" and arguments and "command" in arguments:
+            from consoul.ai.tools.implementations.bash import is_whitelisted
+
+            if is_whitelisted(arguments["command"], self.config.bash):
+                return False  # Whitelisted command bypasses approval
 
         # Always mode: always require approval
         if self.config.approval_mode == "always":

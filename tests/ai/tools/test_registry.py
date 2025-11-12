@@ -447,3 +447,127 @@ class TestUtilityMethods:
         assert "tools=1" in repr_str
         assert "enabled=1" in repr_str
         assert "approval_mode='always'" in repr_str
+
+
+class TestWhitelistIntegration:
+    """Tests for command-level whitelist integration with registry."""
+
+    @pytest.fixture
+    def mock_provider(self):
+        """Create mock approval provider."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        return MockApproveProvider()
+
+    def test_needs_approval_checks_bash_whitelist(self, mock_provider):
+        """Test that needs_approval checks bash command whitelist."""
+        from consoul.config.models import BashToolConfig
+
+        config = ToolConfig(
+            bash=BashToolConfig(whitelist_patterns=["git status", "npm test"])
+        )
+        registry = ToolRegistry(config, approval_provider=mock_provider)
+
+        # Whitelisted commands should not need approval
+        assert not registry.needs_approval("bash_execute", {"command": "git status"})
+        assert not registry.needs_approval("bash_execute", {"command": "npm test"})
+
+        # Non-whitelisted commands should need approval
+        assert registry.needs_approval("bash_execute", {"command": "rm -rf /"})
+
+    def test_needs_approval_whitelist_with_regex_patterns(self, mock_provider):
+        """Test whitelist with regex patterns."""
+        from consoul.config.models import BashToolConfig
+
+        config = ToolConfig(
+            bash=BashToolConfig(whitelist_patterns=["git.*", "npm (install|ci)"])
+        )
+        registry = ToolRegistry(config, approval_provider=mock_provider)
+
+        # Regex matches should not need approval
+        assert not registry.needs_approval("bash_execute", {"command": "git status"})
+        assert not registry.needs_approval("bash_execute", {"command": "git log"})
+        assert not registry.needs_approval("bash_execute", {"command": "npm install"})
+        assert not registry.needs_approval("bash_execute", {"command": "npm ci"})
+
+        # Non-matches should need approval
+        assert registry.needs_approval("bash_execute", {"command": "cargo build"})
+
+    def test_needs_approval_whitelist_bypasses_always_mode(self, mock_provider):
+        """Test that whitelist bypasses 'always' approval mode."""
+        from consoul.config.models import BashToolConfig
+
+        config = ToolConfig(
+            approval_mode="always",
+            bash=BashToolConfig(whitelist_patterns=["git status"]),
+        )
+        registry = ToolRegistry(config, approval_provider=mock_provider)
+
+        # Whitelisted command bypasses 'always' mode
+        assert not registry.needs_approval("bash_execute", {"command": "git status"})
+
+        # Non-whitelisted still requires approval
+        assert registry.needs_approval("bash_execute", {"command": "git log"})
+
+    def test_needs_approval_without_command_argument(self, mock_provider):
+        """Test needs_approval without command argument (backward compatibility)."""
+        from consoul.config.models import BashToolConfig
+
+        config = ToolConfig(bash=BashToolConfig(whitelist_patterns=["git status"]))
+        registry = ToolRegistry(config, approval_provider=mock_provider)
+
+        # Without arguments, should default to requiring approval
+        assert registry.needs_approval("bash_execute")
+
+    def test_needs_approval_with_empty_arguments(self, mock_provider):
+        """Test needs_approval with empty arguments dict."""
+        from consoul.config.models import BashToolConfig
+
+        config = ToolConfig(bash=BashToolConfig(whitelist_patterns=["git status"]))
+        registry = ToolRegistry(config, approval_provider=mock_provider)
+
+        # Empty arguments should require approval
+        assert registry.needs_approval("bash_execute", {})
+
+    def test_needs_approval_non_bash_tool_unaffected(self, mock_provider):
+        """Test that whitelist doesn't affect non-bash tools."""
+        from consoul.config.models import BashToolConfig
+
+        config = ToolConfig(bash=BashToolConfig(whitelist_patterns=["git status"]))
+        registry = ToolRegistry(config, approval_provider=mock_provider)
+
+        # Non-bash tools should still require approval
+        assert registry.needs_approval("python_execute", {"code": "print('hello')"})
+
+    def test_needs_approval_whitelist_with_once_per_session(self, mock_provider):
+        """Test whitelist interaction with once_per_session mode."""
+        from consoul.config.models import BashToolConfig
+
+        config = ToolConfig(
+            approval_mode="once_per_session",
+            bash=BashToolConfig(whitelist_patterns=["git status"]),
+        )
+        registry = ToolRegistry(config, approval_provider=mock_provider)
+
+        # Whitelisted command bypasses approval
+        assert not registry.needs_approval("bash_execute", {"command": "git status"})
+
+        # Non-whitelisted command requires approval first time
+        assert registry.needs_approval("bash_execute", {"command": "git log"})
+
+        # After marking approved, no longer needs approval
+        registry.mark_approved("bash_execute")
+        assert not registry.needs_approval("bash_execute", {"command": "git log"})
+
+    def test_needs_approval_whitelist_normalizes_commands(self, mock_provider):
+        """Test that whitelist normalizes commands before checking."""
+        from consoul.config.models import BashToolConfig
+
+        config = ToolConfig(bash=BashToolConfig(whitelist_patterns=["git status"]))
+        registry = ToolRegistry(config, approval_provider=mock_provider)
+
+        # Extra whitespace should be normalized
+        assert not registry.needs_approval(
+            "bash_execute", {"command": "  git   status  "}
+        )
+        assert not registry.needs_approval("bash_execute", {"command": "git  status"})

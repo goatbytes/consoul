@@ -352,13 +352,14 @@ class ContextConfig(BaseModel):
 class BashToolConfig(BaseModel):
     """Configuration for bash tool execution.
 
-    Controls security, timeouts, and command blocking for bash tool.
+    Controls security, timeouts, and command blocking/whitelisting for bash tool.
 
     Example:
         >>> config = BashToolConfig(
         ...     timeout=30,
         ...     working_directory="/tmp",
-        ...     allow_dangerous=False
+        ...     allow_dangerous=False,
+        ...     whitelist_patterns=["git status", "npm test"]
         ... )
     """
 
@@ -391,6 +392,10 @@ class BashToolConfig(BaseModel):
             r"fdisk",  # partition operations
         ],
         description="Regex patterns for blocked commands",
+    )
+    whitelist_patterns: list[str] = Field(
+        default_factory=list,
+        description="Command patterns that bypass approval (exact matches or regex patterns)",
     )
     allow_dangerous: bool = Field(
         default=False,

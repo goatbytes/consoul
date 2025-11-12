@@ -45,6 +45,7 @@ from consoul.ai.tools.parser import (
     parse_tool_calls,
 )
 from consoul.ai.tools.permissions.analyzer import CommandAnalyzer, CommandRisk
+from consoul.ai.tools.permissions.whitelist import WhitelistManager, WhitelistPattern
 from consoul.ai.tools.registry import ToolRegistry
 from consoul.ai.tools.status import ToolStatus
 
@@ -65,6 +66,8 @@ __all__ = [
     "ToolRegistry",
     "ToolStatus",
     "ToolValidationError",
+    "WhitelistManager",
+    "WhitelistPattern",
     "bash_execute",
     "has_tool_calls",
     "parse_tool_calls",

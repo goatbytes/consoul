@@ -6,6 +6,7 @@ from consoul.ai.tools.exceptions import BlockedCommandError, ToolExecutionError
 from consoul.ai.tools.implementations.bash import (
     _run_command,
     bash_execute,
+    is_whitelisted,
     validate_command,
 )
 from consoul.config.models import BashToolConfig
@@ -398,3 +399,95 @@ class TestBashConfigInjection:
         )
 
         assert "bash works" in result
+
+
+class TestWhitelistIntegration:
+    """Tests for whitelist integration with bash tool."""
+
+    def test_is_whitelisted_without_config(self):
+        """Test that is_whitelisted returns False without config."""
+        assert not is_whitelisted("git status")
+        assert not is_whitelisted("sudo rm -rf /")
+
+    def test_is_whitelisted_with_empty_whitelist(self):
+        """Test that empty whitelist rejects all."""
+        config = BashToolConfig(whitelist_patterns=[])
+        assert not is_whitelisted("git status", config)
+
+    def test_is_whitelisted_exact_match(self):
+        """Test whitelisting with exact match pattern."""
+        config = BashToolConfig(whitelist_patterns=["git status", "npm test"])
+        assert is_whitelisted("git status", config)
+        assert is_whitelisted("npm test", config)
+        assert not is_whitelisted("rm -rf /", config)
+
+    def test_is_whitelisted_regex_pattern(self):
+        """Test whitelisting with regex pattern."""
+        config = BashToolConfig(whitelist_patterns=["git.*", "npm (install|ci)"])
+        assert is_whitelisted("git status", config)
+        assert is_whitelisted("git log", config)
+        assert is_whitelisted("npm install", config)
+        assert is_whitelisted("npm ci", config)
+        assert not is_whitelisted("rm -rf /", config)
+
+    def test_whitelist_bypasses_blocklist(self):
+        """Test that whitelisted commands bypass blocklist validation."""
+        config = BashToolConfig(whitelist_patterns=["sudo apt-get update"])
+
+        # Should not raise even though sudo is blocked
+        validate_command("sudo apt-get update", config)
+
+        # Non-whitelisted sudo should still be blocked
+        with pytest.raises(BlockedCommandError):
+            validate_command("sudo rm -rf /", config)
+
+    def test_whitelist_bypasses_dangerous_commands(self):
+        """Test that whitelist can allow normally dangerous commands."""
+        config = BashToolConfig(whitelist_patterns=["rm -rf /tmp/test"])
+
+        # Whitelisted rm should pass
+        validate_command("rm -rf /tmp/test", config)
+
+        # Non-whitelisted rm root should still be blocked
+        with pytest.raises(BlockedCommandError):
+            validate_command("rm -rf /", config)
+
+    def test_whitelist_normalizes_commands(self):
+        """Test that whitelist handles whitespace normalization."""
+        config = BashToolConfig(whitelist_patterns=["git status"])
+
+        # Should match with extra whitespace
+        assert is_whitelisted("  git   status  ", config)
+        assert is_whitelisted("git  status", config)
+
+    def test_whitelist_with_quotes(self):
+        """Test whitelist with quoted commands."""
+        config = BashToolConfig(whitelist_patterns=["echo hello world"])
+
+        # Should match with quotes
+        assert is_whitelisted("echo 'hello world'", config)
+        assert is_whitelisted('echo "hello world"', config)
+
+    def test_validate_command_checks_whitelist_first(self):
+        """Test that validate_command checks whitelist before blocklist."""
+        config = BashToolConfig(whitelist_patterns=["sudo apt-get update"])
+
+        # Whitelist should take priority
+        validate_command("sudo apt-get update", config)  # Should not raise
+
+    def test_whitelist_pattern_detection(self):
+        """Test automatic regex pattern detection."""
+        # Patterns with regex special chars should be detected as regex
+        config = BashToolConfig(
+            whitelist_patterns=[
+                "git status",  # Exact (no special chars)
+                "git.*",  # Regex (contains .*)
+                "npm (install|ci)",  # Regex (contains () and |)
+                "^echo.*",  # Regex (contains ^)
+            ]
+        )
+
+        assert is_whitelisted("git status", config)  # Exact match
+        assert is_whitelisted("git log", config)  # Regex match
+        assert is_whitelisted("npm install", config)  # Regex match
+        assert is_whitelisted("echo hello", config)  # Regex match

@@ -2,6 +2,7 @@
 
 Provides secure bash command execution with:
 - Command validation and blocking
+- Whitelist support for trusted commands
 - Timeout enforcement
 - Working directory control
 - Detailed output capture (stdout/stderr/exit code)
@@ -21,6 +22,7 @@ from pathlib import Path
 from langchain_core.tools import tool
 
 from consoul.ai.tools.exceptions import BlockedCommandError, ToolExecutionError
+from consoul.ai.tools.permissions.whitelist import WhitelistManager
 from consoul.config.models import BashToolConfig
 
 # Module-level config that can be set by the registry
@@ -64,11 +66,51 @@ DEFAULT_BLOCKED_PATTERNS = [
 ]
 
 
+def is_whitelisted(
+    command: str,
+    config: BashToolConfig | None = None,
+) -> bool:
+    """Check if command matches any whitelist pattern.
+
+    Whitelisted commands bypass blocklist validation and approval prompts.
+
+    Args:
+        command: The bash command to check
+        config: Optional config with whitelist patterns
+
+    Returns:
+        True if command is whitelisted, False otherwise
+
+    Example:
+        >>> config = BashToolConfig(whitelist_patterns=["git status"])
+        >>> is_whitelisted("git status", config)
+        True
+        >>> is_whitelisted("rm -rf /", config)
+        False
+    """
+    if not config or not config.whitelist_patterns:
+        return False
+
+    # Create whitelist manager with patterns from config
+    manager = WhitelistManager()
+    for pattern in config.whitelist_patterns:
+        # Detect regex patterns (contain special regex characters)
+        is_regex = any(char in pattern for char in r".*+?[]{}()|^$\\")
+        manager.add_pattern(
+            pattern,
+            pattern_type="regex" if is_regex else "exact",
+        )
+
+    return manager.is_whitelisted(command)
+
+
 def validate_command(
     command: str,
     config: BashToolConfig | None = None,
 ) -> None:
     """Validate command against blocked patterns.
+
+    Whitelisted commands bypass blocklist validation.
 
     Args:
         command: The bash command to validate
@@ -80,9 +122,15 @@ def validate_command(
     Example:
         >>> validate_command("ls -la")  # OK
         >>> validate_command("sudo rm -rf /")  # Raises BlockedCommandError
+        >>> config = BashToolConfig(whitelist_patterns=["sudo apt-get update"])
+        >>> validate_command("sudo apt-get update", config)  # OK (whitelisted)
     """
     if config and config.allow_dangerous:
         # Skip validation if dangerous commands are explicitly allowed
+        return
+
+    # Check whitelist first - whitelisted commands bypass blocklist
+    if is_whitelisted(command, config):
         return
 
     patterns = config.blocked_patterns if config else DEFAULT_BLOCKED_PATTERNS
@@ -161,6 +209,7 @@ def bash_execute(
 
     This tool executes bash commands with strict security controls including:
     - Command validation (blocks dangerous patterns like sudo, rm -rf /, etc.)
+    - Whitelist support (trusted commands bypass approval prompts)
     - Timeout enforcement (default from profile config)
     - Working directory control
     - Detailed output capture
@@ -168,6 +217,11 @@ def bash_execute(
     The tool uses the BashToolConfig from the active profile's ToolConfig.bash
     settings. Call set_bash_config() to inject the profile configuration before
     tool registration.
+
+    Whitelist behavior:
+    - Whitelisted commands bypass blocklist validation
+    - Whitelisted commands skip approval prompts (when integrated with registry)
+    - Configure via BashToolConfig.whitelist_patterns
 
     Args:
         command: The bash command to execute
@@ -185,6 +239,8 @@ def bash_execute(
         'total 48\\ndrwxr-xr-x  12 user  staff   384 Nov 10 21:00 .\\n...'
         >>> bash_execute("sudo rm -rf /")
         'Command blocked: matches pattern \\'sudo\\\\s\\'...'
+        >>> # With whitelist_patterns=["sudo apt-get update"]
+        >>> bash_execute("sudo apt-get update")  # Allowed (whitelisted)
     """
     # Get config from module-level (set by registry via set_bash_config)
     config = get_bash_config()
