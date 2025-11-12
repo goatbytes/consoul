@@ -401,3 +401,201 @@ class TestWhitelistEdgeCases:
 
         manager.remove_pattern("git status")  # Should clear cache
         assert len(manager._pattern_cache) == 0
+
+
+class TestWhitelistSecurityVulnerabilities:
+    """Security tests for whitelist bypass vulnerabilities (SOUL-73)."""
+
+    def test_regex_fullmatch_prevents_command_injection(self):
+        """Test that regex patterns use fullmatch to prevent command injection.
+
+        VULNERABILITY: Using search() instead of fullmatch() allows partial matches,
+        enabling attackers to append dangerous commands to whitelisted patterns.
+
+        Example: If "git status" is whitelisted, "git status && rm -rf /" should NOT match.
+        """
+        manager = WhitelistManager()
+        # Add regex pattern
+        manager.add_pattern("git status", pattern_type="regex")
+
+        # Exact match should work
+        assert manager.is_whitelisted("git status")
+
+        # Appended dangerous commands should be BLOCKED
+        assert not manager.is_whitelisted("git status && rm -rf /")
+        assert not manager.is_whitelisted("git status; rm -rf /")
+        assert not manager.is_whitelisted("git status | sudo bash")
+        assert not manager.is_whitelisted("git status\nrm -rf /")
+
+    def test_exact_match_prevents_command_injection(self):
+        """Test that exact patterns prevent command injection."""
+        manager = WhitelistManager()
+        manager.add_pattern("./gradlew assemble", pattern_type="exact")
+
+        # Exact match should work
+        assert manager.is_whitelisted("./gradlew assemble")
+
+        # Appended commands should be BLOCKED
+        assert not manager.is_whitelisted("./gradlew assemble && rm -rf /")
+        assert not manager.is_whitelisted("./gradlew assemble; sudo bash")
+        assert not manager.is_whitelisted("./gradlew assemble | tee /etc/passwd")
+
+    def test_is_whitelisted_treats_patterns_as_literal_by_default(self):
+        """Test that is_whitelisted() treats patterns as literal by default.
+
+        VULNERABILITY: Auto-detecting regex from metacharacters causes ./gradlew
+        to be treated as regex, allowing command injection.
+        """
+        from consoul.ai.tools.implementations.bash import is_whitelisted
+        from consoul.config.models import BashToolConfig
+
+        # Pattern with regex metacharacters should be treated as LITERAL
+        config = BashToolConfig(whitelist_patterns=["./gradlew assemble"])
+
+        # Exact literal match works
+        assert is_whitelisted("./gradlew assemble", config)
+
+        # Command injection should be BLOCKED (not treated as regex)
+        assert not is_whitelisted("./gradlew assemble && rm -rf /", config)
+        assert not is_whitelisted(
+            "X/gradlew assemble", config
+        )  # . not a regex wildcard
+
+    def test_explicit_regex_prefix_required_for_regex_patterns(self):
+        """Test that regex patterns require explicit 'regex:' prefix."""
+        from consoul.ai.tools.implementations.bash import is_whitelisted
+        from consoul.config.models import BashToolConfig
+
+        # Without regex: prefix, treated as literal
+        config_literal = BashToolConfig(whitelist_patterns=["git.*"])
+        assert is_whitelisted("git.*", config_literal)  # Literal match
+        assert not is_whitelisted("git status", config_literal)  # Not a regex match
+
+        # With regex: prefix, treated as regex
+        config_regex = BashToolConfig(whitelist_patterns=["regex:git (status|log)"])
+        assert is_whitelisted("git status", config_regex)  # Regex match
+        assert is_whitelisted("git log", config_regex)  # Regex match
+        assert not is_whitelisted("git diff", config_regex)  # Not in alternatives
+        assert not is_whitelisted("git status extra", config_regex)  # No suffix allowed
+
+    def test_literal_patterns_handle_special_chars_safely(self):
+        """Test that literal patterns with special chars don't crash."""
+        from consoul.ai.tools.implementations.bash import is_whitelisted
+        from consoul.config.models import BashToolConfig
+
+        # These should all work as literal patterns without crashing
+        test_patterns = [
+            'echo "["',
+            'printf "{%s}\\n" value',
+            'find . -name "*.txt"',
+            'grep "test[0-9]" file.txt',
+            "C:\\Windows\\System32\\cmd.exe",  # Windows path
+        ]
+
+        for pattern in test_patterns:
+            config = BashToolConfig(whitelist_patterns=[pattern])
+            # Should not crash and should match exactly
+            assert is_whitelisted(pattern, config), f"Failed for pattern: {pattern}"
+            # Should not match variations
+            assert not is_whitelisted(pattern + " extra", config)
+
+    def test_invalid_regex_pattern_warns_not_crashes(self):
+        """Test that invalid regex patterns warn instead of crashing."""
+        import warnings
+
+        from consoul.ai.tools.implementations.bash import is_whitelisted
+        from consoul.config.models import BashToolConfig
+
+        # Invalid regex should warn but not crash
+        config = BashToolConfig(whitelist_patterns=["regex:git["])
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = is_whitelisted("git status", config)
+
+            # Should not crash
+            assert result is False  # Pattern ignored due to error
+            # Should have warning
+            assert len(w) > 0
+            assert "Invalid regex pattern" in str(w[0].message)
+
+    def test_regex_pattern_anchoring_prevents_prefix_bypass(self):
+        """Test that regex patterns are anchored to prevent prefix bypasses."""
+        manager = WhitelistManager()
+        # Pattern without anchors - fullmatch provides implicit anchoring
+        manager.add_pattern("git status", pattern_type="regex")
+
+        # Should not match commands with prefix
+        assert not manager.is_whitelisted("sudo git status")
+        assert not manager.is_whitelisted("echo git status")
+        # Note: Whitelist normalizes commands, so leading whitespace is stripped
+        # This is expected behavior
+
+        # Should not match commands with suffix
+        assert not manager.is_whitelisted("git status --all")
+        assert not manager.is_whitelisted("git statusline")
+
+    def test_multiple_patterns_bypass_attempt(self):
+        """Test that attackers can't bypass whitelist with pattern combinations."""
+        from consoul.ai.tools.implementations.bash import is_whitelisted
+        from consoul.config.models import BashToolConfig
+
+        config = BashToolConfig(
+            whitelist_patterns=[
+                "git status",
+                "npm test",
+                "regex:pytest [a-z/]+",  # More restrictive regex
+            ]
+        )
+
+        # Individual whitelisted commands work
+        assert is_whitelisted("git status", config)
+        assert is_whitelisted("npm test", config)
+        assert is_whitelisted("pytest tests/", config)
+
+        # Combinations with dangerous commands should be BLOCKED
+        assert not is_whitelisted("git status && sudo bash", config)
+        assert not is_whitelisted("npm test; rm -rf /", config)
+        assert not is_whitelisted("pytest tests/ | tee /etc/passwd", config)
+
+        # Chaining whitelisted commands is also BLOCKED (explicit allow needed)
+        assert not is_whitelisted("git status && npm test", config)
+
+    def test_whitelist_bypass_with_command_substitution(self):
+        """Test that command substitution doesn't bypass whitelist."""
+        manager = WhitelistManager()
+        manager.add_pattern("echo hello", pattern_type="exact")
+
+        # Direct match works
+        assert manager.is_whitelisted("echo hello")
+
+        # Command substitution should be BLOCKED
+        assert not manager.is_whitelisted("echo hello $(rm -rf /)")
+        assert not manager.is_whitelisted("echo hello `sudo bash`")
+        assert not manager.is_whitelisted("echo hello $((1+1)); rm -rf /")
+
+    def test_whitelist_bypass_with_background_jobs(self):
+        """Test that background jobs don't bypass whitelist."""
+        manager = WhitelistManager()
+        manager.add_pattern("sleep 1", pattern_type="exact")
+
+        # Direct match works
+        assert manager.is_whitelisted("sleep 1")
+
+        # Background jobs should be BLOCKED
+        assert not manager.is_whitelisted("sleep 1 & rm -rf /")
+        assert not manager.is_whitelisted("sleep 1 &")  # Even just backgrounding
+
+    def test_case_insensitive_matching_security(self):
+        """Test that case-insensitive matching doesn't introduce bypasses."""
+        manager = WhitelistManager()
+        manager.add_pattern("git status", pattern_type="regex")
+
+        # Case variations should match (expected behavior)
+        assert manager.is_whitelisted("git status")
+        assert manager.is_whitelisted("GIT STATUS")
+        assert manager.is_whitelisted("Git Status")
+
+        # But dangerous commands should still be blocked regardless of case
+        assert not manager.is_whitelisted("git status && RM -RF /")
+        assert not manager.is_whitelisted("GIT STATUS; SUDO BASH")
