@@ -158,8 +158,13 @@ class ToolCallDetailsModal(ModalScreen[None]):
                 for idx, tool_call in enumerate(self.tool_calls, 1):
                     with Vertical(classes="tool-call-section"):
                         # Tool header with number
+                        # Use Text to avoid markup interpretation
+                        header_text = Text()
+                        header_text.append(
+                            f"Tool {idx} of {len(self.tool_calls)}: 🔧 {tool_call['name']}"
+                        )
                         yield Static(
-                            f"Tool {idx} of {len(self.tool_calls)}: 🔧 {tool_call['name']}",
+                            header_text,
                             classes="tool-header",
                         )
 
@@ -192,7 +197,8 @@ class ToolCallDetailsModal(ModalScreen[None]):
                                 ),
                                 VerticalScroll(classes="tool-output-scroll"),
                             ):
-                                yield Static(result)
+                                # Use Text to avoid markup interpretation issues
+                                yield Static(Text(result, no_wrap=False))
 
             # Close button
             with Horizontal(classes="button-row"):
