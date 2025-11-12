@@ -1176,11 +1176,26 @@ class ConsoulApp(App[None]):
         Args:
             message: ToolApprovalResult with approval decision
         """
+        import time
+
         from langchain_core.messages import ToolMessage
+
+        from consoul.ai.tools.audit import AuditEvent
 
         if message.approved:
             # Update tool call data to EXECUTING
             self._tool_call_data[message.tool_call.id]["status"] = "EXECUTING"
+
+            # Log execution start
+            start_time = time.time()
+            if self.tool_registry and self.tool_registry.audit_logger:
+                await self.tool_registry.audit_logger.log_event(
+                    AuditEvent(
+                        event_type="execution",
+                        tool_name=message.tool_call.name,
+                        arguments=message.tool_call.arguments,
+                    )
+                )
 
             # Execute tool
             try:
@@ -1188,12 +1203,40 @@ class ConsoulApp(App[None]):
                 # Update tool call data with SUCCESS
                 self._tool_call_data[message.tool_call.id]["status"] = "SUCCESS"
                 self._tool_call_data[message.tool_call.id]["result"] = result
+
+                # Log successful result
+                duration_ms = int((time.time() - start_time) * 1000)
+                if self.tool_registry and self.tool_registry.audit_logger:
+                    await self.tool_registry.audit_logger.log_event(
+                        AuditEvent(
+                            event_type="result",
+                            tool_name=message.tool_call.name,
+                            arguments=message.tool_call.arguments,
+                            result=result[:500]
+                            if len(result) > 500
+                            else result,  # Truncate long results
+                            duration_ms=duration_ms,
+                        )
+                    )
             except Exception as e:
                 # Execution failed - update tool call data with ERROR
                 result = f"Tool execution failed: {e}"
                 self._tool_call_data[message.tool_call.id]["status"] = "ERROR"
                 self._tool_call_data[message.tool_call.id]["result"] = result
                 self.log.error(f"Tool execution failed: {e}", exc_info=True)
+
+                # Log error
+                duration_ms = int((time.time() - start_time) * 1000)
+                if self.tool_registry and self.tool_registry.audit_logger:
+                    await self.tool_registry.audit_logger.log_event(
+                        AuditEvent(
+                            event_type="error",
+                            tool_name=message.tool_call.name,
+                            arguments=message.tool_call.arguments,
+                            error=str(e),
+                            duration_ms=duration_ms,
+                        )
+                    )
         else:
             # Tool denied - update tool call data with DENIED status
             result = f"Tool execution denied: {message.reason}"

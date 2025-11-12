@@ -496,6 +496,14 @@ class ToolConfig(BaseModel):
         default_factory=BashToolConfig,
         description="Bash tool-specific configuration",
     )
+    audit_logging: bool = Field(
+        default=True,
+        description="Enable audit logging of tool executions (requests, approvals, results, errors)",
+    )
+    audit_log_file: Path = Field(
+        default=Path.home() / ".consoul" / "tool_audit.jsonl",
+        description="Path to audit log file in JSONL format (one JSON event per line)",
+    )
 
     @field_validator("auto_approve")
     @classmethod

@@ -6,12 +6,19 @@ to LangChain chat models with security policy enforcement.
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, Any
 
 from consoul.ai.tools.approval import (
     ApprovalProvider,
     ToolApprovalRequest,
     ToolApprovalResponse,
+)
+from consoul.ai.tools.audit import (
+    AuditEvent,
+    AuditLogger,
+    FileAuditLogger,
+    NullAuditLogger,
 )
 from consoul.ai.tools.base import RiskLevel, ToolMetadata, get_tool_schema
 from consoul.ai.tools.exceptions import ToolNotFoundError, ToolValidationError
@@ -63,7 +70,10 @@ class ToolRegistry:
     """
 
     def __init__(
-        self, config: ToolConfig, approval_provider: ApprovalProvider | None = None
+        self,
+        config: ToolConfig,
+        approval_provider: ApprovalProvider | None = None,
+        audit_logger: AuditLogger | None = None,
     ):
         """Initialize tool registry with configuration.
 
@@ -72,11 +82,14 @@ class ToolRegistry:
             approval_provider: Optional approval provider for tool execution.
                 If None, will attempt to use TuiApprovalProvider (if TUI available)
                 or raise error if no provider available.
+            audit_logger: Optional audit logger for tool execution tracking.
+                If None, creates FileAuditLogger or NullAuditLogger based on config.
         """
         self.config = config
         self._tools: dict[str, ToolMetadata] = {}
         self._approved_this_session: set[str] = set()
         self.approval_provider = approval_provider or self._get_default_provider()
+        self.audit_logger = audit_logger or self._create_audit_logger()
 
     def register(
         self,
@@ -537,6 +550,25 @@ class ToolRegistry:
         """Check if a tool is registered."""
         return tool_name in self._tools
 
+    def _create_audit_logger(self) -> AuditLogger:
+        """Create audit logger based on configuration.
+
+        Returns:
+            FileAuditLogger if audit_logging is enabled, NullAuditLogger otherwise.
+
+        Example:
+            >>> config = ToolConfig(audit_logging=True)
+            >>> registry = ToolRegistry(config)
+            >>> # Uses FileAuditLogger at ~/.consoul/tool_audit.jsonl
+            >>>
+            >>> config = ToolConfig(audit_logging=False)
+            >>> registry = ToolRegistry(config)
+            >>> # Uses NullAuditLogger (no-op)
+        """
+        if self.config.audit_logging:
+            return FileAuditLogger(self.config.audit_log_file)
+        return NullAuditLogger()
+
     def _get_default_provider(self) -> ApprovalProvider:
         """Get default approval provider.
 
@@ -614,11 +646,37 @@ class ToolRegistry:
         # Get tool metadata
         metadata = self.get_tool(tool_name)
 
+        # Start timing for audit log
+        start_time = time.time()
+
+        # Log approval request
+        await self.audit_logger.log_event(
+            AuditEvent(
+                event_type="request",
+                tool_name=tool_name,
+                arguments=arguments,
+                metadata=context or {},
+            )
+        )
+
         # Check if approval needed (registry-level caching)
-        if not self.needs_approval(tool_name):
+        if not self.needs_approval(tool_name, arguments):
+            # Auto-approved (cached or whitelisted)
+            duration_ms = int((time.time() - start_time) * 1000)
+            await self.audit_logger.log_event(
+                AuditEvent(
+                    event_type="approval",
+                    tool_name=tool_name,
+                    arguments=arguments,
+                    decision=True,
+                    result="Auto-approved (cached or whitelisted)",
+                    duration_ms=duration_ms,
+                    metadata=context or {},
+                )
+            )
             return ToolApprovalResponse(
                 approved=True,
-                reason="Cached approval (once_per_session mode)",
+                reason="Auto-approved (cached or whitelisted)",
             )
 
         # Build approval request
@@ -635,6 +693,22 @@ class ToolRegistry:
         try:
             response = await self.approval_provider.request_approval(request)
 
+            # Calculate duration
+            duration_ms = int((time.time() - start_time) * 1000)
+
+            # Log approval/denial event
+            await self.audit_logger.log_event(
+                AuditEvent(
+                    event_type="approval" if response.approved else "denial",
+                    tool_name=tool_name,
+                    arguments=arguments,
+                    decision=response.approved,
+                    result=response.reason,
+                    duration_ms=duration_ms,
+                    metadata=context or {},
+                )
+            )
+
             # If approved, mark for session caching
             if response.approved:
                 self.mark_approved(tool_name)
@@ -643,6 +717,18 @@ class ToolRegistry:
 
         except Exception as e:
             # Approval provider error - treat as denial
+            duration_ms = int((time.time() - start_time) * 1000)
+            await self.audit_logger.log_event(
+                AuditEvent(
+                    event_type="error",
+                    tool_name=tool_name,
+                    arguments=arguments,
+                    decision=False,
+                    error=f"Approval provider error: {e}",
+                    duration_ms=duration_ms,
+                    metadata=context or {},
+                )
+            )
             return ToolApprovalResponse(
                 approved=False,
                 reason=f"Approval provider error: {e}",

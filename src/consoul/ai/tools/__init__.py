@@ -30,6 +30,12 @@ from consoul.ai.tools.approval import (
     ToolApprovalRequest,
     ToolApprovalResponse,
 )
+from consoul.ai.tools.audit import (
+    AuditEvent,
+    AuditLogger,
+    FileAuditLogger,
+    NullAuditLogger,
+)
 from consoul.ai.tools.base import RiskLevel, ToolMetadata
 from consoul.ai.tools.exceptions import (
     BlockedCommandError,
@@ -57,9 +63,13 @@ from consoul.ai.tools.status import ToolStatus
 __all__ = [
     "ApprovalError",
     "ApprovalProvider",
+    "AuditEvent",
+    "AuditLogger",
     "BlockedCommandError",
     "CommandAnalyzer",
     "CommandRisk",
+    "FileAuditLogger",
+    "NullAuditLogger",
     "ParsedToolCall",
     "PermissionPolicy",
     "PolicyResolver",
