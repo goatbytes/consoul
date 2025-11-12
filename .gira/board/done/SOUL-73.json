@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-11T17:26:15.882625",
-  "updated_at": "2025-11-11T17:26:15.882636",
+  "updated_at": "2025-11-12T07:26:20.444898Z",
   "id": "SOUL-73",
   "uuid": "43258bc2-e691-4148-a5ef-a0bd6e0758bb",
   "title": "Integrate permission SDK into Consoul TUI",
   "description": "As a Consoul developer, I want the new permission SDK integrated into the existing TUI application, so that users can benefit from dynamic risk assessment, whitelisting, and policy-based approvals in the TUI interface.\n\n## Context\nNew permission modules (SOUL-70, SOUL-71, SOUL-72) need integration with existing TUI approval flow. Current implementation uses hard-coded risk levels and basic approval modals (src/consoul/tui/app.py:1089-1119, src/consoul/tui/widgets/tool_approval_modal.py).\n\n## Technical Notes\n- Replace hard-coded DANGEROUS risk at app.py:1092 with CommandAnalyzer\n- Update ToolApprovalModal to display risk level and reason\n- Integrate WhitelistManager for bypass logic\n- Apply PermissionPolicy to approval decisions\n- Maintain existing ApprovalProvider protocol compatibility\n\n## Files to Modify\n- Modify: src/consoul/tui/app.py:1089-1119 (integrate analyzer, whitelist, policy)\n- Modify: src/consoul/tui/widgets/tool_approval_modal.py (show risk info)\n- Modify: src/consoul/ai/tools/registry.py:156-169 (use new SDK)\n- Update: src/consoul/config/models.py (ensure new fields are loaded)\n\n## Acceptance Criteria\n- [ ] CommandAnalyzer replaces hard-coded DANGEROUS risk\n- [ ] Approval modal shows risk level with color coding\n- [ ] Approval modal displays matched pattern/reason\n- [ ] Whitelisted commands bypass approval automatically\n- [ ] Policy settings control approval behavior\n- [ ] Existing approval flow remains functional\n- [ ] No regression in tool execution performance\n- [ ] Integration tests verify end-to-end approval flow\n\n## Testing\n- Test safe command auto-approval (policy=BALANCED)\n- Test dangerous command prompts with risk display\n- Test whitelisted command bypass\n- Test policy override behavior\n- Test approval modal UX improvements\n- Test backward compatibility with old configs\n\n## Implementation Hints\n- Use dependency injection for SDK components (analyzer, whitelist, policy)\n- Update approval modal CSS for risk level color coding (safe=green, caution=yellow, dangerous=red, blocked=gray)\n- Add risk info to ToolApprovalRequest dataclass\n- Consider caching analyzer results for repeated commands\n- Ensure async approval flow remains non-blocking",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "high",
   "labels": [

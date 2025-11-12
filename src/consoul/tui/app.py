@@ -209,7 +209,7 @@ class ConsoulApp(App[None]):
 
                 # Initialize tool registry (approval handled via _request_tool_approval)
                 if consoul_config.tools and consoul_config.tools.enabled:
-                    from consoul.ai.tools import RiskLevel, ToolRegistry
+                    from consoul.ai.tools import ToolRegistry
                     from consoul.ai.tools.implementations.bash import (
                         bash_execute,
                         set_bash_config,
@@ -227,10 +227,8 @@ class ConsoulApp(App[None]):
                         approval_provider=CliApprovalProvider(),  # Required but unused
                     )
 
-                    # Register bash tool
-                    self.tool_registry.register(
-                        bash_execute, risk_level=RiskLevel.DANGEROUS, enabled=True
-                    )
+                    # Register bash tool (risk level determined dynamically by CommandAnalyzer)
+                    self.tool_registry.register(bash_execute, enabled=True)
 
                     # Get tool metadata list
                     tool_metadata_list = self.tool_registry.list_tools(
@@ -1115,6 +1113,28 @@ class ConsoulApp(App[None]):
             # Plain RiskLevel (backward compatibility - shouldn't happen)
             risk_level = risk_assessment  # type: ignore[assignment]
             risk_reason = f"Static risk level: {risk_level.value}"
+
+        # Check if approval is needed based on policy/whitelist
+        # This enables:
+        # - BALANCED policy to auto-approve SAFE commands
+        # - Whitelisted commands to bypass approval
+        # - TRUSTING policy to auto-approve SAFE+CAUTION commands
+        if self.tool_registry and not self.tool_registry.needs_approval(
+            message.tool_call.name, message.tool_call.arguments
+        ):
+            # Auto-approve based on policy or whitelist
+            self.log.info(
+                f"Auto-approving tool '{message.tool_call.name}' "
+                f"(risk={risk_level.value}, reason={risk_reason})"
+            )
+            self.post_message(
+                ToolApprovalResult(
+                    tool_call=message.tool_call,
+                    approved=True,
+                    reason=f"Auto-approved by policy ({risk_level.value})",
+                )
+            )
+            return
 
         # Create approval request
         request = ToolApprovalRequest(
