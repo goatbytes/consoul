@@ -1074,7 +1074,7 @@ class ConsoulApp(App[None]):
 
     # Message handlers for tool approval workflow
 
-    def on_tool_approval_requested(self, message: ToolApprovalRequested) -> None:
+    async def on_tool_approval_requested(self, message: ToolApprovalRequested) -> None:
         """Handle tool approval request by showing modal.
 
         Uses callback pattern to handle approval result asynchronously.
@@ -1115,6 +1115,21 @@ class ConsoulApp(App[None]):
             risk_level = risk_assessment  # type: ignore[assignment]
             risk_reason = f"Static risk level: {risk_level.value}"
 
+        # Log approval request
+        import time
+
+        from consoul.ai.tools.audit import AuditEvent
+
+        start_time = time.time()
+        if self.tool_registry and self.tool_registry.audit_logger:
+            await self.tool_registry.audit_logger.log_event(
+                AuditEvent(
+                    event_type="request",
+                    tool_name=message.tool_call.name,
+                    arguments=message.tool_call.arguments,
+                )
+            )
+
         # Check if approval is needed based on policy/whitelist
         # This enables:
         # - BALANCED policy to auto-approve SAFE commands
@@ -1128,6 +1143,21 @@ class ConsoulApp(App[None]):
                 f"Auto-approving tool '{message.tool_call.name}' "
                 f"(risk={risk_level.value}, reason={risk_reason})"
             )
+
+            # Log auto-approval
+            duration_ms = int((time.time() - start_time) * 1000)
+            if self.tool_registry and self.tool_registry.audit_logger:
+                await self.tool_registry.audit_logger.log_event(
+                    AuditEvent(
+                        event_type="approval",
+                        tool_name=message.tool_call.name,
+                        arguments=message.tool_call.arguments,
+                        decision=True,
+                        result=f"Auto-approved by policy ({risk_level.value})",
+                        duration_ms=duration_ms,
+                    )
+                )
+
             self.post_message(
                 ToolApprovalResult(
                     tool_call=message.tool_call,
@@ -1146,12 +1176,26 @@ class ConsoulApp(App[None]):
             description=risk_reason,  # Add risk reason as description
         )
 
-        # Define callback to handle result
-        def on_approval_result(approved: bool | None) -> None:
-            """Handle approval modal dismissal."""
+        # Define async callback to handle result and log audit event
+        async def on_approval_result_async(approved: bool | None) -> None:
+            """Handle approval modal dismissal with audit logging."""
             # Convert None to False (treat no response as denial)
             if approved is None:
                 approved = False
+
+            # Log approval/denial
+            duration_ms = int((time.time() - start_time) * 1000)
+            if self.tool_registry and self.tool_registry.audit_logger:
+                await self.tool_registry.audit_logger.log_event(
+                    AuditEvent(
+                        event_type="approval" if approved else "denial",
+                        tool_name=message.tool_call.name,
+                        arguments=message.tool_call.arguments,
+                        decision=approved,
+                        result=None if approved else "User denied execution via modal",
+                        duration_ms=duration_ms,
+                    )
+                )
 
             # Emit result message to trigger execution
             reason = None if approved else "User denied execution via modal"
@@ -1162,6 +1206,20 @@ class ConsoulApp(App[None]):
                     reason=reason,
                 )
             )
+
+        # Define sync wrapper for callback
+        def on_approval_result(approved: bool | None) -> None:
+            """Sync wrapper for async callback."""
+            import asyncio
+
+            # Create task to run async callback
+            # Store reference to avoid task being garbage collected
+            task = asyncio.create_task(on_approval_result_async(approved))
+            # Add to set of background tasks to keep reference
+            if not hasattr(self, "_audit_tasks"):
+                self._audit_tasks: set[asyncio.Task[None]] = set()
+            self._audit_tasks.add(task)
+            task.add_done_callback(self._audit_tasks.discard)
 
         # Show modal with callback (non-blocking)
         # This is the correct pattern: push_screen with callback, not await
