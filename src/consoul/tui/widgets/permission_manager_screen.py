@@ -492,6 +492,11 @@ class PermissionManagerScreen(ModalScreen[bool]):
         """Remove selected whitelist pattern."""
         table = self.query_one("#whitelist-table", DataTable)
 
+        # Check if table has any rows
+        if table.row_count == 0:
+            self.app.notify("No patterns to remove", severity="warning")
+            return
+
         if table.cursor_row is None or table.cursor_row < 0:
             self.app.notify("No pattern selected", severity="warning")
             return
