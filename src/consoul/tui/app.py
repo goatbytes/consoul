@@ -885,9 +885,10 @@ class ConsoulApp(App[None]):
                     else None
                 )
 
-                # Only create assistant bubble if there's content OR tool calls
-                # (don't create empty bubble for tool-only responses)
-                if full_response.strip() or tool_calls_list:
+                # Only create assistant bubble if there's actual content
+                # Don't create bubble for initial tool call responses (empty content)
+                # The final response after tool execution will have content and tool data
+                if full_response.strip():
                     assistant_bubble = MessageBubble(
                         full_response,
                         role="assistant",
