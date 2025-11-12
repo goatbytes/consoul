@@ -322,11 +322,11 @@ class PermissionManagerScreen(ModalScreen[bool]):
 
             # Policy selector
             policy_options = [
-                ("🔒 PARANOID - Maximum security", PermissionPolicy.PARANOID),
-                ("⚖️  BALANCED - Recommended default", PermissionPolicy.BALANCED),
-                ("🤝 TRUSTING - Convenience", PermissionPolicy.TRUSTING),
+                ("PARANOID - Maximum security", PermissionPolicy.PARANOID),
+                ("BALANCED - Recommended default", PermissionPolicy.BALANCED),
+                ("TRUSTING - Convenience", PermissionPolicy.TRUSTING),
                 (
-                    "⚠️  UNRESTRICTED - Testing only (DANGEROUS)",
+                    "UNRESTRICTED - Testing only (DANGEROUS)",
                     PermissionPolicy.UNRESTRICTED,
                 ),
             ]
@@ -452,7 +452,7 @@ class PermissionManagerScreen(ModalScreen[bool]):
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
         if event.button.id == "add-pattern-button":
-            await self.action_add_pattern()
+            self.action_add_pattern()
         elif event.button.id == "remove-pattern-button":
             await self.action_remove_pattern()
         elif event.button.id == "apply-button":
@@ -462,23 +462,31 @@ class PermissionManagerScreen(ModalScreen[bool]):
         elif event.button.id == "help-button":
             self.action_help()
 
-    async def action_add_pattern(self) -> None:
+    def action_add_pattern(self) -> None:
         """Show modal to add new whitelist pattern."""
-        result = await self.app.push_screen(AddPatternModal(), wait_for_dismiss=True)
 
-        if result:
-            pattern, pattern_type, description = result
+        def handle_result(result: tuple[str, str, str] | None) -> None:
+            """Handle the result from AddPatternModal."""
+            if result:
+                pattern, pattern_type, description = result
 
-            try:
-                self.whitelist_manager.add_pattern(
-                    pattern=pattern,
-                    pattern_type=pattern_type,
-                    description=description,
-                )
-                self._populate_whitelist_table()
-                self.app.notify(f"✅ Added pattern: {pattern}", severity="information")
-            except ValueError as e:
-                self.app.notify(f"❌ Error: {e}", severity="error")
+                try:
+                    # Type assertion for mypy - pattern_type is validated in modal
+                    from typing import Literal, cast
+
+                    self.whitelist_manager.add_pattern(
+                        pattern=pattern,
+                        pattern_type=cast("Literal['exact', 'regex']", pattern_type),
+                        description=description,
+                    )
+                    self._populate_whitelist_table()
+                    self.app.notify(
+                        f"✅ Added pattern: {pattern}", severity="information"
+                    )
+                except ValueError as e:
+                    self.app.notify(f"❌ Error: {e}", severity="error")
+
+        self.app.push_screen(AddPatternModal(), handle_result)
 
     async def action_remove_pattern(self) -> None:
         """Remove selected whitelist pattern."""
