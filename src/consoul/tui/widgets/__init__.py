@@ -15,6 +15,7 @@ from consoul.tui.widgets.import_modal import ImportModal
 from consoul.tui.widgets.input_area import InputArea
 from consoul.tui.widgets.message_bubble import MessageBubble
 from consoul.tui.widgets.model_picker_modal import ModelPickerModal
+from consoul.tui.widgets.permission_manager_screen import PermissionManagerScreen
 from consoul.tui.widgets.profile_selector_modal import ProfileSelectorModal
 from consoul.tui.widgets.search_bar import SearchBar
 from consoul.tui.widgets.settings_screen import SettingsScreen
@@ -34,6 +35,7 @@ __all__ = [
     "InputArea",
     "MessageBubble",
     "ModelPickerModal",
+    "PermissionManagerScreen",
     "ProfileSelectorModal",
     "SearchBar",
     "SettingsScreen",

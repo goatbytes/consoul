@@ -111,6 +111,7 @@ class ConsoulApp(App[None]):
         Binding("/", "focus_input", "Input", show=False),
         # UI
         Binding("ctrl+comma", "settings", "Settings", show=False),
+        Binding("ctrl+shift+p", "permissions", "Permissions", show=False),
         Binding("f1", "help", "Help", show=False),
     ]
 
@@ -1326,6 +1327,22 @@ class ConsoulApp(App[None]):
         )
         if result:
             self.notify("Settings saved successfully", severity="information")
+
+    async def action_permissions(self) -> None:
+        """Show permission manager screen."""
+        from consoul.tui.widgets.permission_manager_screen import (
+            PermissionManagerScreen,
+        )
+
+        if self.consoul_config is None:
+            self.notify("Configuration not loaded", severity="error")
+            return
+
+        result = await self.push_screen(PermissionManagerScreen(self.consoul_config))
+        if result:
+            self.notify(
+                "Permission settings saved successfully", severity="information"
+            )
 
     async def action_help(self) -> None:
         """Show help modal."""
