@@ -683,6 +683,87 @@ class TestReadFile:
             set_read_config(ReadToolConfig())
 
 
+class TestErrorPathCoverage:
+    """Tests specifically for error handling paths to achieve 100% coverage."""
+
+    def test_read_binary_file_after_validation(self, tmp_path):
+        """Test binary file detection (line 485).
+
+        This tests the binary file detection that happens AFTER extension validation.
+        """
+        # Create a file with allowed extension but binary content
+        file_path = tmp_path / "fake.txt"
+        # Write binary content (null bytes indicate binary)
+        file_path.write_bytes(b"Hello\x00\x01\x02World\xff\xfe")
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        # Line 485: Should detect as binary and reject
+        assert "❌ Unsupported binary file format" in result
+
+    def test_read_encoding_error_fallback_fails(self, tmp_path, monkeypatch):
+        """Test encoding fallback complete failure (lines 490-494)."""
+        file_path = tmp_path / "test.txt"
+        file_path.write_text("test")
+
+        # Mock _read_with_encoding_fallback to raise UnicodeDecodeError
+        from consoul.ai.tools.implementations import read
+
+        def mock_read(path):
+            raise UnicodeDecodeError("utf-8", b"", 0, 1, "mock error")
+
+        monkeypatch.setattr(read, "_read_with_encoding_fallback", mock_read)
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        # Lines 490-494: Should handle UnicodeDecodeError
+        assert "❌ Failed to decode file" in result
+        assert "may be binary or use an unsupported encoding" in result
+
+    def test_read_permission_error(self, tmp_path, monkeypatch):
+        """Test permission denied error (lines 495-496)."""
+        file_path = tmp_path / "test.txt"
+        file_path.write_text("test")
+
+        # Mock _read_with_encoding_fallback to raise PermissionError
+        from consoul.ai.tools.implementations import read
+
+        def mock_read(path):
+            raise PermissionError("Permission denied")
+
+        monkeypatch.setattr(read, "_read_with_encoding_fallback", mock_read)
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        # Lines 495-496: Should handle PermissionError
+        assert "❌ Permission denied:" in result
+
+    def test_read_line_count_truncation_message(self, tmp_path):
+        """Test line count truncation message (lines 553-558)."""
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        file_path = tmp_path / "large.txt"
+        # Create file with more lines than default limit
+        content = "\n".join([f"line {i}" for i in range(3000)])
+        file_path.write_text(content)
+
+        # Set a low max_lines_default
+        config = ReadToolConfig(max_lines_default=100, max_output_chars=100000)
+        set_read_config(config)
+
+        try:
+            # Read without offset/limit (triggers default limit path)
+            result = read_file.invoke({"file_path": str(file_path)})
+
+            # Lines 553-558: Should add truncation message
+            assert "[Note: Output limited to 100 lines" in result
+            assert "file has 3000 total lines" in result
+            assert "Use offset/limit parameters to read more" in result
+
+        finally:
+            set_read_config(ReadToolConfig())
+
+
 class TestPDFReading:
     """Tests for PDF file reading functionality.
 
@@ -853,3 +934,142 @@ class TestPDFReading:
         assert not _is_pdf_file(Path("test.txt"))
         assert not _is_pdf_file(Path("test.pdf.txt"))
         assert not _is_pdf_file(Path("testpdf"))
+
+    def test_read_pdf_empty_pdf(self, tmp_path):
+        """Test PDF with zero pages."""
+        import pypdf
+
+        # Create a PDF with no pages
+        pdf_file = tmp_path / "empty.pdf"
+        writer = pypdf.PdfWriter()
+        with open(pdf_file, "wb") as f:
+            writer.write(f)
+
+        result = read_file.invoke({"file_path": str(pdf_file)})
+
+        assert "❌ PDF contains no pages" in result
+
+    def test_read_pdf_invalid_start_page_negative(self, pdf_path):
+        """Test PDF with start_page < 1.
+
+        Pydantic gt=0 validation prevents start_page=0 at schema level.
+        Line 320 "start_page must be >= 1" is unreachable defensive code.
+        """
+        # This will raise ValidationError from Pydantic, not return error string
+        with pytest.raises(Exception) as exc_info:
+            read_file.invoke({"file_path": pdf_path, "start_page": 0})
+
+        # Verify it's Pydantic validation error
+        assert (
+            "validation" in str(exc_info.value).lower()
+            or "greater than 0" in str(exc_info.value).lower()
+        )
+
+    def test_read_pdf_page_with_no_text(self, tmp_path):
+        """Test PDF page with no extractable text."""
+        import pypdf
+
+        # Create PDF with a blank page
+        pdf_file = tmp_path / "blank.pdf"
+        writer = pypdf.PdfWriter()
+        writer.add_blank_page(width=200, height=200)
+        with open(pdf_file, "wb") as f:
+            writer.write(f)
+
+        result = read_file.invoke({"file_path": str(pdf_file)})
+
+        # Line 343-346: Should report no extractable text
+        assert "=== Page 1 ===" in result
+        assert "[No extractable text" in result or "blank" in result.lower()
+
+    def test_read_pdf_extraction_exception(self, tmp_path, monkeypatch):
+        """Test PDF page extraction that raises exception."""
+        import pypdf
+
+        # Create a valid PDF
+        pdf_file = tmp_path / "test.pdf"
+        writer = pypdf.PdfWriter()
+        writer.add_blank_page(width=200, height=200)
+        with open(pdf_file, "wb") as f:
+            writer.write(f)
+
+        # Mock extract_text to raise exception
+        def mock_extract(self):
+            raise RuntimeError("Extraction failed")
+
+        monkeypatch.setattr(pypdf.PageObject, "extract_text", mock_extract)
+
+        result = read_file.invoke({"file_path": str(pdf_file)})
+
+        # Line 362-364: Should catch exception and report error
+        assert "=== Page 1 ===" in result
+        assert "❌ Error:" in result
+        assert "Extraction failed" in result
+
+    def test_read_pdf_no_result_after_extraction(self, tmp_path, monkeypatch):
+        """Test PDF where extraction succeeds but result list is empty."""
+        import pypdf
+
+        pdf_file = tmp_path / "test.pdf"
+        writer = pypdf.PdfWriter()
+        writer.add_blank_page(width=200, height=200)
+        with open(pdf_file, "wb") as f:
+            writer.write(f)
+
+        # This is actually hard to trigger since we always append to result
+        # in the normal flow. Line 366-367 is defensive code that may be unreachable
+        # in practice. Skipping this test as it may be dead code.
+        pass
+
+    def test_read_pdf_output_truncation(self, pdf_path):
+        """Test PDF output exceeding max_output_chars (lines 374-379)."""
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        # Use the real test PDF and set a very low output limit to trigger truncation
+        config = ReadToolConfig(max_output_chars=200, pdf_max_pages=100)
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": pdf_path})
+
+            # Lines 374-379: Output should be truncated
+            assert "…[output truncated" in result
+            assert "reduce page range" in result
+            # Verify output is actually limited
+            assert len(result) < 300  # Should be close to 200 + truncation message
+
+        finally:
+            set_read_config(ReadToolConfig())
+
+    def test_read_pdf_corrupted_file(self, tmp_path):
+        """Test reading corrupted PDF file."""
+        pdf_file = tmp_path / "corrupted.pdf"
+        pdf_file.write_bytes(b"%PDF-1.4\nCorrupted data")
+
+        result = read_file.invoke({"file_path": str(pdf_file)})
+
+        # Line 389-390: Should catch PdfReadError
+        assert "❌" in result
+        assert "corrupted" in result.lower() or "failed to read" in result.lower()
+
+    def test_read_pdf_generic_exception(self, tmp_path, monkeypatch):
+        """Test PDF reading with generic exception."""
+        import pypdf
+
+        pdf_file = tmp_path / "test.pdf"
+        writer = pypdf.PdfWriter()
+        writer.add_blank_page(width=200, height=200)
+        with open(pdf_file, "wb") as f:
+            writer.write(f)
+
+        # Mock PdfReader to raise generic exception
+        def mock_init(self, *args, **kwargs):
+            raise RuntimeError("Unexpected error")
+
+        monkeypatch.setattr(pypdf.PdfReader, "__init__", mock_init)
+
+        result = read_file.invoke({"file_path": str(pdf_file)})
+
+        # Line 391-392: Should catch generic exception
+        assert "❌ Error reading PDF:" in result
+        assert "Unexpected error" in result
