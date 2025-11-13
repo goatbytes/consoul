@@ -94,7 +94,7 @@ class Consoul:
         self,
         model: str | None = None,
         profile: str = "default",
-        tools: bool = False,
+        tools: bool = True,
         temperature: float | None = None,
         system_prompt: str | None = None,
         persist: bool = True,
@@ -297,6 +297,10 @@ class Consoul:
 
         self._track_response(response)
 
+        # Handle tool calls if present
+        if self.tools_enabled and self._has_tool_calls(response):
+            response = self._execute_tool_loop(response)
+
         # Extract content - handle both string and list responses
         content_str: str
         if hasattr(response, "content"):
@@ -311,6 +315,75 @@ class Consoul:
 
         self.history.add_assistant_message(content_str)
         return content_str
+
+    def _has_tool_calls(self, response: Any) -> bool:
+        """Check if response has tool calls.
+
+        Args:
+            response: Model response
+
+        Returns:
+            True if response has tool calls
+        """
+        return hasattr(response, "tool_calls") and bool(response.tool_calls)
+
+    def _execute_tool_loop(self, response: Any) -> Any:
+        """Execute tool calls and get final response.
+
+        Args:
+            response: Initial response with tool calls
+
+        Returns:
+            Final response after tool execution
+        """
+        from langchain_core.messages import ToolMessage
+
+        max_iterations = 5  # Prevent infinite loops
+        iteration = 0
+
+        while self._has_tool_calls(response) and iteration < max_iterations:
+            iteration += 1
+
+            # Add AI message with tool calls to history
+            self.history.messages.append(response)
+
+            # Parse and execute tool calls
+            from consoul.ai.tools.parser import parse_tool_calls
+
+            parsed_calls = parse_tool_calls(response)
+
+            # Execute each tool call and collect results
+            tool_messages = []
+            for tool_call in parsed_calls:
+                try:
+                    # Get the tool from the registry
+                    if self.registry:
+                        tool_metadata = self.registry.get_tool(tool_call.name)
+                        # Invoke the tool directly
+                        result = tool_metadata.tool.invoke(tool_call.arguments)
+                        tool_messages.append(
+                            ToolMessage(
+                                content=str(result),
+                                tool_call_id=tool_call.id,
+                            )
+                        )
+                except Exception as e:
+                    # Add error message
+                    tool_messages.append(
+                        ToolMessage(
+                            content=f"Error executing {tool_call.name}: {e}",
+                            tool_call_id=tool_call.id,
+                        )
+                    )
+
+            # Add tool results to history
+            self.history.messages.extend(tool_messages)
+
+            # Get next response from model with tool results
+            messages = self.history.get_trimmed_messages(reserve_tokens=1000)
+            response = self.model.invoke(messages)
+
+        return response
 
     def ask(self, message: str, show_tokens: bool = False) -> ConsoulResponse:
         """Send a message and get a rich response with metadata.
