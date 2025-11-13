@@ -84,11 +84,22 @@ Use the built-in TUI when:
 ```python
 from consoul.config.loader import load_config
 from consoul.ai.tools import ToolRegistry, RiskLevel
-from consoul.ai.tools.implementations import bash_execute, read_file
+from consoul.ai.tools.implementations import (
+    bash_execute,
+    read_file,
+    set_bash_config,
+    set_read_config,
+)
 from consoul.ai.tools.providers import CliApprovalProvider
 
 # Load configuration
 config = load_config()
+
+# Inject tool configs from profile (IMPORTANT: do this before registration)
+if config.tools.bash:
+    set_bash_config(config.tools.bash)
+if config.tools.read:
+    set_read_config(config.tools.read)
 
 # Create CLI approval provider
 approval_provider = CliApprovalProvider(verbose=True)

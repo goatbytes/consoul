@@ -21,13 +21,18 @@ from consoul.config.models import ReadToolConfig
 
 
 def basic_example():
-    """Basic read_file usage with default configuration."""
+    """Basic read_file usage with configuration from profile."""
     print("=" * 60)
     print("Example 1: Basic Usage")
     print("=" * 60)
 
-    # Load default configuration
+    # Load configuration from profile
     config = load_config()
+
+    # Inject read config from profile (IMPORTANT: do this before registration)
+    # This ensures tool respects limits defined in your YAML config
+    if config.tools.read:
+        set_read_config(config.tools.read)
 
     # Create registry with CLI approval
     registry = ToolRegistry(
