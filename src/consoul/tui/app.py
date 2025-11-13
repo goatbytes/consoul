@@ -984,15 +984,23 @@ class ConsoulApp(App[None]):
             >>> print(result)  # "file1.txt\nfile2.py" or "Tool execution failed: ..."
         """
         try:
-            # Currently only bash_execute is supported
-            if tool_call.name == "bash_execute":
-                from consoul.ai.tools.implementations.bash import bash_execute
+            # Use tool registry to execute any registered tool
+            if self.tool_registry is None:
+                return "Tool registry not initialized"
 
-                # Execute tool (bash_execute is a StructuredTool)
-                result = bash_execute.invoke(tool_call.arguments)
-                return str(result)
-            else:
+            # Get the tool from registry
+            tool_metadata = None
+            for meta in self.tool_registry.list_tools(enabled_only=True):
+                if meta.tool.name == tool_call.name:
+                    tool_metadata = meta
+                    break
+
+            if tool_metadata is None:
                 return f"Unknown tool: {tool_call.name}"
+
+            # Execute the tool using its invoke method
+            result = tool_metadata.tool.invoke(tool_call.arguments)
+            return str(result)
 
         except Exception as e:
             # Return error as tool result (AI can see it and respond appropriately)
