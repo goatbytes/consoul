@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
-"""Minimal Consoul SDK Example - Just 20 lines!
+"""Minimal Consoul SDK Example - Just 5 lines!
 
 The absolute simplest way to add AI chat to your Python app.
 
 Usage:
+    export ANTHROPIC_API_KEY=your-key-here  # Or OPENAI_API_KEY, etc.
     python examples/sdk/minimal_chat.py
 
 Requirements:
     pip install consoul
-    export ANTHROPIC_API_KEY=your-key-here
 """
 
 from consoul import Consoul
 
-# That's it! One line to create a chat session
 console = Consoul()
-
-# Start chatting
-console.chat("What is 2+2?")
-console.chat("What files are in the current directory?")
+print(console.chat("What is 2+2?"))
+print(console.chat("What files are in the current directory?"))

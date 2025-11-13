@@ -4,6 +4,64 @@ A beautiful terminal-based AI chat interface built with Textual and LangChain
 
 Consoul brings the power of modern AI assistants directly to your terminal with a rich, interactive TUI. Built on Textual's reactive framework and LangChain's provider abstraction, it offers a ChatGPT/Claude-like experience without leaving your command line.
 
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+pip install consoul
+export ANTHROPIC_API_KEY=your-key-here  # Or OPENAI_API_KEY, GOOGLE_API_KEY
+```
+
+### Minimal Example (5 lines)
+
+```python
+from consoul import Consoul
+
+console = Consoul()
+print(console.chat("What is 2+2?"))
+print(console.chat("What files are in the current directory?"))
+```
+
+### Quick Customization (~15 lines)
+
+```python
+from consoul import Consoul
+
+# Customize as needed
+console = Consoul(
+    model="gpt-4o",         # Auto-detect provider
+    profile="default",       # Use built-in profile
+    tools=True,             # Enable bash execution with approval
+    temperature=0.7,
+)
+
+# Stateful conversation - history is maintained
+console.chat("List all Python files in this directory")
+console.chat("Show me the first one")
+
+# Rich response with metadata
+response = console.ask("Summarize this project", show_tokens=True)
+print(f"\nResponse: {response.content}")
+print(f"Tokens used: {response.tokens}")
+print(f"Model: {response.model}")
+
+# Introspection
+print(f"\nSettings: {console.settings}")
+print(f"Last cost: {console.last_cost}")
+```
+
+### Terminal Interface
+
+For the full interactive TUI:
+
+```bash
+consoul                                        # Launch interactive mode
+consoul chat "Explain quantum computing"      # One-off question
+consoul chat --model gpt-4o "Your question"  # Use specific model
+consoul --profile creative chat "Write a poem" # Use specific profile
+```
+
 ## ✨ Features
 
 - 🎨 **Beautiful TUI** - Rich, interactive terminal interface powered by Textual
@@ -166,45 +224,6 @@ class DatabaseAuditLogger:
 **Complete examples**: See [examples/sdk/](examples/sdk/) for working code
 
 **Full documentation**: [SDK Integration Guide](docs/sdk/tool-calling-integration.md)
-
-## 🚀 Quick Start
-
-### Installation
-
-```bash
-# With pip
-pip install consoul
-
-# With poetry
-poetry add consoul
-```
-
-### Setup
-
-```bash
-# Set your API key
-export ANTHROPIC_API_KEY=your-key-here
-# or OPENAI_API_KEY, GOOGLE_API_KEY
-
-# Run Consoul
-consoul
-```
-
-### Basic Usage
-
-```bash
-# Interactive TUI mode
-consoul
-
-# One-off question
-consoul chat "Explain quantum computing"
-
-# Use specific model
-consoul chat --model gpt-4o "Your question"
-
-# Use specific profile
-consoul --profile creative chat "Write a poem"
-```
 
 ## 🔑 API Keys
 

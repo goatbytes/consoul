@@ -33,7 +33,13 @@ class TestPackageMetadata:
         # Check that __all__ is sorted alphabetically
         assert consoul.__all__ == sorted(consoul.__all__)
         # Verify expected exports
-        expected = ["__author__", "__license__", "__version__"]
+        expected = [
+            "Consoul",
+            "ConsoulResponse",
+            "__author__",
+            "__license__",
+            "__version__",
+        ]
         assert consoul.__all__ == expected
 
 

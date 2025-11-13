@@ -27,9 +27,7 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
             "name": "default",
             "description": "Default profile with balanced settings for general use",
             "system_prompt": (
-                "You are a helpful AI assistant for developers.\n\n"
-                "Be concise and direct—typically respond in fewer than 4 lines unless "
-                "more detail is requested. Use markdown formatting for terminal rendering. "
+                "You are a helpful AI assistant. Use markdown formatting for terminal rendering. "
                 "Avoid unnecessary preamble or postamble.\n\n"
                 "When writing code, check existing conventions first and mimic the established style. "
                 "Generate immediately runnable code with dependencies included. "
