@@ -1,0 +1,22 @@
+{
+  "created_at": "2025-11-13T14:35:06.695454",
+  "updated_at": "2025-11-13T14:35:06.695475",
+  "id": "SOUL-98",
+  "uuid": "971f46f5-0dbc-4958-8fcc-258e5e9784bf",
+  "title": "Implement symbol reference finder",
+  "description": "Create tool to find all references to a code symbol function class variable. Enable find all references functionality similar to IDE capabilities. Find all locations where symbol is used. Support different scopes file directory project. Distinguish between definitions and usages. Return with context and line numbers. Estimated effort 8-12 hours.",
+  "status": "backlog",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-006",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

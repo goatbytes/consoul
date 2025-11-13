@@ -1,0 +1,22 @@
+{
+  "created_at": "2025-11-13T14:35:04.854542",
+  "updated_at": "2025-11-13T14:35:04.854551",
+  "id": "SOUL-97",
+  "uuid": "66b698de-6ffe-4679-8f5f-7e27a8396355",
+  "title": "Implement code structure search using grep-ast",
+  "description": "Create AST-based code search tool using grep-ast library, similar to Aider RepoMap. Parse code into AST using tree-sitter. Search for symbols classes functions methods variables. Filter by symbol type. Return context around matches. Support 20+ languages Python JS TS Java Go Rust etc. Estimated effort 12-16 hours.",
+  "status": "backlog",
+  "type": "feature",
+  "priority": "high",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-006",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

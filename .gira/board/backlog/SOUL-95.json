@@ -1,0 +1,22 @@
+{
+  "created_at": "2025-11-13T14:34:47.578182",
+  "updated_at": "2025-11-13T14:34:47.578191",
+  "id": "SOUL-95",
+  "uuid": "071afcfb-e35e-4744-b03f-f6f866e93cdc",
+  "title": "Add caching for code search results",
+  "description": "Implement disk-based caching for parsed AST and search results to improve performance.\n\n## Objective\nCache parsed ASTs and search indices to avoid re-parsing on every search.\n\n## Implementation Details\n- Use diskcache library (already used by Aider)\n- Cache parsed ASTs per file (keyed by path + mtime)\n- Cache symbol tables per directory\n- Invalidate on file modification\n- Store in ~/.consoul/search-cache/\n\n## Technical Approach\n1. Add diskcache to dependencies\n2. Create cache manager class\n3. Integrate with code_search module\n4. Add cache versioning\n5. Implement cache cleanup/limits\n\n## Code Structure\n\n\n## Acceptance Criteria\n- First search slow, subsequent fast\n- Cache invalidates on file changes\n- Cache size limited (configurable)\n- Cache versioned for upgrades\n- Thread-safe operations\n- Performance: >10x improvement on cache hit\n\n## Testing\n- Test cache hit/miss\n- Test invalidation on mtime change\n- Test size limits\n- Test concurrent access\n- Benchmark performance improvement\n\n## Documentation\n- Cache behavior in docs\n- Configuration options\n- Cache management commands\n\n## Estimated Effort\n6-8 hours\n\n## References\n- Aider RepoMap cache implementation\n- diskcache documentation\n- Similar pattern to bash tool audit logging",
+  "status": "backlog",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-006",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

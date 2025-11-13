@@ -1,0 +1,21 @@
+{
+  "created_at": "2025-11-13T14:07:27.875184",
+  "updated_at": "2025-11-13T14:07:27.875195",
+  "id": "SOUL-90",
+  "uuid": "7b5ecc73-8f92-4de6-bd25-466aa9c762ae",
+  "title": "Research rich file operations for line-based editing",
+  "description": "Research and design line-based file editing capabilities inspired by cursor-agent.\n\nCurrent state:\n- Consoul uses basic file operations through bash_execute tool\n- No native file manipulation tools in the SDK\n\nProposed features from cursor-agent:\n- Line-based editing with JSON format: {\"1-5\": \"new content\", \"10-12\": \"more content\"}\n- Complete file replacement option\n- Read file with line range control\n- Better validation and error handling\n\nResearch tasks:\n1. Review cursor-agent's file_tools.py implementation\n2. Analyze how line-based editing improves AI coding workflows\n3. Design API that integrates with Consoul's tool system\n4. Consider security implications and permission requirements\n5. Evaluate if this should be SDK tools or TUI-specific features\n6. Plan integration with existing bash_execute tool\n\nSuccess criteria:\n- Document technical approach\n- Create API design proposal\n- Identify security considerations\n- Estimate implementation effort\n\nReferences:\n- cursor-agent file_tools.py\n- Consoul tool system: src/consoul/ai/tools/",
+  "status": "backlog",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

@@ -1,0 +1,22 @@
+{
+  "created_at": "2025-11-13T14:30:42.634613",
+  "updated_at": "2025-11-13T14:30:42.634623",
+  "id": "SOUL-94",
+  "uuid": "651d4cad-a0b1-4694-8d02-d3ba3c2ac462",
+  "title": "Add grep-ast and tree-sitter dependencies",
+  "description": "Add required dependencies for AST-based code search to pyproject.toml.\n\n## Objective\nInstall and configure grep-ast and tree-sitter libraries needed for code structure analysis.\n\n## Tasks\n1. Add to pyproject.toml [tool.poetry.dependencies]:\n   - grep-ast = \"^0.3.0\"\n   - tree-sitter = \"^0.20.0\"\n\n2. Test installation:\n   - Run poetry install\n   - Verify imports work\n   - Test basic tree-sitter parsing\n\n3. Add to extras if needed:\n   - Consider making optional dependency\n   - Add to 'search' or 'code-analysis' extra\n\n4. Update documentation:\n   - Add to installation.md\n   - Note in README.md features section\n\n## Acceptance Criteria\n- Dependencies install cleanly\n- No version conflicts\n- Imports successful\n- CI/CD passes with new deps\n\n## Notes\n- grep-ast is used by Aider (3.4M installs)\n- tree-sitter is widely used, mature library\n- Both are MIT licensed\n\n## Estimated Effort\n1-2 hours\n\n## References\n- Aider pyproject.toml for version guidance\n- grep-ast: https://github.com/paul-gauthier/grep-ast",
+  "status": "backlog",
+  "type": "task",
+  "priority": "high",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-006",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}
