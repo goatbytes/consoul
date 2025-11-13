@@ -11,5 +11,17 @@ from consoul.ai.tools.implementations.bash import (
     get_bash_config,
     set_bash_config,
 )
+from consoul.ai.tools.implementations.read import (
+    get_read_config,
+    read_file,
+    set_read_config,
+)
 
-__all__ = ["bash_execute", "get_bash_config", "set_bash_config"]
+__all__ = [
+    "bash_execute",
+    "get_bash_config",
+    "get_read_config",
+    "read_file",
+    "set_bash_config",
+    "set_read_config",
+]

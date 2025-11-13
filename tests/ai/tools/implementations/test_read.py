@@ -1,0 +1,425 @@
+"""Tests for read file tool implementation."""
+
+import pytest
+
+from consoul.ai.tools.implementations.read import (
+    _format_with_line_numbers,
+    _is_binary_file,
+    _read_with_encoding_fallback,
+    _validate_extension,
+    _validate_path,
+    read_file,
+)
+from consoul.config.models import ReadToolConfig
+
+
+class TestFormatWithLineNumbers:
+    """Tests for line numbering formatting."""
+
+    def test_format_simple_lines(self):
+        """Test basic line numbering."""
+        lines = ["hello\n", "world\n"]
+        result = _format_with_line_numbers(lines)
+
+        assert result == "     1\thello\n     2\tworld"
+
+    def test_format_with_offset(self):
+        """Test line numbering with custom start."""
+        lines = ["line100\n", "line101\n"]
+        result = _format_with_line_numbers(lines, start_line=100)
+
+        assert result == "   100\tline100\n   101\tline101"
+
+    def test_format_strips_newlines(self):
+        """Test that trailing newlines are stripped."""
+        lines = ["hello\r\n", "world\n", "test\r"]
+        result = _format_with_line_numbers(lines)
+
+        assert result == "     1\thello\n     2\tworld\n     3\ttest"
+
+    def test_format_empty_list(self):
+        """Test formatting empty line list."""
+        result = _format_with_line_numbers([])
+        assert result == ""
+
+    def test_format_single_line(self):
+        """Test formatting single line."""
+        result = _format_with_line_numbers(["test\n"])
+        assert result == "     1\ttest"
+
+
+class TestIsBinaryFile:
+    """Tests for binary file detection."""
+
+    def test_text_file_not_binary(self, tmp_path):
+        """Test that text files are not detected as binary."""
+        file_path = tmp_path / "text.txt"
+        file_path.write_text("Hello, world!")
+
+        assert not _is_binary_file(file_path)
+
+    def test_binary_file_detected(self, tmp_path):
+        """Test that binary files with null bytes are detected."""
+        file_path = tmp_path / "binary.dat"
+        file_path.write_bytes(b"Hello\x00World")
+
+        assert _is_binary_file(file_path)
+
+    def test_empty_file_not_binary(self, tmp_path):
+        """Test that empty files are not detected as binary."""
+        file_path = tmp_path / "empty.txt"
+        file_path.touch()
+
+        assert not _is_binary_file(file_path)
+
+    def test_nonexistent_file_not_binary(self, tmp_path):
+        """Test that nonexistent files return False."""
+        file_path = tmp_path / "nonexistent.txt"
+
+        assert not _is_binary_file(file_path)
+
+
+class TestValidatePath:
+    """Tests for path validation."""
+
+    def test_valid_path(self, tmp_path):
+        """Test that valid file paths pass validation."""
+        file_path = tmp_path / "test.txt"
+        file_path.write_text("content")
+
+        config = ReadToolConfig()
+        result = _validate_path(str(file_path), config)
+
+        assert result == file_path.resolve()
+
+    def test_nonexistent_file_raises(self, tmp_path):
+        """Test that nonexistent files raise ValueError."""
+        file_path = tmp_path / "nonexistent.txt"
+        config = ReadToolConfig()
+
+        with pytest.raises(ValueError, match="File not found"):
+            _validate_path(str(file_path), config)
+
+    def test_directory_raises(self, tmp_path):
+        """Test that directories raise ValueError."""
+        config = ReadToolConfig()
+
+        with pytest.raises(ValueError, match="Cannot read directory"):
+            _validate_path(str(tmp_path), config)
+
+    def test_path_traversal_raises(self, tmp_path):
+        """Test that path traversal attempts are blocked."""
+        file_path = tmp_path / "test.txt"
+        file_path.write_text("content")
+
+        config = ReadToolConfig()
+        malicious_path = str(file_path.parent / ".." / file_path.name)
+
+        with pytest.raises(ValueError, match="Path traversal"):
+            _validate_path(malicious_path, config)
+
+    def test_blocked_path_raises(self, tmp_path):
+        """Test that blocked paths raise ValueError."""
+        file_path = tmp_path / "test.txt"
+        file_path.write_text("content")
+
+        # Add parent dir to blocked paths
+        config = ReadToolConfig(blocked_paths=[str(tmp_path)])
+
+        with pytest.raises(ValueError, match="not allowed"):
+            _validate_path(str(file_path), config)
+
+    def test_default_blocked_paths(self):
+        """Test that default blocked paths are enforced."""
+        config = ReadToolConfig()
+
+        # Default blocked paths include /etc/shadow
+        with pytest.raises(ValueError, match="not allowed"):
+            _validate_path("/etc/shadow", config)
+
+
+class TestValidateExtension:
+    """Tests for extension validation."""
+
+    def test_allowed_extension_passes(self, tmp_path):
+        """Test that allowed extensions pass validation."""
+        file_path = tmp_path / "test.py"
+        file_path.touch()
+
+        config = ReadToolConfig(allowed_extensions=[".py", ".txt"])
+        _validate_extension(file_path, config)  # Should not raise
+
+    def test_disallowed_extension_raises(self, tmp_path):
+        """Test that disallowed extensions raise ValueError."""
+        file_path = tmp_path / "test.exe"
+        file_path.touch()
+
+        config = ReadToolConfig(allowed_extensions=[".py", ".txt"])
+
+        with pytest.raises(ValueError, match="not allowed"):
+            _validate_extension(file_path, config)
+
+    def test_empty_allowed_list_allows_all(self, tmp_path):
+        """Test that empty allowed_extensions list allows all."""
+        file_path = tmp_path / "test.anything"
+        file_path.touch()
+
+        config = ReadToolConfig(allowed_extensions=[])
+        _validate_extension(file_path, config)  # Should not raise
+
+    def test_case_insensitive_extension(self, tmp_path):
+        """Test that extension matching is case-insensitive."""
+        file_path = tmp_path / "test.PY"
+        file_path.touch()
+
+        config = ReadToolConfig(allowed_extensions=[".py"])
+        _validate_extension(file_path, config)  # Should not raise
+
+
+class TestReadWithEncodingFallback:
+    """Tests for encoding fallback."""
+
+    def test_utf8_file(self, tmp_path):
+        """Test reading UTF-8 file."""
+        file_path = tmp_path / "utf8.txt"
+        file_path.write_text("Hello, 世界!", encoding="utf-8")
+
+        result = _read_with_encoding_fallback(file_path)
+
+        assert result == "Hello, 世界!"
+
+    def test_utf8_with_bom(self, tmp_path):
+        """Test reading UTF-8 file with BOM."""
+        file_path = tmp_path / "utf8bom.txt"
+        # Write bytes with BOM directly
+        file_path.write_bytes(b"\xef\xbb\xbfHello, world!")
+
+        result = _read_with_encoding_fallback(file_path)
+
+        # UTF-8 will successfully read BOM (but not strip it)
+        # This is acceptable behavior - the content is still readable
+        assert "Hello, world!" in result
+
+    def test_latin1_fallback(self, tmp_path):
+        """Test fallback to Latin-1 encoding."""
+        file_path = tmp_path / "latin1.txt"
+        # Write with Latin-1 encoding (contains chars not valid in UTF-8)
+        file_path.write_bytes(b"Hello, \xe9cole!")  # é in Latin-1
+
+        result = _read_with_encoding_fallback(file_path)
+
+        assert "cole" in result  # Should decode somehow
+
+
+class TestReadFile:
+    """Tests for read_file tool function."""
+
+    def test_read_simple_file(self, tmp_path):
+        """Test reading a simple text file."""
+        file_path = tmp_path / "test.txt"
+        file_path.write_text("line1\nline2\nline3\n")
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        assert "     1\tline1" in result
+        assert "     2\tline2" in result
+        assert "     3\tline3" in result
+
+    def test_read_with_offset(self, tmp_path):
+        """Test reading with offset parameter."""
+        file_path = tmp_path / "test.txt"
+        content = "\n".join([f"line{i}" for i in range(1, 11)])
+        file_path.write_text(content)
+
+        result = read_file.invoke(
+            {"file_path": str(file_path), "offset": 5, "limit": 3}
+        )
+
+        assert "     5\tline5" in result
+        assert "     6\tline6" in result
+        assert "     7\tline7" in result
+        assert "line1" not in result
+        assert "line10" not in result
+
+    def test_read_with_limit_only(self, tmp_path):
+        """Test reading with limit parameter only."""
+        file_path = tmp_path / "test.txt"
+        content = "\n".join([f"line{i}" for i in range(1, 11)])
+        file_path.write_text(content)
+
+        result = read_file.invoke({"file_path": str(file_path), "limit": 3})
+
+        assert "     1\tline1" in result
+        assert "     2\tline2" in result
+        assert "     3\tline3" in result
+        assert "line4" not in result
+
+    def test_read_offset_beyond_file(self, tmp_path):
+        """Test that offset beyond file length returns error."""
+        file_path = tmp_path / "test.txt"
+        file_path.write_text("line1\nline2\n")
+
+        result = read_file.invoke({"file_path": str(file_path), "offset": 100})
+
+        assert "❌" in result
+        assert "exceeds file length" in result
+
+    def test_read_empty_file(self, tmp_path):
+        """Test reading empty file."""
+        file_path = tmp_path / "empty.txt"
+        file_path.touch()
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        assert result == "[File is empty]"
+
+    def test_read_nonexistent_file(self, tmp_path):
+        """Test reading nonexistent file."""
+        result = read_file.invoke({"file_path": str(tmp_path / "nonexistent.txt")})
+
+        assert "❌" in result
+        assert "File not found" in result
+
+    def test_read_binary_file(self, tmp_path):
+        """Test reading binary file returns error."""
+        # Use .bin extension which is not in allowed_extensions
+        file_path = tmp_path / "binary.bin"
+        file_path.write_bytes(b"Hello\x00World")
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        assert "❌" in result
+        # Should be blocked by extension or binary detection
+        assert "not allowed" in result or "Unsupported binary file" in result
+
+    def test_read_directory(self, tmp_path):
+        """Test that reading directory returns error."""
+        result = read_file.invoke({"file_path": str(tmp_path)})
+
+        assert "❌" in result
+        assert "Cannot read directory" in result
+
+    def test_read_blocked_path(self):
+        """Test that reading blocked path returns error."""
+        result = read_file.invoke({"file_path": "/etc/shadow"})
+
+        assert "❌" in result
+        assert "not allowed" in result
+
+    def test_read_disallowed_extension(self, tmp_path):
+        """Test that disallowed extension returns error."""
+        file_path = tmp_path / "test.exe"
+        file_path.write_text("content")
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        assert "❌" in result
+        assert "not allowed" in result
+
+    def test_read_utf8_file(self, tmp_path):
+        """Test reading UTF-8 file with unicode."""
+        file_path = tmp_path / "utf8.txt"
+        file_path.write_text("Hello, 世界!\nこんにちは\n")
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        assert "     1\tHello, 世界!" in result
+        assert "     2\tこんにちは" in result
+
+    def test_read_preserves_line_numbers_with_offset(self, tmp_path):
+        """Test that line numbers are preserved (not reset) with offset."""
+        file_path = tmp_path / "test.txt"
+        content = "\n".join([f"line{i}" for i in range(1, 101)])
+        file_path.write_text(content)
+
+        result = read_file.invoke(
+            {"file_path": str(file_path), "offset": 50, "limit": 5}
+        )
+
+        # Line numbers should be 50-54, not 1-5
+        assert "    50\tline50" in result
+        assert "    51\tline51" in result
+        assert "     1\t" not in result  # Should NOT restart at 1
+
+    def test_read_file_without_trailing_newline(self, tmp_path):
+        """Test reading file without trailing newline."""
+        file_path = tmp_path / "test.txt"
+        file_path.write_text("line1\nline2")  # No trailing newline
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        assert "     1\tline1" in result
+        assert "     2\tline2" in result
+
+    def test_read_single_line_file(self, tmp_path):
+        """Test reading single-line file."""
+        file_path = tmp_path / "single.txt"
+        file_path.write_text("single line")
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        assert result == "     1\tsingle line"
+
+    def test_read_file_with_blank_lines(self, tmp_path):
+        """Test reading file with blank lines."""
+        file_path = tmp_path / "blank.txt"
+        file_path.write_text("line1\n\nline3\n")
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        assert "     1\tline1" in result
+        assert "     2\t" in result  # Blank line
+        assert "     3\tline3" in result
+
+    def test_read_applies_default_limit_with_offset(self, tmp_path):
+        """Test that max_lines_default is applied when offset but no limit."""
+        file_path = tmp_path / "large.txt"
+        # Create file with 5000 lines
+        content = "\n".join([f"line{i}" for i in range(1, 5001)])
+        file_path.write_text(content)
+
+        # Offset without limit should use config.max_lines_default (2000)
+        result = read_file.invoke({"file_path": str(file_path), "offset": 1})
+
+        # Should have lines 1-2000
+        assert "     1\tline1" in result
+        assert "  2000\tline2000" in result
+        # Should NOT have line 2001
+        assert "line2001" not in result
+
+    def test_read_handles_path_traversal_attempt(self, tmp_path):
+        """Test that path traversal attempts are blocked."""
+        file_path = tmp_path / "test.txt"
+        file_path.write_text("content")
+
+        # Try to read with .. in path
+        malicious_path = str(file_path.parent / ".." / file_path.name)
+        result = read_file.invoke({"file_path": malicious_path})
+
+        assert "❌" in result
+        assert "Path traversal" in result
+
+    def test_read_windows_line_endings(self, tmp_path):
+        """Test reading file with Windows line endings."""
+        file_path = tmp_path / "windows.txt"
+        file_path.write_text("line1\r\nline2\r\nline3\r\n")
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        assert "     1\tline1" in result
+        assert "     2\tline2" in result
+        assert "     3\tline3" in result
+        # Should not have \r in output
+        assert "\r" not in result
+
+    def test_read_mixed_line_endings(self, tmp_path):
+        """Test reading file with mixed line endings."""
+        file_path = tmp_path / "mixed.txt"
+        # Mix of \n, \r\n, and \r
+        file_path.write_bytes(b"line1\nline2\r\nline3\rline4")
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        # Should handle gracefully
+        assert "line1" in result
+        assert "line2" in result
