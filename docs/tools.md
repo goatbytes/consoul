@@ -107,14 +107,19 @@ Read file contents with security controls and format detection.
 
 **Example:**
 ```python
+from consoul.ai.tools.implementations import read_file
+
+# Tools are LangChain StructuredTool instances; call via .invoke()
 # Read entire file
-result = read_file(file_path="src/main.py")
+result = read_file.invoke({"file_path": "src/main.py"})
 
 # Read specific line range
-result = read_file(file_path="README.md", offset=10, limit=20)
+result = read_file.invoke({"file_path": "README.md", "offset": 10, "limit": 20})
 
 # Read PDF pages
-result = read_file(file_path="docs/design.pdf", start_page=5, end_page=7)
+result = read_file.invoke(
+    {"file_path": "docs/design.pdf", "start_page": 5, "end_page": 7}
+)
 ```
 
 **Security Features:**
@@ -180,7 +185,7 @@ tools:
 PDF reading requires the optional `pypdf` package:
 ```bash
 # Install with pip
-pip install consoul[pdf]
+pip install "consoul[pdf]"
 
 # Or with poetry
 poetry install --extras pdf

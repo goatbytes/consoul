@@ -3894,4 +3894,4 @@ pdf = ["pypdf"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "4eb191a7229097b771a881e1f5c042936468467f0ece27a7b88eafa4c3571c08"
+content-hash = "b19b666f95e4d79e45cc3c8fe0f8b0d0ff50b7facb4e0661166deb32ed0f15ef"
