@@ -282,7 +282,53 @@ consoul chat --system "You are a Python expert" "Your question"
 
 ## Configuration Profiles
 
-### Creating Profiles
+Profiles define **HOW** to use AI (system prompts, context settings, conversation behavior), separate from **WHICH** AI to use (model/provider configuration).
+
+### Built-in Profiles
+
+Consoul includes several pre-configured profiles optimized for different tasks:
+
+#### `default`
+Balanced settings for general development work with an optimized system prompt:
+- Concise, direct communication style (< 4 lines typically)
+- Security-focused tool calling with approval workflows
+- Code quality standards (mimic conventions, runnable code)
+- Terminal-optimized markdown output
+
+#### `code-review`
+Focused profile for thorough code review:
+- Senior engineer perspective
+- Focus on quality, best practices, security
+- Higher context limit (8192 tokens)
+
+#### `creative`
+Brainstorming and ideation profile:
+- Encourages innovative thinking
+- No system/git context included
+- Exploratory approach
+
+#### `fast`
+Quick responses with minimal context:
+- Lower context limit (2048 tokens)
+- Concise, to-the-point answers
+- Optimized for speed
+
+### Viewing Built-in Profiles
+
+```bash
+# List all available profiles
+consoul profile list
+
+# Show profile details
+consoul profile show default
+
+# View the default system prompt
+consoul profile show default --system-prompt
+```
+
+### Creating Custom Profiles
+
+Profiles can be customized in your config file:
 
 ```yaml
 # ~/.config/consoul/config.yaml
@@ -290,31 +336,77 @@ default_profile: development
 
 profiles:
   development:
-    provider: anthropic
-    model: claude-3-5-sonnet-20241022
-    temperature: 0.7
+    name: development
+    description: "Custom development profile"
+    system_prompt: |
+      You are an expert Python developer.
+      Focus on clean, idiomatic code.
+    conversation:
+      persist: true
+      auto_resume: true
+      retention_days: 30
+    context:
+      max_context_tokens: 8192
+      include_system_info: true
+      include_git_info: true
+```
 
-  production:
-    provider: openai
-    model: gpt-4
-    temperature: 0.5
-    max_tokens: 1024
+### Profile Configuration Options
 
-  creative:
-    provider: anthropic
-    model: claude-3-opus-20240229
-    temperature: 0.9
+```yaml
+profiles:
+  my_profile:
+    # Identity
+    name: my_profile
+    description: "Profile description"
+
+    # System prompt (optional - overrides built-in)
+    system_prompt: "Custom instructions for AI behavior"
+
+    # Conversation settings
+    conversation:
+      persist: false           # Save conversation to disk
+      db_path: ~/.consoul/history.db
+      auto_resume: false       # Resume last conversation on startup
+      retention_days: 0        # Keep conversations for N days (0 = forever)
+      summarize: false         # Summarize old messages
+      summarize_threshold: 20  # Summarize after N messages
+      keep_recent: 10          # Keep N recent messages unsummarized
+
+    # Context settings
+    context:
+      max_context_tokens: 4096        # Maximum context window
+      include_system_info: true       # Include OS/env information
+      include_git_info: true          # Include git repository info
+      custom_context_files: []        # Additional files to include
 ```
 
 ### Using Profiles
 
 ```bash
 # Use specific profile
-consoul chat --profile production "Your question"
+consoul chat --profile code-review "Review this PR"
 
-# Set default profile
+# Set default profile in config
 consoul config set default_profile creative
+
+# Or set via environment variable
+export CONSOUL_PROFILE=fast
+consoul chat "Quick question"
 ```
+
+### Default System Prompt
+
+The `default` profile includes a comprehensive system prompt that:
+
+- **Defines identity**: "You are Consoul, an AI-powered terminal interface..."
+- **Sets communication style**: Concise (< 4 lines), markdown-formatted, no fluff
+- **Tool calling guidelines**: Explain before executing, group operations, handle approvals
+- **Code quality standards**: Follow conventions, runnable code, modern patterns
+- **Security constraints**: Defensive security only, respect approval workflows
+- **Terminal awareness**: Markdown rendering, progress indication, width constraints
+
+You can override this by setting `system_prompt` in your custom profile.
 
 ## Configuration Management
 
