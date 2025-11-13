@@ -100,6 +100,36 @@ MODEL_TOKEN_LIMITS: dict[str, int] = {
 DEFAULT_TOKEN_LIMIT = 4_096
 
 
+def _get_ollama_context_length(model_name: str) -> int | None:
+    """Query Ollama API for actual context length of a model.
+
+    Uses the existing get_ollama_models function to avoid duplicating API logic.
+
+    Args:
+        model_name: Ollama model name (e.g., "qwen3:30b", "llama3.1:8b")
+
+    Returns:
+        Context length in tokens, or None if query fails
+
+    Example:
+        >>> _get_ollama_context_length("qwen3:30b")
+        262144
+    """
+    try:
+        from consoul.ai.providers import get_ollama_models
+
+        # Get all models with context info and find matching model
+        models = get_ollama_models(include_context=True)
+        for model in models:
+            if model.get("name") == model_name:
+                return model.get("context_length")
+    except Exception:
+        # Silently fail - we'll fall back to hardcoded limits
+        pass
+
+    return None
+
+
 def get_model_token_limit(model_name: str) -> int:
     """Get the maximum context window size (in tokens) for a model.
 
@@ -107,8 +137,11 @@ def get_model_token_limit(model_name: str) -> int:
     if the model is not recognized. Uses case-insensitive matching with
     separator normalization for robustness.
 
+    For Ollama models, attempts to query the Ollama API for the actual
+    context length before falling back to hardcoded values.
+
     Args:
-        model_name: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet")
+        model_name: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet", "qwen3:30b")
 
     Returns:
         Maximum number of tokens the model can handle in its context window.
@@ -118,21 +151,36 @@ def get_model_token_limit(model_name: str) -> int:
         128000
         >>> get_model_token_limit("GPT-4O-2024-08-06")
         128000
+        >>> get_model_token_limit("qwen3:30b")  # Queries Ollama API
+        262144
         >>> get_model_token_limit("unknown-model")
         4096
     """
     # Normalize: lowercase, strip whitespace, normalize separators
     key = (model_name or "").strip().lower()
-    key = key.replace(":", "-").replace("/", "-").replace("_", "-")
+    key_normalized = key.replace(":", "-").replace("/", "-").replace("_", "-")
 
-    # Try exact match first
-    if key in MODEL_TOKEN_LIMITS:
-        return MODEL_TOKEN_LIMITS[key]
+    # For Ollama models with tags (contain ":"), try API query first for exact context
+    # This gives us the actual configured context rather than the model family default
+    if ":" in key:
+        ollama_context = _get_ollama_context_length(model_name)
+        if ollama_context:
+            return ollama_context
+
+    # Try exact match (with normalized key)
+    if key_normalized in MODEL_TOKEN_LIMITS:
+        return MODEL_TOKEN_LIMITS[key_normalized]
 
     # Try prefix match (e.g., "gpt-4o-2024-08-06" → "gpt-4o")
     for known_model, limit in MODEL_TOKEN_LIMITS.items():
-        if key.startswith(known_model):
+        if key_normalized.startswith(known_model):
             return limit
+
+    # For local models without tags, try API query as fallback
+    if key in {"llama3", "llama3.1", "mistral", "phi", "qwen", "codellama"}:
+        ollama_context = _get_ollama_context_length(model_name)
+        if ollama_context:
+            return ollama_context
 
     # Return conservative default
     return DEFAULT_TOKEN_LIMIT
