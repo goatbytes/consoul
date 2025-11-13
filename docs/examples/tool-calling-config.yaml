@@ -1,0 +1,501 @@
+# Consoul Tool Calling Configuration Examples
+#
+# This file demonstrates various tool calling configurations for different
+# use cases and security requirements.
+
+# =============================================================================
+# Example 1: Development Environment (Recommended)
+# =============================================================================
+# Balanced security with convenience for daily development work.
+
+development:
+  profiles:
+    default:
+      # Model configuration
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+        temperature: 0.7
+        max_tokens: 4096
+
+      # Tool configuration - BALANCED policy (recommended)
+      tools:
+        enabled: true
+
+        # BALANCED: Auto-approve SAFE commands, prompt for CAUTION and DANGEROUS
+        permission_policy: balanced
+
+        # Enable audit logging for accountability
+        audit_logging: true
+        audit_log_file: ~/.consoul/tool_audit.jsonl
+
+        # Bash tool settings
+        bash:
+          timeout: 60  # 1 minute timeout for commands
+          allow_directory_change: true
+
+          # Whitelist common safe commands for auto-approval
+          whitelist:
+            - "git status"
+            - "git log"
+            - "git diff"
+            - "git branch"
+            - "ls"
+            - "pwd"
+            - "cat"
+            - "grep"
+            - "find"
+            - "npm test"
+            - "npm run lint"
+            - "poetry run pytest"
+            - "make test"
+
+          # Block dangerous operations (in addition to defaults)
+          blocked_commands:
+            - "^sudo\\s"
+            - "rm\\s+(-[rf]+\\s+)?/"
+            - "dd\\s+if="
+            - "chmod\\s+777"
+            - "reboot"
+            - "shutdown"
+
+# =============================================================================
+# Example 2: Production Environment (Maximum Security)
+# =============================================================================
+# Paranoid policy requiring approval for all operations.
+
+production:
+  profiles:
+    prod:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+        temperature: 0.5  # Lower temperature for consistency
+        max_tokens: 4096
+
+      tools:
+        enabled: true
+
+        # PARANOID: Prompt for EVERY command (maximum security)
+        permission_policy: paranoid
+
+        # Mandatory audit logging in production
+        audit_logging: true
+        audit_log_file: /var/log/consoul/tool_audit.jsonl
+
+        bash:
+          timeout: 30  # Shorter timeout
+          allow_directory_change: false  # Restrict directory navigation
+
+          # Very restrictive blocklist
+          blocked_commands:
+            - "^sudo\\s"
+            - "rm"        # Block ALL rm commands
+            - "mv"        # Block moves
+            - "chmod"     # Block permission changes
+            - "chown"     # Block ownership changes
+            - "dd"        # Block disk operations
+            - "mkfs"      # Block filesystem creation
+            - "fdisk"     # Block partitioning
+            - "systemctl" # Block service management
+            - "service"   # Block service management
+            - "docker"    # Block container operations
+            - "kubectl"   # Block k8s operations
+
+          # Minimal whitelist (even these require approval with PARANOID)
+          whitelist:
+            - "git status"
+            - "ls"
+            - "pwd"
+
+# =============================================================================
+# Example 3: Trusted Development Environment (Convenience)
+# =============================================================================
+# TRUSTING policy for experienced developers in controlled environments.
+
+trusted_dev:
+  profiles:
+    dev:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+        temperature: 0.7
+        max_tokens: 4096
+
+      tools:
+        enabled: true
+
+        # TRUSTING: Auto-approve SAFE and CAUTION, prompt for DANGEROUS
+        permission_policy: trusting
+
+        # Still audit everything
+        audit_logging: true
+        audit_log_file: ~/.consoul/tool_audit.jsonl
+
+        bash:
+          timeout: 120  # Longer timeout for complex operations
+          allow_directory_change: true
+
+          # Extensive whitelist for common operations
+          whitelist:
+            # Git commands
+            - "regex:git (status|log|diff|branch|show|blame)"
+            - "regex:git add .*"
+            - "regex:git commit .*"
+            - "regex:git push .*"
+            - "regex:git pull .*"
+            - "regex:git checkout .*"
+
+            # File operations
+            - "regex:ls( -[la]+)?"
+            - "regex:cat .*"
+            - "regex:grep .*"
+            - "regex:find .*"
+            - "regex:mkdir .*"
+            - "regex:touch .*"
+            - "regex:cp .*"
+            - "regex:mv .*"
+
+            # Build tools
+            - "regex:npm (install|test|run .*)"
+            - "regex:poetry (install|run .*)"
+            - "regex:make (test|build|lint)"
+            - "regex:cargo (build|test|run)"
+
+            # Development tools
+            - "regex:docker ps( -a)?"
+            - "regex:docker logs .*"
+            - "regex:pytest .*"
+            - "regex:python -m pytest .*"
+
+          # Still block truly dangerous operations
+          blocked_commands:
+            - "rm\\s+(-[rf]+\\s+)?/"  # Root deletion
+            - "dd\\s+if="              # Disk operations
+            - "mkfs"                   # Format filesystem
+            - "fdisk"                  # Partitioning
+            - ":\\(\\)\\{.*:\\|:.*\\};:"  # Fork bomb
+
+# =============================================================================
+# Example 4: Testing/CI Environment (Unrestricted)
+# =============================================================================
+# ⚠️ DANGEROUS: Only use in isolated testing environments or CI/CD pipelines.
+
+testing:
+  profiles:
+    ci:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+        temperature: 0.5
+        max_tokens: 4096
+
+      tools:
+        enabled: true
+
+        # ⚠️ UNRESTRICTED: Auto-approve everything except BLOCKED
+        # ONLY use in CI/CD or isolated test environments
+        permission_policy: unrestricted
+
+        # Audit logging still important for debugging
+        audit_logging: true
+        audit_log_file: /tmp/consoul_ci_audit.jsonl
+
+        bash:
+          timeout: 300  # 5 minute timeout for long tests
+          allow_directory_change: true
+
+          # Allow almost everything (for testing)
+          whitelist:
+            - "regex:.*"  # ⚠️ Allow all commands (testing only)
+
+          # Only block truly catastrophic operations
+          blocked_commands:
+            - "rm\\s+(-[rf]+\\s+)?/($|\\s)"  # Root deletion only
+            - "dd\\s+if=/dev/zero\\s+of=/dev/sd"  # Disk wipe
+            - ":\\(\\)\\{.*:\\|:.*\\};:"  # Fork bomb
+            - "^sudo\\s+reboot"  # System reboot
+            - "^sudo\\s+shutdown"  # System shutdown
+
+# =============================================================================
+# Example 5: Multi-Profile Configuration
+# =============================================================================
+# Different profiles for different tasks with appropriate security levels.
+
+multi_profile:
+  # Default active profile
+  active_profile: default
+
+  profiles:
+    # Standard development work
+    default:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+        temperature: 0.7
+
+      tools:
+        enabled: true
+        permission_policy: balanced
+        audit_logging: true
+
+        bash:
+          timeout: 60
+          whitelist:
+            - "git status"
+            - "git log"
+            - "git diff"
+            - "ls"
+            - "pwd"
+            - "npm test"
+            - "make test"
+
+    # Code review - read-only operations
+    review:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+        temperature: 0.5
+
+      tools:
+        enabled: true
+        permission_policy: paranoid  # Extra careful during reviews
+
+        bash:
+          timeout: 30
+          allow_directory_change: false
+
+          # Only allow read-only operations
+          whitelist:
+            - "git status"
+            - "git log"
+            - "git diff"
+            - "git show"
+            - "ls"
+            - "cat"
+            - "grep"
+            - "find"
+
+          # Block ALL write operations
+          blocked_commands:
+            - "rm"
+            - "mv"
+            - "cp"
+            - "mkdir"
+            - "touch"
+            - "git commit"
+            - "git push"
+
+    # Quick fixes - more permissive
+    hotfix:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+        temperature: 0.7
+
+      tools:
+        enabled: true
+        permission_policy: trusting  # Speed matters in hotfixes
+
+        bash:
+          timeout: 120
+          whitelist:
+            - "regex:git .*"
+            - "regex:npm .*"
+            - "regex:make .*"
+            - "regex:(mkdir|touch|cp|mv) .*"
+
+# =============================================================================
+# Example 6: Custom Approval Mode (Legacy - Use Policies Instead)
+# =============================================================================
+# Fine-grained approval control (deprecated - prefer permission_policy).
+
+legacy_approval:
+  profiles:
+    custom:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+
+      tools:
+        enabled: true
+
+        # Legacy approval modes (use permission_policy instead)
+        # approval_mode: always            # Approve every execution
+        # approval_mode: once_per_session  # Approve first use only
+        # approval_mode: whitelist         # Only prompt non-whitelisted
+        # approval_mode: risk_based        # Prompt based on risk level
+        # approval_mode: never             # Auto-approve all (DANGEROUS)
+
+        # Modern approach: use permission_policy instead
+        permission_policy: balanced
+
+        bash:
+          timeout: 60
+          whitelist:
+            - "git status"
+            - "ls"
+
+# =============================================================================
+# Example 7: Environment-Specific Overrides
+# =============================================================================
+# Use environment variables to override configuration at runtime.
+
+env_override:
+  profiles:
+    default:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+
+      tools:
+        # These can be overridden with environment variables:
+        #
+        # export CONSOUL_TOOLS_ENABLED=true
+        # export CONSOUL_TOOLS_PERMISSION_POLICY=balanced
+        # export CONSOUL_TOOLS_AUDIT_LOGGING=true
+        # export CONSOUL_TOOLS_AUDIT_LOG_FILE=/custom/path/audit.jsonl
+        # export CONSOUL_TOOLS_BASH_TIMEOUT=60
+        #
+        enabled: true
+        permission_policy: balanced
+        audit_logging: true
+
+        bash:
+          timeout: 30
+
+# =============================================================================
+# Example 8: Project-Specific Configuration
+# =============================================================================
+# Configuration for a specific project with custom tool settings.
+
+project_specific:
+  profiles:
+    webdev:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+
+      tools:
+        enabled: true
+        permission_policy: balanced
+
+        bash:
+          timeout: 60
+
+          # Project-specific whitelist
+          whitelist:
+            # Version control
+            - "git status"
+            - "git log"
+            - "git diff"
+
+            # Node.js project
+            - "npm install"
+            - "npm test"
+            - "npm run dev"
+            - "npm run build"
+            - "npm run lint"
+            - "npx"
+
+            # Common file operations
+            - "ls"
+            - "cat"
+            - "grep"
+            - "find"
+
+            # Docker for local development
+            - "docker ps"
+            - "docker logs"
+            - "docker-compose up"
+            - "docker-compose down"
+
+          # Block production deployments
+          blocked_commands:
+            - "npm publish"
+            - "docker push"
+            - "kubectl apply"
+            - "terraform apply"
+
+# =============================================================================
+# Example 9: Minimal Configuration
+# =============================================================================
+# Simplest possible configuration using all defaults.
+
+minimal:
+  profiles:
+    default:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+
+      tools:
+        enabled: true
+        # Uses BALANCED policy by default
+        # Everything else uses sensible defaults
+
+# =============================================================================
+# Example 10: Advanced Audit Logging
+# =============================================================================
+# Custom audit log configuration for compliance/monitoring.
+
+audit_focused:
+  profiles:
+    default:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+
+      tools:
+        enabled: true
+        permission_policy: balanced
+
+        # Custom audit log location with rotation
+        audit_logging: true
+        audit_log_file: /var/log/consoul/audit.jsonl
+
+        # Note: Setup logrotate for this file:
+        #
+        # /etc/logrotate.d/consoul:
+        # /var/log/consoul/audit.jsonl {
+        #     daily
+        #     rotate 30
+        #     compress
+        #     delaycompress
+        #     notifempty
+        #     missingok
+        #     copytruncate
+        # }
+
+        bash:
+          timeout: 30
+
+          # Whitelist for common operations
+          whitelist:
+            - "git status"
+            - "ls"
+
+# =============================================================================
+# Usage Examples
+# =============================================================================
+
+# Use specific profile:
+#   consoul --profile dev
+#   consoul --profile prod
+#   consoul --profile review
+
+# Override with environment variables:
+#   CONSOUL_TOOLS_ENABLED=true consoul
+#   CONSOUL_TOOLS_PERMISSION_POLICY=paranoid consoul
+
+# Project-specific config:
+#   1. Copy this file to your project: .consoul/config.yaml
+#   2. Consoul will auto-detect and use it
+#   3. Project config overrides global config
+
+# Global config location:
+#   ~/.consoul/config.yaml
+
+# Project config location (auto-detected):
+#   .consoul/config.yaml
+#   (in current directory or any parent directory up to git root)

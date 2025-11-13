@@ -405,6 +405,86 @@ logging:
   file: ~/.config/consoul/consoul.log
 ```
 
+## Tool Configuration
+
+### Overview
+
+Consoul's tool calling system allows AI models to execute commands and interact with your system with security controls. See the [Tool Calling Guide](../tools.md) for comprehensive documentation.
+
+### Basic Tool Settings
+
+```yaml
+tools:
+  # Enable/disable tool calling
+  enabled: true
+
+  # Permission policy (recommended approach)
+  permission_policy: balanced  # paranoid, balanced, trusting, unrestricted
+
+  # Audit logging
+  audit_logging: true
+  audit_log_file: ~/.consoul/tool_audit.jsonl
+
+  # Tool whitelist (empty = all tools allowed)
+  allowed_tools:
+    - bash_execute
+
+  # Bash-specific settings
+  bash:
+    timeout: 30
+    allow_directory_change: true
+    whitelist:
+      - "git status"
+      - "ls"
+    blocked_commands:
+      - "^sudo\\s"
+      - "rm\\s+(-[rf]+\\s+)?/"
+```
+
+### Permission Policies
+
+| Policy | Description | Use Case |
+|--------|-------------|----------|
+| **paranoid** | Prompt for every command | Production, maximum security |
+| **balanced** ⭐ | Auto-approve SAFE, prompt for CAUTION+ | Recommended default |
+| **trusting** | Auto-approve SAFE+CAUTION, prompt DANGEROUS | Development convenience |
+| **unrestricted** | Auto-approve all (DANGEROUS) | Testing only |
+
+### Example Configurations
+
+**Development:**
+```yaml
+tools:
+  enabled: true
+  permission_policy: balanced
+  bash:
+    timeout: 60
+    whitelist:
+      - "git status"
+      - "npm test"
+      - "make test"
+```
+
+**Production:**
+```yaml
+tools:
+  enabled: true
+  permission_policy: paranoid
+  bash:
+    timeout: 30
+    allow_directory_change: false
+    blocked_commands:
+      - "rm"
+      - "mv"
+      - "chmod"
+```
+
+### See Also
+
+- **[Tool Calling Guide](../tools.md)** - Complete documentation
+- **[Configuration Examples](../examples/tool-calling-config.yaml)** - Pre-configured templates
+- **[Custom Tool Development](../examples/custom-tool-example.py)** - Working examples
+
 ## Troubleshooting
 
 ### Configuration Not Loading
@@ -437,4 +517,5 @@ ANTHROPIC_API_KEY=your-key consoul chat "test"
 
 - [Getting Started](getting-started.md) – Learn basic usage
 - [Usage Examples](usage.md) – Common configuration scenarios
+- [Tool Calling Guide](../tools.md) – AI command execution
 - [API Reference](../api/index.md) – Package documentation
