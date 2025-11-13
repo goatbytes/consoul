@@ -32,10 +32,9 @@ development:
         # Bash tool settings
         bash:
           timeout: 60  # 1 minute timeout for commands
-          allow_directory_change: true
 
           # Whitelist common safe commands for auto-approval
-          whitelist:
+          whitelist_patterns:
             - "git status"
             - "git log"
             - "git diff"
@@ -51,7 +50,7 @@ development:
             - "make test"
 
           # Block dangerous operations (in addition to defaults)
-          blocked_commands:
+          blocked_patterns:
             - "^sudo\\s"
             - "rm\\s+(-[rf]+\\s+)?/"
             - "dd\\s+if="
@@ -85,10 +84,9 @@ production:
 
         bash:
           timeout: 30  # Shorter timeout
-          allow_directory_change: false  # Restrict directory navigation
 
           # Very restrictive blocklist
-          blocked_commands:
+          blocked_patterns:
             - "^sudo\\s"
             - "rm"        # Block ALL rm commands
             - "mv"        # Block moves
@@ -103,7 +101,7 @@ production:
             - "kubectl"   # Block k8s operations
 
           # Minimal whitelist (even these require approval with PARANOID)
-          whitelist:
+          whitelist_patterns:
             - "git status"
             - "ls"
             - "pwd"
@@ -134,10 +132,9 @@ trusted_dev:
 
         bash:
           timeout: 120  # Longer timeout for complex operations
-          allow_directory_change: true
 
           # Extensive whitelist for common operations
-          whitelist:
+          whitelist_patterns:
             # Git commands
             - "regex:git (status|log|diff|branch|show|blame)"
             - "regex:git add .*"
@@ -169,7 +166,7 @@ trusted_dev:
             - "regex:python -m pytest .*"
 
           # Still block truly dangerous operations
-          blocked_commands:
+          blocked_patterns:
             - "rm\\s+(-[rf]+\\s+)?/"  # Root deletion
             - "dd\\s+if="              # Disk operations
             - "mkfs"                   # Format filesystem
@@ -203,14 +200,13 @@ testing:
 
         bash:
           timeout: 300  # 5 minute timeout for long tests
-          allow_directory_change: true
 
           # Allow almost everything (for testing)
-          whitelist:
+          whitelist_patterns:
             - "regex:.*"  # ⚠️ Allow all commands (testing only)
 
           # Only block truly catastrophic operations
-          blocked_commands:
+          blocked_patterns:
             - "rm\\s+(-[rf]+\\s+)?/($|\\s)"  # Root deletion only
             - "dd\\s+if=/dev/zero\\s+of=/dev/sd"  # Disk wipe
             - ":\\(\\)\\{.*:\\|:.*\\};:"  # Fork bomb
@@ -241,7 +237,7 @@ multi_profile:
 
         bash:
           timeout: 60
-          whitelist:
+          whitelist_patterns:
             - "git status"
             - "git log"
             - "git diff"
@@ -263,10 +259,9 @@ multi_profile:
 
         bash:
           timeout: 30
-          allow_directory_change: false
 
           # Only allow read-only operations
-          whitelist:
+          whitelist_patterns:
             - "git status"
             - "git log"
             - "git diff"
@@ -277,7 +272,7 @@ multi_profile:
             - "find"
 
           # Block ALL write operations
-          blocked_commands:
+          blocked_patterns:
             - "rm"
             - "mv"
             - "cp"
@@ -299,7 +294,7 @@ multi_profile:
 
         bash:
           timeout: 120
-          whitelist:
+          whitelist_patterns:
             - "regex:git .*"
             - "regex:npm .*"
             - "regex:make .*"
@@ -332,37 +327,35 @@ legacy_approval:
 
         bash:
           timeout: 60
-          whitelist:
+          whitelist_patterns:
             - "git status"
             - "ls"
 
 # =============================================================================
-# Example 7: Environment-Specific Overrides
+# Example 7: Environment-Specific Profiles
 # =============================================================================
-# Use environment variables to override configuration at runtime.
+# Use dedicated profiles per environment instead of environment variables.
 
 env_override:
   profiles:
-    default:
+    staging:
       model:
         provider: anthropic
         model: claude-3-5-sonnet-20241022
 
       tools:
-        # These can be overridden with environment variables:
-        #
-        # export CONSOUL_TOOLS_ENABLED=true
-        # export CONSOUL_TOOLS_PERMISSION_POLICY=balanced
-        # export CONSOUL_TOOLS_AUDIT_LOGGING=true
-        # export CONSOUL_TOOLS_AUDIT_LOG_FILE=/custom/path/audit.jsonl
-        # export CONSOUL_TOOLS_BASH_TIMEOUT=60
-        #
         enabled: true
-        permission_policy: balanced
+        permission_policy: paranoid
         audit_logging: true
 
         bash:
-          timeout: 30
+          timeout: 45
+          blocked_patterns:
+            - "^sudo\\s"
+            - "rm\\s+(-[rf]+\\s+)?/"
+          whitelist_patterns:
+            - "git status"
+            - "ls"
 
 # =============================================================================
 # Example 8: Project-Specific Configuration
@@ -384,7 +377,7 @@ project_specific:
           timeout: 60
 
           # Project-specific whitelist
-          whitelist:
+          whitelist_patterns:
             # Version control
             - "git status"
             - "git log"
@@ -411,7 +404,7 @@ project_specific:
             - "docker-compose down"
 
           # Block production deployments
-          blocked_commands:
+          blocked_patterns:
             - "npm publish"
             - "docker push"
             - "kubectl apply"
@@ -471,7 +464,7 @@ audit_focused:
           timeout: 30
 
           # Whitelist for common operations
-          whitelist:
+          whitelist_patterns:
             - "git status"
             - "ls"
 

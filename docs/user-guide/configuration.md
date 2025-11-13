@@ -432,11 +432,10 @@ tools:
   # Bash-specific settings
   bash:
     timeout: 30
-    allow_directory_change: true
-    whitelist:
+    whitelist_patterns:
       - "git status"
       - "ls"
-    blocked_commands:
+    blocked_patterns:
       - "^sudo\\s"
       - "rm\\s+(-[rf]+\\s+)?/"
 ```
@@ -454,29 +453,28 @@ tools:
 
 **Development:**
 ```yaml
-tools:
-  enabled: true
-  permission_policy: balanced
-  bash:
-    timeout: 60
-    whitelist:
-      - "git status"
-      - "npm test"
-      - "make test"
+  tools:
+    enabled: true
+    permission_policy: balanced
+    bash:
+      timeout: 60
+      whitelist_patterns:
+        - "git status"
+        - "npm test"
+        - "make test"
 ```
 
 **Production:**
 ```yaml
-tools:
-  enabled: true
-  permission_policy: paranoid
-  bash:
-    timeout: 30
-    allow_directory_change: false
-    blocked_commands:
-      - "rm"
-      - "mv"
-      - "chmod"
+    tools:
+      enabled: true
+      permission_policy: paranoid
+      bash:
+        timeout: 30
+        blocked_patterns:
+          - "rm"
+          - "mv"
+          - "chmod"
 ```
 
 ### See Also

@@ -78,12 +78,12 @@ tools:
 
   bash:
     timeout: 60
-    whitelist:
+    whitelist_patterns:
       - "git status"
       - "git log"
       - "ls"
       - "pwd"
-    blocked_commands:
+    blocked_patterns:
       - "^sudo\\s"
       - "rm\\s+(-[rf]+\\s+)?/"
 ```
@@ -130,7 +130,42 @@ See the [Security Policy](SECURITY.md) for best practices.
 - [Quick Start](docs/quickstart.md)
 - [Configuration Reference](docs/user-guide/configuration.md)
 - [Tool Calling Guide](docs/tools.md)
+- **[SDK Integration Guide](docs/sdk/tool-calling-integration.md)** - Embed Consoul in your application
 - [Development Guide](docs/development.md)
+
+## 🔌 SDK Integration
+
+Consoul is designed as an SDK for embedding AI capabilities into your applications. Integrate tool calling without the TUI:
+
+### CLI Tools
+```python
+from consoul.ai.tools import ToolRegistry, bash_execute
+from consoul.ai.tools.providers import CliApprovalProvider
+
+provider = CliApprovalProvider(verbose=True)
+registry = ToolRegistry(config.tools, approval_provider=provider)
+registry.register(bash_execute, risk_level=RiskLevel.CAUTION)
+```
+
+### Web Applications
+```python
+class WebApprovalProvider:
+    async def request_approval(self, request):
+        # Send to your web API
+        response = await http_client.post("/approve", json=request.to_dict())
+        return ToolApprovalResponse(**response.json())
+```
+
+### Custom Audit Logging
+```python
+class DatabaseAuditLogger:
+    async def log_event(self, event):
+        await db.execute("INSERT INTO audit_log VALUES (...)", event.to_dict())
+```
+
+**Complete examples**: See [examples/sdk/](examples/sdk/) for working code
+
+**Full documentation**: [SDK Integration Guide](docs/sdk/tool-calling-integration.md)
 
 ## 🚀 Quick Start
 

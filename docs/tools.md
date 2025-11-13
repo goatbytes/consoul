@@ -82,11 +82,10 @@ tools:
   enabled: true
   bash:
     timeout: 30
-    allow_directory_change: true
-    blocked_commands:
+    blocked_patterns:
       - "^sudo\\s"
       - "rm\\s+(-[rf]+\\s+)?/"
-    whitelist:
+    whitelist_patterns:
       - "git status"
       - "git log"
       - "ls"
@@ -103,11 +102,6 @@ profiles:
     tools:
       enabled: true
       permission_policy: balanced  # Recommended
-```
-
-**Via environment variable:**
-```bash
-export CONSOUL_TOOLS_ENABLED=true
 ```
 
 ### 2. Choose a Permission Policy
@@ -326,7 +320,7 @@ Add your own patterns:
 ```yaml
 tools:
   bash:
-    blocked_commands:
+    blocked_patterns:
       - "^docker\\s+rm"        # Block container deletion
       - "systemctl\\s+stop"    # Block service stopping
       - "reboot"               # Block system reboot
@@ -340,17 +334,17 @@ Auto-approve trusted commands:
 ```yaml
 tools:
   bash:
-    whitelist:
-      # Literal matches (default, safest)
+    whitelist_patterns:
+      # Literal matches (default)
       - "git status"
       - "git log"
       - "ls"
       - "pwd"
 
-      # Regex patterns (prefix with "regex:")
-      - "regex:git (status|log|diff)"
-      - "regex:ls\\s+(-[la]+\\s+)?"
-      - "regex:npm\\s+(test|run\\s+lint)"
+      # Regex patterns (auto-detected when your pattern contains regex characters)
+      - "git (status|log|diff)"
+      - "ls\\s+(-[la]+\\s+)?"
+      - "npm\\s+(test|run\\s+lint)"
 ```
 
 **Pattern Types:**
@@ -361,10 +355,10 @@ tools:
    - "./gradlew build"         # Matches: "./gradlew build" only
    ```
 
-2. **Regex**: Pattern matching (prefix with `regex:`)
+2. **Regex**: Pattern matching (any pattern containing regex characters is treated as regex)
    ```yaml
-   - "regex:git (status|log)"  # Matches: "git status" or "git log"
-   - "regex:npm\\s+test.*"     # Matches: "npm test", "npm test --coverage"
+   - "git (status|log)"        # Matches: "git status" or "git log"
+   - "npm\\s+test.*"           # Matches: "npm test", "npm test --coverage"
    ```
 
 **Security Note**: Literal matching is safer than regex. Use regex only when necessary.
@@ -404,11 +398,11 @@ tools:
   # Bash-specific settings
   bash:
     timeout: 30                   # Execution timeout (seconds, max 600)
-    allow_directory_change: true  # Allow cd commands
-    blocked_commands:             # Custom blocked patterns
+    working_directory: null       # Optional fixed working directory
+    blocked_patterns:             # Custom blocked patterns
       - "^sudo\\s"
       - "rm\\s+(-[rf]+\\s+)?/"
-    whitelist:                    # Auto-approved commands
+    whitelist_patterns:           # Auto-approved commands
       - "git status"
       - "ls"
 ```
@@ -430,7 +424,7 @@ profiles:
       audit_logging: true
       bash:
         timeout: 60
-        whitelist:
+        whitelist_patterns:
           - "git status"
           - "git log"
           - "git diff"
@@ -456,14 +450,13 @@ profiles:
       audit_log_file: /var/log/consoul/audit.jsonl
       bash:
         timeout: 30
-        allow_directory_change: false
-        blocked_commands:
+        blocked_patterns:
           - "^sudo\\s"
           - "rm"
           - "mv"
           - "chmod"
           - "chown"
-        whitelist:
+        whitelist_patterns:
           - "git status"
           - "ls"
 ```
@@ -477,33 +470,21 @@ profiles:
       provider: anthropic
       model: claude-3-5-sonnet-20241022
 
-    tools:
-      enabled: true
-      permission_policy: unrestricted  # ⚠️ Testing only
-      audit_logging: true
-      bash:
-        timeout: 300  # Longer timeout for tests
-        whitelist:
-          - "regex:.*"  # ⚠️ Allow everything (testing only)
+      tools:
+        enabled: true
+        permission_policy: unrestricted  # ⚠️ Testing only
+        audit_logging: true
+        bash:
+          timeout: 300  # Longer timeout for tests
+        whitelist_patterns:
+          - ".*"  # ⚠️ Allow everything (testing only)
 ```
 
-### Environment Variables
+### Environment Overrides
 
-Override config with environment variables:
-
-```bash
-# Enable/disable tools
-export CONSOUL_TOOLS_ENABLED=true
-
-# Set permission policy
-export CONSOUL_TOOLS_PERMISSION_POLICY=balanced
-
-# Set audit log path
-export CONSOUL_TOOLS_AUDIT_LOG_FILE=/custom/path/audit.jsonl
-
-# Set bash timeout
-export CONSOUL_TOOLS_BASH_TIMEOUT=60
-```
+Tool calling settings currently load from `config.yaml`. Consoul does not yet expose
+`CONSOUL_TOOLS_*` environment variables, so update the configuration file (or profile
+overrides) directly when changing tool policies, audit paths, or bash timeouts.
 
 ## Using Tools
 
@@ -1204,14 +1185,14 @@ BlockedCommandError: Command matches blocked pattern: ^sudo\s
    ```yaml
    tools:
      bash:
-       blocked_commands: []  # Clear all blocked patterns (DANGEROUS)
+       blocked_patterns: []  # Clear all blocked patterns (DANGEROUS)
    ```
 
 2. **Use whitelist to bypass blocklist**:
    ```yaml
    tools:
      bash:
-       whitelist:
+       whitelist_patterns:
          - "sudo apt-get update"  # Specific safe sudo command
    ```
 
@@ -1258,7 +1239,7 @@ result = bash_execute(command="ls", cwd="/tmp")  # cwd is optional
    # Remove from whitelist or use PARANOID policy
    tools:
      bash:
-       whitelist: []  # Clear whitelist
+       whitelist_patterns: []  # Clear whitelist
    ```
 
 3. **Approval cached** (`once_per_session` mode):
