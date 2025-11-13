@@ -14,5 +14,6 @@ Requirements:
 from consoul import Consoul
 
 console = Consoul()
+print(console.settings)
 print(console.chat("What is 2+2?"))
 print(console.chat("What files are in the current directory?"))

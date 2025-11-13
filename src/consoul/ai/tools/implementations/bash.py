@@ -217,7 +217,22 @@ def _run_command(
             timeout=timeout,
             cwd=cwd,
         )
-        return result.stdout, result.stderr, result.returncode
+
+        # Filter out HuggingFace tokenizers fork warning from stderr
+        # This warning appears when subprocess forks after tokenizers have been loaded
+        # It's informational only - tokenizers automatically handles the issue
+        stderr_filtered = result.stderr
+        if stderr_filtered:
+            lines = stderr_filtered.split("\n")
+            filtered_lines = [
+                line
+                for line in lines
+                if "huggingface/tokenizers" not in line.lower()
+                and "disabling parallelism" not in line.lower()
+            ]
+            stderr_filtered = "\n".join(filtered_lines).strip()
+
+        return result.stdout, stderr_filtered, result.returncode
 
     except subprocess.TimeoutExpired as e:
         raise ToolExecutionError(
