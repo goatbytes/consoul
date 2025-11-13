@@ -20,33 +20,45 @@ class TestFormatWithLineNumbers:
     def test_format_simple_lines(self):
         """Test basic line numbering."""
         lines = ["hello\n", "world\n"]
-        result = _format_with_line_numbers(lines)
+        result, total_chars, truncated = _format_with_line_numbers(lines)
 
         assert result == "     1\thello\n     2\tworld"
+        assert total_chars == 26
+        assert truncated is False
 
     def test_format_with_offset(self):
         """Test line numbering with custom start."""
         lines = ["line100\n", "line101\n"]
-        result = _format_with_line_numbers(lines, start_line=100)
+        result, total_chars, truncated = _format_with_line_numbers(
+            lines, start_line=100
+        )
 
         assert result == "   100\tline100\n   101\tline101"
+        assert total_chars == 30
+        assert truncated is False
 
     def test_format_strips_newlines(self):
         """Test that trailing newlines are stripped."""
         lines = ["hello\r\n", "world\n", "test\r"]
-        result = _format_with_line_numbers(lines)
+        result, total_chars, truncated = _format_with_line_numbers(lines)
 
         assert result == "     1\thello\n     2\tworld\n     3\ttest"
+        assert total_chars == 38
+        assert truncated is False
 
     def test_format_empty_list(self):
         """Test formatting empty line list."""
-        result = _format_with_line_numbers([])
+        result, total_chars, truncated = _format_with_line_numbers([])
         assert result == ""
+        assert total_chars == 0
+        assert truncated is False
 
     def test_format_single_line(self):
         """Test formatting single line."""
-        result = _format_with_line_numbers(["test\n"])
+        result, total_chars, truncated = _format_with_line_numbers(["test\n"])
         assert result == "     1\ttest"
+        assert total_chars == 12
+        assert truncated is False
 
 
 class TestIsBinaryFile:
@@ -452,7 +464,7 @@ class TestReadFile:
             assert "  3000\tline3000" not in result
 
             # Should have truncation message
-            assert "Output truncated to 100 lines" in result
+            assert "Output limited to 100 lines" in result
             assert "file has 3000 total lines" in result
             assert "Use offset/limit parameters to read more" in result
         finally:
@@ -498,6 +510,153 @@ class TestReadFile:
         finally:
             # Reset config
             set_read_config(ReadToolConfig())
+
+    def test_read_long_line_truncated(self, tmp_path):
+        """Test that lines exceeding max_line_length are truncated.
+
+        Regression test for SOUL-82: Very long lines (minified JS, logs)
+        should be truncated to prevent context overflow.
+        """
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        file_path = tmp_path / "long_line.txt"
+        # Create line with 3000 characters
+        long_line = "x" * 3000
+        file_path.write_text(f"short line\n{long_line}\nanother short line")
+
+        # Use default config (max_line_length=2000)
+        config = ReadToolConfig()
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": str(file_path)})
+
+            # First line should be intact
+            assert "     1\tshort line" in result
+            # Second line should be truncated with indicator
+            assert "     2\t" + "x" * 2000 + " …[line truncated]" in result
+            # Third line should be intact
+            assert "     3\tanother short line" in result
+        finally:
+            set_read_config(ReadToolConfig())
+
+    def test_read_multiple_long_lines(self, tmp_path):
+        """Test that multiple long lines are all truncated."""
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        file_path = tmp_path / "multiple_long.txt"
+        content = "\n".join(["y" * 2500 for _ in range(5)])
+        file_path.write_text(content)
+
+        config = ReadToolConfig(max_line_length=2000)
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": str(file_path)})
+
+            # All lines should be truncated
+            for i in range(1, 6):
+                assert f"     {i}\t" + "y" * 2000 + " …[line truncated]" in result
+        finally:
+            set_read_config(ReadToolConfig())
+
+    def test_read_large_output_truncated(self, tmp_path):
+        """Test that total output exceeding max_output_chars is truncated."""
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        file_path = tmp_path / "large_output.txt"
+        # Create file that will produce ~50000 chars of output
+        lines = [f"line{i:04d}" + "z" * 100 for i in range(400)]
+        file_path.write_text("\n".join(lines))
+
+        config = ReadToolConfig(max_output_chars=10000, max_lines_default=500)
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": str(file_path)})
+
+            # Should be truncated
+            assert len(result) < 10500  # Some buffer for truncation message
+            assert "…[output truncated - use offset/limit to read more]" in result
+        finally:
+            set_read_config(ReadToolConfig())
+
+    def test_read_exact_line_length(self, tmp_path):
+        """Test that line exactly at max_line_length is not truncated."""
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        file_path = tmp_path / "exact_line.txt"
+        exact_line = "a" * 2000  # Exactly at limit
+        file_path.write_text(exact_line)
+
+        config = ReadToolConfig(max_line_length=2000)
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": str(file_path)})
+
+            # Should NOT be truncated
+            assert "…[line truncated]" not in result
+            assert "a" * 2000 in result
+        finally:
+            set_read_config(ReadToolConfig())
+
+    def test_read_exact_output_length(self, tmp_path):
+        """Test that output exactly at max_output_chars is not truncated."""
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        file_path = tmp_path / "exact_output.txt"
+        # Calculate to get exactly at output limit
+        # Format: "     1\t<content>\n" = 8 chars overhead per line
+        line_length = 50
+        num_lines = (5000 - 1) // (8 + line_length + 1)  # -1 for final newline
+        content = "\n".join(
+            [f"b{i:04d}" + "c" * (line_length - 5) for i in range(num_lines)]
+        )
+        file_path.write_text(content)
+
+        config = ReadToolConfig(max_output_chars=5000, max_lines_default=1000)
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": str(file_path)})
+
+            # Should NOT be truncated (at or under limit)
+            assert "…[output truncated" not in result
+        finally:
+            set_read_config(ReadToolConfig())
+
+    def test_read_minified_javascript(self, tmp_path):
+        """Test real-world case: minified JavaScript with very long lines."""
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        file_path = tmp_path / "minified.js"
+        # Simulate minified JS - single very long line
+        minified = "(function(){var a=1;var b=2;var c=3;" * 200  # ~8000 chars
+        file_path.write_text(minified)
+
+        config = ReadToolConfig(max_line_length=2000)
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": str(file_path)})
+
+            # Should be truncated
+            assert "…[line truncated]" in result
+            # Should have exactly 2000 chars of content + indicator
+            assert result.count("(function(){var a=1;var b=2;var c=3;") < 100
+        finally:
+            set_read_config(ReadToolConfig())
+
+    def test_read_empty_file_still_works(self, tmp_path):
+        """Verify empty file handling unchanged by SOUL-82."""
+        file_path = tmp_path / "empty.txt"
+        file_path.touch()
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        # Should still return the empty file message
+        assert result == "[File is empty]"
 
 
 class TestPDFReading:

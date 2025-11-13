@@ -186,26 +186,79 @@ def _read_with_encoding_fallback(path: Path) -> str:
     raise UnicodeDecodeError("unknown", b"", 0, 1, "All encoding attempts failed")
 
 
-def _format_with_line_numbers(lines: list[str], start_line: int = 1) -> str:
-    """Format lines with line numbers (cat -n style).
+def _format_with_line_numbers(
+    lines: list[str],
+    start_line: int = 1,
+    config: ReadToolConfig | None = None,
+) -> tuple[str, int, bool]:
+    """Format lines with line numbers and apply line length truncation.
 
     Args:
         lines: List of lines to format
         start_line: Starting line number (1-indexed)
+        config: ReadToolConfig for truncation limits (uses default if None)
 
     Returns:
-        Formatted string with line numbers
+        Tuple of (formatted_string, total_chars, any_line_truncated)
 
     Example:
         >>> _format_with_line_numbers(["hello", "world"], start_line=1)
-        '     1\thello\\n     2\tworld'
+        ('     1\thello\\n     2\tworld', 26, False)
     """
+    if config is None:
+        config = get_read_config()
+
     result = []
+    total_chars = 0
+    any_line_truncated = False
+
     for i, line in enumerate(lines, start=start_line):
         # Remove trailing newline if present (we'll add consistent formatting)
         content = line.rstrip("\n\r")
-        result.append(f"{i:6d}\t{content}")
-    return "\n".join(result)
+
+        # Truncate long lines
+        if len(content) > config.max_line_length:
+            content = content[: config.max_line_length] + " …[line truncated]"
+            any_line_truncated = True
+
+        formatted = f"{i:6d}\t{content}"
+        result.append(formatted)
+        total_chars += len(formatted) + 1  # +1 for newline
+
+    return "\n".join(result), total_chars, any_line_truncated
+
+
+def _apply_output_limit(
+    formatted: str,
+    total_chars: int,
+    config: ReadToolConfig,
+) -> str:
+    """Apply max_output_chars limit and add truncation message if needed.
+
+    Args:
+        formatted: The formatted output string
+        total_chars: Total character count
+        config: ReadToolConfig with max_output_chars limit
+
+    Returns:
+        Potentially truncated string with message
+
+    Note:
+        Truncates at last complete line before limit to avoid mid-line cuts.
+    """
+    if total_chars <= config.max_output_chars:
+        return formatted
+
+    # Truncate at character limit
+    truncated = formatted[: config.max_output_chars]
+
+    # Find last complete line to avoid cutting mid-line
+    last_newline = truncated.rfind("\n")
+    if last_newline > 0:
+        truncated = truncated[:last_newline]
+
+    truncated += "\n\n…[output truncated - use offset/limit to read more]"
+    return truncated
 
 
 def _read_pdf(
@@ -278,6 +331,7 @@ def _read_pdf(
 
         # Extract text from pages
         result = []
+        total_chars = 0
         for page_num in range(start, end):
             try:
                 page = reader.pages[page_num]
@@ -285,21 +339,50 @@ def _read_pdf(
 
                 # Check if page has extractable text
                 if not text or not text.strip():
-                    result.append(
+                    page_text = (
                         f"=== Page {page_num + 1} ===\n"
                         f"[No extractable text - page may be blank or scanned]"
                     )
                 else:
-                    result.append(f"=== Page {page_num + 1} ===\n{text.strip()}")
+                    # Apply line length truncation to PDF text
+                    lines = text.strip().split("\n")
+                    truncated_lines = []
+                    for line in lines:
+                        if len(line) > config.max_line_length:
+                            line = line[: config.max_line_length] + " …[line truncated]"
+                        truncated_lines.append(line)
+
+                    page_text = f"=== Page {page_num + 1} ===\n" + "\n".join(
+                        truncated_lines
+                    )
+
+                result.append(page_text)
+                total_chars += len(page_text) + 2  # +2 for "\n\n" separator
+
+                # Check if we're approaching output limit
+                if total_chars > config.max_output_chars:
+                    break
+
             except Exception as e:
-                result.append(f"=== Page {page_num + 1} ===\n❌ Error: {e}")
+                page_text = f"=== Page {page_num + 1} ===\n❌ Error: {e}"
+                result.append(page_text)
+                total_chars += len(page_text) + 2
 
         if not result:
             return "❌ No text extracted from PDF. PDF may be scanned or contain only images."
 
-        # Add note if we limited the page range
+        # Combine pages
         output = "\n\n".join(result)
-        if pages_to_read >= config.pdf_max_pages:
+
+        # Apply overall output limit
+        if total_chars > config.max_output_chars:
+            output = output[: config.max_output_chars]
+            last_newline = output.rfind("\n")
+            if last_newline > 0:
+                output = output[:last_newline]
+            output += "\n\n…[output truncated - reduce page range to read more]"
+        elif pages_to_read >= config.pdf_max_pages:
+            # Add note if we limited the page range
             output += (
                 f"\n\n[Note: Output limited to {config.pdf_max_pages} pages. "
                 f"PDF has {total_pages} total pages.]"
@@ -446,26 +529,34 @@ def read_file(
             lines = lines[start_idx:end_idx]
 
             # Format with line numbers starting at offset
-            return _format_with_line_numbers(lines, start_line=offset)
+            result, total_chars, _ = _format_with_line_numbers(
+                lines, start_line=offset, config=config
+            )
+            return _apply_output_limit(result, total_chars, config)
         else:
             # No offset specified - read from beginning
             if limit is not None:
                 # Limit number of lines
                 lines = lines[:limit]
-                truncated = False
+                line_count_truncated = False
             else:
                 # Apply default limit to prevent context overflow
                 original_length = len(lines)
                 lines = lines[: config.max_lines_default]
-                truncated = original_length > config.max_lines_default
+                line_count_truncated = original_length > config.max_lines_default
 
             # Format with line numbers starting at 1
-            result = _format_with_line_numbers(lines, start_line=1)
+            result, total_chars, _ = _format_with_line_numbers(
+                lines, start_line=1, config=config
+            )
 
-            # Add truncation message if file was truncated
-            if truncated:
+            # Apply output character limit
+            result = _apply_output_limit(result, total_chars, config)
+
+            # Add line count truncation message if needed
+            if line_count_truncated:
                 result += (
-                    f"\n\n[Note: Output truncated to {config.max_lines_default} lines "
+                    f"\n\n[Note: Output limited to {config.max_lines_default} lines "
                     f"(file has {original_length} total lines). "
                     f"Use offset/limit parameters to read more.]"
                 )
