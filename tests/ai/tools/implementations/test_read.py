@@ -23,7 +23,7 @@ class TestFormatWithLineNumbers:
         result, total_chars, truncated = _format_with_line_numbers(lines)
 
         assert result == "     1\thello\n     2\tworld"
-        assert total_chars == 26
+        assert total_chars == 25  # len("     1\thello\n     2\tworld")
         assert truncated is False
 
     def test_format_with_offset(self):
@@ -34,7 +34,7 @@ class TestFormatWithLineNumbers:
         )
 
         assert result == "   100\tline100\n   101\tline101"
-        assert total_chars == 30
+        assert total_chars == 29  # len("   100\tline100\n   101\tline101")
         assert truncated is False
 
     def test_format_strips_newlines(self):
@@ -43,7 +43,7 @@ class TestFormatWithLineNumbers:
         result, total_chars, truncated = _format_with_line_numbers(lines)
 
         assert result == "     1\thello\n     2\tworld\n     3\ttest"
-        assert total_chars == 38
+        assert total_chars == 37  # len("     1\thello\n     2\tworld\n     3\ttest")
         assert truncated is False
 
     def test_format_empty_list(self):
@@ -57,7 +57,7 @@ class TestFormatWithLineNumbers:
         """Test formatting single line."""
         result, total_chars, truncated = _format_with_line_numbers(["test\n"])
         assert result == "     1\ttest"
-        assert total_chars == 12
+        assert total_chars == 11  # len("     1\ttest")
         assert truncated is False
 
 
@@ -657,6 +657,30 @@ class TestReadFile:
 
         # Should still return the empty file message
         assert result == "[File is empty]"
+
+    def test_read_exact_limit_no_truncation(self, tmp_path):
+        """Regression test: file exactly at max_output_chars should not be truncated.
+
+        Tests the bug fix where total_chars was overcounting by 1, causing files
+        exactly at the limit to be incorrectly truncated.
+        """
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        file_path = tmp_path / "tiny.txt"
+        file_path.write_text("abc\n")
+
+        # Output will be "     1\tabc" (11 chars)
+        config = ReadToolConfig(max_output_chars=11, max_lines_default=1000)
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": str(file_path)})
+
+            # Should NOT be truncated
+            assert result == "     1\tabc"
+            assert "…[output truncated" not in result
+        finally:
+            set_read_config(ReadToolConfig())
 
 
 class TestPDFReading:

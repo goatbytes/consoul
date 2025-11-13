@@ -209,7 +209,6 @@ def _format_with_line_numbers(
         config = get_read_config()
 
     result = []
-    total_chars = 0
     any_line_truncated = False
 
     for i, line in enumerate(lines, start=start_line):
@@ -223,9 +222,12 @@ def _format_with_line_numbers(
 
         formatted = f"{i:6d}\t{content}"
         result.append(formatted)
-        total_chars += len(formatted) + 1  # +1 for newline
 
-    return "\n".join(result), total_chars, any_line_truncated
+    # Compute total_chars from finalized string to get exact count
+    formatted_str = "\n".join(result)
+    total_chars = len(formatted_str)
+
+    return formatted_str, total_chars, any_line_truncated
 
 
 def _apply_output_limit(
@@ -331,7 +333,6 @@ def _read_pdf(
 
         # Extract text from pages
         result = []
-        total_chars = 0
         for page_num in range(start, end):
             try:
                 page = reader.pages[page_num]
@@ -357,22 +358,17 @@ def _read_pdf(
                     )
 
                 result.append(page_text)
-                total_chars += len(page_text) + 2  # +2 for "\n\n" separator
-
-                # Check if we're approaching output limit
-                if total_chars > config.max_output_chars:
-                    break
 
             except Exception as e:
                 page_text = f"=== Page {page_num + 1} ===\n❌ Error: {e}"
                 result.append(page_text)
-                total_chars += len(page_text) + 2
 
         if not result:
             return "❌ No text extracted from PDF. PDF may be scanned or contain only images."
 
-        # Combine pages
+        # Combine pages and compute exact character count
         output = "\n\n".join(result)
+        total_chars = len(output)
 
         # Apply overall output limit
         if total_chars > config.max_output_chars:
