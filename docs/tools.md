@@ -91,6 +91,120 @@ tools:
       - "ls"
 ```
 
+### read_file
+
+Read file contents with security controls and format detection.
+
+**Capabilities:**
+- Read text files with line numbers (cat -n style)
+- Extract text from PDF documents with page markers
+- Support for line ranges (offset/limit)
+- Support for PDF page ranges
+- Encoding fallback (UTF-8 → Latin-1)
+- Binary file detection and rejection
+
+**Risk Level**: SAFE (read-only, no side effects)
+
+**Example:**
+```python
+# Read entire file
+result = read_file(file_path="src/main.py")
+
+# Read specific line range
+result = read_file(file_path="README.md", offset=10, limit=20)
+
+# Read PDF pages
+result = read_file(file_path="docs/design.pdf", start_page=5, end_page=7)
+```
+
+**Security Features:**
+- Blocks reading from sensitive system paths (/etc/shadow, /proc, /dev, /sys)
+- Prevents directory traversal attacks (..)
+- Detects and rejects binary files (except PDFs)
+- Validates file extensions against allowed list
+- Configurable path blacklist and extension whitelist
+
+**Configuration:**
+```yaml
+tools:
+  enabled: true
+  read:
+    max_lines_default: 2000       # Max lines to read without limit
+    max_line_length: 2000          # Truncate long lines
+    max_output_chars: 40000        # Total output character limit
+    enable_pdf: true               # Enable PDF reading
+    pdf_max_pages: 50              # Max PDF pages to read
+    allowed_extensions:            # Allowed file types (empty = all)
+      - ".py"
+      - ".js"
+      - ".md"
+      - ".txt"
+      - ".json"
+      - ".yaml"
+      - ".yml"
+      - ".toml"
+      - ".csv"
+      - ".pdf"
+    blocked_paths:                 # Paths that cannot be read
+      - "/etc/shadow"
+      - "/etc/passwd"
+      - "/proc"
+      - "/dev"
+      - "/sys"
+```
+
+**Common Use Cases:**
+- Reading source code for analysis and review
+- Accessing documentation files (README, design docs)
+- Reading configuration files (YAML, JSON, TOML)
+- Extracting text from PDF documentation
+- Reviewing log files with line range filtering
+- Analyzing data files (CSV, JSON)
+
+**Troubleshooting:**
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `File not found` | File doesn't exist | Check file path and working directory |
+| `Permission denied` | No read access | Check file permissions with `ls -la` |
+| `Unsupported binary file` | Binary file detected | Only text and PDF files supported |
+| `Extension not allowed` | File type blocked | Add extension to `allowed_extensions` |
+| `Path not allowed` | Blocked path | Remove from `blocked_paths` if safe |
+| `PDF reading is disabled` | PDF support off | Set `enable_pdf: true` in config |
+| `Output truncated` | File exceeds limits | Adjust `max_lines_default` or use offset/limit |
+| `Line truncated` | Line too long | Increase `max_line_length` in config |
+| `PDF has no extractable text` | Scanned/image PDF | PDF is scanned or contains only images |
+
+**PDF Support:**
+
+PDF reading requires the optional `pypdf` package:
+```bash
+# Install with pip
+pip install consoul[pdf]
+
+# Or with poetry
+poetry install --extras pdf
+```
+
+PDF features:
+- Page markers: `=== Page N ===` between pages
+- Page range support: `start_page` and `end_page` (1-indexed, inclusive)
+- Automatic page limit enforcement (`pdf_max_pages`)
+- Handles blank pages and extraction errors gracefully
+- Detects scanned PDFs with no extractable text
+
+Example PDF usage:
+```python
+# Read all pages (up to pdf_max_pages)
+result = read_file(file_path="manual.pdf")
+
+# Read specific page range
+result = read_file(file_path="design.pdf", start_page=1, end_page=3)
+
+# Read from page 10 to end (up to limit)
+result = read_file(file_path="report.pdf", start_page=10)
+```
+
 ## Quick Start
 
 ### 1. Enable Tool Calling
