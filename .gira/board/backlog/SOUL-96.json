@@ -11,7 +11,7 @@
   "labels": [],
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-006",
-  "blocked_by": [],
+  "blocked_by": ["SOUL-93", "SOUL-95", "SOUL-97", "SOUL-98"],
   "blocks": [],
   "comments": [],
   "attachments": [],
