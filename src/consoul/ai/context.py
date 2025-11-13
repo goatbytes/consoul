@@ -10,13 +10,15 @@ Provider-Specific Token Counting:
     - Google (gemini-*): Uses LangChain's get_num_tokens_from_messages
     - Ollama/Others: Uses character-based approximation (4 chars ≈ 1 token)
 
-Token Limits (as of 2025-11-09):
+Token Limits (as of 2025-11-12):
     - OpenAI GPT-5/4.1: 400K/1M tokens
     - OpenAI GPT-4o: 128K tokens
     - Anthropic Claude Sonnet 4: 1M tokens (beta/enterprise)
     - Anthropic Claude 3.5/3: 200K tokens
     - Google Gemini 1.5 Pro: 2M tokens
     - Google Gemini 2.5: 1M tokens
+    - Qwen 3: 262K tokens
+    - Qwen 2.5: 128K tokens
 
 Example:
     >>> counter = create_token_counter("gpt-4o")
@@ -40,11 +42,12 @@ if TYPE_CHECKING:
     from langchain_core.messages import BaseMessage
 
 # Model token limits (context window sizes)
-# Updated: 2025-11-09
+# Updated: 2025-11-12
 # Notes:
 # - OpenAI GPT-5/4.1 support 400K/1M token context; GPT-4o remains 128K.
 # - Anthropic Claude defaults to 200K; Sonnet 4 supports 1M (beta/enterprise).
 # - Gemini 1.5 Pro allows 2M; 2.5 Pro is 1M (2M announced); 2.5 Flash is ~1M.
+# - Qwen 3 supports 262K tokens; Qwen 2.5 supports 128K tokens.
 # - Open-source models (Llama, Mistral, etc.) may have configurable limits.
 MODEL_TOKEN_LIMITS: dict[str, int] = {
     # OpenAI models - GPT-5 series
@@ -85,7 +88,11 @@ MODEL_TOKEN_LIMITS: dict[str, int] = {
     "llama3.1": 128_000,  # Llama 3.1 family supports 128K
     "mistral": 32_000,
     "phi": 4_096,
-    "qwen": 32_000,
+    # Qwen models
+    "qwen3": 262_000,  # Qwen 3 series: 262K context
+    "qwen2.5": 128_000,  # Qwen 2.5 series: 128K context
+    "qwen2": 32_000,  # Qwen 2 series: 32K context
+    "qwen": 32_000,  # Legacy/Qwen 1: 32K context
     "codellama": 16_000,
 }
 
