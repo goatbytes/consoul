@@ -473,12 +473,13 @@ def read_file(
         # Validate path for security
         path = _validate_path(file_path, config)
 
-        # Validate extension
-        _validate_extension(path, config)
-
-        # Check if PDF file
+        # Check if PDF file first (before extension validation)
+        # PDFs are controlled by enable_pdf flag, not extension whitelist
         if _is_pdf_file(path):
             return _read_pdf(path, start_page, end_page, config)
+
+        # Validate extension (only for non-PDF files)
+        _validate_extension(path, config)
 
         # Check if binary file (non-PDF)
         if _is_binary_file(path):
