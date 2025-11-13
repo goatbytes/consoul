@@ -5,6 +5,7 @@ import pytest
 from consoul.ai.tools.implementations.read import (
     _format_with_line_numbers,
     _is_binary_file,
+    _is_pdf_file,
     _read_with_encoding_fallback,
     _validate_extension,
     _validate_path,
@@ -423,3 +424,164 @@ class TestReadFile:
         # Should handle gracefully
         assert "line1" in result
         assert "line2" in result
+
+
+class TestPDFReading:
+    """Tests for PDF file reading functionality."""
+
+    @pytest.fixture
+    def pdf_path(self):
+        """Return path to test PDF file."""
+        from pathlib import Path
+
+        pdf = Path(
+            ".local/read_tool/Designing a Comprehensive __Read__ Tool for Consoul AI Agent.pdf"
+        )
+        if not pdf.exists():
+            pytest.skip("Test PDF not found")
+        return str(pdf)
+
+    @pytest.fixture
+    def mock_pdf(self, tmp_path, monkeypatch):
+        """Create a mock PDF file for testing."""
+        # Create a simple PDF-like file (not a real PDF, for basic tests)
+        pdf_file = tmp_path / "test.pdf"
+        pdf_file.write_bytes(b"%PDF-1.4\nTest content")
+        return pdf_file
+
+    def test_read_pdf_basic(self, pdf_path):
+        """Test basic PDF reading."""
+        result = read_file.invoke({"file_path": pdf_path})
+
+        # Should contain page markers
+        assert "=== Page 1 ===" in result
+        # Should have some content
+        assert len(result) > 100
+
+    def test_read_pdf_with_page_range(self, pdf_path):
+        """Test PDF reading with page range."""
+        result = read_file.invoke(
+            {"file_path": pdf_path, "start_page": 1, "end_page": 2}
+        )
+
+        # Should contain pages 1 and 2
+        assert "=== Page 1 ===" in result
+        assert "=== Page 2 ===" in result
+        # Should not contain page 3
+        assert "=== Page 3 ===" not in result
+
+    def test_read_pdf_single_page(self, pdf_path):
+        """Test reading single PDF page."""
+        result = read_file.invoke(
+            {"file_path": pdf_path, "start_page": 2, "end_page": 2}
+        )
+
+        # Should only contain page 2
+        assert "=== Page 2 ===" in result
+        assert "=== Page 1 ===" not in result
+        assert "=== Page 3 ===" not in result
+
+    def test_read_pdf_start_page_only(self, pdf_path):
+        """Test PDF reading with only start_page specified."""
+        result = read_file.invoke({"file_path": pdf_path, "start_page": 2})
+
+        # Should start from page 2
+        assert "=== Page 2 ===" in result
+        assert "=== Page 1 ===" not in result
+
+    def test_read_pdf_disabled(self, pdf_path):
+        """Test PDF reading when disabled in config."""
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        # Disable PDF reading
+        config = ReadToolConfig(enable_pdf=False)
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": pdf_path})
+
+            assert "PDF reading is disabled" in result
+            assert "❌" in result
+        finally:
+            # Reset config
+            set_read_config(ReadToolConfig())
+
+    def test_read_pdf_max_pages_limit(self, pdf_path):
+        """Test PDF max pages limit enforcement."""
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        # Set max pages to 2
+        config = ReadToolConfig(pdf_max_pages=2)
+        set_read_config(config)
+
+        try:
+            # Try to read more than 2 pages
+            result = read_file.invoke(
+                {"file_path": pdf_path, "start_page": 1, "end_page": 10}
+            )
+
+            # Should limit to 2 pages
+            assert "=== Page 1 ===" in result
+            assert "=== Page 2 ===" in result
+            assert "=== Page 3 ===" not in result
+            # Should have note about limiting
+            assert "limited to 2 pages" in result.lower()
+        finally:
+            # Reset config
+            set_read_config(ReadToolConfig())
+
+    def test_read_pdf_invalid_page_range(self, pdf_path):
+        """Test PDF reading with invalid page range."""
+        # Start page > end page
+        result = read_file.invoke(
+            {"file_path": pdf_path, "start_page": 5, "end_page": 2}
+        )
+
+        assert "❌" in result
+        assert "must be >=" in result
+
+    def test_read_pdf_page_exceeds_length(self, pdf_path):
+        """Test PDF reading with start page exceeding PDF length."""
+        result = read_file.invoke({"file_path": pdf_path, "start_page": 1000})
+
+        assert "❌" in result
+        assert "exceeds PDF length" in result
+
+    def test_read_pdf_missing_pypdf(self, mock_pdf, monkeypatch):
+        """Test error when pypdf is not installed."""
+        # Mock import to fail
+        import builtins
+
+        real_import = builtins.__import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == "pypdf":
+                raise ImportError("No module named 'pypdf'")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", mock_import)
+
+        result = read_file.invoke({"file_path": str(mock_pdf)})
+
+        assert "❌" in result
+        assert "pypdf" in result.lower()
+        assert "pip install consoul[pdf]" in result
+
+    def test_read_pdf_text_params_ignored(self, pdf_path):
+        """Test that text file params are ignored for PDFs."""
+        # offset and limit should be ignored for PDFs
+        result = read_file.invoke({"file_path": pdf_path, "offset": 10, "limit": 5})
+
+        # Should still read PDF normally (not apply text file params)
+        assert "=== Page 1 ===" in result
+
+    def test_is_pdf_file(self):
+        """Test PDF file detection."""
+        from pathlib import Path
+
+        assert _is_pdf_file(Path("test.pdf"))
+        assert _is_pdf_file(Path("test.PDF"))
+        assert _is_pdf_file(Path("path/to/file.pdf"))
+        assert not _is_pdf_file(Path("test.txt"))
+        assert not _is_pdf_file(Path("test.pdf.txt"))
+        assert not _is_pdf_file(Path("testpdf"))

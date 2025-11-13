@@ -59,6 +59,9 @@ dependencies = [
     "pyperclip>=1.8.0",
 ]
 
+[project.optional-dependencies]
+pdf = ["pypdf>=4.0.0"]
+
 
 [project.urls]
 Homepage = "https://github.com/goatbytes/consoul"

@@ -1,7 +1,8 @@
 """Read file tool with line numbering and security controls.
 
 Provides safe file reading with:
-- Line-numbered output (cat -n style)
+- Line-numbered output (cat -n style) for text files
+- PDF support with page range extraction
 - Offset/limit parameters for large files
 - Encoding fallback for non-UTF-8 files
 - Path security validation
@@ -46,6 +47,18 @@ def get_read_config() -> ReadToolConfig:
         The configured ReadToolConfig, or a new default instance if not set.
     """
     return _TOOL_CONFIG if _TOOL_CONFIG is not None else ReadToolConfig()
+
+
+def _is_pdf_file(path: Path) -> bool:
+    """Check if file is a PDF by extension.
+
+    Args:
+        path: Path to file to check
+
+    Returns:
+        True if file has .pdf extension
+    """
+    return path.suffix.lower() == ".pdf"
 
 
 def _is_binary_file(path: Path) -> bool:
@@ -188,18 +201,133 @@ def _format_with_line_numbers(lines: list[str], start_line: int = 1) -> str:
     return "\n".join(result)
 
 
+def _read_pdf(
+    path: Path,
+    start_page: int | None,
+    end_page: int | None,
+    config: ReadToolConfig,
+) -> str:
+    """Read PDF file and extract text from specified page range.
+
+    Args:
+        path: Path to PDF file
+        start_page: Starting page number (1-indexed), None = page 1
+        end_page: Ending page number (1-indexed, inclusive), None = last page or max_pages
+        config: ReadToolConfig with PDF settings
+
+    Returns:
+        Extracted text with page markers, or error message
+
+    Example output:
+        === Page 1 ===
+        <text from page 1>
+
+        === Page 2 ===
+        <text from page 2>
+    """
+    # Check if PDF reading is enabled
+    if not config.enable_pdf:
+        return "❌ PDF reading is disabled. Set enable_pdf=True in ReadToolConfig to enable."
+
+    # Try to import pypdf
+    try:
+        import pypdf
+    except ImportError:
+        return (
+            "❌ PDF support requires 'pypdf' library. "
+            "Install with: pip install consoul[pdf]"
+        )
+
+    try:
+        # Open PDF reader
+        reader = pypdf.PdfReader(str(path))
+        total_pages = len(reader.pages)
+
+        if total_pages == 0:
+            return "❌ PDF contains no pages."
+
+        # Determine page range
+        start = (start_page or 1) - 1  # Convert to 0-indexed
+        end = min(
+            (end_page or total_pages) if end_page else total_pages,
+            total_pages,
+        )
+
+        # Validate page range
+        if start < 0:
+            return "❌ start_page must be >= 1"
+        if start >= total_pages:
+            return (
+                f"❌ start_page {start_page} exceeds PDF length ({total_pages} pages)."
+            )
+        if end_page is not None and end < start:
+            return f"❌ end_page {end_page} must be >= start_page {start_page}"
+
+        # Apply pdf_max_pages limit
+        pages_to_read = end - start
+        if pages_to_read > config.pdf_max_pages:
+            end = start + config.pdf_max_pages
+            pages_to_read = config.pdf_max_pages
+
+        # Extract text from pages
+        result = []
+        for page_num in range(start, end):
+            try:
+                page = reader.pages[page_num]
+                text = page.extract_text()
+
+                # Check if page has extractable text
+                if not text or not text.strip():
+                    result.append(
+                        f"=== Page {page_num + 1} ===\n"
+                        f"[No extractable text - page may be blank or scanned]"
+                    )
+                else:
+                    result.append(f"=== Page {page_num + 1} ===\n{text.strip()}")
+            except Exception as e:
+                result.append(f"=== Page {page_num + 1} ===\n❌ Error: {e}")
+
+        if not result:
+            return "❌ No text extracted from PDF. PDF may be scanned or contain only images."
+
+        # Add note if we limited the page range
+        output = "\n\n".join(result)
+        if pages_to_read >= config.pdf_max_pages:
+            output += (
+                f"\n\n[Note: Output limited to {config.pdf_max_pages} pages. "
+                f"PDF has {total_pages} total pages.]"
+            )
+
+        return output
+
+    except pypdf.errors.PdfReadError:
+        return "❌ Failed to read PDF. File may be corrupted or encrypted."
+    except Exception as e:
+        return f"❌ Error reading PDF: {e}"
+
+
 class ReadFileInput(BaseModel):
     """Input schema for read_file tool."""
 
     file_path: str = Field(description="Path to the file to read")
     offset: int | None = Field(
         None,
-        description="Starting line number (1-indexed) for reading a subset of lines",
+        description="Starting line number (1-indexed) for text files only",
         gt=0,
     )
     limit: int | None = Field(
         None,
-        description="Number of lines to read (if offset is provided)",
+        description="Number of lines to read for text files (if offset is provided)",
+        gt=0,
+    )
+    start_page: int | None = Field(
+        None,
+        description="Starting page number (1-indexed) for PDF files only",
+        gt=0,
+    )
+    end_page: int | None = Field(
+        None,
+        description="Ending page number (1-indexed, inclusive) for PDF files only",
         gt=0,
     )
 
@@ -209,18 +337,20 @@ def read_file(
     file_path: str,
     offset: int | None = None,
     limit: int | None = None,
+    start_page: int | None = None,
+    end_page: int | None = None,
 ) -> str:
-    """Read file contents with line numbers and line-range control.
+    """Read file contents with line numbers (text) or page extraction (PDF).
 
-    This tool reads text files and returns their contents with 1-based line
-    numbers prefixed to each line (cat -n style). It supports reading specific
-    line ranges for large files and handles various encodings gracefully.
+    This tool reads text files and PDFs:
+    - Text files: Returns contents with 1-based line numbers (cat -n style)
+    - PDF files: Extracts text from specified page range with page markers
 
     Security features:
     - Blocks reading from sensitive system paths (/etc/shadow, /proc, /dev, /sys)
     - Validates file extensions against allowed list
     - Prevents path traversal attacks (..)
-    - Detects and rejects binary files
+    - Detects and rejects binary files (except PDFs)
 
     The tool uses ReadToolConfig from the active profile's ToolConfig.read
     settings. Call set_read_config() to inject the profile configuration before
@@ -228,23 +358,27 @@ def read_file(
 
     Args:
         file_path: Path to the file to read (absolute or relative)
-        offset: Optional starting line number (1-indexed). If provided, reads
-                from this line onwards.
-        limit: Optional number of lines to read. If not provided and offset is
-               specified, uses max_lines_default from config. If neither offset
-               nor limit is specified, reads entire file.
+        offset: Starting line number (1-indexed) for text files only
+        limit: Number of lines to read for text files (if offset is provided)
+        start_page: Starting page number (1-indexed) for PDF files only
+        end_page: Ending page number (1-indexed, inclusive) for PDF files only
 
     Returns:
-        File contents with line numbers. Format:
-        - Success: "     1\t<line1>\\n     2\t<line2>..."
+        File contents with formatting:
+        - Text files: "     1\t<line1>\\n     2\t<line2>..."
+        - PDF files: "=== Page 1 ===\\n<text>\\n\\n=== Page 2 ===\\n<text>..."
         - Empty file: "[File is empty]"
         - Error: "❌ <error message>"
 
-    Example:
+    Example (text):
         >>> read_file("src/main.py")
         '     1\timport os\\n     2\timport sys\\n...'
         >>> read_file("src/main.py", offset=10, limit=5)
         '    10\tdef main():\\n    11\t    pass\\n...'
+
+    Example (PDF):
+        >>> read_file("document.pdf", start_page=1, end_page=3)
+        '=== Page 1 ===\\n<text>\\n\\n=== Page 2 ===\\n<text>...'
     """
     # Get config from module-level (set by registry via set_read_config)
     config = get_read_config()
@@ -256,11 +390,15 @@ def read_file(
         # Validate extension
         _validate_extension(path, config)
 
-        # Check if binary file
-        if _is_binary_file(path):
-            return "❌ Unsupported binary file format. This tool only reads text files."
+        # Check if PDF file
+        if _is_pdf_file(path):
+            return _read_pdf(path, start_page, end_page, config)
 
-        # Read file with encoding fallback
+        # Check if binary file (non-PDF)
+        if _is_binary_file(path):
+            return "❌ Unsupported binary file format. This tool only reads text files and PDFs."
+
+        # Read text file with encoding fallback
         try:
             content = _read_with_encoding_fallback(path)
         except UnicodeDecodeError:
