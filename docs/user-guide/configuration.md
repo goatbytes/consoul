@@ -289,11 +289,11 @@ Profiles define **HOW** to use AI (system prompts, context settings, conversatio
 Consoul includes several pre-configured profiles optimized for different tasks:
 
 #### `default`
-Balanced settings for general development work with an optimized system prompt:
+Balanced settings for general development work:
 - Concise, direct communication style (< 4 lines typically)
-- Security-focused tool calling with approval workflows
-- Code quality standards (mimic conventions, runnable code)
-- Terminal-optimized markdown output
+- Markdown-formatted terminal output
+- Code quality focus (mimic conventions, runnable code)
+- Defensive security only
 
 #### `code-review`
 Focused profile for thorough code review:
@@ -397,14 +397,12 @@ consoul chat "Quick question"
 
 ### Default System Prompt
 
-The `default` profile includes a comprehensive system prompt that:
+The `default` profile includes a minimal system prompt that emphasizes:
 
-- **Defines identity**: "You are Consoul, an AI-powered terminal interface..."
-- **Sets communication style**: Concise (< 4 lines), markdown-formatted, no fluff
-- **Tool calling guidelines**: Explain before executing, group operations, handle approvals
-- **Code quality standards**: Follow conventions, runnable code, modern patterns
-- **Security constraints**: Defensive security only, respect approval workflows
-- **Terminal awareness**: Markdown rendering, progress indication, width constraints
+- **Conciseness**: Respond in < 4 lines unless detail requested
+- **Terminal formatting**: Use markdown for rich rendering
+- **Code quality**: Follow existing conventions, provide runnable code
+- **Security**: Defensive security tasks only
 
 You can override this by setting `system_prompt` in your custom profile.
 
