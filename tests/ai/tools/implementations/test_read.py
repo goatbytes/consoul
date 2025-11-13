@@ -501,7 +501,18 @@ class TestReadFile:
 
 
 class TestPDFReading:
-    """Tests for PDF file reading functionality."""
+    """Tests for PDF file reading functionality.
+
+    Note: These tests require the optional pypdf dependency.
+    Install with: pip install consoul[pdf] or poetry install --extras pdf
+    """
+
+    @pytest.fixture(autouse=True)
+    def require_pypdf(self):
+        """Skip all PDF tests if pypdf is not installed."""
+        pytest.importorskip(
+            "pypdf", reason="pypdf not installed (pip install consoul[pdf])"
+        )
 
     @pytest.fixture
     def pdf_path(self):
