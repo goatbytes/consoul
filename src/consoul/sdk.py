@@ -123,6 +123,13 @@ class Consoul:
             >>> console = Consoul(model="gpt-4o", temperature=0.7)
             >>> console = Consoul(profile="code-review", tools=True)
         """
+        # Disable tokenizers parallelism to avoid fork warnings when using tools
+        # Must be set before any tokenizers are loaded (e.g., by HuggingFace models)
+        import os
+
+        if "TOKENIZERS_PARALLELISM" not in os.environ:
+            os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
         # Validate temperature
         if temperature is not None and not 0.0 <= temperature <= 2.0:
             raise ValueError(
