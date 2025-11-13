@@ -427,6 +427,104 @@ class BashToolConfig(BaseModel):
         return v
 
 
+class ReadToolConfig(BaseModel):
+    """Configuration for read file tool.
+
+    Controls file reading behavior, security, and output limits.
+    Supports text files, PDFs, and various encodings with security controls
+    to prevent reading sensitive system files.
+
+    Example:
+        >>> config = ReadToolConfig(
+        ...     max_lines_default=2000,
+        ...     max_line_length=2000,
+        ...     enable_pdf=True,
+        ...     blocked_paths=["/etc/shadow", "/proc"]
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    max_lines_default: int = Field(
+        default=2000,
+        gt=0,
+        le=10000,
+        description="Default maximum lines to read (prevents context overflow)",
+    )
+    max_line_length: int = Field(
+        default=2000,
+        gt=0,
+        description="Maximum characters per line before truncation",
+    )
+    max_output_chars: int = Field(
+        default=40000,
+        gt=0,
+        description="Maximum total characters in output",
+    )
+    allowed_extensions: list[str] = Field(
+        default_factory=lambda: [
+            ".py",
+            ".md",
+            ".txt",
+            ".json",
+            ".yaml",
+            ".yml",
+            ".js",
+            ".ts",
+            ".jsx",
+            ".tsx",
+            ".java",
+            ".kt",
+            ".go",
+            ".rs",
+            ".c",
+            ".cpp",
+            ".h",
+            ".hpp",
+            ".sh",
+            ".bash",
+            ".zsh",
+            ".fish",
+            ".toml",
+            ".ini",
+            ".cfg",
+            ".conf",
+            ".xml",
+            ".html",
+            ".css",
+            ".scss",
+            ".sql",
+            ".gradle",
+            ".properties",
+            ".pdf",  # Special handling
+        ],
+        description="Allowed file extensions (empty = allow all)",
+    )
+    blocked_paths: list[str] = Field(
+        default_factory=lambda: [
+            "/etc/shadow",
+            "/etc/passwd",
+            "/proc",
+            "/dev",
+            "/sys",
+        ],
+        description="File paths/prefixes that cannot be read (security)",
+    )
+    enable_pdf: bool = Field(
+        default=True,
+        description="Enable PDF text extraction (requires PyPDF2 or pdfplumber)",
+    )
+    pdf_max_pages: int = Field(
+        default=50,
+        gt=0,
+        le=500,
+        description="Maximum PDF pages to read",
+    )
+
+
 class ToolConfig(BaseModel):
     """Configuration for tool calling system.
 
@@ -495,6 +593,10 @@ class ToolConfig(BaseModel):
     bash: BashToolConfig = Field(
         default_factory=BashToolConfig,
         description="Bash tool-specific configuration",
+    )
+    read: ReadToolConfig = Field(
+        default_factory=ReadToolConfig,
+        description="Read file tool-specific configuration",
     )
     audit_logging: bool = Field(
         default=True,

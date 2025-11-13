@@ -1,0 +1,45 @@
+{
+  "created_at": "2025-11-13T08:38:25.732848",
+  "updated_at": "2025-11-13T08:57:36.518437",
+  "id": "SOUL-79",
+  "uuid": "49e87ac5-82f9-4d2c-961c-a6459ba8f2d7",
+  "title": "Add ReadToolConfig to configuration models",
+  "description": "**As a** developer\n**I want** a ReadToolConfig model in the configuration system\n**So that** file reading behavior can be configured per-profile with validation and type safety\n\n**Context:**\nThe read tool needs configurable limits and security controls similar to BashToolConfig. Research of Claude Code's Read tool and MCP filesystem servers shows these key configuration needs:\n- Default line limits (prevent context overflow)\n- Line/output character truncation limits\n- Allowed file extensions (security)\n- Blocked paths (prevent reading sensitive files)\n- PDF-specific settings (enable/disable, page limits)\n\nThe configuration should follow the existing pattern in src/consoul/config/models.py where BashToolConfig is defined (line 361).\n\n**Technical Notes:**\n- File: src/consoul/config/models.py\n- Add ReadToolConfig class after BashToolConfig (around line 430)\n- Use Pydantic BaseModel with ConfigDict\n- Add read: ReadToolConfig field to ToolConfig class\n- Follow BashToolConfig pattern for consistency\n- Reference: Cursor agent limits (250 lines), MCP size limits (MAX_INLINE_SIZE)\n- Claude Code defaults: 2000 lines, 2000 char line limit\n\n**Acceptance Criteria:**\n\n**Given** I am configuring a Consoul profile\n**When** I add read tool settings to config.yaml\n**Then** ReadToolConfig validates all fields with Pydantic\n\n**Given** invalid configuration (negative limits, etc.)\n**When** config is loaded\n**Then** Pydantic ValidationError is raised with clear message\n\n**Given** no read configuration specified\n**When** using default profile\n**Then** sensible defaults are used (2000 lines, 40000 chars, common extensions allowed)\n\n**Testing Considerations:**\n- Unit tests for ReadToolConfig validation\n- Test default values\n- Test constraint validation (positive integers, valid paths)\n- Test field_validator if using custom validation\n- Test integration with ToolConfig\n\n**Implementation Hints:**\n- max_lines_default: int = Field(default=2000, gt=0, le=10000)\n- max_line_length: int = Field(default=2000, gt=0)\n- max_output_chars: int = Field(default=40000, gt=0)\n- allowed_extensions: list[str] = Field(default_factory=lambda: [\".py\", \".md\", \".txt\", \".json\", \".yaml\", \".yml\", \".js\", \".ts\", \".java\", \".kt\", \".pdf\"])\n- blocked_paths: list[str] = Field(default_factory=lambda: [\"/etc/shadow\", \"/proc\", \"/dev\", \"/sys\"])\n- enable_pdf: bool = Field(default=True)\n- pdf_max_pages: int = Field(default=50, gt=0)",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "config",
+    "tools",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-005",
+  "blocked_by": [],
+  "blocks": [
+    "SOUL-80",
+    "SOUL-81",
+    "SOUL-82"
+  ],
+  "comments": [
+    {
+      "created_at": "2025-11-13T08:57:36.518346",
+      "updated_at": "2025-11-13T08:57:36.518347",
+      "id": "20251113085736-628f6deb",
+      "ticket_id": "SOUL-79",
+      "author": "jared@goatbytes.io",
+      "content": "✅ IMPLEMENTATION COMPLETE\n\n**Changes Made:**\n1. Added ReadToolConfig class to src/consoul/config/models.py (line 430)\n   - Follows BashToolConfig pattern exactly\n   - Includes 7 fields with Pydantic validation\n   - Default values from research: 2000 lines, 40000 chars, PDF enabled, 50 page limit\n   - Comprehensive allowed_extensions list (35+ file types)\n   - Security blocked_paths: /etc/shadow, /proc, /dev, /sys\n\n2. Added read field to ToolConfig class (line 597)\n   - Uses default_factory=ReadToolConfig pattern\n   - Integrates seamlessly with existing tool configs\n\n3. Added comprehensive unit tests (tests/config/test_tool_config.py)\n   - TestReadToolConfig class with 10 test methods\n   - Tests defaults, custom values, validation, limits, integration\n   - All 20 tests in file passing (10 existing + 10 new)\n\n**Verification:**\n✅ All tests pass (10/10 ReadToolConfig tests, 20/20 total)\n✅ Type checking passes (mypy)\n✅ Linting passes (ruff)\n✅ Coverage increased for models.py: 65.98% → 73.44%\n\n**Files Modified:**\n- src/consoul/config/models.py (+97 lines)\n- tests/config/test_tool_config.py (+109 lines)\n\n**Acceptance Criteria Met:**\n✅ ReadToolConfig validates all fields with Pydantic\n✅ Invalid config raises ValidationError with clear messages\n✅ Sensible defaults used when not specified (2000/40000/True/50)\n\n**Next Steps:**\nReady for SOUL-80 (core read_file tool implementation) which is blocked by this ticket.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

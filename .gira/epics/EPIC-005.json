@@ -1,0 +1,39 @@
+{
+  "created_at": "2025-11-13T08:37:54.579800",
+  "updated_at": "2025-11-13T08:48:58.141859",
+  "id": "EPIC-005",
+  "title": "File Operations & Read Tool System",
+  "description": "Create a comprehensive file reading system for Consoul that allows AI agents to safely read text files, PDFs, and other file types with proper security controls, line numbering, and size limits. This extends the tool calling system (EPIC-004) with safe, read-only file operations that enable AI models to access codebase files, documentation, and configuration without requiring user approval.",
+  "status": "active",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2025-12-31",
+  "labels": [],
+  "tickets": [
+    "SOUL-79",
+    "SOUL-80",
+    "SOUL-81",
+    "SOUL-82",
+    "SOUL-83",
+    "SOUL-85",
+    "SOUL-86"
+  ],
+  "comments": [
+    {
+      "created_at": "2025-11-13T08:48:09.933129",
+      "updated_at": "2025-11-13T08:48:09.933129",
+      "id": "20251113084809-0ac95673",
+      "epic_id": "EPIC-005",
+      "author": "jared@goatbytes.io",
+      "content": "Epic promoted to TODO status. This is Phase 2 of the tool calling roadmap (EPIC-004), adding safe read-only file operations. All 7 tickets have been created with comprehensive acceptance criteria following the Consoul Ticket Writer skill. Implementation order: SOUL-79 (config) → SOUL-80 (core tool) → SOUL-82 (truncation) / SOUL-81 (PDF, parallel) → SOUL-83 (registration) → SOUL-85 (tests) → SOUL-86 (docs). Dependencies will be encoded via blocked_by links.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "comment_count": 1,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}

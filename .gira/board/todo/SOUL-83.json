@@ -1,0 +1,48 @@
+{
+  "created_at": "2025-11-13T08:40:26.234533",
+  "updated_at": "2025-11-13T08:50:27.096040",
+  "id": "SOUL-83",
+  "uuid": "96f05eda-1e8d-4e82-a6aa-e9c3e969886a",
+  "title": "Register read_file tool in TUI and SDK",
+  "description": "**As a** developer using Consoul SDK or TUI\n**I want** the read_file tool automatically registered and available\n**So that** AI agents can read files without manual tool registration\n\n**Context:**\nAfter implementing the read tool, it needs to be registered with the ToolRegistry to be available to AI models. This follows the same pattern as bash_execute tool registration. The tool should be:\n- Exported from implementations package\n- Registered in TUI app with proper config\n- Classified as SAFE (no approval needed)\n- Included in default allowed_tools\n\n**Technical Notes:**\n- Export from src/consoul/ai/tools/implementations/__init__.py\n- Register in src/consoul/tui/app.py _setup_tool_registry() method (around line 157)\n- Call set_read_config() before registration (like bash tool at line 163-168)\n- Use RiskLevel.SAFE classification (read-only, no side effects)\n- Add tags: [\"filesystem\", \"readonly\"]\n- Add to default allowed_tools in config if needed\n\n**Research References:**\n- Bash tool registration: src/consoul/tui/app.py:157-170\n- Tool registry: src/consoul/ai/tools/registry.py\n- Config injection pattern: bash.py:32-42 and app.py:163-168\n\n**Acceptance Criteria:**\n\n**Given** the TUI app starts with default config\n**When** AI requests to use read_file tool\n**Then** the tool is available and executes without approval\n\n**Given** a profile with custom ReadToolConfig\n**When** read_file is called\n**Then** it uses the profile's read configuration\n\n**Given** read_file is called\n**When** auditing is enabled\n**Then** the read operation is logged to audit log\n\n**Given** SDK user creates ToolRegistry\n**When** they want to use read_file\n**Then** clear documentation shows how to register it\n\n**Testing Considerations:**\n- Test registration in TUI startup\n- Test config injection via set_read_config\n- Test tool appears in registry.list_tools()\n- Test tool execution through registry\n- Test audit logging of read operations\n\n**Implementation Hints:**\n```python\n# In src/consoul/ai/tools/implementations/__init__.py\nfrom consoul.ai.tools.implementations.read import (\n    read_file,\n    get_read_config,\n    set_read_config,\n)\n\n__all__ = [\"bash_execute\", \"get_bash_config\", \"set_bash_config\", \"read_file\", \"get_read_config\", \"set_read_config\"]\n\n# In src/consoul/tui/app.py _setup_tool_registry()\nfrom consoul.ai.tools.implementations import bash_execute, read_file, set_bash_config, set_read_config\n\n# Inject read tool config\nif self.profile.tools.read:\n    set_read_config(self.profile.tools.read)\n\n# Register read tool\nself.tool_registry.register(\n    read_file,\n    risk_level=RiskLevel.SAFE,\n    tags=[\"filesystem\", \"readonly\"],\n)\n```",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "tools",
+    "tui",
+    "integration",
+    "sdk"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-005",
+  "blocked_by": [
+    "SOUL-80",
+    "SOUL-82"
+  ],
+  "blocks": [
+    "SOUL-85",
+    "SOUL-86"
+  ],
+  "comments": [
+    {
+      "created_at": "2025-11-13T08:50:27.095921",
+      "updated_at": "2025-11-13T08:50:27.095922",
+      "id": "20251113085027-1f3486cb",
+      "ticket_id": "SOUL-83",
+      "author": "jared@goatbytes.io",
+      "content": "INTEGRATION SCOPE: This ticket covers TUI registration AND SDK documentation examples. SDK docs should show how to: 1) Register read_file with custom ApprovalProvider, 2) Configure ReadToolConfig programmatically, 3) Use in headless environments. The TUI integration assumes audit logging infrastructure from EPIC-004 already exists. If SDK docs become too large, consider splitting to SOUL-86, but prefer keeping registration + basic SDK examples together here.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

@@ -1,0 +1,43 @@
+{
+  "created_at": "2025-11-13T08:41:39.238381",
+  "updated_at": "2025-11-13T08:50:32.085521",
+  "id": "SOUL-86",
+  "uuid": "4e312de5-9971-4292-b5b9-8ba89c5985d4",
+  "title": "Update tool calling documentation for read_file tool",
+  "description": "**As a** Consoul user and developer\n**I want** comprehensive documentation for the read_file tool\n**So that** I understand how to use it and configure it properly\n\n**Context:**\nThe read_file tool needs documentation in docs/tools.md similar to the bash_execute documentation. Users need to understand:\n- What the tool does and when to use it\n- Available parameters and their effects\n- Security restrictions and blocked paths\n- Configuration options\n- Common use cases and examples\n- Troubleshooting\n\n**Technical Notes:**\n- Update: docs/tools.md\n- Add new section after bash_execute (around line 93)\n- Follow same structure as bash_execute documentation\n- Include configuration examples in YAML\n- Document PDF support separately\n- Reference security model and blocked paths\n\n**Documentation Sections to Add:**\n\n**1. read_file Tool Overview:**\n- Description of capabilities (text, PDF, line ranges)\n- Risk level: SAFE (no approval needed)\n- Supported file types\n\n**2. Parameters:**\n- file_path: Path to file (required)\n- offset: Starting line number (optional, 1-indexed)\n- limit: Number of lines to read (optional)\n- start_page: PDF starting page (optional, 1-indexed)\n- end_page: PDF ending page (optional, inclusive)\n\n**3. Example Usage:**\n```python\n# Read entire file\nresult = read_file(file_path=\"src/main.py\")\n\n# Read specific line range\nresult = read_file(file_path=\"README.md\", offset=10, limit=20)\n\n# Read PDF pages\nresult = read_file(file_path=\"docs/design.pdf\", start_page=5, end_page=7)\n```\n\n**4. Security Features:**\n- Blocked paths: /etc/shadow, /proc, /dev, /sys\n- Directory traversal prevention\n- Binary file detection\n- Extension filtering (configurable)\n\n**5. Configuration:**\n```yaml\ntools:\n  enabled: true\n  read:\n    max_lines_default: 2000\n    max_line_length: 2000\n    max_output_chars: 40000\n    enable_pdf: true\n    pdf_max_pages: 50\n    blocked_paths:\n      - \"/etc/shadow\"\n      - \"/proc\"\n      - \"/dev\"\n      - \"/sys\"\n```\n\n**6. Common Use Cases:**\n- Reading source code for analysis\n- Accessing documentation files\n- Reading configuration files\n- Extracting PDF documentation\n- Reviewing log files with line ranges\n\n**7. Troubleshooting:**\n- File not found errors\n- Permission denied\n- Binary file errors\n- Truncation messages\n- PDF reading errors\n- Empty file handling\n\n**Acceptance Criteria:**\n\n**Given** a user reads the documentation\n**When** they want to use read_file\n**Then** they can find all necessary information\n\n**Given** a developer configures the tool\n**When** they reference the docs\n**Then** all configuration options are documented with examples\n\n**Given** an error occurs\n**When** consulting troubleshooting section\n**Then** they find guidance on resolving the issue\n\n**Testing Considerations:**\n- Review documentation for completeness\n- Verify all examples are accurate\n- Check YAML syntax is valid\n- Ensure troubleshooting covers common issues\n- Have non-expert review for clarity\n\n**Implementation Hints:**\n- Mirror bash_execute documentation structure\n- Include both TUI and SDK usage examples\n- Add to table of contents\n- Cross-reference with configuration guide\n- Include security warnings prominently\n- Use code blocks with syntax highlighting\n- Add visual separators between sections",
+  "status": "todo",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "documentation",
+    "tools"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-005",
+  "blocked_by": [
+    "SOUL-81",
+    "SOUL-83"
+  ],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-13T08:50:32.085415",
+      "updated_at": "2025-11-13T08:50:32.085416",
+      "id": "20251113085032-bb718811",
+      "ticket_id": "SOUL-86",
+      "author": "jared@goatbytes.io",
+      "content": "DOCUMENTATION DEPENDENCIES: This ticket documents start_page/end_page parameters which only exist after SOUL-81 (PDF support) is complete. It also documents the registered tool behavior which requires SOUL-83 (registration). Focus on docs/tools.md following bash_execute structure. Any SDK-specific examples should reference SOUL-83's SDK documentation. New sections to add: 1) read_file overview, 2) Parameters table, 3) Usage examples, 4) Security model, 5) Configuration, 6) Troubleshooting.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

@@ -1,0 +1,46 @@
+{
+  "created_at": "2025-11-13T08:41:13.092847",
+  "updated_at": "2025-11-13T08:50:29.804897",
+  "id": "SOUL-85",
+  "uuid": "c4ef1f77-7ee8-4aa5-8e67-7f6a5ec68e02",
+  "title": "Add comprehensive unit tests for read tool",
+  "description": "**As a** developer\n**I want** comprehensive unit tests for the read tool\n**So that** file reading behavior is reliable and regressions are caught early\n\n**Context:**\nThe read tool handles many edge cases (encodings, path security, truncation, PDFs) that need thorough testing. Following the bash tool test pattern (tests/ai/tools/implementations/test_bash.py), we need tests covering all functionality and error conditions.\n\n**Technical Notes:**\n- Create: tests/ai/tools/implementations/test_read.py\n- Follow test_bash.py structure and patterns\n- Use pytest fixtures for test files\n- Use tmp_path fixture for temporary test files\n- Mock PDF reading for PDF tests\n- Test both success and error paths\n\n**Test Categories:**\n\n**1. Basic Text File Reading:**\n- Read entire small file\n- Read with line numbering format\n- Read empty file\n- Read non-existent file\n- Read directory (should error)\n\n**2. Line Range Reading:**\n- Read with offset only\n- Read with offset and limit\n- Read beyond EOF (offset > file length)\n- Read with limit exceeding file length\n- Boundary conditions (offset=1, limit=0, etc.)\n\n**3. Encoding Handling:**\n- UTF-8 files (standard)\n- UTF-8 with BOM\n- Latin-1 encoded files\n- Files with mixed encodings\n- Binary files (should error)\n\n**4. Path Security:**\n- Attempt to read /etc/shadow (blocked)\n- Attempt directory traversal (../..)\n- Attempt to read /proc, /dev, /sys\n- Relative vs absolute paths\n- Symlink handling\n\n**5. Truncation:**\n- Lines exceeding max_line_length\n- Output exceeding max_output_chars\n- Truncation indicators present\n- No truncation when under limits\n\n**6. PDF Support:**\n- PDF with extractable text\n- PDF page range (start_page/end_page)\n- Scanned PDF (no text)\n- PDF when enable_pdf=False\n- PDF exceeding pdf_max_pages\n- Invalid PDF file\n\n**7. Configuration:**\n- Custom ReadToolConfig settings\n- Default config when none provided\n- Config validation\n- Module-level config (set_read_config/get_read_config)\n\n**Acceptance Criteria:**\n\n**Given** test suite is run\n**When** all tests execute\n**Then** 100% code coverage for read.py\n\n**Given** any edge case or error condition\n**When** that scenario is triggered\n**Then** behavior is tested and documented\n\n**Given** configuration changes\n**When** tests run with different configs\n**Then** tool respects all config settings\n\n**Testing Considerations:**\n- Use pytest fixtures for reusable test files\n- Create minimal test PDFs with known content\n- Mock external dependencies (PyPDF2)\n- Test error messages are user-friendly\n- Test audit logging integration\n- Verify no files are written (read-only)\n\n**Implementation Hints:**\n```python\nimport pytest\nfrom pathlib import Path\nfrom consoul.ai.tools.implementations.read import read_file, set_read_config\nfrom consoul.config.models import ReadToolConfig\n\n@pytest.fixture\ndef sample_text_file(tmp_path):\n    file = tmp_path / \"test.txt\"\n    file.write_text(\"line 1\\\\nline 2\\\\nline 3\\\\n\")\n    return file\n\ndef test_read_entire_file(sample_text_file):\n    result = read_file(str(sample_text_file))\n    assert \"1\\\\tline 1\" in result\n    assert \"2\\\\tline 2\" in result\n    assert \"3\\\\tline 3\" in result\n\ndef test_read_with_offset_limit(sample_text_file):\n    result = read_file(str(sample_text_file), offset=2, limit=1)\n    assert \"2\\\\tline 2\" in result\n    assert \"1\\\\tline 1\" not in result\n\ndef test_blocked_path():\n    result = read_file(\"/etc/shadow\")\n    assert \"blocked\" in result.lower() or \"not allowed\" in result.lower()\n\ndef test_line_truncation():\n    config = ReadToolConfig(max_line_length=10)\n    set_read_config(config)\n    # Test with long line\n    ...\n```",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "testing",
+    "tools",
+    "quality"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-005",
+  "blocked_by": [
+    "SOUL-80",
+    "SOUL-81",
+    "SOUL-82",
+    "SOUL-83"
+  ],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-13T08:50:29.804803",
+      "updated_at": "2025-11-13T08:50:29.804804",
+      "id": "20251113085029-25436620",
+      "ticket_id": "SOUL-85",
+      "author": "jared@goatbytes.io",
+      "content": "TEST FIXTURES: This ticket should create reusable test fixtures for PDF mocking that can be used across the test suite. Consider creating tests/fixtures/test_files/ with sample PDFs, text files with various encodings, etc. The 100% coverage target includes all edge cases but PDF tests can use minimal mocked PDFs rather than large real files. Dependencies ensure all features (core, PDF, truncation, registration) are complete before testing.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}
