@@ -64,6 +64,7 @@ Use the built-in TUI when:
 │  ┌──────────────────────────────────────┐  │
 │  │ Tool Implementations                 │  │
 │  │  - bash_execute                      │  │
+│  │  - read_file                         │  │
 │  │  - Custom tools                      │  │
 │  └──────────────────────────────────────┘  │
 └─────────────────────────────────────────────┘
@@ -82,7 +83,8 @@ Use the built-in TUI when:
 
 ```python
 from consoul.config.loader import load_config
-from consoul.ai.tools import ToolRegistry, bash_execute, RiskLevel
+from consoul.ai.tools import ToolRegistry, RiskLevel
+from consoul.ai.tools.implementations import bash_execute, read_file
 from consoul.ai.tools.providers import CliApprovalProvider
 
 # Load configuration
@@ -99,6 +101,7 @@ registry = ToolRegistry(
 
 # Register tools
 registry.register(bash_execute, risk_level=RiskLevel.CAUTION)
+registry.register(read_file, risk_level=RiskLevel.SAFE, tags=["filesystem", "readonly"])
 
 # Use with LangChain
 from langchain_anthropic import ChatAnthropic
@@ -107,7 +110,7 @@ model = ChatAnthropic(model="claude-3-5-sonnet-20241022")
 model_with_tools = registry.bind_to_model(model)
 
 # Now the AI can use tools with CLI approval prompts
-response = model_with_tools.invoke("List files in the current directory")
+response = model_with_tools.invoke("Read README.md and list all Python files")
 ```
 
 ### Configuration
@@ -539,6 +542,79 @@ async def test_end_to_end_tool_execution():
     assert "test" in result
 ```
 
+## Working with Built-in Tools
+
+### read_file Tool
+
+The `read_file` tool allows AI agents to read file contents with security controls and truncation limits.
+
+#### Basic Usage
+
+```python
+from consoul.ai.tools import ToolRegistry, RiskLevel
+from consoul.ai.tools.implementations import read_file
+
+registry = ToolRegistry(config=config.tools, approval_provider=provider)
+
+# Register as SAFE (read-only, no side effects)
+registry.register(
+    read_file,
+    risk_level=RiskLevel.SAFE,
+    tags=["filesystem", "readonly"]
+)
+
+# AI can now read files
+response = model_with_tools.invoke("Read the README.md file")
+```
+
+#### Custom Configuration
+
+```python
+from consoul.ai.tools.implementations import read_file, set_read_config
+from consoul.config.models import ReadToolConfig
+
+# Configure read tool limits
+read_config = ReadToolConfig(
+    max_lines_default=1000,        # Max lines per read (without offset/limit)
+    max_line_length=2000,          # Truncate lines longer than this
+    max_output_chars=40000,        # Max total output characters
+    allowed_extensions=[".py", ".md", ".txt", ".json"],  # Whitelist extensions
+    blocked_paths=["/etc/shadow", "/proc"],  # Blacklist sensitive paths
+    enable_pdf=True,               # Enable PDF support (requires pypdf)
+    pdf_max_pages=50,              # Max PDF pages to read
+)
+
+# Inject config before registration
+set_read_config(read_config)
+registry.register(read_file, risk_level=RiskLevel.SAFE)
+```
+
+#### Security Features
+
+- **Extension filtering**: Only allow specific file types
+- **Path blocking**: Prevent access to sensitive paths
+- **Line truncation**: Limit per-line characters (prevents minified files)
+- **Output limits**: Cap total character count (prevents context overflow)
+- **Binary detection**: Rejects non-text files (except PDFs if enabled)
+
+#### PDF Support (Optional)
+
+```python
+# Install PDF support
+# pip install consoul[pdf]
+
+# Enable in config
+config = ReadToolConfig(
+    enable_pdf=True,
+    pdf_max_pages=50,
+    allowed_extensions=[".pdf", ".txt", ".md"]
+)
+set_read_config(config)
+
+# AI can now read PDFs
+response = model_with_tools.invoke("Read documentation.pdf pages 1-5")
+```
+
 ## Examples
 
 Complete working examples are available in `examples/sdk/`:
@@ -546,6 +622,7 @@ Complete working examples are available in `examples/sdk/`:
 - **cli_approval_example.py** - Complete CLI tool with approval
 - **web_approval_provider.py** - HTTP-based approval implementation
 - **custom_audit_logger.py** - Database and cloud audit loggers
+- **read_file_example.py** - Working with the read_file tool
 
 ## Best Practices
 

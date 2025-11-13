@@ -210,16 +210,22 @@ class ConsoulApp(App[None]):
 
                 # Initialize tool registry (approval handled via _request_tool_approval)
                 if consoul_config.tools and consoul_config.tools.enabled:
-                    from consoul.ai.tools import ToolRegistry
-                    from consoul.ai.tools.implementations.bash import (
+                    from consoul.ai.tools import RiskLevel, ToolRegistry
+                    from consoul.ai.tools.implementations import (
                         bash_execute,
+                        read_file,
                         set_bash_config,
+                        set_read_config,
                     )
                     from consoul.ai.tools.providers import CliApprovalProvider
 
                     # Configure bash tool with profile settings
                     if consoul_config.tools.bash:
                         set_bash_config(consoul_config.tools.bash)
+
+                    # Configure read tool with profile settings
+                    if consoul_config.tools.read:
+                        set_read_config(consoul_config.tools.read)
 
                     # Create registry with CLI provider (we override approval in _request_tool_approval)
                     # The provider is required by registry but we don't use it - we show our own modal
@@ -230,6 +236,14 @@ class ConsoulApp(App[None]):
 
                     # Register bash tool (risk level determined dynamically by CommandAnalyzer)
                     self.tool_registry.register(bash_execute, enabled=True)
+
+                    # Register read tool (read-only, no side effects)
+                    self.tool_registry.register(
+                        read_file,
+                        risk_level=RiskLevel.SAFE,
+                        tags=["filesystem", "readonly"],
+                        enabled=True,
+                    )
 
                     # Get tool metadata list
                     tool_metadata_list = self.tool_registry.list_tools(
