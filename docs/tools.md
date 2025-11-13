@@ -682,7 +682,7 @@ print([tool.name for tool in tools])
 from langchain_anthropic import ChatAnthropic
 
 model = ChatAnthropic(model="claude-3-5-sonnet-20241022")
-model_with_tools = registry.bind_tools(model)
+model_with_tools = registry.bind_to_model(model)
 
 # Now the AI can use your custom tool
 response = model_with_tools.invoke("What's the weather in London?")

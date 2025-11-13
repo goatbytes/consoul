@@ -105,7 +105,7 @@ async def chat_with_tools(query: str, verbose: bool = False) -> None:
 
     # Create model with tools
     model = ChatAnthropic(model="claude-3-5-sonnet-20241022")
-    model_with_tools = registry.bind_tools(model)
+    model_with_tools = registry.bind_to_model(model)
 
     print("=" * 70)
     print(f"Query: {query}")

@@ -595,7 +595,7 @@ def demo_tools() -> None:
     print("from langchain_anthropic import ChatAnthropic")
     print()
     print('model = ChatAnthropic(model="claude-3-5-sonnet-20241022")')
-    print("model_with_tools = registry.bind_tools(model)")
+    print("model_with_tools = registry.bind_to_model(model)")
     print()
     print('response = model_with_tools.invoke("What\'s the weather in London?")')
     print("print(response.content)")

@@ -477,9 +477,8 @@ audit_focused:
 #   consoul --profile prod
 #   consoul --profile review
 
-# Override with environment variables:
-#   CONSOUL_TOOLS_ENABLED=true consoul
-#   CONSOUL_TOOLS_PERMISSION_POLICY=paranoid consoul
+# Override with a different config file:
+#   consoul --config ./configs/consoul-ci.yaml
 
 # Project-specific config:
 #   1. Copy this file to your project: .consoul/config.yaml

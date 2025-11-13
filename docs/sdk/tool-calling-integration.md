@@ -104,7 +104,7 @@ registry.register(bash_execute, risk_level=RiskLevel.CAUTION)
 from langchain_anthropic import ChatAnthropic
 
 model = ChatAnthropic(model="claude-3-5-sonnet-20241022")
-model_with_tools = registry.bind_tools(model)
+model_with_tools = registry.bind_to_model(model)
 
 # Now the AI can use tools with CLI approval prompts
 response = model_with_tools.invoke("List files in the current directory")
@@ -383,8 +383,8 @@ tool_config = ToolConfig(
     audit_log_file=Path("/var/log/consoul/audit.jsonl"),
     bash=BashToolConfig(
         timeout=60,
-        whitelist=["git status", "git log", "ls", "pwd"],
-        blocked_commands=["sudo", "rm -rf /"],
+        whitelist_patterns=["git status", "git log", "ls", "pwd"],
+        blocked_patterns=["sudo", "rm -rf /"],
     ),
 )
 
