@@ -138,15 +138,22 @@ def _validate_extension(path: Path, config: ReadToolConfig) -> None:
 
     Raises:
         ValueError: If extension is not in allowed list (when list is non-empty)
+
+    Note:
+        - Empty string ("") in allowed_extensions permits extensionless files
+        - Extension matching is case-insensitive
     """
     # Empty allowed_extensions means allow all
     if not config.allowed_extensions:
         return
 
     suffix = path.suffix.lower()
-    if suffix not in config.allowed_extensions:
+    # Normalize config extensions to lowercase for case-insensitive comparison
+    allowed_lower = [ext.lower() for ext in config.allowed_extensions]
+
+    if suffix not in allowed_lower:
         raise ValueError(
-            f"File extension '{suffix}' not allowed. "
+            f"File extension '{suffix or '(none)'}' not allowed. "
             f"Allowed extensions: {', '.join(config.allowed_extensions)}"
         )
 
@@ -445,10 +452,25 @@ def read_file(
             if limit is not None:
                 # Limit number of lines
                 lines = lines[:limit]
-            # else: read entire file
+                truncated = False
+            else:
+                # Apply default limit to prevent context overflow
+                original_length = len(lines)
+                lines = lines[: config.max_lines_default]
+                truncated = original_length > config.max_lines_default
 
             # Format with line numbers starting at 1
-            return _format_with_line_numbers(lines, start_line=1)
+            result = _format_with_line_numbers(lines, start_line=1)
+
+            # Add truncation message if file was truncated
+            if truncated:
+                result += (
+                    f"\n\n[Note: Output truncated to {config.max_lines_default} lines "
+                    f"(file has {original_length} total lines). "
+                    f"Use offset/limit parameters to read more.]"
+                )
+
+            return result
 
     except ValueError as e:
         # Security validation or other expected errors

@@ -466,6 +466,7 @@ class ReadToolConfig(BaseModel):
     )
     allowed_extensions: list[str] = Field(
         default_factory=lambda: [
+            "",  # Extensionless files (Dockerfile, Makefile, LICENSE, etc.)
             ".py",
             ".md",
             ".txt",
@@ -501,7 +502,7 @@ class ReadToolConfig(BaseModel):
             ".properties",
             ".pdf",  # Special handling
         ],
-        description="Allowed file extensions (empty = allow all)",
+        description="Allowed file extensions (empty list = allow all, empty string '' = extensionless files)",
     )
     blocked_paths: list[str] = Field(
         default_factory=lambda: [

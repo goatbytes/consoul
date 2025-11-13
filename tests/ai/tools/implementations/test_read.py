@@ -425,6 +425,80 @@ class TestReadFile:
         assert "line1" in result
         assert "line2" in result
 
+    def test_read_large_file_applies_default_limit(self, tmp_path):
+        """Test that reading large file without offset/limit applies max_lines_default.
+
+        Regression test for bug where max_lines_default was only applied with offset,
+        allowing large files to stream entirely and burst LLM context.
+        """
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        # Create file with 3000 lines
+        file_path = tmp_path / "large.txt"
+        content = "\n".join([f"line{i}" for i in range(1, 3001)])
+        file_path.write_text(content)
+
+        # Set max_lines_default to 100
+        config = ReadToolConfig(max_lines_default=100)
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": str(file_path)})
+
+            # Should only contain first 100 lines
+            assert "     1\tline1" in result
+            assert "   100\tline100" in result
+            assert "   101\tline101" not in result
+            assert "  3000\tline3000" not in result
+
+            # Should have truncation message
+            assert "Output truncated to 100 lines" in result
+            assert "file has 3000 total lines" in result
+            assert "Use offset/limit parameters to read more" in result
+        finally:
+            # Reset config
+            set_read_config(ReadToolConfig())
+
+    def test_read_extensionless_file(self, tmp_path):
+        """Test reading extensionless files like Dockerfile, Makefile, LICENSE.
+
+        Regression test for bug where Path.suffix='' never matched allowed_extensions,
+        rejecting common text files like Dockerfile.
+        """
+        # Create extensionless file
+        file_path = tmp_path / "Dockerfile"
+        file_path.write_text("FROM python:3.12\nRUN pip install consoul")
+
+        result = read_file.invoke({"file_path": str(file_path)})
+
+        # Should succeed ('' is in default allowed_extensions)
+        assert "     1\tFROM python:3.12" in result
+        assert "     2\tRUN pip install consoul" in result
+
+    def test_read_case_insensitive_extension_config(self, tmp_path):
+        """Test extension matching is case-insensitive.
+
+        Regression test for bug where config=[".TXT"] rejected .txt files
+        because suffix.lower() didn't match verbatim config values.
+        """
+        from consoul.ai.tools.implementations.read import set_read_config
+
+        file_path = tmp_path / "test.txt"
+        file_path.write_text("hello world")
+
+        # Config with uppercase extension
+        config = ReadToolConfig(allowed_extensions=[".TXT", ".MD"])
+        set_read_config(config)
+
+        try:
+            result = read_file.invoke({"file_path": str(file_path)})
+
+            # Should succeed despite case mismatch
+            assert "     1\thello world" in result
+        finally:
+            # Reset config
+            set_read_config(ReadToolConfig())
+
 
 class TestPDFReading:
     """Tests for PDF file reading functionality."""
