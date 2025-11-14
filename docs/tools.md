@@ -6,6 +6,11 @@ Comprehensive guide to Consoul's tool calling system for AI-powered command exec
 
 - [Introduction](#introduction)
 - [Available Tools](#available-tools)
+  - [bash_execute](#bash_execute)
+  - [grep_search](#grep_search)
+  - [code_search](#code_search)
+  - [find_references](#find_references)
+  - [read_file](#read_file)
 - [Quick Start](#quick-start)
 - [Security Model](#security-model)
 - [Configuration](#configuration)
@@ -271,6 +276,158 @@ tools:
 **vs grep_search:**
 - grep_search: Fast text matching, finds any pattern
 - code_search: Slower but semantic, finds symbols by structure
+
+### find_references
+
+Find all references/usages of a code symbol across the codebase.
+
+**Capabilities:**
+- Distinguish symbol references (usages) from definitions
+- Multi-language AST-based reference detection
+- Scope control: file, directory, project
+- Optional definition inclusion
+- Case-sensitive/insensitive matching
+- JSON formatted results with context
+
+**Risk Level**: SAFE (read-only operation)
+
+**Example:**
+```python
+# Find all usages of a function (excluding definition)
+result = find_references(
+    symbol="calculate_total",
+    path="src/",
+    scope="directory"
+)
+
+# Find all references including the definition
+result = find_references(
+    symbol="ShoppingCart",
+    path="src/cart.py",
+    scope="file",
+    include_definition=True
+)
+
+# Case-insensitive regex pattern matching
+result = find_references(
+    symbol="process.*",
+    path=".",
+    scope="project",
+    case_sensitive=False
+)
+```
+
+**Output Format:**
+```json
+[
+  {
+    "symbol": "calculate_total",
+    "type": "call",
+    "line": 42,
+    "file": "src/utils.py",
+    "text": "    total = calculate_total(items)",
+    "context_before": ["def process_order(items):", "    # Calculate final price"],
+    "context_after": ["    tax = total * 0.08", "    return total + tax"],
+    "is_definition": false
+  }
+]
+```
+
+**Parameters:**
+- `symbol` (str): Symbol name or regex pattern (required)
+- `path` (str): File/directory path to search (default: ".")
+- `scope` (str): Search scope - "file", "directory", or "project" (default: "project")
+- `case_sensitive` (bool): Case-sensitive matching (default: False)
+- `include_definition` (bool): Include symbol definition in results (default: False)
+
+**Reference Types (by language):**
+
+Python:
+- `call` - Function/method calls (e.g., `foo()`, `obj.method()`)
+- `import_from` - Imports (e.g., `from module import foo`)
+- `attribute` - Attribute access (e.g., `obj.foo`)
+
+JavaScript/TypeScript:
+- `call_expression` - Function calls
+- `import_specifier` - Import statements
+- `member_expression` - Property access
+
+Go:
+- `call_expression` - Function calls
+- `selector_expression` - Field/method access
+
+**Supported Languages:**
+- Python (.py)
+- JavaScript/TypeScript (.js, .jsx, .ts, .tsx)
+- Go (.go)
+- Rust (.rs)
+- Java (.java)
+- C/C++ (.c, .cpp, .h, .hpp)
+
+**Scope Options:**
+
+| Scope | Behavior | Use Case |
+|-------|----------|----------|
+| `file` | Search single file | Quick reference check in one file |
+| `directory` | Search directory (non-recursive) | Search specific package/module |
+| `project` | Search entire project (recursive) | Complete reference audit |
+
+**Configuration:**
+```yaml
+tools:
+  find_references:
+    max_file_size_kb: 1024     # Skip files larger than 1MB
+    max_results: 100           # Limit results (prevents overflow)
+    supported_extensions:      # Customize supported file types
+      - .py
+      - .js
+      - .ts
+      - .go
+```
+
+**Use Cases:**
+- Find all usages before refactoring
+- Locate dead code (zero references)
+- Understand code dependencies
+- Impact analysis for API changes
+- Navigate large codebases
+
+**vs code_search:**
+- code_search: Finds definitions (where symbols are declared)
+- find_references: Finds usages (where symbols are used)
+
+**Performance:**
+- Shares cache with code_search (5-10x speedup on cached files)
+- First search: Parses AST (~1-2s per 100 files)
+- Cached searches: ~10x faster
+- Skips files > 1MB by default
+
+**Example Workflows:**
+
+Find function before renaming:
+```python
+# Check all usages first
+refs = find_references(symbol="old_function_name")
+# If safe: rename and update all references
+```
+
+Locate dead code:
+```python
+# Search for zero references
+refs = find_references(symbol="unused_helper")
+# If empty: safe to remove
+```
+
+Include definition for complete picture:
+```python
+# Get definition + all usages
+refs = find_references(
+    symbol="DatabaseConnection",
+    include_definition=True
+)
+# First result (is_definition=True) shows where it's defined
+# Remaining results show all usages
+```
 
 ### read_file
 

@@ -492,6 +492,54 @@ class CodeSearchToolConfig(BaseModel):
     )
 
 
+class FindReferencesToolConfig(BaseModel):
+    """Configuration for find_references tool execution.
+
+    Controls symbol reference finding behavior and performance limits.
+
+    Example:
+        >>> config = FindReferencesToolConfig(
+        ...     max_file_size_kb=2048,
+        ...     max_results=200,
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    max_file_size_kb: int = Field(
+        default=1024,
+        gt=0,
+        le=10240,
+        description="Maximum file size to parse in KB (skip larger files, max 10MB)",
+    )
+    max_results: int = Field(
+        default=100,
+        gt=0,
+        le=1000,
+        description="Maximum number of references to return (prevents overflow)",
+    )
+    supported_extensions: list[str] = Field(
+        default_factory=lambda: [
+            ".py",
+            ".js",
+            ".jsx",
+            ".ts",
+            ".tsx",
+            ".go",
+            ".rs",
+            ".java",
+            ".c",
+            ".cpp",
+            ".h",
+            ".hpp",
+        ],
+        description="File extensions supported for reference finding",
+    )
+
+
 class ReadToolConfig(BaseModel):
     """Configuration for read file tool.
 
@@ -667,6 +715,10 @@ class ToolConfig(BaseModel):
     code_search: CodeSearchToolConfig = Field(
         default_factory=CodeSearchToolConfig,
         description="Code search tool-specific configuration",
+    )
+    find_references: FindReferencesToolConfig = Field(
+        default_factory=FindReferencesToolConfig,
+        description="Find references tool-specific configuration",
     )
     read: ReadToolConfig = Field(
         default_factory=ReadToolConfig,

@@ -26,6 +26,7 @@ from consoul.ai.tools import (
     ToolRegistry,
     bash_execute,
     code_search,
+    find_references,
     grep_search,
 )
 from consoul.ai.tools.permissions import PermissionPolicy
@@ -260,6 +261,12 @@ class Consoul:
         # Register code_search tool
         self.registry.register(
             tool=code_search,
+            risk_level=RiskLevel.SAFE,
+        )
+
+        # Register find_references tool
+        self.registry.register(
+            tool=find_references,
             risk_level=RiskLevel.SAFE,
         )
 
