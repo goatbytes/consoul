@@ -213,8 +213,14 @@ class ConsoulApp(App[None]):
                     from consoul.ai.tools import RiskLevel, ToolRegistry
                     from consoul.ai.tools.implementations import (
                         bash_execute,
+                        code_search,
+                        find_references,
+                        grep_search,
                         read_file,
                         set_bash_config,
+                        set_code_search_config,
+                        set_find_references_config,
+                        set_grep_search_config,
                         set_read_config,
                     )
                     from consoul.ai.tools.providers import CliApprovalProvider
@@ -226,6 +232,18 @@ class ConsoulApp(App[None]):
                     # Configure read tool with profile settings
                     if consoul_config.tools.read:
                         set_read_config(consoul_config.tools.read)
+
+                    # Configure grep_search tool with profile settings
+                    if consoul_config.tools.grep_search:
+                        set_grep_search_config(consoul_config.tools.grep_search)
+
+                    # Configure code_search tool with profile settings
+                    if consoul_config.tools.code_search:
+                        set_code_search_config(consoul_config.tools.code_search)
+
+                    # Configure find_references tool with profile settings
+                    if consoul_config.tools.find_references:
+                        set_find_references_config(consoul_config.tools.find_references)
 
                     # Create registry with CLI provider (we override approval in _request_tool_approval)
                     # The provider is required by registry but we don't use it - we show our own modal
@@ -242,6 +260,30 @@ class ConsoulApp(App[None]):
                         read_file,
                         risk_level=RiskLevel.SAFE,
                         tags=["filesystem", "readonly"],
+                        enabled=True,
+                    )
+
+                    # Register grep_search tool (read-only text search)
+                    self.tool_registry.register(
+                        grep_search,
+                        risk_level=RiskLevel.SAFE,
+                        tags=["search", "readonly"],
+                        enabled=True,
+                    )
+
+                    # Register code_search tool (read-only AST search)
+                    self.tool_registry.register(
+                        code_search,
+                        risk_level=RiskLevel.SAFE,
+                        tags=["search", "readonly", "ast"],
+                        enabled=True,
+                    )
+
+                    # Register find_references tool (read-only reference finder)
+                    self.tool_registry.register(
+                        find_references,
+                        risk_level=RiskLevel.SAFE,
+                        tags=["search", "readonly", "ast"],
                         enabled=True,
                     )
 
