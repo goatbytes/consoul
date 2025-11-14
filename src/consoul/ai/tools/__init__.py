@@ -37,6 +37,7 @@ from consoul.ai.tools.audit import (
     NullAuditLogger,
 )
 from consoul.ai.tools.base import RiskLevel, ToolMetadata
+from consoul.ai.tools.cache import CACHE_VERSION, CacheStats, CodeSearchCache
 from consoul.ai.tools.exceptions import (
     BlockedCommandError,
     ToolError,
@@ -61,11 +62,14 @@ from consoul.ai.tools.registry import ToolRegistry
 from consoul.ai.tools.status import ToolStatus
 
 __all__ = [
+    "CACHE_VERSION",
     "ApprovalError",
     "ApprovalProvider",
     "AuditEvent",
     "AuditLogger",
     "BlockedCommandError",
+    "CacheStats",
+    "CodeSearchCache",
     "CommandAnalyzer",
     "CommandRisk",
     "FileAuditLogger",

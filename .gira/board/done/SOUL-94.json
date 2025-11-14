@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-13T14:30:42.634613",
-  "updated_at": "2025-11-13T22:40:54.985867Z",
+  "updated_at": "2025-11-14T00:52:04.370249Z",
   "id": "SOUL-94",
   "uuid": "651d4cad-a0b1-4694-8d02-d3ba3c2ac462",
   "title": "Add code search dependencies (grep-ast, tree-sitter, diskcache)",
   "description": "**As a** Consoul developer\n**I want** grep-ast and tree-sitter dependencies properly installed\n**So that** AST-based code search tools (SOUL-97, SOUL-98) can be implemented\n\n**Context:**\nAST-based code search requires parsing source code into abstract syntax trees. The grep-ast library (used by Aider with 3.4M installs) provides this capability via tree-sitter parsers. These dependencies are foundational for the entire code search epic.\n\n**Decision: Make these CORE dependencies** (not optional extras)\nRationale:\n- Code search is a core Consoul feature (not optional)\n- Adding complexity of optional deps creates confusion\n- Both libraries are mature, stable, MIT-licensed\n- Size impact is minimal (~2MB total)\n- Aider makes them core deps successfully\n\n**Technical Notes:**\n- Add to pyproject.toml [tool.poetry.dependencies] (NOT extras)\n- grep-ast: Provides AST parsing and tag extraction\n- tree-sitter: Provides language-specific parsers\n- Both required for src/consoul/ai/tools/implementations/code_search.py\n- Version guidance: Follow Aider's tested versions\n- Reference: Aider pyproject.toml, grep-ast GitHub\n\n**Acceptance Criteria:**\n\n**Given** I add grep-ast and tree-sitter to pyproject.toml\n**When** I run poetry install\n**Then** both libraries install without version conflicts\n\n**Given** dependencies are installed\n**When** I run: python -c 'from grep_ast import TreeContext; from tree_sitter import Parser'\n**Then** imports succeed without errors\n\n**Given** I run pytest after adding deps\n**When** CI/CD pipeline executes\n**Then** all tests pass and no new failures introduced\n\n**Given** tree-sitter is installed\n**When** I test basic parsing: Parser().set_language(Language('python'))\n**Then** Python parser loads successfully\n\n**Testing Considerations:**\n- Test in clean venv: rm -rf .venv && poetry install\n- Test on CI: Ensure GitHub Actions picks up new deps\n- Test import\n\ns in basic smoke test\n- Verify no conflicts with existing deps (langchain, pydantic, etc.)\n\n**Implementation Hints:**\n\n\nAdd after existing langchain dependencies for organization.\n\nUpdate docs:\n- README.md: Mention code search in features\n- docs/installation.md: Note new dependencies (automatic with poetry)\n\n**Story Points:** 2\n**Labels:** task, dependencies, code-search\n**Blocks:** SOUL-95, SOUL-97, SOUL-98 (all depend on these libs)",
-  "status": "backlog",
+  "status": "done",
   "type": "task",
   "priority": "high",
   "labels": [],
@@ -13,10 +13,24 @@
   "epic_id": "EPIC-006",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-13T16:51:50.432423",
+      "updated_at": "2025-11-13T16:51:50.432423",
+      "id": "20251113165150-4753cc0d",
+      "ticket_id": "SOUL-94",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation complete:\n\n✅ Added core dependencies:\n- grep-ast ^0.9.0 for AST parsing and tag extraction\n- tree-sitter ^0.25.0 for language-specific parsers  \n- diskcache ^5.6.0 for SQLite-backed disk caching\n\n✅ Updated configuration:\n- Added to PEP 621 dependencies array\n- Added to [tool.poetry.dependencies] with inline comments\n- Fixed poetry extras syntax error (pypdf)\n\n✅ Created validation tests:\n- tests/unit/test_dependencies.py with 8 tests\n- All imports verified functional\n- Version constraints validated\n\n✅ Updated documentation:\n- docs/installation.md: Added C compiler prerequisites per platform\n- docs/installation.md: Added tree-sitter troubleshooting section\n- README.md: Added code search to features list\n\n✅ Validation:\n- poetry lock regenerated successfully\n- poetry install completed with 7 new packages\n- All 8 dependency tests passing\n- Full unit test suite passing (24 tests)\n\nCommit: 33f3b31",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "order": 0,
   "custom_fields": {}
 }

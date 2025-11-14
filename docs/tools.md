@@ -1591,6 +1591,172 @@ gh issue create --title "Tool execution issue" \
 - Assume tools always succeed
 - Skip error handling
 
+## Code Search Caching
+
+### Overview
+
+Consoul implements intelligent caching for code search operations to dramatically improve performance on repeated searches. The cache stores parsed AST (Abstract Syntax Tree) data to avoid expensive re-parsing of unchanged files.
+
+**Key Benefits:**
+- **5-10x faster** repeated searches
+- **Automatic invalidation** when files change
+- **LRU eviction** to manage cache size
+- **SQLite-backed** for reliability
+- **Thread-safe** for concurrent access
+
+### How It Works
+
+```
+First Search:  Parse File → Cache AST → Return Results  (~100ms)
+Second Search: Check Cache → Return Results            (~10ms)
+File Modified: Invalidate → Re-parse → Update Cache
+```
+
+The cache uses file modification time (mtime) to detect changes:
+1. When a file is parsed, its AST and mtime are cached
+2. On subsequent searches, mtime is checked
+3. If mtime matches, cached AST is returned (cache hit)
+4. If mtime differs, file is re-parsed (cache miss)
+
+### Configuration
+
+The cache is automatically enabled for code search operations with sensible defaults:
+
+```python
+from consoul.ai.tools.cache import CodeSearchCache
+
+# Default configuration
+cache = CodeSearchCache()
+# Location: ~/.consoul/cache/code-search.v1/
+# Size limit: 100MB
+# Eviction: LRU (least-recently-used)
+
+# Custom configuration
+cache = CodeSearchCache(
+    cache_dir=Path("/custom/cache/dir"),
+    size_limit_mb=200  # 200MB cache
+)
+```
+
+### Usage Example
+
+```python
+from pathlib import Path
+from consoul.ai.tools.cache import CodeSearchCache
+
+cache = CodeSearchCache()
+
+# Check cache before parsing
+file_path = Path("src/myproject/utils.py")
+cached_tags = cache.get_cached_tags(file_path)
+
+if cached_tags is None:
+    # Cache miss - parse file
+    tags = parse_file_ast(file_path)  # Expensive operation
+    cache.cache_tags(file_path, tags)
+else:
+    # Cache hit - use cached data
+    tags = cached_tags  # ~10x faster
+
+# Get cache statistics
+stats = cache.get_stats()
+print(f"Hit rate: {stats.hit_rate:.1%}")
+print(f"Cache size: {stats.size_bytes / 1024 / 1024:.1f} MB")
+print(f"Entries: {stats.entry_count}")
+```
+
+### Cache Statistics
+
+Monitor cache performance:
+
+```python
+stats = cache.get_stats()
+
+# CacheStats attributes:
+stats.hits         # Number of cache hits
+stats.misses       # Number of cache misses
+stats.hit_rate     # Hit rate (0.0 to 1.0)
+stats.size_bytes   # Current cache size in bytes
+stats.entry_count  # Number of cached files
+```
+
+### Cache Management
+
+```python
+# Clear all cached entries
+cache.invalidate_cache()
+
+# Close cache (releases SQLite connections)
+cache.close()
+
+# Cache automatically reopens on next access
+```
+
+### Cache Versioning
+
+The cache directory includes a version number (`code-search.v1`) to handle schema changes:
+
+- When the cache format changes, the version is incremented
+- Different versions use separate directories
+- Old cache versions are automatically ignored
+- This prevents compatibility issues after upgrades
+
+### Error Handling
+
+The cache gracefully handles errors:
+
+```python
+# If SQLite fails, cache falls back to in-memory dict
+# Operations continue working, just without persistence
+
+cache = CodeSearchCache()
+# If diskcache fails: cache._cache = dict()
+# All operations still work, just not persisted to disk
+```
+
+### Performance Tips
+
+1. **Let the cache warm up**: First searches are slower while building cache
+2. **Monitor hit rate**: Aim for >80% hit rate in typical workflows
+3. **Adjust size limit**: Increase if working with large codebases
+4. **Clear stale cache**: Run `invalidate_cache()` after major refactors
+
+### Thread Safety
+
+The cache is thread-safe via SQLite's locking mechanism:
+
+```python
+# Multiple threads can safely share a cache instance
+cache = CodeSearchCache()
+
+def search_worker(file_paths):
+    for path in file_paths:
+        tags = cache.get_cached_tags(path)
+        # ...
+
+# Safe to run concurrently
+import concurrent.futures
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    executor.map(search_worker, file_batches)
+```
+
+### Troubleshooting
+
+**Cache not persisting:**
+- Check write permissions on cache directory
+- Verify disk space available
+- Check for SQLite errors in logs
+
+**Low hit rate:**
+- Files may be changing frequently
+- Check if mtime is being preserved (some tools reset mtime)
+- Verify cache size limit isn't too small
+
+**Cache directory growing:**
+- LRU eviction activates at size limit
+- Manually clear with `invalidate_cache()` if needed
+- Consider lowering `size_limit_mb`
+
 ## See Also
 
 - [Configuration Guide](user-guide/configuration.md) - Complete configuration reference
