@@ -46,6 +46,7 @@ from consoul.ai.tools.exceptions import (
     ToolValidationError,
 )
 from consoul.ai.tools.implementations.bash import bash_execute
+from consoul.ai.tools.implementations.code_search import code_search
 from consoul.ai.tools.implementations.grep_search import grep_search
 from consoul.ai.tools.parser import (
     ParsedToolCall,
@@ -92,6 +93,7 @@ __all__ = [
     "WhitelistManager",
     "WhitelistPattern",
     "bash_execute",
+    "code_search",
     "grep_search",
     "has_tool_calls",
     "parse_tool_calls",

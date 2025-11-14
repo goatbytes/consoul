@@ -21,7 +21,13 @@ from __future__ import annotations
 from typing import Any
 
 from consoul.ai import ConversationHistory, get_chat_model
-from consoul.ai.tools import RiskLevel, ToolRegistry, bash_execute, grep_search
+from consoul.ai.tools import (
+    RiskLevel,
+    ToolRegistry,
+    bash_execute,
+    code_search,
+    grep_search,
+)
 from consoul.ai.tools.permissions import PermissionPolicy
 from consoul.ai.tools.providers import CliApprovalProvider
 from consoul.config import load_config
@@ -248,6 +254,12 @@ class Consoul:
         # Register grep_search tool
         self.registry.register(
             tool=grep_search,
+            risk_level=RiskLevel.SAFE,
+        )
+
+        # Register code_search tool
+        self.registry.register(
+            tool=code_search,
             risk_level=RiskLevel.SAFE,
         )
 

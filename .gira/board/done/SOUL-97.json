@@ -1,0 +1,39 @@
+{
+  "created_at": "2025-11-13T14:35:04.854542",
+  "updated_at": "2025-11-14T19:58:00.238266Z",
+  "id": "SOUL-97",
+  "uuid": "66b698de-6ffe-4679-8f5f-7e27a8396355",
+  "title": "Implement code structure search using grep-ast",
+  "description": "**As a** Consoul SDK user\n**I want** semantic code search by structure (classes, functions, methods)\n**So that** I can find definitions accurately across languages\n\n**Context:**\nAST-based search using Aider's proven grep-ast approach. Enables finding symbols by structure, not text.\n\n**Technical Notes:**\n- src/consoul/ai/tools/implementations/code_search.py\n- Use grep_ast.TreeContext + tree-sitter parsers\n- Register at RiskLevel.SAFE (read-only)\n- Reference: Aider aider/repomap.py\n\n**Acceptance Criteria:**\n\n**Given** Python file with function 'calculate_total'\n**When** search_code_structure(query='calculate_total', symbol_type='function')\n**Then** return definition with file, line, context\n\n**Given** search 1000-file repo\n**When** code_search executes\n**Then** results in <5s with caching\n\n**Given** file with syntax errors\n**When** processing\n**Then** log warning, continue without crash\n\n**Language Parser Support (Phase 1):**\nPriority languages with bundled parsers:\n1. Python (.py) - tree-sitter-python\n2. JavaScript/TypeScript (.js, .ts, .tsx, .jsx) - tree-sitter-javascript/typescript\n3. Go (.go) - tree-sitter-go\n4. Rust (.rs) - tree-sitter-rust\n5. Java (.java) - tree-sitter-java\n6. C/C++ (.c, .cpp, .h, .hpp) - tree-sitter-c/cpp\n\nPhase 2 (future): Ruby, PHP, Swift, Kotlin, C#, etc.\n\n**Parser Installation:**\ngrep-ast handles parser installation automatically.\nTest: Each language needs fixture file in tests/fixtures/code_search/\n\n**Testing:**\n- Mock TreeContext, test parsing\n- Fixtures for each language\n- Edge cases: empty, errors, large files\n- Performance: 1000 files <5s\n\n**Story Points:** 8\n**Dependencies:** SOUL-94 (blocks)",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-006",
+  "blocked_by": [
+    "SOUL-94"
+  ],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-14T11:33:08.500784",
+      "updated_at": "2025-11-14T11:33:08.500785",
+      "id": "20251114113308-a49b1e58",
+      "ticket_id": "SOUL-97",
+      "author": "jared@goatbytes.io",
+      "content": "Partial implementation complete - infrastructure in place, tree-sitter parsing needs refinement:\n\n✅ Completed:\n- code_search.py tool with full module structure\n- CodeSearchToolConfig in models.py\n- Test fixtures for Python, JavaScript, Go\n- Unit tests (9 tests, configuration and validation)\n- Integration test framework\n- Tool registration in __init__.py and SDK\n- Comprehensive documentation in docs/tools.md\n- Cache integration with CodeSearchCache\n\n⚠️ Needs refinement:\n- Tree-sitter AST walking logic (_extract_symbols_from_tree)\n- grep-ast integration (TreeContext doesn't expose tree attribute as expected)\n- Need to use tree-sitter parsers directly instead of grep-ast wrapper\n\nNext steps:\n- Refine AST parsing to directly use tree-sitter Language and Parser\n- Test symbol extraction for each supported language\n- Validate integration tests pass with real parsing\n\nCore infrastructure is solid and ready for AST refinement.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {}
+}

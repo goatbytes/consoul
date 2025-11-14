@@ -11,6 +11,11 @@ from consoul.ai.tools.implementations.bash import (
     get_bash_config,
     set_bash_config,
 )
+from consoul.ai.tools.implementations.code_search import (
+    code_search,
+    get_code_search_config,
+    set_code_search_config,
+)
 from consoul.ai.tools.implementations.grep_search import (
     get_grep_search_config,
     grep_search,
@@ -24,12 +29,15 @@ from consoul.ai.tools.implementations.read import (
 
 __all__ = [
     "bash_execute",
+    "code_search",
     "get_bash_config",
+    "get_code_search_config",
     "get_grep_search_config",
     "get_read_config",
     "grep_search",
     "read_file",
     "set_bash_config",
+    "set_code_search_config",
     "set_grep_search_config",
     "set_read_config",
 ]

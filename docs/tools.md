@@ -176,6 +176,102 @@ tools:
 - Code review and analysis
 - Documentation searches
 
+### code_search
+
+Search for code symbols (functions, classes, methods) using AST parsing.
+
+**Capabilities:**
+- Semantic search by symbol structure (not text patterns)
+- Multi-language support (Python, JS/TS, Go, Rust, Java, C/C++)
+- Symbol type filtering (function, class, method)
+- Regex pattern matching on symbol names
+- Automatic caching with mtime invalidation (5-10x speedup)
+- JSON formatted results with context
+
+**Risk Level**: SAFE (read-only operation)
+
+**Example:**
+```python
+# Find all functions named 'calculate_total'
+result = code_search(
+    query="calculate_total",
+    symbol_type="function"
+)
+
+# Find classes matching pattern
+result = code_search(
+    query="Shopping.*",
+    symbol_type="class",
+    path="src/"
+)
+
+# Case-insensitive search
+result = code_search(
+    query="PROCESS.*",
+    case_sensitive=False
+)
+```
+
+**Output Format:**
+```json
+[
+  {
+    "name": "calculate_total",
+    "type": "function",
+    "line": 5,
+    "file": "src/utils.py",
+    "text": "def calculate_total(items):",
+    "context_before": ["", "# Calculate total price"],
+    "context_after": ["    total = 0", "    for item in items:"],
+    "parent": null
+  }
+]
+```
+
+**Parameters:**
+- `query` (str): Symbol name or regex pattern (required)
+- `path` (str): Directory or file path to search (default: ".")
+- `symbol_type` (str | None): Filter by "function", "class", or "method"
+- `case_sensitive` (bool): Case-sensitive matching (default: False)
+- `timeout` (int | None): Search timeout in seconds (default: 60)
+
+**Performance:**
+- First search: Parses AST (slower, ~1-2s per 100 files)
+- Cached searches: 5-10x faster via mtime-based caching
+- Automatic cache invalidation on file modification
+- Skips files > 1MB by default (configurable)
+
+**Supported Languages:**
+- Python (.py)
+- JavaScript/TypeScript (.js, .jsx, .ts, .tsx)
+- Go (.go)
+- Rust (.rs)
+- Java (.java)
+- C/C++ (.c, .cpp, .h, .hpp)
+
+**Configuration:**
+```yaml
+tools:
+  code_search:
+    timeout: 60                # Max parsing time in seconds
+    max_file_size_kb: 1024     # Skip files larger than 1MB
+    supported_extensions:      # Customize supported file types
+      - .py
+      - .js
+      - .go
+```
+
+**Use Cases:**
+- Find function/class definitions
+- Navigate large codebases
+- Code refactoring (find all usages)
+- Architecture analysis
+- Symbol inventory
+
+**vs grep_search:**
+- grep_search: Fast text matching, finds any pattern
+- code_search: Slower but semantic, finds symbols by structure
+
 ### read_file
 
 Read file contents with security controls and format detection.

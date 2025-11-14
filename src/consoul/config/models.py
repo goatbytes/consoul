@@ -451,6 +451,54 @@ class GrepSearchToolConfig(BaseModel):
     )
 
 
+class CodeSearchToolConfig(BaseModel):
+    """Configuration for code_search tool execution.
+
+    Controls AST-based code structure search behavior and performance limits.
+
+    Example:
+        >>> config = CodeSearchToolConfig(
+        ...     timeout=60,
+        ...     max_file_size_kb=2048,
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    timeout: int = Field(
+        default=60,
+        gt=0,
+        le=600,
+        description="Default timeout for AST parsing operations in seconds (max 10 minutes)",
+    )
+    max_file_size_kb: int = Field(
+        default=1024,
+        gt=0,
+        le=10240,
+        description="Maximum file size to parse in KB (skip larger files, max 10MB)",
+    )
+    supported_extensions: list[str] = Field(
+        default_factory=lambda: [
+            ".py",
+            ".js",
+            ".jsx",
+            ".ts",
+            ".tsx",
+            ".go",
+            ".rs",
+            ".java",
+            ".c",
+            ".cpp",
+            ".h",
+            ".hpp",
+        ],
+        description="File extensions supported for AST parsing",
+    )
+
+
 class ReadToolConfig(BaseModel):
     """Configuration for read file tool.
 
@@ -622,6 +670,10 @@ class ToolConfig(BaseModel):
     grep_search: GrepSearchToolConfig = Field(
         default_factory=GrepSearchToolConfig,
         description="Grep search tool-specific configuration",
+    )
+    code_search: CodeSearchToolConfig = Field(
+        default_factory=CodeSearchToolConfig,
+        description="Code search tool-specific configuration",
     )
     read: ReadToolConfig = Field(
         default_factory=ReadToolConfig,
