@@ -108,6 +108,10 @@ def _parse_file_for_references(
 ) -> list[dict[str, Any]]:
     """Parse file to find symbol references using tree-sitter.
 
+    Uses cache to avoid reparsing unchanged files. The cache stores all
+    potential reference nodes (without pattern filtering), so different
+    search patterns can benefit from the same cached parse.
+
     Args:
         file_path: Path to source file to parse
         symbol_pattern: Compiled regex pattern for symbol matching
@@ -116,30 +120,62 @@ def _parse_file_for_references(
         List of reference dictionaries with file, line, text, context
     """
     try:
-        # Read file content
-        code = file_path.read_text(encoding="utf-8", errors="ignore")
+        # Check cache first for ALL reference nodes (pattern-independent)
+        # Note: We share the cache instance with code_search but use a different
+        # key prefix to store reference data separately from symbol data
+        cache = _get_cache()
+        cache_key = f"refs:{file_path}"
 
-        # Detect language from filename
-        lang = filename_to_lang(str(file_path))
-        if not lang:
-            logger.warning(f"Unsupported language for file: {file_path}")
-            return []
-
-        # Parse AST using tree-sitter
+        # Manual cache management since we need custom key prefix
+        # Check if file's mtime matches cached version
         try:
-            parser = get_parser(lang)
-            tree = parser.parse(code.encode("utf-8"))
-            root_node = tree.root_node
-        except Exception as e:
-            logger.warning(f"Failed to get parser for language '{lang}': {e}")
+            mtime = file_path.stat().st_mtime
+            cached_entry = cache._cache.get(cache_key)
+
+            if cached_entry and cached_entry.get("mtime") == mtime:
+                # Cache hit - mtime matches
+                cache._hits += 1
+                all_reference_nodes = cached_entry["data"]
+            else:
+                # Cache miss - parse and cache
+                cache._misses += 1
+
+                # Read file content
+                code = file_path.read_text(encoding="utf-8", errors="ignore")
+
+                # Detect language from filename
+                lang = filename_to_lang(str(file_path))
+                if not lang:
+                    logger.warning(f"Unsupported language for file: {file_path}")
+                    return []
+
+                # Parse AST using tree-sitter
+                try:
+                    parser = get_parser(lang)
+                    tree = parser.parse(code.encode("utf-8"))
+                    root_node = tree.root_node
+                except Exception as e:
+                    logger.warning(f"Failed to get parser for language '{lang}': {e}")
+                    return []
+
+                # Extract ALL reference nodes (without pattern filtering)
+                all_reference_nodes = _extract_all_references_from_tree(
+                    root_node, file_path, code
+                )
+
+                # Cache the results with mtime
+                cache._cache[cache_key] = {"mtime": mtime, "data": all_reference_nodes}
+
+        except (FileNotFoundError, OSError):
+            # File doesn't exist or can't read - skip caching
             return []
 
-        # Extract references by walking the tree
-        references = _extract_references_from_tree(
-            root_node, file_path, code, symbol_pattern
-        )
+        # Filter cached nodes by pattern
+        filtered_references = [
+            ref for ref in all_reference_nodes if symbol_pattern.match(ref["symbol"])
+        ]
 
-        return references
+        return filtered_references
 
     except UnicodeDecodeError as e:
         logger.warning(f"Failed to decode file {file_path}: {e}")
@@ -149,32 +185,34 @@ def _parse_file_for_references(
         return []
 
 
-def _extract_references_from_tree(
+def _extract_all_references_from_tree(
     node: Any,
     file_path: Path,
     code: str,
-    symbol_pattern: re.Pattern[str],
 ) -> list[dict[str, Any]]:
-    """Extract symbol references from parsed AST tree.
+    """Extract ALL symbol references from parsed AST tree (for caching).
 
-    Detects usages (calls, imports, attribute access) but NOT definitions.
+    Detects all usages (calls, imports, attribute access) but NOT definitions.
+    Does NOT filter by pattern - returns all references for cache storage.
 
     Args:
         node: tree-sitter Node (root node of parsed tree)
         file_path: Path to source file
         code: Source code content
-        symbol_pattern: Compiled regex for symbol matching
 
     Returns:
-        List of reference dictionaries
+        List of ALL reference dictionaries (unfiltered)
     """
     references: list[dict[str, Any]] = []
     lines = code.split("\n")
 
+    # Match any symbol (for cache - we'll filter later)
+    any_symbol_pattern = re.compile(r".*")
+
     def walk_node(node: Any, parent_name: str | None = None) -> None:
         """Recursively walk AST nodes to find references."""
         # Check if this node is a reference (usage, not definition)
-        ref_info = _is_reference_node(node, symbol_pattern)
+        ref_info = _is_reference_node(node, any_symbol_pattern)
 
         if ref_info:
             symbol_name, ref_type = ref_info
@@ -482,14 +520,24 @@ def find_references(
                 config=code_search_config,
             )
 
-            # Mark definitions and prepend to results
+            # Normalize definitions to match reference schema
+            normalized_definitions = []
             for defn in definitions:
-                defn["is_definition"] = True
-                defn["type"] = (
-                    f"definition_{defn['type']}"  # e.g., "definition_function"
-                )
+                # code_search returns "name" field, but references use "symbol"
+                # Normalize to consistent schema
+                normalized_defn = {
+                    "symbol": defn.get("name", ""),  # Rename "name" → "symbol"
+                    "type": f"definition_{defn['type']}",  # e.g., "definition_function"
+                    "line": defn["line"],
+                    "file": defn["file"],
+                    "text": defn["text"],
+                    "context_before": defn.get("context_before", []),
+                    "context_after": defn.get("context_after", []),
+                    "is_definition": True,
+                }
+                normalized_definitions.append(normalized_defn)
 
-            results = definitions + results
+            results = normalized_definitions + results
         except Exception as e:
             logger.warning(f"Failed to find definitions: {e}")
 
