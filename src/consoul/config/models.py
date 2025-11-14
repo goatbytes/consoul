@@ -427,6 +427,30 @@ class BashToolConfig(BaseModel):
         return v
 
 
+class GrepSearchToolConfig(BaseModel):
+    """Configuration for grep_search tool execution.
+
+    Controls timeouts for text search operations using ripgrep or grep.
+
+    Example:
+        >>> config = GrepSearchToolConfig(
+        ...     timeout=60,
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    timeout: int = Field(
+        default=30,
+        gt=0,
+        le=600,
+        description="Default timeout for search operations in seconds (max 10 minutes)",
+    )
+
+
 class ReadToolConfig(BaseModel):
     """Configuration for read file tool.
 
@@ -594,6 +618,10 @@ class ToolConfig(BaseModel):
     bash: BashToolConfig = Field(
         default_factory=BashToolConfig,
         description="Bash tool-specific configuration",
+    )
+    grep_search: GrepSearchToolConfig = Field(
+        default_factory=GrepSearchToolConfig,
+        description="Grep search tool-specific configuration",
     )
     read: ReadToolConfig = Field(
         default_factory=ReadToolConfig,

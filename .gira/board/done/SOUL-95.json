@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-13T14:34:47.578182",
-  "updated_at": "2025-11-14T01:09:20.257106Z",
+  "updated_at": "2025-11-14T07:47:56.794896Z",
   "id": "SOUL-95",
   "uuid": "071afcfb-e35e-4744-b03f-f6f866e93cdc",
   "title": "Add caching for code search results",
@@ -9,6 +9,7 @@
   "type": "feature",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-006",
   "blocked_by": [

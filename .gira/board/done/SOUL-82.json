@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-13T08:39:57.251729",
-  "updated_at": "2025-11-13T11:36:07.199337",
+  "updated_at": "2025-11-14T07:47:56.796931Z",
   "id": "SOUL-82",
   "uuid": "05bad0d3-cbca-4610-9496-dc005ebf3344",
   "title": "Implement file size and line truncation controls",
@@ -13,6 +13,7 @@
     "performance",
     "safety"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-005",
   "blocked_by": [

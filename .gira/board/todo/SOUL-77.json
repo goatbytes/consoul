@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-12T22:38:31.244102",
-  "updated_at": "2025-11-12T22:38:31.244110",
+  "updated_at": "2025-11-14T07:47:39.545673Z",
   "id": "SOUL-77",
   "uuid": "f814a921-111f-4526-a419-72f219567e76",
   "title": "Implement ConversationConfig support in TUI",
@@ -13,6 +13,7 @@
     "config",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

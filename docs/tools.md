@@ -91,6 +91,91 @@ tools:
       - "ls"
 ```
 
+### grep_search
+
+Search for text patterns in files using ripgrep or grep.
+
+**Capabilities:**
+- Fast regex-based text search across files and directories
+- Automatic ripgrep detection with grep fallback
+- Glob pattern filtering (e.g., "*.py", "*.{js,ts}")
+- Case-sensitive/insensitive search
+- Context lines (before/after matches)
+- JSON formatted results with file paths, line numbers, and context
+
+**Risk Level**: SAFE (read-only operation)
+
+**Example:**
+```python
+# Basic search
+result = grep_search(
+    pattern="def main",
+    path="src/",
+    glob_pattern="*.py"
+)
+
+# Case-insensitive search with context
+result = grep_search(
+    pattern="TODO",
+    path=".",
+    case_sensitive=False,
+    context_lines=2
+)
+
+# Regex pattern search
+result = grep_search(
+    pattern=r"class \w+Error",
+    path="src/",
+    glob_pattern="*.py"
+)
+```
+
+**Output Format:**
+```json
+[
+  {
+    "file": "src/main.py",
+    "line": 42,
+    "text": "def main():",
+    "context_before": [
+      "#!/usr/bin/env python3",
+      ""
+    ],
+    "context_after": [
+      "    print('Hello, world!')",
+      "    return 0"
+    ]
+  }
+]
+```
+
+**Parameters:**
+- `pattern` (str): Regex pattern to search for (required)
+- `path` (str): Directory or file path to search (default: ".")
+- `glob_pattern` (str | None): Glob pattern to filter files (e.g., "*.py")
+- `case_sensitive` (bool): Whether search is case-sensitive (default: True)
+- `context_lines` (int): Number of context lines before/after matches (default: 0)
+- `timeout` (int | None): Search timeout in seconds (default: 30)
+
+**Performance:**
+- Automatically uses ripgrep (rg) if available for ~5-10x speedup
+- Falls back to grep if ripgrep not installed
+- Both produce identical normalized JSON output
+
+**Configuration:**
+```yaml
+tools:
+  grep_search:
+    timeout: 30  # Max search time in seconds
+```
+
+**Use Cases:**
+- Find function/class definitions
+- Search for TODO/FIXME comments
+- Locate error handling patterns
+- Code review and analysis
+- Documentation searches
+
 ### read_file
 
 Read file contents with security controls and format detection.

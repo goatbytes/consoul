@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-12T23:00:20.428197",
-  "updated_at": "2025-11-13T07:25:44.152307Z",
+  "updated_at": "2025-11-14T07:47:39.547146Z",
   "id": "SOUL-78",
   "uuid": "1a1584c8-8ee6-43c1-bace-a1ffe3e9337d",
   "title": "Create high-level Consoul SDK wrapper for ease of use",
@@ -14,6 +14,7 @@
     "ux-improvement",
     "quick-win"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

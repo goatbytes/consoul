@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-13T08:38:57.330509",
-  "updated_at": "2025-11-13T17:50:02.676824Z",
+  "updated_at": "2025-11-14T07:47:39.543526Z",
   "id": "SOUL-80",
   "uuid": "0b5dd5ba-0f53-48bd-ae50-9fb28dfd16a3",
   "title": "Implement core read_file tool with line numbering",
@@ -14,6 +14,7 @@
     "enhancement",
     "filesystem"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-005",
   "blocked_by": [

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-13T08:41:39.238381",
-  "updated_at": "2025-11-13T13:16:50.146791",
+  "updated_at": "2025-11-14T07:47:56.792892Z",
   "id": "SOUL-86",
   "uuid": "4e312de5-9971-4292-b5b9-8ba89c5985d4",
   "title": "Update tool calling documentation for read_file tool",
@@ -12,6 +12,7 @@
     "documentation",
     "tools"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-005",
   "blocked_by": [
