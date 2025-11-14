@@ -106,6 +106,9 @@ class CodeSearchCache:
         Note:
             If cache initialization fails (SQLite errors), falls back to in-memory dict.
         """
+        # Track if this is a managed (default) directory vs user-provided
+        self._is_managed_cache_dir = cache_dir is None
+
         if cache_dir is None:
             cache_dir = (
                 Path.home() / ".consoul" / "cache" / f"code-search.v{CACHE_VERSION}"
@@ -150,6 +153,9 @@ class CodeSearchCache:
     def _handle_sqlite_error(self, original_error: Exception | None = None) -> None:
         """Handle SQLite errors by recreating cache or falling back to dict.
 
+        SAFETY: Only deletes cache directories that Consoul manages (default paths).
+        User-provided custom directories are never deleted to prevent data loss.
+
         Args:
             original_error: The original exception that triggered the error handler
         """
@@ -157,18 +163,24 @@ class CodeSearchCache:
         if isinstance(self._cache, dict):
             return
 
-        # Try to recreate cache
-        try:
-            # Delete existing cache
-            if self.cache_dir.exists():
-                shutil.rmtree(self.cache_dir)
+        # Only delete and recreate if this is a managed directory
+        if self._is_managed_cache_dir:
+            try:
+                # Safe to delete: this is our managed ~/.consoul/cache/ directory
+                if self.cache_dir.exists():
+                    shutil.rmtree(self.cache_dir)
 
-            # Reinitialize
-            self._cache = self._initialize_cache()
+                # Reinitialize
+                self._cache = self._initialize_cache()
+                return
 
-        except SQLITE_ERRORS:
-            # Fall back to dict
-            self._cache = {}
+            except SQLITE_ERRORS:
+                # If recreation fails, fall through to dict fallback
+                pass
+
+        # For custom directories or if recreation failed, just use dict fallback
+        # Never delete user-provided directories
+        self._cache = {}
 
     def _get_cache_key(self, file_path: Path) -> str:
         """Generate cache key for file path.

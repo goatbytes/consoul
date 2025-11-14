@@ -1625,7 +1625,7 @@ The cache is automatically enabled for code search operations with sensible defa
 ```python
 from consoul.ai.tools.cache import CodeSearchCache
 
-# Default configuration
+# Default configuration (recommended)
 cache = CodeSearchCache()
 # Location: ~/.consoul/cache/code-search.v1/
 # Size limit: 100MB
@@ -1633,10 +1633,28 @@ cache = CodeSearchCache()
 
 # Custom configuration
 cache = CodeSearchCache(
-    cache_dir=Path("/custom/cache/dir"),
+    cache_dir=Path("/tmp/my-project-cache"),  # Use dedicated directory
     size_limit_mb=200  # 200MB cache
 )
 ```
+
+### Cache Safety
+
+⚠️ **Important:** When using custom cache directories, use dedicated directories for cache data only.
+
+**Safe custom directories:**
+- ✅ `/tmp/my-app-cache` - Temporary dedicated directory
+- ✅ `/var/cache/my-app` - System cache directory
+- ✅ `~/.cache/my-project` - User cache directory
+- ✅ `project-root/.cache` - Project-specific cache
+
+**Unsafe custom directories (DON'T USE):**
+- ❌ `/home/user/documents` - Contains other important files
+- ❌ `/Users/user/Desktop` - User workspace
+- ❌ `/var/www` - Application code
+- ❌ Any directory with mixed content
+
+**Why?** Consoul manages cache directories and may recreate them on errors. While custom directories are never automatically deleted (safety feature), you should still use dedicated cache directories to avoid mixing cache data with other important files.
 
 ### Usage Example
 
