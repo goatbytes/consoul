@@ -458,7 +458,6 @@ class CodeSearchToolConfig(BaseModel):
 
     Example:
         >>> config = CodeSearchToolConfig(
-        ...     timeout=60,
         ...     max_file_size_kb=2048,
         ... )
     """
@@ -468,12 +467,6 @@ class CodeSearchToolConfig(BaseModel):
         validate_assignment=True,
     )
 
-    timeout: int = Field(
-        default=60,
-        gt=0,
-        le=600,
-        description="Default timeout for AST parsing operations in seconds (max 10 minutes)",
-    )
     max_file_size_kb: int = Field(
         default=1024,
         gt=0,

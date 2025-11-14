@@ -391,19 +391,20 @@ def code_search(
     path: str = ".",
     symbol_type: str | None = None,
     case_sensitive: bool = False,
-    timeout: int | None = None,
 ) -> str:
     """Search for code symbols (functions, classes, methods) using AST parsing.
 
     Semantic code search that finds symbols by structure, not text patterns.
     Supports multiple languages via tree-sitter parsers with automatic caching.
 
+    Performance is controlled via CodeSearchToolConfig.max_file_size_kb to skip
+    large files. Typical search completes in <1s for 100-file repos.
+
     Args:
         query: Symbol name or regex pattern to search for
         path: Directory or file path to search (default: current directory)
         symbol_type: Optional filter by type: "function", "class", or "method"
         case_sensitive: Whether search is case-sensitive (default: False)
-        timeout: Search timeout in seconds (default: from config or 60)
 
     Returns:
         JSON string with search results:
@@ -433,11 +434,7 @@ def code_search(
     """
     config = get_code_search_config()
 
-    # Use config timeout if not specified
-    if timeout is None:
-        timeout = config.timeout
-
-    # Execute search (timeout enforced by caller/registry)
+    # Execute search
     results = _search_symbols(
         path=path,
         query=query,

@@ -22,12 +22,12 @@ class TestConfiguration:
 
     def test_set_get_config(self) -> None:
         """Test setting and getting config."""
-        config = CodeSearchToolConfig(timeout=90)
+        config = CodeSearchToolConfig(max_file_size_kb=2048)
         set_code_search_config(config)
 
         retrieved = get_code_search_config()
 
-        assert retrieved.timeout == 90
+        assert retrieved.max_file_size_kb == 2048
 
     def test_get_config_default(self) -> None:
         """Test getting default config when not set."""
@@ -37,7 +37,7 @@ class TestConfiguration:
         config = get_code_search_config()
 
         assert isinstance(config, CodeSearchToolConfig)
-        assert config.timeout == 60  # Default
+        assert config.max_file_size_kb == 1024  # Default
 
 
 class TestFileSupportCheck:
@@ -108,22 +108,6 @@ class TestCodeSearchTool:
             parsed = json.loads(result)
             assert len(parsed) == 1
             assert parsed[0]["name"] == "test_func"
-
-    def test_code_search_uses_config_timeout(self) -> None:
-        """Test code_search uses config timeout when not specified."""
-        config = CodeSearchToolConfig(timeout=90)
-        set_code_search_config(config)
-
-        # Just verify it doesn't error - timeout is enforced by caller
-        with patch(
-            "consoul.ai.tools.implementations.code_search._search_symbols",
-        ) as mock_search:
-            mock_search.return_value = []
-
-            code_search.invoke({"query": "test"})
-
-            # Config timeout is used internally
-            assert get_code_search_config().timeout == 90
 
 
 class TestSearchSymbols:
