@@ -1161,10 +1161,23 @@ class ConsoulApp(App[None]):
                 reason="No tool registry available",
             )
         else:
-            risk_assessment = self.tool_registry.assess_risk(
-                message.tool_call.name,
-                message.tool_call.arguments,
-            )
+            try:
+                risk_assessment = self.tool_registry.assess_risk(
+                    message.tool_call.name,
+                    message.tool_call.arguments,
+                )
+            except Exception as e:
+                # Handle unregistered tools or assessment errors gracefully
+                from consoul.ai.tools import RiskLevel
+                from consoul.ai.tools.permissions.analyzer import CommandRisk
+
+                self.log.warning(
+                    f"Failed to assess risk for tool '{message.tool_call.name}': {e}"
+                )
+                risk_assessment = CommandRisk(
+                    level=RiskLevel.DANGEROUS,
+                    reason=f"Tool not found or assessment failed: {e}",
+                )
 
         # Extract risk level and reason
         # assess_risk returns CommandRisk for all tools now
