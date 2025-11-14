@@ -141,11 +141,12 @@ def _build_grep_command(
     return cmd
 
 
-def _parse_ripgrep_output(output: str) -> list[dict[str, Any]]:
+def _parse_ripgrep_output(output: str, context_lines: int = 0) -> list[dict[str, Any]]:
     """Parse ripgrep JSON output into normalized format.
 
     Args:
         output: Raw JSON output from ripgrep
+        context_lines: Number of context lines requested (used for buffer sizing)
 
     Returns:
         List of match dictionaries with normalized structure:
@@ -179,6 +180,7 @@ def _parse_ripgrep_output(output: str) -> list[dict[str, Any]]:
                     results.append(current_match)
                     context_before = []
                     context_after = []
+                    collecting_after = False  # Reset flag for next match
 
                 data = entry["data"]
                 current_match = {
@@ -198,8 +200,8 @@ def _parse_ripgrep_output(output: str) -> list[dict[str, Any]]:
                     context_after.append(context_text)
                 else:
                     context_before.append(context_text)
-                    # Keep only last N context lines
-                    if len(context_before) > 10:
+                    # Keep only last N context lines (N = context_lines requested)
+                    if context_lines > 0 and len(context_before) > context_lines:
                         context_before.pop(0)
 
         except (json.JSONDecodeError, KeyError):
@@ -337,7 +339,7 @@ def _execute_search(
                     f"Ripgrep failed with code {result.returncode}: {result.stderr}"
                 )
 
-            return _parse_ripgrep_output(result.stdout)
+            return _parse_ripgrep_output(result.stdout, context_lines)
 
         else:
             # Fallback to grep
