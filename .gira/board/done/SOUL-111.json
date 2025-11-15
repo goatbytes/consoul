@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-14T22:33:24.436775",
-  "updated_at": "2025-11-15T07:29:19.466500Z",
+  "updated_at": "2025-11-15T17:50:33.263246Z",
   "id": "SOUL-111",
   "uuid": "dbfb3549-73f6-4690-8e7c-7a4bb1b3a79c",
   "title": "Create documentation and examples for file editing tools",
   "description": "**As a** Consoul user and developer\n**I want** comprehensive documentation for file editing features\n**So that** I understand how to use the tools effectively and configure them securely\n\n**Context:**\nFile editing is a powerful feature that needs:\n- User guide for tool usage patterns\n- Configuration reference\n- Security best practices\n- Examples for common workflows\n- Troubleshooting guide\n\nDocumentation should follow existing Consoul docs structure and include both user-facing and developer docs.\n\n**Technical Notes:**\n- Create docs/file-editing.md (user guide)\n- Update docs/tools.md with file editing tool reference\n- Add examples to docs/examples/file-editing/ directory\n- Update README.md to mention file editing capabilities\n- Add security section to SECURITY.md about file operations\n\nDocumentation sections needed:\n1. Overview and use cases\n2. Tool reference (edit_file_lines, edit_file_search_replace, create_file, etc.)\n3. Configuration options (FileEditToolConfig)\n4. Security and permissions\n5. Progressive matching explained\n6. Workflow examples\n7. Troubleshooting common issues\n\n**Acceptance Criteria:**\n\n**Given** user reads docs/file-editing.md\n**When** they want to understand file editing\n**Then** they find clear explanation of all tools with examples\n\n**Given** developer configures FileEditToolConfig\n**When** they reference documentation\n**Then** they find all config options with descriptions and defaults\n\n**Given** user encounters \"no match\" error\n**When** they check troubleshooting section\n**Then** they find explanation of tolerance levels and how to fix\n\n**Given** user wants to see workflow examples\n**When** they check docs/examples/file-editing/\n**Then** they find working Python scripts for common patterns\n\n**Given** security-conscious user reviews SECURITY.md\n**When** they read file operations section\n**Then** they understand path validation, extension filtering, and approval requirements\n\n**Testing Considerations:**\n- Verify all code examples work\n- Check links are valid\n- Ensure examples match actual tool signatures\n- Test example configs are valid YAML\n\n**Implementation Hints:**\n\ndocs/file-editing.md structure:\n- Overview of file editing capabilities\n- Tool reference with signatures and examples\n- Configuration guide\n- Security and permissions\n- Common workflows\n- Troubleshooting guide\n\nExample scripts in docs/examples/file-editing/:\n- simple_edit.py - Basic line editing\n- search_replace.py - Search/replace with tolerance\n- refactoring.py - Multi-file refactoring workflow\n- config_examples.yaml - Sample configurations\n\nDependencies: SOUL-104, SOUL-105, SOUL-106, SOUL-107",
-  "status": "todo",
+  "status": "done",
   "type": "task",
   "priority": "medium",
   "labels": [
@@ -22,10 +22,24 @@
     "SOUL-107"
   ],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-15T09:50:26.085686",
+      "updated_at": "2025-11-15T09:50:26.085686",
+      "id": "20251115095026-bdb60b8a",
+      "ticket_id": "SOUL-111",
+      "author": "jared@goatbytes.io",
+      "content": "Comprehensive file editing documentation completed and committed (9cbb752).\n\nDeliverables:\n✅ docs/user-guide/file-editing.md (800+ lines)\n   - Complete guide covering all 5 tools\n   - Configuration reference\n   - Security & permissions\n   - Progressive matching explained\n   - Common workflows\n   - Troubleshooting\n\n✅ docs/tools.md updated (~140 lines added)\n   - File editing section with quick reference\n   - Progressive matching table\n   - Configuration examples\n   - Multi-language support table updated\n\n✅ SECURITY.md updated (~190 lines added)\n   - File operations security section\n   - Path validation details\n   - Threat model\n   - Security checklist\n   - Configuration best practices\n\n✅ README.md updated\n   - Added file editing to features list\n\n✅ Working examples created (docs/examples/file-editing/)\n   - simple_edit.py: Natural language editing\n   - search_replace.py: Progressive matching demos\n   - refactoring.py: Multi-file workflows\n   - config_examples.yaml: 8 environment configs\n   - README.md: Examples guide\n\nAll acceptance criteria met:\n✅ User guide with clear tool explanations\n✅ All config options documented with defaults\n✅ Troubleshooting explains tolerance levels\n✅ Working example scripts in docs/examples/\n✅ Security section explains validation & approval\n\nTotal documentation: ~2600+ lines\nCommit: 9cbb752",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 3,
   "order": 0,
   "custom_fields": {}
