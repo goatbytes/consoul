@@ -47,6 +47,13 @@ from consoul.ai.tools.exceptions import (
 )
 from consoul.ai.tools.implementations.bash import bash_execute
 from consoul.ai.tools.implementations.code_search import code_search
+from consoul.ai.tools.implementations.file_edit import (
+    append_to_file,
+    create_file,
+    delete_file,
+    edit_file_lines,
+    edit_file_search_replace,
+)
 from consoul.ai.tools.implementations.find_references import find_references
 from consoul.ai.tools.implementations.grep_search import grep_search
 from consoul.ai.tools.implementations.read_url import read_url
@@ -95,8 +102,13 @@ __all__ = [
     "ToolValidationError",
     "WhitelistManager",
     "WhitelistPattern",
+    "append_to_file",
     "bash_execute",
     "code_search",
+    "create_file",
+    "delete_file",
+    "edit_file_lines",
+    "edit_file_search_replace",
     "find_references",
     "grep_search",
     "has_tool_calls",

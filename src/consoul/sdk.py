@@ -24,8 +24,13 @@ from consoul.ai import ConversationHistory, get_chat_model
 from consoul.ai.tools import (
     RiskLevel,
     ToolRegistry,
+    append_to_file,
     bash_execute,
     code_search,
+    create_file,
+    delete_file,
+    edit_file_lines,
+    edit_file_search_replace,
     find_references,
     grep_search,
 )
@@ -268,6 +273,32 @@ class Consoul:
         self.registry.register(
             tool=find_references,
             risk_level=RiskLevel.SAFE,
+        )
+
+        # Register file edit tools
+        self.registry.register(
+            tool=create_file,
+            risk_level=RiskLevel.CAUTION,
+        )
+
+        self.registry.register(
+            tool=edit_file_lines,
+            risk_level=RiskLevel.CAUTION,
+        )
+
+        self.registry.register(
+            tool=edit_file_search_replace,
+            risk_level=RiskLevel.CAUTION,
+        )
+
+        self.registry.register(
+            tool=append_to_file,
+            risk_level=RiskLevel.CAUTION,
+        )
+
+        self.registry.register(
+            tool=delete_file,
+            risk_level=RiskLevel.DANGEROUS,
         )
 
         # Bind tools to model
