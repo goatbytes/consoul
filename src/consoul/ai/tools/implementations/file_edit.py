@@ -709,9 +709,6 @@ def create_file(
                 error=error_msg,
             ).to_json()
 
-        # Create parent directories if they don't exist
-        path.parent.mkdir(parents=True, exist_ok=True)
-
         # If dry_run, generate preview and return without modifying file
         if dry_run:
             # For new files, show all content with "new file" marker
@@ -728,6 +725,9 @@ def create_file(
                 bytes_written=payload_bytes,
                 preview=preview,
             ).to_json()
+
+        # Create parent directories if they don't exist
+        path.parent.mkdir(parents=True, exist_ok=True)
 
         # Atomic write using existing helper
         _atomic_write(path, content, encoding=encoding)
@@ -1294,8 +1294,7 @@ def append_to_file(
                     error=f"File not found: {file_path}. Set create_if_missing=True to create it.",
                 ).to_json()
 
-            # Create parent directories if needed
-            path.parent.mkdir(parents=True, exist_ok=True)
+            # For dry_run, don't create directories yet
             original_content = ""
         else:
             # Read existing content preserving line endings (newline="" preserves CRLF/LF)
@@ -1334,6 +1333,10 @@ def append_to_file(
                 bytes_written=payload_bytes,
                 preview=preview,
             ).to_json()
+
+        # Create parent directories if needed (only when actually writing)
+        if not file_exists:
+            path.parent.mkdir(parents=True, exist_ok=True)
 
         # Atomic write
         _atomic_write(path, final_content, encoding=config.default_encoding)
