@@ -411,7 +411,20 @@ class SettingsScreen(ModalScreen[bool]):
 
     def on_mount(self) -> None:
         """Initialize settings screen after mounting."""
+        # Mark as mounted FIRST to prevent any change events from being processed
+        # while we're still initializing values
+        self._mounted = False  # Keep disabled during initialization
+
         self._update_save_location()
+
+        # Verify theme select has correct value
+        try:
+            theme_select = self.query_one("#setting-theme", Select)
+            # If value doesn't match config, force it
+            if str(theme_select.value) != self.config.theme:
+                theme_select.value = self.config.theme
+        except Exception:
+            pass
 
         # Set initial radio button selections
         # GC mode
@@ -442,7 +455,7 @@ class SettingsScreen(ModalScreen[bool]):
         except Exception:
             pass
 
-        # Mark as fully mounted to enable preview handlers
+        # NOW enable preview handlers - all initialization is complete
         self._mounted = True
 
     async def on_select_changed(self, event: Select.Changed) -> None:

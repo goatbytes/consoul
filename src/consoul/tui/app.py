@@ -447,9 +447,10 @@ class ConsoulApp(App[None]):
 
         Sets up GC management and validates theme.
         """
-        # Validate theme (can safely notify now that message pump is running)
+        # Apply theme from config
         try:
             _ = load_theme(self.config.theme)  # type: ignore[arg-type]
+            self.theme = self.config.theme
         except FileNotFoundError:
             self.notify(
                 f"Theme '{self.config.theme}' not found, using default",
