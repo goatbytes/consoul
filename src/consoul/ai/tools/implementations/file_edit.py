@@ -1244,9 +1244,10 @@ def append_to_file(
         # Smart newline separator:
         # - Empty file: no separator
         # - Ends with newline: no separator
-        # - Doesn't end with newline: add separator
+        # - Doesn't end with newline: add separator matching file's line ending convention
         if original_content and not original_content.endswith(("\n", "\r\n")):
-            separator = "\n"
+            # Detect line ending convention from existing content
+            separator = "\r\n" if "\r\n" in original_content else "\n"
         else:
             separator = ""
 

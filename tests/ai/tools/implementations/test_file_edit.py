@@ -2063,6 +2063,28 @@ class TestAppendToFile:
         content = file.read_bytes()
         assert b"\r\n" in content
 
+    def test_append_crlf_without_trailing_newline(self, tmp_path):
+        """Test CRLF separator used when file lacks trailing newline."""
+        file = tmp_path / "crlf_no_trailing.txt"
+        # CRLF file without trailing newline
+        file.write_bytes(b"line1\r\nline2")
+
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "line3",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # Should insert CRLF separator, not LF
+        content = file.read_bytes()
+        assert content == b"line1\r\nline2\r\nline3"
+        # Verify no mixed line endings (no lone \n)
+        assert b"line2\nline3" not in content
+
     def test_append_preserves_lf(self, tmp_path):
         """Test LF line endings are preserved."""
         file = tmp_path / "lf.txt"
