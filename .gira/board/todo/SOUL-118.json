@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-11-15T00:47:41.026534",
+  "updated_at": "2025-11-15T00:47:41.026546",
+  "id": "SOUL-118",
+  "uuid": "c5b88f46-4694-4d76-b876-44bacf425819",
+  "title": "Add vision model capability detection",
+  "description": "**As a** Consoul system\n**I want** automatic detection of vision/multimodal capabilities per model\n**So that** image analysis tools are only enabled for compatible models\n\n**Context:**\nNot all AI models support vision/image analysis:\n- ✅ Claude 3 Opus, Sonnet, Haiku, Claude 3.5 Sonnet\n- ✅ GPT-4o, GPT-4o-mini, gpt-4-vision-preview\n- ✅ Gemini 2.0 Flash, Gemini 1.5 Pro, gemini-pro-vision\n- ✅ Ollama: llava, bakllava, llava-phi3\n- ❌ GPT-3.5-turbo, GPT-4-turbo (text-only), Claude 2\n\nThe system should detect model capabilities and:\n1. Enable/disable image analysis tool automatically\n2. Show clear error if user tries to analyze images with text-only model\n3. Suggest compatible models if vision is requested\n\n**Technical Notes:**\n- src/consoul/ai/capabilities.py - New module for capability detection\n- Maintain model capability database (vision support, context length, etc.)\n- Use model name patterns for detection\n- Fall back to provider documentation if model is unknown\n- Cache capability lookups for performance\n- Consider LangChain model introspection (if available)\n\n**Acceptance Criteria:**\n\n**Given** I'm using claude-3-5-sonnet-20241022\n**When** capabilities are checked\n**Then** vision=True is detected\n\n**Given** I'm using gpt-3.5-turbo\n**When** capabilities are checked\n**Then** vision=False is detected\n\n**Given** I'm using an unknown model \"new-model-v1\"\n**When** capabilities are checked\n**Then** vision=False (conservative default) with warning log\n\n**Given** I try to analyze an image with gpt-3.5-turbo\n**When** the request is processed\n**Then** I get error: \"Model gpt-3.5-turbo doesn't support image analysis. Try: gpt-4o, claude-3-5-sonnet\"\n\n**Given** capabilities are checked multiple times\n**When** for the same model\n**Then** results are cached (no repeated lookups)\n\n**Testing Considerations:**\n- Test detection for all supported models\n- Test unknown model handling\n- Test capability caching\n- Test error messages are helpful\n- Mock model introspection\n- Verify provider-specific patterns\n\n**Implementation Hints:**\n```python\nfrom dataclasses import dataclass\nfrom functools import lru_cache\nfrom consoul.config.models import Provider\n\n@dataclass\nclass ModelCapabilities:\n    vision: bool = False\n    max_context_tokens: int | None = None\n    supports_streaming: bool = True\n    supports_tools: bool = True\n\nVISION_MODEL_PATTERNS = {\n    Provider.ANTHROPIC: [\"claude-3\", \"claude-3.5\"],\n    Provider.OPENAI: [\"gpt-4o\", \"gpt-4-vision\"],\n    Provider.GOOGLE: [\"gemini-2.0\", \"gemini-1.5\", \"gemini-pro-vision\"],\n    Provider.OLLAMA: [\"llava\", \"bakllava\"],\n}\n\n@lru_cache(maxsize=128)\ndef get_model_capabilities(model_name: str, provider: Provider) -> ModelCapabilities:\n    \"\"\"Detect capabilities for a given model.\"\"\"\n    vision = _supports_vision(model_name, provider)\n    \n    return ModelCapabilities(\n        vision=vision,\n        max_context_tokens=_get_context_length(model_name),\n        supports_streaming=True,  # Most models support this\n        supports_tools=_supports_tools(model_name, provider),\n    )\n\ndef _supports_vision(model_name: str, provider: Provider) -> bool:\n    patterns = VISION_MODEL_PATTERNS.get(provider, [])\n    return any(pattern in model_name.lower() for pattern in patterns)\n\ndef suggest_vision_models(provider: Provider) -> list[str]:\n    \"\"\"Suggest vision-capable models for a provider.\"\"\"\n    suggestions = {\n        Provider.ANTHROPIC: [\"claude-3-5-sonnet-20241022\", \"claude-3-opus-20240229\"],\n        Provider.OPENAI: [\"gpt-4o\", \"gpt-4o-mini\"],\n        Provider.GOOGLE: [\"gemini-2.0-flash\", \"gemini-1.5-pro\"],\n        Provider.OLLAMA: [\"llava:latest\", \"bakllava:latest\"],\n    }\n    return suggestions.get(provider, [])\n```\n\nFiles to create:\n- src/consoul/ai/capabilities.py\n- tests/ai/test_capabilities.py\n\nDependencies: None (foundational)",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "ai",
+    "providers",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-007",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

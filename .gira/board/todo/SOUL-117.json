@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-11-15T00:47:15.381711",
+  "updated_at": "2025-11-15T00:47:15.381719",
+  "id": "SOUL-117",
+  "uuid": "cf5becbb-3e26-414b-9e31-2c3a5de2cfcd",
+  "title": "Add permission approval UI for image analysis",
+  "description": "**As a** Consoul user\n**I want** to approve image uploads before they're sent to the LLM\n**So that** I maintain control over which images are shared with AI providers\n\n**Context:**\nImage analysis involves reading local files and sending them to external APIs. This requires explicit user approval for:\n1. Privacy: User should know which images are being uploaded\n2. Cost: Vision API calls may be more expensive than text\n3. Security: Prevent accidental leakage of sensitive screenshots\n\nThe approval flow should show:\n- Which images are being analyzed (file paths)\n- Their sizes\n- The destination provider\n- Privacy implications\n\n**Technical Notes:**\n- src/consoul/tui/screens/approval.py - Approval modal screen\n- src/consoul/ai/tools/approval.py - ToolApprovalRequest structure\n- Risk Level: CAUTION (requires once-per-session approval)\n- Show image file paths, sizes, and total count\n- Warn about privacy: \"Images will be sent to {provider}\"\n- Option to \"Always allow image analysis\" (session-only)\n- Integrate with existing approval provider pattern\n\n**Acceptance Criteria:**\n\n**Given** I trigger image analysis for the first time in a session\n**When** analyze_images tool is called\n**Then** approval modal appears with image details\n\n**Given** approval modal shows 2 images (screenshot.png 1.2MB, diagram.png 800KB)\n**When** I review the request\n**Then** I see clear file paths, sizes, and privacy warning\n\n**Given** I approve the image analysis request\n**When** I click \"Approve\"\n**Then** images are sent to LLM and modal closes\n\n**Given** I deny the image analysis request\n**When** I click \"Deny\"\n**Then** tool execution is cancelled with user-friendly message\n\n**Given** I check \"Always allow image analysis\"\n**When** I approve\n**Then** subsequent image analysis in the same session doesn't require approval\n\n**Testing Considerations:**\n- Test approval modal rendering\n- Test file path/size display\n- Test session-level approval caching\n- Test denial flow (graceful error)\n- Mock TUI interaction for approval tests\n- Verify privacy warnings are clear\n\n**Implementation Hints:**\n```python\n# In approval.py\n@dataclass\nclass ImageAnalysisApprovalRequest(ToolApprovalRequest):\n    image_paths: list[str]\n    image_sizes: list[int]  # bytes\n    provider: str\n    \n    def get_summary(self) -> str:\n        total_size_mb = sum(self.image_sizes) / (1024 * 1024)\n        return (\n            f\"Analyze {len(self.image_paths)} image(s) using {self.provider}\\n\"\n            f\"Total size: {total_size_mb:.1f} MB\\n\\n\"\n            f\"Files:\\n\" + \n            \"\\n\".join(\n                f\"  • {Path(p).name} ({s/1024:.0f} KB)\"\n                for p, s in zip(self.image_paths, self.image_sizes)\n            ) +\n            f\"\\n\\n⚠️  Images will be sent to {self.provider} API\"\n        )\n\n# In TUI approval screen\nclass ImageAnalysisApprovalModal(ModalScreen):\n    def compose(self) -> ComposeResult:\n        yield Static(self.request.get_summary())\n        yield Horizontal(\n            Button(\"Approve\", variant=\"success\", id=\"approve\"),\n            Button(\"Deny\", variant=\"error\", id=\"deny\"),\n        )\n        yield Checkbox(\"Always allow image analysis (this session)\")\n```\n\nFiles to modify:\n- src/consoul/ai/tools/approval.py\n- src/consoul/tui/screens/approval.py\n- tests/ai/tools/test_approval.py\n- tests/tui/test_approval_modal.py\n\nDependencies: SOUL-115 (tool registry integration)",
+  "status": "todo",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "security",
+    "ux-improvement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-007",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

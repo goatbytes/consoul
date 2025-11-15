@@ -1656,6 +1656,7 @@ class TestEditFileSearchReplace:
         assert data["status"] == "validation_failed"
         assert "Overlapping" in data["error"]
 
+
 class TestDeleteFile:
     """Integration tests for delete_file tool."""
 
@@ -1672,6 +1673,7 @@ class TestDeleteFile:
         assert "timestamp" in data
         # Verify ISO format timestamp
         from datetime import datetime
+
         datetime.fromisoformat(data["timestamp"])  # Should not raise
 
         # Verify file was actually deleted
@@ -1763,6 +1765,7 @@ class TestDeleteFile:
     def test_delete_relative_path(self, tmp_path):
         """Test deletion with relative path."""
         import os
+
         original_cwd = os.getcwd()
         try:
             os.chdir(tmp_path)
@@ -1786,6 +1789,7 @@ class TestDeleteFile:
 
         data = json.loads(result)
         from pathlib import Path
+
         assert Path(data["path"]).is_absolute()
 
     def test_delete_timestamp_format(self, tmp_path):
@@ -1798,7 +1802,11 @@ class TestDeleteFile:
         data = json.loads(result)
         # Should be ISO format with timezone
         assert "T" in data["timestamp"]
-        assert "+" in data["timestamp"] or "Z" in data["timestamp"] or data["timestamp"].endswith("+00:00")
+        assert (
+            "+" in data["timestamp"]
+            or "Z" in data["timestamp"]
+            or data["timestamp"].endswith("+00:00")
+        )
 
     def test_delete_config_integration(self, tmp_path):
         """Test that delete_file uses FileEditToolConfig."""
@@ -1829,10 +1837,12 @@ class TestAppendToFile:
         file = tmp_path / "append.txt"
         file.write_text("line1\nline2\n")
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "line3",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "line3",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -1847,10 +1857,12 @@ class TestAppendToFile:
         file = tmp_path / "test.txt"
         file.write_text("no trailing newline")
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "appended line",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "appended line",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -1863,10 +1875,12 @@ class TestAppendToFile:
         file = tmp_path / "test.txt"
         file.write_text("has trailing newline\n")
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "appended line",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "appended line",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -1880,10 +1894,12 @@ class TestAppendToFile:
         file = tmp_path / "empty.txt"
         file.write_text("")
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "first line",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "first line",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -1895,11 +1911,13 @@ class TestAppendToFile:
         """Test creating file when create_if_missing=True."""
         file = tmp_path / "new_file.txt"
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "new content",
-            "create_if_missing": True,
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "new content",
+                "create_if_missing": True,
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -1912,11 +1930,13 @@ class TestAppendToFile:
         """Test error when file missing and create_if_missing=False."""
         file = tmp_path / "missing.txt"
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "content",
-            "create_if_missing": False,
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "content",
+                "create_if_missing": False,
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "validation_failed"
@@ -1930,11 +1950,13 @@ class TestAppendToFile:
         """Test parent directories are created when needed."""
         file = tmp_path / "deep" / "nested" / "dirs" / "file.txt"
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "content",
-            "create_if_missing": True,
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "content",
+                "create_if_missing": True,
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -1953,10 +1975,12 @@ class TestAppendToFile:
         set_file_edit_config(FileEditToolConfig(max_payload_bytes=600))
 
         # Try to append 200 bytes (total would be 700)
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "y" * 200,
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "y" * 200,
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "validation_failed"
@@ -1973,10 +1997,12 @@ class TestAppendToFile:
         file = tmp_path / "crlf.txt"
         file.write_bytes(b"line1\r\nline2\r\n")
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "line3",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "line3",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -1990,10 +2016,12 @@ class TestAppendToFile:
         file = tmp_path / "lf.txt"
         file.write_bytes(b"line1\nline2\n")
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "line3",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "line3",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -2008,10 +2036,12 @@ class TestAppendToFile:
         file = tmp_path / "test.txt"
         file.write_text("original")
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "appended",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "appended",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -2025,10 +2055,12 @@ class TestAppendToFile:
         file = tmp_path / "test.txt"
         file.write_text("content\n")
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "more",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "more",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -2037,6 +2069,7 @@ class TestAppendToFile:
 
         # Verify checksum is correct
         import hashlib
+
         expected = hashlib.sha256(file.read_bytes()).hexdigest()
         assert data["checksum"] == expected
 
@@ -2047,10 +2080,12 @@ class TestAppendToFile:
         file.write_text(original)
 
         appended = "new content"
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": appended,
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": appended,
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -2067,10 +2102,12 @@ class TestAppendToFile:
         # Set config with blocked path
         set_file_edit_config(FileEditToolConfig(blocked_paths=[str(tmp_path)]))
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "should not append",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "should not append",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "validation_failed"
@@ -2084,10 +2121,12 @@ class TestAppendToFile:
 
     def test_append_path_traversal(self, tmp_path):
         """Test path traversal attempts are blocked."""
-        result = append_to_file.invoke({
-            "file_path": "../../../tmp/malicious.txt",
-            "content": "bad content",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": "../../../tmp/malicious.txt",
+                "content": "bad content",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "validation_failed"
@@ -2101,10 +2140,12 @@ class TestAppendToFile:
         # Set config to only allow .txt files
         set_file_edit_config(FileEditToolConfig(allowed_extensions=[".txt"]))
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "echo hello",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "echo hello",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "validation_failed"
@@ -2121,10 +2162,12 @@ class TestAppendToFile:
         file = tmp_path / "unicode.txt"
         file.write_text("Hello 世界\n", encoding="utf-8")
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "Привет мир",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "Привет мир",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -2146,10 +2189,12 @@ class TestAppendToFile:
         )
         set_file_edit_config(config)
 
-        result = append_to_file.invoke({
-            "file_path": str(file),
-            "content": "line2",
-        })
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "line2",
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
