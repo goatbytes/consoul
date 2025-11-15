@@ -61,6 +61,7 @@ dependencies = [
     "tree-sitter>=0.25.0",
     "tree-sitter-language-pack>=0.11.0",
     "diskcache>=5.6.0",
+    "duckduckgo-search>=7.0.0",
 ]
 
 [project.optional-dependencies]
@@ -126,6 +127,9 @@ grep-ast = "^0.9.0"                    # AST parsing and tag extraction (used by
 tree-sitter = "^0.25.0"                # Tree-sitter parser core
 tree-sitter-language-pack = "^0.11.0"  # Multi-language parser bundle (100+ languages)
 diskcache = "^5.6.0"                   # SQLite-backed disk caching
+
+# Web search dependencies
+duckduckgo-search = "^7.0.0"           # Free web search via DuckDuckGo (zero setup)
 
 [tool.poetry.extras]
 pdf = ["pypdf"]

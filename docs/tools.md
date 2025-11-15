@@ -11,6 +11,7 @@ Comprehensive guide to Consoul's tool calling system for AI-powered command exec
   - [code_search](#code_search)
   - [find_references](#find_references)
   - [read_file](#read_file)
+  - [web_search](#web_search)
 - [Quick Start](#quick-start)
 - [Security Model](#security-model)
 - [Configuration](#configuration)
@@ -361,8 +362,9 @@ Go:
 - JavaScript/TypeScript (.js, .jsx, .ts, .tsx) - Full support
 - Go (.go) - Full support
 - Kotlin (.kt) - Full support
+- Java (.java) - Full support
 
-**Note:** While code_search supports Rust, Java, and C/C++, find_references currently only implements reference detection for Python, JavaScript/TypeScript, Go, and Kotlin. Use grep_search for text-based reference finding in other languages.
+**Note:** While code_search supports Rust and C/C++, find_references currently only implements reference detection for Python, JavaScript/TypeScript, Go, Kotlin, and Java. Use grep_search for text-based reference finding in other languages.
 
 **Scope Options:**
 
@@ -516,6 +518,109 @@ tools:
 | `PDF reading is disabled` | PDF support off | Set `enable_pdf: true` in config |
 | `Output truncated` | File exceeds limits | Adjust `max_lines_default` or use offset/limit |
 | `Line truncated` | Line too long | Increase `max_line_length` in config |
+
+### web_search
+
+Search the web using DuckDuckGo's free API (zero setup required).
+
+**Capabilities:**
+- Free web search with no API keys or authentication
+- Privacy-focused (DuckDuckGo doesn't track searches)
+- Returns structured JSON with title, snippet, and link
+- Configurable result count (1-10 results)
+- SafeSearch filtering (strict/moderate/off)
+- Regional search support
+
+**Risk Level**: SAFE (read-only web queries, no system modification)
+
+**Example:**
+```python
+from consoul.ai.tools.implementations import web_search
+
+# Tools are LangChain StructuredTool instances; call via .invoke()
+# Basic search
+result = web_search.invoke({"query": "Python programming tutorials"})
+
+# Search with custom result count
+result = web_search.invoke({
+    "query": "LangChain documentation",
+    "max_results": 3
+})
+
+# Search with SafeSearch strict mode
+result = web_search.invoke({
+    "query": "machine learning",
+    "max_results": 5,
+    "safesearch": "strict"
+})
+```
+
+**Response Format:**
+```json
+[
+  {
+    "title": "Python Tutorial - GeeksforGeeks",
+    "snippet": "Learn Python programming with tutorials, examples, and exercises...",
+    "link": "https://www.geeksforgeeks.org/python/..."
+  },
+  {
+    "title": "How to Use Python: Your First Steps",
+    "snippet": "Start your Python journey with this beginner-friendly guide...",
+    "link": "https://realpython.com/python-first-steps/"
+  }
+]
+```
+
+**Configuration:**
+```yaml
+tools:
+  enabled: true
+  web_search:
+    max_results: 5           # Number of results (1-10)
+    region: "wt-wt"          # Region code ("wt-wt" = global, "us-en" = US English)
+    safesearch: "moderate"   # Filter level: "strict", "moderate", or "off"
+    timeout: 10              # Request timeout in seconds (max 30)
+```
+
+**Common Use Cases:**
+- Finding documentation and tutorials
+- Researching current events or recent information
+- Looking up error messages and solutions
+- Discovering libraries and tools
+- Finding code examples and best practices
+- Researching technical topics
+
+**Advantages:**
+- ✅ **Zero Setup**: No API keys, no authentication, works immediately
+- ✅ **Free**: Completely free with no usage limits (soft rate limits may apply)
+- ✅ **Privacy**: DuckDuckGo doesn't track your searches
+- ✅ **Simple**: Easy to use with minimal configuration
+
+**Limitations:**
+- ⚠️ **Rate Limiting**: Soft rate limits may apply (no hard documented limits)
+- ⚠️ **Result Quality**: May vary compared to paid APIs like Google Custom Search
+- ⚠️ **No Advanced Features**: No engine selection, categories, or image search (for advanced features, see SOUL-100 for SearxNG support)
+
+**Troubleshooting:**
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Web search failed: Network error` | No internet connection | Check network connectivity |
+| `Web search failed: Rate limiting` | Too many requests | Wait a few moments and retry |
+| `max_results must be between 1 and 10` | Invalid parameter | Use value between 1-10 |
+| `safesearch must be 'strict', 'moderate', or 'off'` | Invalid parameter | Use valid safesearch value |
+
+**Future Enhancements:**
+See SOUL-100 for planned SearxNG integration, which adds:
+- Self-hosted search aggregation (135+ engines)
+- Engine-specific searches (GitHub, Stack Overflow, arXiv)
+- Category filtering (images, news, code, academic)
+- Complete privacy control
+
+---
+
+| Error | Cause | Solution |
+|-------|-------|----------|
 | `PDF has no extractable text` | Scanned/image PDF | PDF is scanned or contains only images |
 
 **PDF Support:**
@@ -606,7 +711,7 @@ Support matrix for all available tools:
 - ❌ No support - Tool doesn't work for this file type
 - \* Requires `pypdf` package (install with `pip install consoul[pdf]`)
 
-**Note:** find_references supports Python, JavaScript/TypeScript, Go, and Kotlin. For Rust, Java, and C/C++, use grep_search for text-based reference finding.
+**Note:** find_references supports Python, JavaScript/TypeScript, Go, Kotlin, and Java. For Rust and C/C++, use grep_search for text-based reference finding.
 
 ### Common Workflows
 

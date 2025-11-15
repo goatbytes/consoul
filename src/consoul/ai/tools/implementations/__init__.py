@@ -31,6 +31,11 @@ from consoul.ai.tools.implementations.read import (
     read_file,
     set_read_config,
 )
+from consoul.ai.tools.implementations.web_search import (
+    get_web_search_config,
+    set_web_search_config,
+    web_search,
+)
 
 __all__ = [
     "bash_execute",
@@ -41,6 +46,7 @@ __all__ = [
     "get_find_references_config",
     "get_grep_search_config",
     "get_read_config",
+    "get_web_search_config",
     "grep_search",
     "read_file",
     "set_bash_config",
@@ -48,4 +54,6 @@ __all__ = [
     "set_find_references_config",
     "set_grep_search_config",
     "set_read_config",
+    "set_web_search_config",
+    "web_search",
 ]

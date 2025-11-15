@@ -49,6 +49,7 @@ from consoul.ai.tools.implementations.bash import bash_execute
 from consoul.ai.tools.implementations.code_search import code_search
 from consoul.ai.tools.implementations.find_references import find_references
 from consoul.ai.tools.implementations.grep_search import grep_search
+from consoul.ai.tools.implementations.web_search import web_search
 from consoul.ai.tools.parser import (
     ParsedToolCall,
     has_tool_calls,
@@ -99,4 +100,5 @@ __all__ = [
     "grep_search",
     "has_tool_calls",
     "parse_tool_calls",
+    "web_search",
 ]

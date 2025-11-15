@@ -542,6 +542,46 @@ class FindReferencesToolConfig(BaseModel):
     )
 
 
+class WebSearchToolConfig(BaseModel):
+    """Configuration for web_search tool execution.
+
+    Controls web search behavior via DuckDuckGo (zero setup required).
+    No API keys needed - completely free web search integration.
+
+    Example:
+        >>> config = WebSearchToolConfig(
+        ...     max_results=10,
+        ...     safesearch="strict",
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    max_results: int = Field(
+        default=5,
+        gt=0,
+        le=10,
+        description="Maximum number of search results to return (1-10)",
+    )
+    region: str = Field(
+        default="wt-wt",
+        description="Region code for search results (default 'wt-wt' for global)",
+    )
+    safesearch: Literal["strict", "moderate", "off"] = Field(
+        default="moderate",
+        description="SafeSearch filter level",
+    )
+    timeout: int = Field(
+        default=10,
+        gt=0,
+        le=30,
+        description="Request timeout in seconds (max 30s)",
+    )
+
+
 class ReadToolConfig(BaseModel):
     """Configuration for read file tool.
 
@@ -721,6 +761,10 @@ class ToolConfig(BaseModel):
     find_references: FindReferencesToolConfig = Field(
         default_factory=FindReferencesToolConfig,
         description="Find references tool-specific configuration",
+    )
+    web_search: WebSearchToolConfig = Field(
+        default_factory=WebSearchToolConfig,
+        description="Web search tool-specific configuration",
     )
     read: ReadToolConfig = Field(
         default_factory=ReadToolConfig,
