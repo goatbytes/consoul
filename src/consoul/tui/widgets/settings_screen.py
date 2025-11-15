@@ -179,6 +179,7 @@ class SettingsScreen(ModalScreen[bool]):
         self._original_config = config.model_copy(deep=True)
         self._applying = False
         self._mounted = False
+        self._theme_preview_timer: asyncio.Task[None] | None = None
 
     def compose(self) -> ComposeResult:
         """Compose the settings screen layout."""
@@ -451,8 +452,17 @@ class SettingsScreen(ModalScreen[bool]):
             return
 
         if event.select.id == "setting-theme":
-            # Live preview theme change
-            await self._apply_theme_preview(str(event.value))
+            # Debounce theme preview to avoid flickering during arrow key navigation
+            # Cancel any pending preview
+            if self._theme_preview_timer is not None:
+                self._theme_preview_timer.cancel()
+
+            # Schedule preview after 300ms delay
+            async def delayed_preview() -> None:
+                await asyncio.sleep(0.3)
+                await self._apply_theme_preview(str(event.value))
+
+            self._theme_preview_timer = asyncio.create_task(delayed_preview())
 
     async def on_switch_changed(self, event: Switch.Changed) -> None:
         """Handle switch widget changes."""
