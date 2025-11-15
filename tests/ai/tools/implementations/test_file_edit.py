@@ -1389,6 +1389,58 @@ class TestEditFileSearchReplace:
         # Indentation should be preserved
         assert file.read_text() == "    def bar():\n        return\n"
 
+    def test_tab_indentation_preserved(self, tmp_path):
+        """Test that tab indentation is preserved during whitespace-tolerant match."""
+        file = tmp_path / "test.py"
+        file.write_text("\tdef foo():\n\t\tpass\n")
+
+        # Search without tabs - should match and preserve tabs
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [
+                    {
+                        "search": "def foo():\n    pass",
+                        "replace": "def bar():\n    return",
+                    }
+                ],
+                "tolerance": "whitespace",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        # Tabs should be preserved (not converted to spaces)
+        content = file.read_text()
+        assert content == "\tdef bar():\n\t\treturn\n"
+        assert "\t" in content
+        assert "    " not in content  # No 4 spaces
+
+    def test_space_indentation_not_converted_to_tabs(self, tmp_path):
+        """Test that space indentation is not converted to tabs."""
+        file = tmp_path / "test.py"
+        file.write_text("    def foo():\n        pass\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [
+                    {
+                        "search": "def foo():\n    pass",
+                        "replace": "def bar():\n    return",
+                    }
+                ],
+                "tolerance": "whitespace",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        # Spaces should be preserved (not converted to tabs)
+        content = file.read_text()
+        assert content == "    def bar():\n        return\n"
+        assert "\t" not in content  # No tabs
+
     def test_fuzzy_match_typo(self, tmp_path):
         """Test fuzzy matching with typo."""
         file = tmp_path / "test.txt"

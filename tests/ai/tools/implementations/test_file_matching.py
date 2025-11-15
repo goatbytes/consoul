@@ -214,6 +214,38 @@ class TestWhitespaceTolerantMatch:
         assert len(matches) == 1
         assert matches[0].indentation_offset == 0
 
+    def test_tab_indentation_preserved(self):
+        """Test that tab indentation character is preserved."""
+        file_lines = ["\tdef foo():", "\t\tpass"]
+        search_lines = ["def foo():", "\tpass"]
+
+        matches = whitespace_tolerant_match(file_lines, search_lines)
+
+        assert len(matches) == 1
+        assert matches[0].indentation_offset == 1
+        assert matches[0].indentation_char == "\t"
+
+    def test_space_indentation_preserved(self):
+        """Test that space indentation character is preserved."""
+        file_lines = ["    def foo():", "        pass"]
+        search_lines = ["def foo():", "    pass"]
+
+        matches = whitespace_tolerant_match(file_lines, search_lines)
+
+        assert len(matches) == 1
+        assert matches[0].indentation_offset == 4
+        assert matches[0].indentation_char == " "
+
+    def test_mixed_tab_space_uses_first_char(self):
+        """Test that first indentation character is used for mixed indentation."""
+        file_lines = ["\t  line1"]  # Tab followed by spaces
+        search_lines = ["line1"]
+
+        matches = whitespace_tolerant_match(file_lines, search_lines)
+
+        assert len(matches) == 1
+        assert matches[0].indentation_char == "\t"
+
 
 class TestFuzzyMatch:
     """Tests for fuzzy_match function."""

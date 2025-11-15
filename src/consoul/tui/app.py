@@ -212,14 +212,20 @@ class ConsoulApp(App[None]):
                 if consoul_config.tools and consoul_config.tools.enabled:
                     from consoul.ai.tools import RiskLevel, ToolRegistry
                     from consoul.ai.tools.implementations import (
+                        append_to_file,
                         bash_execute,
                         code_search,
+                        create_file,
+                        delete_file,
+                        edit_file_lines,
+                        edit_file_search_replace,
                         find_references,
                         grep_search,
                         read_file,
                         read_url,
                         set_bash_config,
                         set_code_search_config,
+                        set_file_edit_config,
                         set_find_references_config,
                         set_grep_search_config,
                         set_read_config,
@@ -256,6 +262,10 @@ class ConsoulApp(App[None]):
                     # Configure read_url tool with profile settings
                     if consoul_config.tools.read_url:
                         set_read_url_config(consoul_config.tools.read_url)
+
+                    # Configure file_edit tool with profile settings
+                    if consoul_config.tools.file_edit:
+                        set_file_edit_config(consoul_config.tools.file_edit)
 
                     # Create registry with CLI provider (we override approval in _request_tool_approval)
                     # The provider is required by registry but we don't use it - we show our own modal
@@ -312,6 +322,42 @@ class ConsoulApp(App[None]):
                         read_url,
                         risk_level=RiskLevel.SAFE,
                         tags=["web", "readonly", "content"],
+                        enabled=True,
+                    )
+
+                    # Register file edit tools
+                    self.tool_registry.register(
+                        create_file,
+                        risk_level=RiskLevel.CAUTION,
+                        tags=["filesystem", "write"],
+                        enabled=True,
+                    )
+
+                    self.tool_registry.register(
+                        edit_file_lines,
+                        risk_level=RiskLevel.CAUTION,
+                        tags=["filesystem", "write", "edit"],
+                        enabled=True,
+                    )
+
+                    self.tool_registry.register(
+                        edit_file_search_replace,
+                        risk_level=RiskLevel.CAUTION,
+                        tags=["filesystem", "write", "edit"],
+                        enabled=True,
+                    )
+
+                    self.tool_registry.register(
+                        append_to_file,
+                        risk_level=RiskLevel.CAUTION,
+                        tags=["filesystem", "write"],
+                        enabled=True,
+                    )
+
+                    self.tool_registry.register(
+                        delete_file,
+                        risk_level=RiskLevel.DANGEROUS,
+                        tags=["filesystem", "delete"],
                         enabled=True,
                     )
 

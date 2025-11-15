@@ -27,6 +27,7 @@ class MatchResult:
         matched_lines: Actual lines that were matched from the file
         indentation_offset: Indentation difference for whitespace-tolerant matches
                            (positive = file more indented, negative = less indented)
+        indentation_char: The actual indentation character used (" " or "\t")
     """
 
     start_line: int
@@ -34,6 +35,7 @@ class MatchResult:
     confidence: float
     matched_lines: list[str]
     indentation_offset: int = 0
+    indentation_char: str = " "
 
 
 @dataclass
@@ -99,16 +101,26 @@ def exact_match(file_lines: list[str], search_lines: list[str]) -> list[MatchRes
     return matches
 
 
-def _get_indentation(line: str) -> int:
-    """Get the number of leading whitespace characters in a line.
+def _get_indentation(line: str) -> tuple[int, str]:
+    """Get the number and type of leading whitespace in a line.
 
     Args:
         line: The line to measure
 
     Returns:
-        Number of leading whitespace characters (spaces and tabs)
+        Tuple of (count, char) where:
+        - count: Number of leading whitespace characters
+        - char: The indentation character ("\t" or " "), defaults to " " if no indentation
     """
-    return len(line) - len(line.lstrip())
+    stripped = line.lstrip()
+    indent_len = len(line) - len(stripped)
+
+    if indent_len == 0:
+        return (0, " ")
+
+    # Determine character type from first whitespace character
+    first_char = line[0]
+    return (indent_len, first_char)
 
 
 def whitespace_tolerant_match(
@@ -149,13 +161,15 @@ def whitespace_tolerant_match(
         window_stripped = [line.strip() for line in window]
 
         if window_stripped == search_stripped:
-            # Calculate indentation offset (average of first non-empty line)
+            # Calculate indentation offset from first non-empty line
             offset = 0
+            indent_char = " "
             for file_line, search_line in zip(window, search_lines, strict=True):
                 if file_line.strip():  # Non-empty line
-                    file_indent = _get_indentation(file_line)
-                    search_indent = _get_indentation(search_line)
-                    offset = file_indent - search_indent
+                    file_indent_count, file_indent_char = _get_indentation(file_line)
+                    search_indent_count, _ = _get_indentation(search_line)
+                    offset = file_indent_count - search_indent_count
+                    indent_char = file_indent_char
                     break
 
             matches.append(
@@ -165,6 +179,7 @@ def whitespace_tolerant_match(
                     confidence=0.95,  # Slightly less than exact
                     matched_lines=window.copy(),
                     indentation_offset=offset,
+                    indentation_char=indent_char,
                 )
             )
 

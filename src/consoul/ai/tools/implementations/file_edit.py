@@ -27,6 +27,7 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from consoul.ai.tools.implementations.file_matching import (
+    _get_indentation,
     exact_match,
     find_similar_blocks,
     fuzzy_match,
@@ -954,23 +955,36 @@ def edit_file_search_replace(
                         )
 
                         # Auto-fix indentation in replacement
+                        # Strategy: For each line, copy the indentation from the corresponding
+                        # matched file line, preserving the indentation structure
                         if match.indentation_offset != 0:
-                            indent_str = " " * abs(match.indentation_offset)
                             replace_lines = replace_text.split("\n")
-                            if match.indentation_offset > 0:
-                                # Add indentation
-                                replace_lines = [
-                                    indent_str + line for line in replace_lines
-                                ]
-                            else:
-                                # Remove indentation
-                                replace_lines = [
-                                    line[abs(match.indentation_offset) :]
-                                    if line.startswith(indent_str)
-                                    else line
-                                    for line in replace_lines
-                                ]
-                            replace_text = "\n".join(replace_lines)
+                            matched_file_lines = match.matched_lines
+                            normalized_lines = []
+
+                            for i, replace_line in enumerate(replace_lines):
+                                stripped_replace = replace_line.lstrip()
+                                if not stripped_replace:  # Empty line
+                                    normalized_lines.append("")
+                                    continue
+
+                                # If we have a corresponding matched line, copy its indentation
+                                if i < len(matched_file_lines):
+                                    matched_line = matched_file_lines[i]
+                                    # Extract indentation from matched file line
+                                    file_indent_count, file_indent_char = _get_indentation(matched_line)
+                                    file_indent_str = file_indent_char * file_indent_count
+                                    normalized_lines.append(file_indent_str + stripped_replace)
+                                else:
+                                    # Extra lines in replacement - use same indentation as last matched line
+                                    if matched_file_lines:
+                                        last_indent_count, last_indent_char = _get_indentation(matched_file_lines[-1])
+                                        last_indent_str = last_indent_char * last_indent_count
+                                        normalized_lines.append(last_indent_str + stripped_replace)
+                                    else:
+                                        normalized_lines.append(stripped_replace)
+
+                            replace_text = "\n".join(normalized_lines)
 
                 # Fuzzy third (only if no exact or whitespace match)
                 if not match and tolerance == "fuzzy":
