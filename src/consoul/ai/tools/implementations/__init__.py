@@ -19,6 +19,7 @@ from consoul.ai.tools.implementations.code_search import (
 from consoul.ai.tools.implementations.file_edit import (
     create_file,
     edit_file_lines,
+    edit_file_search_replace,
     get_file_edit_config,
     set_file_edit_config,
 )
@@ -53,6 +54,7 @@ __all__ = [
     "code_search",
     "create_file",
     "edit_file_lines",
+    "edit_file_search_replace",
     "find_references",
     "get_bash_config",
     "get_code_search_config",

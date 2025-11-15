@@ -15,6 +15,7 @@ from consoul.ai.tools.implementations.file_edit import (
     _validate_file_path,
     create_file,
     edit_file_lines,
+    edit_file_search_replace,
     get_file_edit_config,
     set_file_edit_config,
 )
@@ -1316,3 +1317,339 @@ class TestCreateFile:
 
         # Reset config
         set_file_edit_config(FileEditToolConfig())
+
+
+class TestEditFileSearchReplace:
+    """Integration tests for edit_file_search_replace tool."""
+
+    def test_exact_match_single_replace(self, tmp_path):
+        """Test exact match with single search/replace."""
+        file = tmp_path / "test.py"
+        file.write_text("def old_func():\n    pass\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "def old_func():", "replace": "def new_func():"}],
+                "tolerance": "strict",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert data["checksum"]
+        assert data["bytes_written"]
+        assert "preview" in data
+        assert file.read_text() == "def new_func():\n    pass\n"
+
+    def test_multiple_search_replace(self, tmp_path):
+        """Test multiple search/replace operations."""
+        file = tmp_path / "test.txt"
+        file.write_text("line1\nline2\nline3\nline4\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [
+                    {"search": "line1", "replace": "LINE1"},
+                    {"search": "line3", "replace": "LINE3"},
+                ],
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert file.read_text() == "LINE1\nline2\nLINE3\nline4\n"
+
+    def test_whitespace_tolerant_match(self, tmp_path):
+        """Test whitespace-tolerant matching."""
+        file = tmp_path / "test.py"
+        file.write_text("    def foo():\n        pass\n")
+
+        # Search without indentation
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [
+                    {
+                        "search": "def foo():\n    pass",
+                        "replace": "def bar():\n    return",
+                    }
+                ],
+                "tolerance": "whitespace",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert "warnings" in data
+        assert "ignoring indentation" in data["warnings"][0]
+        # Indentation should be preserved
+        assert file.read_text() == "    def bar():\n        return\n"
+
+    def test_fuzzy_match_typo(self, tmp_path):
+        """Test fuzzy matching with typo."""
+        file = tmp_path / "test.txt"
+        file.write_text("Hello World!\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [
+                    {"search": "Hello Wrld!", "replace": "Hi There!"}
+                ],  # Missing 'o'
+                "tolerance": "fuzzy",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert "warnings" in data
+        assert "Fuzzy matched" in data["warnings"][0]
+        assert file.read_text() == "Hi There!\n"
+
+    def test_fuzzy_confidence_score(self, tmp_path):
+        """Test fuzzy match confidence score in warning."""
+        file = tmp_path / "test.txt"
+        file.write_text("abcdefgh\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "abcdefg", "replace": "12345"}],  # 7/8 match
+                "tolerance": "fuzzy",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert "warnings" in data
+        # Should show percentage
+        assert "%" in data["warnings"][0]
+
+    def test_ambiguous_match_error(self, tmp_path):
+        """Test error when search text appears multiple times."""
+        file = tmp_path / "test.txt"
+        file.write_text("foo\nbar\nfoo\nbaz\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "foo", "replace": "FOO"}],
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "Ambiguous" in data["error"]
+        assert "lines 1-1" in data["error"]
+        assert "lines 3-3" in data["error"]
+
+    def test_no_match_with_suggestions(self, tmp_path):
+        """Test 'Did you mean?' suggestions when no match found."""
+        file = tmp_path / "test.txt"
+        file.write_text("hello world\ngoodbye world\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "hello universe", "replace": "hi"}],
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "Did you mean" in data["error"]
+        assert "similar" in data["error"].lower()
+
+    def test_expected_hash_validation(self, tmp_path):
+        """Test optimistic locking with expected_hash."""
+        file = tmp_path / "test.txt"
+        file.write_text("original\n")
+
+        # Compute hash
+        checksum = _compute_file_hash(file)
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "original", "replace": "modified"}],
+                "expected_hash": checksum,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+    def test_hash_mismatch_error(self, tmp_path):
+        """Test error when file changed since read."""
+        file = tmp_path / "test.txt"
+        file.write_text("original\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "original", "replace": "modified"}],
+                "expected_hash": "wrong_hash",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "hash_mismatch"
+        assert "changed since read" in data["error"].lower()
+
+    def test_dry_run_preview(self, tmp_path):
+        """Test dry run mode returns preview without modifying file."""
+        file = tmp_path / "test.txt"
+        original = "line1\nline2\n"
+        file.write_text(original)
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "line1", "replace": "LINE1"}],
+                "dry_run": True,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert "preview" in data
+        # bytes_written and checksum should be omitted (not None) in dry run
+        assert "bytes_written" not in data
+        assert "checksum" not in data
+        # File should not be modified
+        assert file.read_text() == original
+
+    def test_strict_rejects_whitespace(self, tmp_path):
+        """Test strict mode rejects whitespace differences."""
+        file = tmp_path / "test.txt"
+        file.write_text("  indented\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "indented", "replace": "INDENT"}],
+                "tolerance": "strict",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "not found" in data["error"].lower()
+
+    def test_payload_size_limit(self, tmp_path):
+        """Test max_payload_bytes enforcement."""
+        file = tmp_path / "test.txt"
+        file.write_text("small\n")
+
+        set_file_edit_config(FileEditToolConfig(max_payload_bytes=10))
+
+        large_replacement = "x" * 100
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "small", "replace": large_replacement}],
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "exceeds limit" in data["error"]
+
+        # Reset
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_empty_search_error(self, tmp_path):
+        """Test error for empty search text."""
+        file = tmp_path / "test.txt"
+        file.write_text("content\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "", "replace": "text"}],
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "empty" in data["error"].lower()
+
+    def test_multiline_search_replace(self, tmp_path):
+        """Test multi-line search/replace blocks."""
+        file = tmp_path / "test.py"
+        file.write_text("def foo():\n    x = 1\n    return x\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [
+                    {
+                        "search": "def foo():\n    x = 1\n    return x",
+                        "replace": "def bar():\n    y = 2\n    return y * 2",
+                    }
+                ],
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert file.read_text() == "def bar():\n    y = 2\n    return y * 2\n"
+
+    def test_preserve_crlf_line_endings(self, tmp_path):
+        """Test that CRLF line endings are preserved."""
+        file = tmp_path / "test.txt"
+        file.write_bytes(b"line1\r\nline2\r\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "line1", "replace": "LINE1"}],
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        content = file.read_bytes().decode("utf-8")
+        assert "\r\n" in content
+        assert content == "LINE1\r\nline2\r\n"
+
+    def test_config_integration(self, tmp_path):
+        """Test uses module-level config."""
+        file = tmp_path / "test.exe"
+        file.write_text("content\n")
+
+        set_file_edit_config(FileEditToolConfig(allowed_extensions=[".txt"]))
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [{"search": "content", "replace": "new"}],
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+
+        # Reset
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_overlapping_edits_error(self, tmp_path):
+        """Test error when edits overlap."""
+        file = tmp_path / "test.txt"
+        file.write_text("line1\nline2\nline3\n")
+
+        result = edit_file_search_replace.invoke(
+            {
+                "file_path": str(file),
+                "edits": [
+                    {"search": "line1\nline2", "replace": "A"},
+                    {"search": "line2\nline3", "replace": "B"},  # Overlaps with first
+                ],
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "Overlapping" in data["error"]

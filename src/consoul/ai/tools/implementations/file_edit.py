@@ -26,6 +26,12 @@ from typing import Literal
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
+from consoul.ai.tools.implementations.file_matching import (
+    exact_match,
+    find_similar_blocks,
+    fuzzy_match,
+    whitespace_tolerant_match,
+)
 from consoul.config.models import FileEditToolConfig
 
 # Module-level config that can be set by the registry
@@ -723,4 +729,355 @@ def create_file(
         return FileEditResult(
             status="error",
             error=f"Failed to create file: {type(e).__name__}: {e}",
+        ).to_json()
+
+
+class SearchReplaceEdit(BaseModel):
+    """A single search/replace operation.
+
+    Attributes:
+        search: Text to search for (can be multi-line)
+        replace: Replacement text
+    """
+
+    search: str = Field(description="Text to search for in the file")
+    replace: str = Field(description="Replacement text")
+
+
+class EditFileSearchReplaceInput(BaseModel):
+    """Input schema for edit_file_search_replace tool."""
+
+    file_path: str = Field(description="Absolute or relative path to file to edit")
+    edits: list[SearchReplaceEdit] = Field(
+        description="List of search/replace operations to apply"
+    )
+    tolerance: Literal["strict", "whitespace", "fuzzy"] = Field(
+        default="strict",
+        description=(
+            "Matching tolerance level:\n"
+            "- strict: Exact byte-for-byte matching only\n"
+            "- whitespace: Ignore leading/trailing whitespace\n"
+            "- fuzzy: Allow similarity-based matching (80%+ threshold)"
+        ),
+    )
+    expected_hash: str | None = Field(
+        default=None,
+        description="Expected SHA256 hash for optimistic locking (optional)",
+    )
+    dry_run: bool = Field(
+        default=False,
+        description="If True, preview changes without modifying file",
+    )
+
+
+@tool(args_schema=EditFileSearchReplaceInput)
+def edit_file_search_replace(
+    file_path: str,
+    edits: list[dict[str, str]],
+    tolerance: Literal["strict", "whitespace", "fuzzy"] = "strict",
+    expected_hash: str | None = None,
+    dry_run: bool = False,
+) -> str:
+    """Edit file using search/replace blocks with progressive matching.
+
+    Searches for text blocks and replaces them with new content. Supports
+    progressive matching strategies:
+    - strict: Exact matching only
+    - whitespace: Tolerates indentation differences, auto-fixes indentation
+    - fuzzy: Allows typos/minor differences (80%+ similarity threshold)
+
+    When exact match fails, tries more tolerant strategies based on tolerance
+    setting. Returns warnings for non-exact matches.
+
+    Args:
+        file_path: Absolute or relative path to file
+        edits: List of {"search": "...", "replace": "..."} dictionaries
+        tolerance: Matching tolerance level (default: "strict")
+        expected_hash: Expected file SHA256 hash for conflict detection (optional)
+        dry_run: If True, return preview without modifying file
+
+    Returns:
+        JSON-serialized FileEditResult with:
+        - status: "success" | "validation_failed" | "hash_mismatch" | "error"
+        - checksum: SHA256 hex digest of new file content
+        - bytes_written: Size of new file in bytes
+        - preview: Unified diff showing changes
+        - warnings: List of warnings (e.g., "Fuzzy matched (85% confidence)")
+        - error: Error message if status is not success
+
+    Raises:
+        NoMatchError: When search text not found (with "Did you mean?" suggestions)
+        AmbiguousMatchError: When search text appears multiple times
+
+    Example:
+        >>> result = edit_file_search_replace.invoke({
+        ...     "file_path": "src/main.py",
+        ...     "edits": [{
+        ...         "search": "def old_function():\\n    pass",
+        ...         "replace": "def new_function():\\n    return True"
+        ...     }],
+        ...     "tolerance": "whitespace"
+        ... })
+        >>> data = json.loads(result)
+        >>> data["status"]
+        'success'
+    """
+    try:
+        config = get_file_edit_config()
+
+        # 1. Validate file path
+        path = _validate_file_path(file_path, config, must_exist=True)
+
+        # 2. Read current file content preserving line endings
+        try:
+            with path.open("r", encoding=config.default_encoding, newline="") as f:
+                original_content = f.read()
+        except UnicodeDecodeError:
+            return FileEditResult(
+                status="error",
+                error=f"File encoding error: Cannot decode {file_path} as {config.default_encoding}",
+            ).to_json()
+
+        # Detect newline style
+        if "\r\n" in original_content:
+            newline_char = "\r\n"
+        elif "\n" in original_content:
+            newline_char = "\n"
+        else:
+            newline_char = "\n"
+
+        original_lines = original_content.split(newline_char)
+        # Remove trailing empty string if content ended with newline
+        # This prevents double newlines when reconstructing
+        if (
+            original_content.endswith(newline_char)
+            and original_lines
+            and original_lines[-1] == ""
+        ):
+            original_lines = original_lines[:-1]
+
+        # 3. Check optimistic lock if provided
+        if expected_hash is not None:
+            actual_hash = _compute_file_hash(path, encoding=config.default_encoding)
+            if actual_hash != expected_hash:
+                return FileEditResult(
+                    status="hash_mismatch",
+                    error=(
+                        f"File changed since read: expected hash {expected_hash[:8]}... "
+                        f"but got {actual_hash[:8]}..."
+                    ),
+                ).to_json()
+
+        # 4. Validate edit count and payload size
+        if len(edits) > config.max_edits:
+            return FileEditResult(
+                status="validation_failed",
+                error=f"Too many edits: {len(edits)} exceeds limit of {config.max_edits}",
+            ).to_json()
+
+        total_payload = sum(
+            len(edit["replace"].encode("utf-8"))
+            if isinstance(edit, dict)
+            else len(edit.replace.encode("utf-8"))
+            for edit in edits
+        )
+        if total_payload > config.max_payload_bytes:
+            return FileEditResult(
+                status="validation_failed",
+                error=(
+                    f"Payload too large: {total_payload:,} bytes exceeds "
+                    f"limit of {config.max_payload_bytes:,} bytes"
+                ),
+            ).to_json()
+
+        # 5. Process each search/replace edit with progressive matching
+        warnings: list[str] = []
+        replacements: list[
+            tuple[int, int, str]
+        ] = []  # (start_line, end_line, new_content)
+
+        for i, edit in enumerate(edits):
+            # Handle both dict and Pydantic object
+            if isinstance(edit, dict):
+                search_text = edit["search"]
+                replace_text = edit["replace"]
+            else:
+                search_text = edit.search
+                replace_text = edit.replace
+
+            if not search_text:
+                return FileEditResult(
+                    status="validation_failed",
+                    error=f"Edit {i + 1}: search text cannot be empty",
+                ).to_json()
+
+            search_lines = search_text.split("\n")
+
+            # Progressive matching
+            match = None
+            try:
+                # Try exact match first (always)
+                matches = exact_match(original_lines, search_lines)
+                if matches:
+                    if len(matches) > 1:
+                        # Ambiguous - multiple exact matches
+                        locations = ", ".join(
+                            f"lines {m.start_line}-{m.end_line}" for m in matches
+                        )
+                        return FileEditResult(
+                            status="validation_failed",
+                            error=(
+                                f"Edit {i + 1}: Ambiguous search - found {len(matches)} matches at {locations}. "
+                                "Please be more specific."
+                            ),
+                        ).to_json()
+                    match = matches[0]
+
+                # Whitespace-tolerant second (only if no exact match)
+                if not match and tolerance in ["whitespace", "fuzzy"]:
+                    matches = whitespace_tolerant_match(original_lines, search_lines)
+                    if matches:
+                        if len(matches) > 1:
+                            locations = ", ".join(
+                                f"lines {m.start_line}-{m.end_line}" for m in matches
+                            )
+                            return FileEditResult(
+                                status="validation_failed",
+                                error=(
+                                    f"Edit {i + 1}: Ambiguous search - found {len(matches)} matches at {locations}. "
+                                    "Please be more specific."
+                                ),
+                            ).to_json()
+                        match = matches[0]
+                        warnings.append(
+                            f"Edit {i + 1}: Matched ignoring indentation differences"
+                        )
+
+                        # Auto-fix indentation in replacement
+                        if match.indentation_offset != 0:
+                            indent_str = " " * abs(match.indentation_offset)
+                            replace_lines = replace_text.split("\n")
+                            if match.indentation_offset > 0:
+                                # Add indentation
+                                replace_lines = [
+                                    indent_str + line for line in replace_lines
+                                ]
+                            else:
+                                # Remove indentation
+                                replace_lines = [
+                                    line[abs(match.indentation_offset) :]
+                                    if line.startswith(indent_str)
+                                    else line
+                                    for line in replace_lines
+                                ]
+                            replace_text = "\n".join(replace_lines)
+
+                # Fuzzy third (only if no exact or whitespace match)
+                if not match and tolerance == "fuzzy":
+                    matches = fuzzy_match(original_lines, search_lines, threshold=0.8)
+                    if matches:
+                        if len(matches) > 1:
+                            locations = ", ".join(
+                                f"lines {m.start_line}-{m.end_line}" for m in matches
+                            )
+                            return FileEditResult(
+                                status="validation_failed",
+                                error=(
+                                    f"Edit {i + 1}: Ambiguous search - found {len(matches)} matches at {locations}. "
+                                    "Please be more specific."
+                                ),
+                            ).to_json()
+                        match = matches[0]
+                        warnings.append(
+                            f"Edit {i + 1}: Fuzzy matched ({match.confidence:.0%} confidence)"
+                        )
+
+                # No match found
+                if not match:
+                    # Generate suggestions
+                    similar = find_similar_blocks(original_lines, search_lines, top_n=3)
+                    if similar and similar[0].similarity > 0.5:
+                        suggestions = []
+                        for block in similar[:3]:
+                            suggestions.append(
+                                f"  - Lines {block.start_line}-{block.end_line} "
+                                f"({block.similarity:.0%} similar)"
+                            )
+                        suggestion_text = "\n".join(suggestions)
+                        return FileEditResult(
+                            status="validation_failed",
+                            error=(
+                                f"Edit {i + 1}: Search text not found. Did you mean:\n{suggestion_text}"
+                            ),
+                        ).to_json()
+                    else:
+                        return FileEditResult(
+                            status="validation_failed",
+                            error=f"Edit {i + 1}: Search text not found in file",
+                        ).to_json()
+
+                # Record replacement (will be applied bottom-to-top later)
+                replacements.append((match.start_line, match.end_line, replace_text))
+
+            except Exception as e:
+                return FileEditResult(
+                    status="error",
+                    error=f"Edit {i + 1}: {type(e).__name__}: {e}",
+                ).to_json()
+
+        # 6. Check for overlapping replacements
+        replacements.sort(key=lambda r: r[0])
+        for i in range(len(replacements) - 1):
+            if replacements[i][1] >= replacements[i + 1][0]:
+                return FileEditResult(
+                    status="validation_failed",
+                    error="Overlapping search/replace blocks (edits conflict)",
+                ).to_json()
+
+        # 7. Apply replacements bottom-to-top (preserves line numbers)
+        result_lines = original_lines.copy()
+        for start_line, end_line, replace_text in reversed(replacements):
+            replace_lines = replace_text.split("\n")
+            # Replace lines (convert from 1-indexed to 0-indexed)
+            result_lines[start_line - 1 : end_line] = replace_lines
+
+        # 8. Reconstruct content with original newline style
+        if original_content.endswith(("\n", "\r\n")):
+            new_content = newline_char.join(result_lines) + newline_char
+        else:
+            new_content = newline_char.join(result_lines)
+
+        # 9. Create diff preview
+        preview = _create_diff_preview(
+            original_content, new_content, file_path=str(path)
+        )
+
+        # 10. Write file if not dry run
+        if not dry_run:
+            _atomic_write(path, new_content, encoding=config.default_encoding)
+            checksum = _compute_file_hash(path, encoding=config.default_encoding)
+            bytes_written = len(new_content.encode(config.default_encoding))
+        else:
+            checksum = None
+            bytes_written = None
+
+        # Return success result
+        return FileEditResult(
+            status="success",
+            bytes_written=bytes_written,
+            checksum=checksum,
+            preview=preview,
+            warnings=warnings if warnings else None,
+        ).to_json()
+
+    except (ValueError, FileNotFoundError) as e:
+        return FileEditResult(
+            status="validation_failed",
+            error=str(e),
+        ).to_json()
+
+    except Exception as e:
+        return FileEditResult(
+            status="error",
+            error=f"Failed to edit file: {type(e).__name__}: {e}",
         ).to_json()
