@@ -178,6 +178,7 @@ class SettingsScreen(ModalScreen[bool]):
         self.consoul_config = consoul_config
         self._original_config = config.model_copy(deep=True)
         self._applying = False
+        self._mounted = False
 
     def compose(self) -> ComposeResult:
         """Compose the settings screen layout."""
@@ -440,14 +441,25 @@ class SettingsScreen(ModalScreen[bool]):
         except Exception:
             pass
 
+        # Mark as fully mounted to enable preview handlers
+        self._mounted = True
+
     async def on_select_changed(self, event: Select.Changed) -> None:
         """Handle select widget changes."""
+        # Only apply preview if fully mounted (ignore programmatic changes during init)
+        if not self._mounted:
+            return
+
         if event.select.id == "setting-theme":
             # Live preview theme change
             await self._apply_theme_preview(str(event.value))
 
     async def on_switch_changed(self, event: Switch.Changed) -> None:
         """Handle switch widget changes."""
+        # Only apply preview if fully mounted (ignore programmatic changes during init)
+        if not self._mounted:
+            return
+
         if event.switch.id == "setting-show_sidebar":
             # Live preview sidebar toggle
             await self._apply_sidebar_preview(event.value)
