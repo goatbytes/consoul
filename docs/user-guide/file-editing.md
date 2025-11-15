@@ -55,7 +55,7 @@ console.chat("Add error handling to the calculate_total function in src/utils.py
 
 ### Security Model
 
-All file editing tools are classified as **Risk Level: CAUTION** and require user approval by default.
+Most file editing tools are classified as **Risk Level: CAUTION**, with the exception of `delete_file` which is **Risk Level: DANGEROUS** due to its destructive nature. All file operations require user approval by default.
 
 **Security layers:**
 1. **Path validation**: Blocks `..` traversal and absolute dangerous paths
@@ -349,7 +349,7 @@ Safely delete files with validation and approval.
 - Dry-run preview shows deletion diff
 - Returns absolute path and timestamp
 
-**Risk Level**: CAUTION (destructive, requires approval)
+**Risk Level**: DANGEROUS (destructive operation, always requires approval)
 
 **Input Schema:**
 ```python
@@ -516,11 +516,16 @@ profiles:
 
         # Path blocking
         blocked_paths:
-          - "/etc"
-          - "/sys"
+          # System defaults
+          - "/etc/shadow"
+          - "/etc/passwd"
           - "/proc"
+          - "/dev"
+          - "/sys"
+          # CRITICAL: Add secret paths (not in defaults!)
           - "~/.ssh"
           - "~/.aws"
+          - "~/.gnupg"
 
         # Size limits
         max_payload_bytes: 1048576  # 1MB max content size
@@ -572,21 +577,32 @@ file_edit:
 **Default blocked paths:**
 ```python
 DEFAULT_BLOCKED_PATHS = [
-    "/etc",       # System configuration
-    "/sys",       # Kernel interface
-    "/proc",      # Process information
-    "/dev",       # Device files
-    "~/.ssh",     # SSH keys
-    "~/.aws",     # AWS credentials
-    "~/.gnupg",   # GPG keys
+    "/etc/shadow",  # Shadow password file
+    "/etc/passwd",  # User account information
+    "/proc",        # Process information
+    "/dev",         # Device files
+    "/sys",         # Kernel interface
 ]
 ```
 
-**Custom blocking:**
+**⚠️ WARNING**: The defaults do NOT include common secret locations like `~/.ssh`, `~/.aws`, or `~/.gnupg`. You **must** explicitly add these to your configuration for production use.
+
+**Recommended production configuration:**
 ```yaml
 file_edit:
   blocked_paths:
-    - "/etc"
+    # System defaults (already included)
+    - "/etc/shadow"
+    - "/etc/passwd"
+    - "/proc"
+    - "/dev"
+    - "/sys"
+    # CRITICAL ADDITIONS for production
+    - "~/.ssh"          # SSH keys
+    - "~/.aws"          # AWS credentials
+    - "~/.gnupg"        # GPG keys
+    - "~/.config/gcloud"  # Google Cloud credentials
+    # Optional project-specific blocks
     - "/var/www/production"  # Production web root
     - "~/.config/secrets"     # Local secrets
     - "${PROJECT_ROOT}/vendor"  # Third-party code
@@ -627,10 +643,13 @@ file_edit:
 
 ### Risk Classification
 
-All file editing tools are **Risk Level: CAUTION**:
-- Require user approval (unless whitelisted)
-- Auto-approved with `permission_policy: trusting`
-- Always prompt with `permission_policy: balanced` or `paranoid`
+**Risk Levels:**
+- Most file editing tools: **CAUTION** (edit_file_lines, edit_file_search_replace, create_file, append_to_file)
+- `delete_file`: **DANGEROUS** (destructive operation)
+
+**Approval Requirements:**
+- CAUTION tools: Require approval with `balanced` or `paranoid`, auto-approved with `trusting`
+- DANGEROUS tools: Always require approval (even with `trusting`), only auto-approved with `unrestricted`
 
 ### Path Validation
 

@@ -109,7 +109,7 @@ We appreciate the security research community's efforts in responsibly disclosin
 
 ## File Operations Security
 
-Consoul includes AI-powered file editing capabilities that require special security considerations. All file editing tools are classified as **Risk Level: CAUTION** and require user approval by default.
+Consoul includes AI-powered file editing capabilities that require special security considerations. Most file editing tools are classified as **Risk Level: CAUTION**, with the exception of `delete_file` which is classified as **Risk Level: DANGEROUS** due to its destructive nature. All file operations require user approval by default.
 
 ### Path Validation
 
@@ -133,19 +133,30 @@ edit_file_lines({"file_path": "src/utils.py"})
 **2. Blocked Paths**
 
 Default blocked paths (cannot be edited):
-- `/etc` - System configuration
-- `/sys` - Kernel interface
+- `/etc/shadow` - Shadow password file
+- `/etc/passwd` - User account information
 - `/proc` - Process information
 - `/dev` - Device files
-- `~/.ssh` - SSH keys
-- `~/.aws` - AWS credentials
-- `~/.gnupg` - GPG keys
+- `/sys` - Kernel interface
 
-Custom blocking via configuration:
+**Important**: The defaults do NOT include common secret locations like `~/.ssh`, `~/.aws`, or `~/.gnupg`. You **must** explicitly add these to your configuration for production use.
+
+Recommended blocking via configuration:
 ```yaml
 tools:
   file_edit:
     blocked_paths:
+      # System defaults (already included)
+      - "/etc/shadow"
+      - "/etc/passwd"
+      - "/proc"
+      - "/dev"
+      - "/sys"
+      # RECOMMENDED ADDITIONS for production
+      - "~/.ssh"          # SSH keys
+      - "~/.aws"          # AWS credentials
+      - "~/.gnupg"        # GPG keys
+      # Optional project-specific blocks
       - "/var/www/production"  # Production code
       - "~/.config/secrets"     # Local secrets
       - "${PROJECT_ROOT}/vendor"  # Third-party dependencies
@@ -170,13 +181,15 @@ Empty list (`[]`) allows all extensions (use with caution).
 ### File Editing Tools
 
 **Available Tools:**
-- `edit_file_lines` - Line-based editing
-- `edit_file_search_replace` - Search/replace with progressive matching
-- `create_file` - File creation with overwrite protection
-- `delete_file` - Safe file deletion
-- `append_to_file` - Content appending
+- `edit_file_lines` - Line-based editing (CAUTION)
+- `edit_file_search_replace` - Search/replace with progressive matching (CAUTION)
+- `create_file` - File creation with overwrite protection (CAUTION)
+- `delete_file` - File deletion (**DANGEROUS** - destructive operation)
+- `append_to_file` - Content appending (CAUTION)
 
-**Risk Level:** CAUTION (requires approval by default)
+**Risk Levels:**
+- Most file editing tools: CAUTION (requires approval by default)
+- `delete_file`: DANGEROUS (always requires approval, even in trusting mode)
 
 **Security Features:**
 
@@ -235,11 +248,19 @@ profiles:
           - ".md"   # Only documentation
           - ".txt"
         blocked_paths:
-          - "/etc"
+          # System paths
+          - "/etc/shadow"
+          - "/etc/passwd"
+          - "/proc"
+          - "/dev"
+          - "/sys"
           - "/var"
           - "/usr"
+          # Secrets and credentials (CRITICAL)
           - "~/.ssh"
           - "~/.aws"
+          - "~/.gnupg"
+          - "~/.config/gcloud"
         allow_overwrite: false  # Prevent overwrites
         max_payload_bytes: 524288  # 512KB limit
         max_edits: 25  # Conservative limit
@@ -267,7 +288,8 @@ profiles:
 
 Before enabling file editing in production:
 
-- [ ] Review and customize `blocked_paths` list
+- [ ] **CRITICAL**: Add `~/.ssh`, `~/.aws`, `~/.gnupg` to `blocked_paths` (not in defaults!)
+- [ ] Review and customize complete `blocked_paths` list for your environment
 - [ ] Configure `allowed_extensions` whitelist (don't use `[]` in production)
 - [ ] Set `allow_overwrite: false` unless necessary
 - [ ] Use `permission_policy: balanced` or `paranoid`
@@ -277,6 +299,7 @@ Before enabling file editing in production:
 - [ ] Restrict file permissions (`chmod 600` for sensitive files)
 - [ ] Use version control (git) for rollback capability
 - [ ] Test disaster recovery procedures
+- [ ] Understand that `delete_file` is DANGEROUS (not just CAUTION)
 
 ### Reporting File Operations Vulnerabilities
 
