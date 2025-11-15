@@ -88,7 +88,17 @@ def tui(
         consoul_config = load_config()
 
     # Get TUI config from loaded config, then apply CLI overrides
-    tui_config = consoul_config.tui if consoul_config else TuiConfig()
+    if consoul_config:
+        # consoul_config.tui should be a TuiConfig object
+        # If it's a dict (shouldn't happen but defensive check), convert it
+        if isinstance(consoul_config.tui, dict):
+            tui_config = TuiConfig(**consoul_config.tui)
+        else:
+            tui_config = consoul_config.tui
+    else:
+        tui_config = TuiConfig()
+
+    # Apply CLI overrides
     if theme:
         tui_config.theme = theme
     if debug:
