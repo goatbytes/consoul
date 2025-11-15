@@ -1,0 +1,37 @@
+{
+  "created_at": "2025-11-14T22:30:23.840580",
+  "updated_at": "2025-11-15T07:29:19.267456Z",
+  "id": "SOUL-104",
+  "uuid": "11ce9282-925b-4ffe-8644-775a5b4fc44e",
+  "title": "Implement core EditEngine with line-based editing",
+  "description": "**As a** Consoul AI agent\n**I want** to edit files using line-range specifications\n**So that** I can make precise, atomic code changes without rewriting entire files\n\n**Context:**\nLine-based editing is the foundation for AI file manipulation. Research from cursor-agent, wcgw, and aider shows that line-range edits ({\"1-5\": \"new content\"}) are:\n- More precise than full-file rewrites\n- Easier for LLMs to generate correctly\n- Safer (edits are scoped and atomic)\n- Faster (only changed lines are processed)\n\nThis ticket implements the core EditEngine with exact matching only. Progressive matching (whitespace/fuzzy) comes in SOUL-106.\n\nSee research:\n- docs/research/line_based_file_editing_research.md\n- cursor-agent: cursor_agent_tools/tools/file_tools.py:426-505\n- SOUL-90 (research ticket)\n\n**Technical Notes:**\n- Create src/consoul/ai/tools/implementations/file_edit.py\n- Implement EditEngine class with validate_edits(), apply_line_edits()\n- Process edits bottom-to-top (preserves line numbers, per cursor-agent pattern)\n- Support single lines (\"42\") and ranges (\"10-15\")\n- Atomic writes (temp file → replace to prevent corruption)\n- Return structured FileEditResult with checksum, changed_lines, preview diff\n- Integrate with ToolRegistry (RiskLevel.CAUTION)\n- Use FileEditToolConfig from SOUL-103\n\nAlgorithm (from cursor-agent):\n```python\ndef apply_line_based_edit(content: str, line_edits: Dict[str, str]) -> str:\n    lines = content.splitlines()\n    \n    # Sort ranges descending to avoid index drift\n    for line_range in sorted(line_edits.keys(), reverse=True):\n        start, end = parse_range(line_range)\n        new_content = line_edits[line_range].splitlines()\n        lines[start-1:end] = new_content\n    \n    return \"\\n\".join(lines)\n```\n\nFiles to create:\n- src/consoul/ai/tools/implementations/file_edit.py\n\nFiles to modify:\n- src/consoul/ai/tools/implementations/__init__.py (export edit_file_lines)\n\n**Acceptance Criteria:**\n\n**Given** I have a file with 10 lines\n**When** I edit lines 3-5 with new content\n**Then** only lines 3-5 are replaced and other lines unchanged\n\n**Given** I specify multiple non-overlapping edits {\"1-2\": \"...\", \"8-9\": \"...\"}\n**When** edits are applied\n**Then** all edits succeed and line numbers remain stable (bottom-to-top processing)\n\n**Given** I specify invalid line range (start > end or out of bounds)\n**When** validation runs\n**Then** I get clear error message with file line count\n\n**Given** file content changed since read (different checksum)\n**When** I provide expected_hash that doesn't match\n**Then** edit fails with \"File changed since read\" error\n\n**Given** I request dry_run=True\n**When** edits are processed\n**Then** I get preview diff without modifying the file\n\n**Given** edit payload exceeds max_payload_bytes\n**When** validation runs\n**Then** edit is rejected with size limit error\n\n**Testing Considerations:**\n- Unit tests for range parsing (\"1\", \"5-10\", \"100-100\")\n- Test bottom-to-top processing order\n- Test overlapping range detection and rejection\n- Mock file I/O for deterministic tests\n- Test atomic write (temp file → replace)\n- Test checksum validation\n- Test dry-run mode\n- Test size limits from config\n\n**Implementation Hints:**\n```python\n@dataclass\nclass LineEditOperation:\n    range: str  # \"1-5\" or \"42\"\n    content: str\n    expect: str | None = None  # Optional expected content for validation\n\n@dataclass  \nclass FileEditResult:\n    status: Literal[\"success\", \"validation_failed\", \"hash_mismatch\", \"error\"]\n    bytes_written: int | None\n    checksum: str | None  # SHA256\n    changed_lines: list[str]  # [\"3-5\", \"8-9\"]\n    preview: str  # Unified diff\n    warnings: list[str]\n\n@tool\ndef edit_file_lines(\n    file_path: str,\n    line_edits: Dict[str, str],\n    expected_hash: str | None = None,\n    dry_run: bool = False,\n) -> str:\n    # Load config, validate path, compute hash, apply edits, atomic write\n```\n\nUse hashlib.sha256 for checksums\nUse difflib.unified_diff for previews\nUse pathlib.Path for atomic writes",
+  "status": "todo",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "file-edit",
+    "core",
+    "foundation"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-005",
+  "blocked_by": [
+    "SOUL-103"
+  ],
+  "blocks": [
+    "SOUL-105",
+    "SOUL-106",
+    "SOUL-107",
+    "SOUL-108",
+    "SOUL-109",
+    "SOUL-111"
+  ],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {}
+}

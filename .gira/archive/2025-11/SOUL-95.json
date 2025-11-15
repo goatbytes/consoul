@@ -1,0 +1,44 @@
+{
+  "created_at": "2025-11-13T14:34:47.578182",
+  "updated_at": "2025-11-14T07:47:56.794896Z",
+  "id": "SOUL-95",
+  "uuid": "071afcfb-e35e-4744-b03f-f6f866e93cdc",
+  "title": "Add caching for code search results",
+  "description": "**As a** Consoul developer\n**I want** parsed ASTs cached on disk\n**So that** repeated code searches are 10x faster\n\n**Context:**\nParsing large codebases to AST is expensive (SOUL-97). Cache parsed trees keyed by file path + mtime. Aider uses diskcache successfully.\n\n**Decision: Add diskcache as core dependency**\nAdd to SOUL-94 task or create sub-task\n\n**Technical Notes:**\n- src/consoul/ai/tools/cache.py - CodeSearchCache class\n- Use diskcache.Cache (SQLite-backed)\n- Store: ~/.consoul/cache/code-search.v1/\n- Key: (file_path, mtime, cache_version)\n- Value: Parsed AST + symbol table\n- Similar: src/consoul/ai/tools/audit.py (uses file cache)\n- Reference: Aider aider/repomap.py CACHE_VERSION pattern\n\n**Acceptance Criteria:**\n**Given** first search of Python file\n**When** code_search parses file\n**Then** AST stored in cache with mtime\n\n**Given** second search, file unchanged\n**When** code_search checks cache\n**Then** cached AST used, 10x faster than parse\n\n**Given** file modified (mtime changed)\n**When** code_search checks cache\n**Then** cache miss, re-parse, update cache\n\n**Given** cache exceeds size limit (100MB default)\n**When** adding new entries\n**Then** LRU eviction maintains limit\n\n**Given** cache version upgraded (v1 \u2192 v2)\n**When** loading old cache\n**Then** cache invalidated, directory renamed\n\n**Testing:**\n- Mock diskcache, test hit/miss logic\n- Test mtime invalidation\n- Test size limits and LRU\n- Benchmark: parse vs cache (expect 10x)\n- Thread safety: concurrent cache access\n\n**Story Points:** 5\n**Dependencies:** SOUL-94 (add diskcache), SOUL-97 (integrates cache)",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-006",
+  "blocked_by": [
+    "SOUL-94"
+  ],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-13T17:09:13.432035",
+      "updated_at": "2025-11-13T17:09:13.432036",
+      "id": "20251113170913-a0e7b997",
+      "ticket_id": "SOUL-95",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation complete:\n\n\u2705 Core caching infrastructure:\n- CodeSearchCache class with diskcache (SQLite-backed)\n- Mtime-based cache invalidation\n- LRU eviction with configurable size limits (100MB default)\n- Graceful fallback to dict on SQLite errors\n- Thread-safe via SQLite locking\n- Cache versioning support (CACHE_VERSION = 1)\n\n\u2705 Monitoring and statistics:\n- CacheStats dataclass with hit/miss tracking\n- Hit rate calculation (0.0 to 1.0)\n- Cache size and entry count reporting\n\n\u2705 API exports:\n- Added CodeSearchCache, CacheStats, CACHE_VERSION to src/consoul/ai/tools/__init__.py\n- Clean public API for cache operations\n\n\u2705 Comprehensive testing (20 tests):\n- Cache initialization and configuration (4 tests)\n- Cache hit/miss logic (3 tests)\n- Mtime-based invalidation (2 tests)\n- Cache operations (3 tests)\n- Cache statistics (3 tests)\n- SQLite error handling (2 tests)\n- Cache versioning (2 tests)\n- Concurrent access/thread safety (1 test)\n- All tests passing (100%)\n\n\u2705 Documentation:\n- Added comprehensive \"Code Search Caching\" section to docs/tools.md\n- Usage examples and API reference\n- Configuration and customization guide\n- Performance tips and troubleshooting\n- Thread safety and error handling notes\n\n\u2705 Performance:\n- Achieves 5-10x speedup on cache hits\n- Automatic invalidation on file modification\n- 100MB size limit with LRU eviction\n- SQLite backend ensures reliability\n\n\u2705 Code quality:\n- All ruff checks passing\n- All mypy type checks passing\n- No linting issues\n\nCommit: bd4f214",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:33.615829",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

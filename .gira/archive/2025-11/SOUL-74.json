@@ -1,0 +1,32 @@
+{
+  "created_at": "2025-11-11T17:26:19.518629",
+  "updated_at": "2025-11-12T17:32:39.419115Z",
+  "id": "SOUL-74",
+  "uuid": "f73280df-772f-4120-a5de-30400e3a7026",
+  "title": "TUI permission management screen",
+  "description": "As a Consoul user, I want a TUI screen to view and manage permission settings, whitelists, and policies, so that I can configure tool approvals without manually editing config files.\n\n## Context\nPermission settings are currently configured only via config files (src/consoul/config/models.py:135-152). Users need a visual interface for managing policies, viewing whitelisted commands, and adjusting approval modes. Existing SettingsScreen (src/consoul/tui/widgets/settings_screen.py) provides a template.\n\n## Technical Notes\n- Create PermissionManagerScreen extending Textual Screen\n- Display current policy with description\n- Show whitelist with add/remove functionality\n- Display blocklist patterns (read-only or editable)\n- Integrate with WhitelistManager and config persistence\n- Add keybinding to access from main TUI (e.g., Ctrl+P)\n\n## Files to Modify\n- Create: src/consoul/tui/widgets/permission_manager_screen.py\n- Modify: src/consoul/tui/app.py (add keybinding and screen push)\n- Modify: src/consoul/tui/css/main.tcss (permission screen styles)\n- Update: src/consoul/tui/widgets/__init__.py (export new screen)\n\n## Acceptance Criteria\n- [ ] Screen displays current permission policy\n- [ ] Policy selector allows switching between presets\n- [ ] Whitelist table shows all whitelisted patterns\n- [ ] Add/remove whitelist buttons functional\n- [ ] Blocklist patterns displayed (read-only view)\n- [ ] Changes persist to config file\n- [ ] Keyboard navigation fully supported\n- [ ] Help text explains policy implications\n- [ ] Screen accessible via Ctrl+P keybinding\n\n## Testing\n- Test policy switching and persistence\n- Test whitelist add/remove operations\n- Test keyboard navigation and shortcuts\n- Test validation of invalid patterns\n- Test config file updates on changes\n- Test screen styling on different terminal sizes\n\n## Implementation Hints\n- Use DataTable widget for whitelist/blocklist display\n- Implement modal for adding new whitelist patterns (regex validation)\n- Show policy description with emoji indicators (\ud83d\udd12 paranoid, \u2696\ufe0f balanced, \ud83e\udd1d trusting, \u26a0\ufe0f unrestricted)\n- Add confirmation modal for UNRESTRICTED policy selection\n- Use reactive properties for live config updates\n- Reference SettingsScreen layout pattern (src/consoul/tui/widgets/settings_screen.py)\n- Add CSS styles to src/consoul/tui/css/main.tcss matching existing modal/screen patterns",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "ui",
+    "config"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:29.743560",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

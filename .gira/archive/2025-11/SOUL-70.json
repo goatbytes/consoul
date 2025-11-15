@@ -1,0 +1,32 @@
+{
+  "created_at": "2025-11-11T17:26:03.861894",
+  "updated_at": "2025-11-12T17:32:39.423127Z",
+  "id": "SOUL-70",
+  "uuid": "6ae5b09e-cf9e-4477-95c5-46c34da90b51",
+  "title": "Dynamic bash command risk assessment system",
+  "description": "As a Consoul user, I want bash commands to be automatically assessed for risk level (SAFE/CAUTION/DANGEROUS/BLOCKED), so that I can make informed decisions about command approval without manually evaluating every command.\n\n## Context\nCurrently, all tools return a hard-coded DANGEROUS risk level (src/consoul/tui/app.py:1092), and bash command validation only uses a blocklist approach (src/consoul/ai/tools/implementations/bash.py:30-50). Users need intelligent, dynamic risk assessment that considers command patterns, arguments, and context.\n\n## Technical Notes\n- Extend existing RiskLevel enum (src/consoul/ai/tools/base.py:20-24)\n- Build CommandAnalyzer in new consoul/ai/tools/permissions/analyzer.py module\n- Integrate with existing ToolRegistry.assess_risk() (src/consoul/ai/tools/registry.py:156-169)\n- Pattern-based analysis with regex matching\n- Context-aware assessment (e.g., 'rm file.txt' vs 'rm -rf /')\n\n## Files to Modify\n- Create: src/consoul/ai/tools/permissions/analyzer.py\n- Modify: src/consoul/ai/tools/registry.py:156-169 (replace hard-coded DANGEROUS)\n- Modify: src/consoul/ai/tools/implementations/bash.py:30-50 (integrate analyzer)\n\n## Acceptance Criteria\n- [ ] CommandAnalyzer class implements pattern-based risk assessment\n- [ ] Read-only commands (ls, cat, grep) classified as SAFE\n- [ ] Modification commands (mkdir, touch, cp) classified as CAUTION\n- [ ] Destructive commands (rm, dd, format) classified as DANGEROUS\n- [ ] Blocked patterns (sudo without whitelist) classified as BLOCKED\n- [ ] Risk assessment considers command arguments and flags\n- [ ] Unit tests cover all risk levels and edge cases\n- [ ] Integration test verifies ToolRegistry.assess_risk() uses analyzer\n\n## Testing\n- Test safe command patterns: ls, pwd, echo, cat, grep\n- Test cautious commands: mkdir, cp, mv, git commit\n- Test dangerous commands: rm -rf, dd, chmod 777, kill -9\n- Test blocked commands: sudo, eval with untrusted input\n- Test argument sensitivity: 'rm file.txt' (CAUTION) vs 'rm -rf /' (DANGEROUS)\n\n## Implementation Hints\n- Use existing DEFAULT_BLOCKED_PATTERNS from bash.py as baseline\n- Implement CommandRisk dataclass with level, reason, matched_pattern\n- Support regex pattern matching with compiled patterns for performance\n- Consider argument parsing (e.g., shlex.split() for safe tokenization)",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "ai",
+    "tools",
+    "security"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:33.856301",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

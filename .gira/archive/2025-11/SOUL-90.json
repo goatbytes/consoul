@@ -1,0 +1,80 @@
+{
+  "created_at": "2025-11-13T14:07:27.875184",
+  "updated_at": "2025-11-14T23:11:40.043887",
+  "id": "SOUL-90",
+  "uuid": "7b5ecc73-8f92-4de6-bd25-466aa9c762ae",
+  "title": "Research rich file operations for line-based editing",
+  "description": "Research and design line-based file editing capabilities inspired by cursor-agent.\n\nCurrent state:\n- Consoul uses basic file operations through bash_execute tool\n- No native file manipulation tools in the SDK\n\nProposed features from cursor-agent:\n- Line-based editing with JSON format: {\"1-5\": \"new content\", \"10-12\": \"more content\"}\n- Complete file replacement option\n- Read file with line range control\n- Better validation and error handling\n\nResearch tasks:\n1. Review cursor-agent's file_tools.py implementation\n2. Analyze how line-based editing improves AI coding workflows\n3. Design API that integrates with Consoul's tool system\n4. Consider security implications and permission requirements\n5. Evaluate if this should be SDK tools or TUI-specific features\n6. Plan integration with existing bash_execute tool\n\nSuccess criteria:\n- Document technical approach\n- Create API design proposal\n- Identify security considerations\n- Estimate implementation effort\n\nReferences:\n- cursor-agent file_tools.py\n- Consoul tool system: src/consoul/ai/tools/",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-14T22:10:13.310083",
+      "updated_at": "2025-11-14T22:10:13.310083",
+      "id": "20251114221013-fa4f0c75",
+      "ticket_id": "SOUL-90",
+      "author": "jared@goatbytes.io",
+      "content": "Completed comprehensive research and design proposal for line-based file editing. See research document for full analysis of cursor-agent, wcgw, and aider implementations, along with proposed hybrid approach for Consoul.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-14T22:18:27.532199",
+      "updated_at": "2025-11-14T22:18:27.532200",
+      "id": "20251114221827-c55fe7d0",
+      "ticket_id": "SOUL-90",
+      "author": "jared@goatbytes.io",
+      "content": "Documented a line-based file editing plan in docs/research/line_based_file_editing_research.md with API, security, and integration details.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-14T22:33:44.204484",
+      "updated_at": "2025-11-14T22:33:44.204485",
+      "id": "20251114223344-19a27781",
+      "ticket_id": "SOUL-90",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation tickets created for line-based file editing feature:\n\n**Phase 1 - MVP Foundation (2 dev-days, 13 story points)**\n- SOUL-103 (2pts): FileEditToolConfig - Configuration model with validation\n- SOUL-104 (8pts): Core EditEngine - Line-based editing with exact matching\n- SOUL-105 (3pts): create_file tool - File creation with security\n\n**Phase 2 - Robustness (1.5 dev-days, 8 story points)**  \n- SOUL-106 (8pts): Progressive matching - Search/replace with fuzzy tolerance\n\n**Phase 3 - Polish & Completion (1 dev-day, 11 story points)**\n- SOUL-107 (3pts): delete_file & append_to_file operations\n- SOUL-108 (5pts): TUI diff preview integration\n- SOUL-109 (5pts): Comprehensive test suite\n- SOUL-111 (3pts): Documentation and examples\n\n**Total Estimate: 4.5 dev-days, 32 story points**\n\nAll tickets linked to EPIC-005 (File Operations & Read Tool System).\n\nImplementation approach synthesizes:\n- Codex's optimistic locking & security model\n- Claude's progressive matching & error recovery\n- cursor-agent's line-based editing patterns\n- wcgw's fuzzy matching tolerance system\n- aider's excellent error messages\n\nReady to start Phase 1 implementation.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-14T23:11:40.043796",
+      "updated_at": "2025-11-14T23:11:40.043797",
+      "id": "20251114231140-9f13e48c",
+      "ticket_id": "SOUL-90",
+      "author": "jared@goatbytes.io",
+      "content": "\u2705 Dependency relationships encoded in ticket metadata\n\nAll blocked_by/blocks relationships now enforced in .gira/ JSON files:\n\n**Critical Path:**\nSOUL-103 (Config) \u2192 SOUL-104 (Core) \u2192 {SOUL-105, SOUL-106, SOUL-107} \u2192 {SOUL-108, SOUL-109, SOUL-111}\n\n**Validated constraints:**\n- SOUL-104 blocked_by: [SOUL-103]\n- SOUL-105 blocked_by: [SOUL-103, SOUL-104]  \n- SOUL-106 blocked_by: [SOUL-104]\n- SOUL-107 blocked_by: [SOUL-104]\n- SOUL-108 blocked_by: [SOUL-104, SOUL-105, SOUL-106, SOUL-107]\n- SOUL-109 blocked_by: [SOUL-104, SOUL-105, SOUL-106, SOUL-107]\n- SOUL-111 blocked_by: [SOUL-104, SOUL-105, SOUL-106, SOUL-107]\n\nTeams cannot start downstream work before prerequisites are completed.\nImplementation can proceed in parallel after SOUL-104 is done.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 4,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:31.052516",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

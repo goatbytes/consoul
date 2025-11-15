@@ -1,0 +1,45 @@
+{
+  "created_at": "2025-11-13T14:35:06.695454",
+  "updated_at": "2025-11-14T20:49:30.045709Z",
+  "id": "SOUL-98",
+  "uuid": "971f46f5-0dbc-4958-8fcc-258e5e9784bf",
+  "title": "Implement symbol reference finder",
+  "description": "**As a** Consoul SDK user\n**I want** to find all references/usages of a code symbol\n**So that** I can understand where functions/classes are used across the codebase\n\n**Context:**\nIDE-like 'find all references' using grep-ast. Complements SOUL-97 by finding symbol USAGES not just definitions.\n\n**Technical Notes:**\n- src/consoul/ai/tools/implementations/find_references.py\n- Use grep_ast TreeContext for reference finding\n- Distinguish definitions vs usages via AST node types\n- Scopes: file, directory, project\n- Register at RiskLevel.SAFE\n\n**Acceptance Criteria:**\n**Given** function 'process_data' defined in utils.py\n**When** find_symbol_references(symbol='process_data', scope='project')\n**Then** return all call sites with file, line, context\n\n**Given** class 'UserModel' with 5 usages\n**When** find_symbol_references('UserModel', include_definition=True)\n**Then** return definition + 5 usage locations\n\n**Given** symbol_name='calculate' in scope='file'\n**When** searching single file\n**Then** only search that file, return in <1s\n\n**Given** symbol doesn't exist\n**When** find_references executes\n**Then** return empty list (not error)\n\n**Given** cross-file imports (from utils import foo)\n**When** finding references to 'foo'\n**Then** detect import and usage correctly\n\n**Testing:**\n- Mock AST parsing\n- Test definition vs usage distinction\n- Test scopes: file, directory, project\n- Test cross-file references\n- Test imports/exports\n- Languages: Python, JS/TS, Go\n\n**Story Points:** 5\n**Dependencies:** SOUL-94, SOUL-97",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-006",
+  "blocked_by": [
+    "SOUL-94",
+    "SOUL-97"
+  ],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-14T12:49:14.944880",
+      "updated_at": "2025-11-14T12:49:14.944881",
+      "id": "20251114124914-b9483a9e",
+      "ticket_id": "SOUL-98",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation complete with all tests passing.\n\n## Delivered Features\n\n1. **AST-based Reference Detection**\n   - Distinguishes references (usages) from definitions\n   - Language-specific node type detection (call, import, attribute)\n   - Not just text matching - semantic understanding\n\n2. **Multi-language Support**\n   - Python: call, import_from_statement, attribute\n   - JavaScript/TypeScript: call_expression, import_specifier, member_expression\n   - Go: call_expression, selector_expression\n   - Extensible to Rust, Java, C/C++\n\n3. **Scope Control**\n   - file: Single file search\n   - directory: Non-recursive directory search\n   - project: Recursive project-wide search\n\n4. **Configuration**\n   - max_file_size_kb: Skip large files (default 1MB)\n   - max_results: Prevent overflow (default 100)\n   - supported_extensions: Customizable\n\n5. **Performance**\n   - Shares cache with code_search\n   - 5-10x speedup on cached files\n   - Mtime-based invalidation\n\n6. **Context & Output**\n   - 2 lines before/after each match\n   - JSON formatted results\n   - File path, line number, match text, type\n   - is_definition flag\n\n## Testing\n\n- 15 tests (8 unit + 7 integration)\n- 68.75% coverage\n- All tests passing\n\n## Documentation\n\n- 157 lines added to docs/tools.md\n- Usage examples\n- Configuration guide\n- Use case workflows\n- Performance characteristics\n\n## Integration\n\n- Registered in SDK as RiskLevel.SAFE\n- Exported from tools/__init__.py\n- Ready for AI tool calling",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:31.298464",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

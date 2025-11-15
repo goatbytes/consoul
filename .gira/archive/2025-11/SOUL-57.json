@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-11-10T18:55:58.075088",
+  "updated_at": "2025-11-11T04:27:46.239772Z",
+  "id": "SOUL-57",
+  "uuid": "cdef5f94-18da-4de2-ac88-de8f0b778eff",
+  "title": "Add loading indicator before AI streaming starts",
+  "description": "Implement a loading indicator that shows between when the user sends a message and when the AI streaming response begins.\n\n## Context\nCurrently there's a gap between message submission and first streaming token where the UI provides no feedback to the user. This creates uncertainty about whether the request was received.\n\n## UX Best Practices (Research 2024-2025)\n- Pulsing dots typing indicator (widely used pattern)\n- Show immediately on message send\n- Hide when first streaming token arrives\n- Avoid flickering for sub-1-second delays\n- Provide immediate user feedback\n\n## Technical Implementation\n- Use Textual LoadingIndicator widget or custom pulsing dots animation\n- Show in message area where assistant response will appear\n- Trigger: When user submits message (Enter key or send button)\n- Remove: When ChatView receives first streaming content token\n- Position: Below last user message, styled as assistant message preview\n\n## Acceptance Criteria\n- [ ] Loading indicator appears immediately after message submission\n- [ ] Indicator shows pulsing/animated dots (not static)\n- [ ] Indicator disappears smoothly when streaming begins\n- [ ] No flickering for fast responses (<1 second)\n- [ ] Indicator styled consistently with assistant messages\n- [ ] Works for both keyboard (Enter) and mouse (send button) submission\n\n## References\n- ChatGPT/Claude use pulsing dots before streaming\n- Terminal implementation: use Textual's LoadingIndicator or custom animation\n- Common patterns: '...' with sequential pulse, or '|/-\\' spinner",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:31.414138",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

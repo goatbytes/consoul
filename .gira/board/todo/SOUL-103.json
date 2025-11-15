@@ -1,0 +1,31 @@
+{
+  "created_at": "2025-11-14T22:29:49.598060",
+  "updated_at": "2025-11-15T07:29:19.602613Z",
+  "id": "SOUL-103",
+  "uuid": "7aadce35-8e29-4aa8-a224-dd759117432a",
+  "title": "Add FileEditToolConfig to configuration models",
+  "description": "**As a** Consoul developer\n**I want** a Pydantic configuration model for file editing tools\n**So that** file edit operations have proper validation, security controls, and user-configurable settings\n\n**Context:**\nFile editing tools (edit_file, create_file, delete_file) need dedicated configuration similar to existing BashToolConfig and ReadToolConfig. Research shows that:\n- cursor-agent uses permission-aware file operations with per-operation approval\n- Optimistic locking via expected_hash prevents concurrent edit conflicts\n- Size/count limits prevent runaway LLM edits\n- Shared validation with ReadToolConfig ensures consistent security\n\nSee research:\n- docs/research/line_based_file_editing_research.md (Codex)\n- SOUL-90 comments (Claude synthesis)\n\n**Technical Notes:**\n- src/consoul/config/models.py:430+ - Add after CodeSearchToolConfig\n- Extend from BaseModel with ConfigDict(extra=\"forbid\", validate_assignment=True)\n- Share path validation helpers with ReadToolConfig (extract to filesystem.py utility)\n- Support extension allowlists/blocklists\n- Add max_edits, max_payload_bytes for runaway protection\n- Include default_encoding (utf-8)\n- Allow allow_overwrite toggle for create_file\n- Add to ToolConfig model's file_edit: FileEditToolConfig field\n\nFiles to modify:\n- src/consoul/config/models.py (add FileEditToolConfig class)\n- src/consoul/config/models.py (add file_edit field to ToolConfig)\n\n**Acceptance Criteria:**\n\n**Given** I define FileEditToolConfig in config models\n**When** I instantiate it with valid values\n**Then** Pydantic validates all fields correctly\n\n**Given** I set max_edits=10 in config\n**When** validation runs\n**Then** the config accepts values 1-100 and rejects invalid counts\n\n**Given** I configure allowed_extensions=[\".py\", \".md\"]\n**When** tools check file extensions\n**Then** only .py and .md files are editable\n\n**Given** I set max_payload_bytes=1048576 (1MB)\n**When** validation runs  \n**Then** edit payloads exceeding 1MB are rejected\n\n**Testing Considerations:**\n- Unit tests for field validation (valid/invalid ranges)\n- Test extension list validation\n- Test max_edits, max_payload_bytes constraints\n- Test default values match expectations\n- Test integration with ToolConfig parent model\n\n**Implementation Hints:**\n```python\nclass FileEditToolConfig(BaseModel):\n    model_config = ConfigDict(extra=\"forbid\", validate_assignment=True)\n    \n    allowed_extensions: list[str] = Field(\n        default_factory=lambda: [\".py\", \".md\", \".txt\", \".json\", ...],\n        description=\"File extensions allowed for editing\"\n    )\n    blocked_paths: list[str] = Field(\n        default_factory=lambda: [\"/etc\", \"/proc\", \"/sys\", \"/dev\"],\n        description=\"Path prefixes blocked from editing (security)\"\n    )\n    max_edits: int = Field(default=50, gt=0, le=100)\n    max_payload_bytes: int = Field(default=1048576, gt=0)  # 1MB\n    default_encoding: str = Field(default=\"utf-8\")\n    allow_overwrite: bool = Field(default=False)\n    timeout: int = Field(default=30, gt=0, le=600)\n```",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "config",
+    "file-edit",
+    "foundation"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-005",
+  "blocked_by": [],
+  "blocks": [
+    "SOUL-104",
+    "SOUL-105"
+  ],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

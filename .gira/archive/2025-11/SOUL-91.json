@@ -1,0 +1,54 @@
+{
+  "created_at": "2025-11-13T14:07:29.884280",
+  "updated_at": "2025-11-15T07:26:30.320887Z",
+  "id": "SOUL-91",
+  "uuid": "02819e5c-fcc7-4331-a290-401fa75a75a6",
+  "title": "Research advanced search tools integration",
+  "description": "Research and design advanced search capabilities beyond bash execution.\n\nCurrent state:\n- Consoul only has bash_execute for searching (grep, find, etc.)\n- No semantic or specialized search tools\n\nProposed features from cursor-agent:\n1. Codebase semantic search - Understand code semantically \u2705 COMPLETED (code_search, find_references)\n2. File search - Fuzzy file finding by name\n3. Grep search - Structured regex-based search \u2705 COMPLETED (grep_search)\n4. Web search - Google Search API integration \u2192 Free alternatives researched\n5. Trend search - Search for trending topics\n\nResearch Status: \u2705 COMPLETED\n\n## Completed Research\n\n### Semantic Code Search (COMPLETED)\n- \u2705 Implemented code_search tool (AST-based, tree-sitter)\n- \u2705 Implemented find_references tool (usage tracking)\n- \u2705 Supports: Python, JS/TS, Go, Kotlin, Java\n- \u2705 Caching with mtime-based invalidation\n\n### Grep Search (COMPLETED)\n- \u2705 Implemented grep_search tool (ripgrep + grep fallback)\n- \u2705 Supports: regex patterns, glob filtering, context lines\n- \u2705 Fast, read-only, RiskLevel.SAFE\n\n### Web Search (RESEARCH COMPLETED - See comments)\n\u2705 Researched free alternatives to Google Search API\n\u2705 Evaluated: DuckDuckGo, SearxNG, Jina AI, Brave, Exa, Tavily\n\u2705 Implementation tickets created:\n- SOUL-99: DuckDuckGo web search (zero setup, 1-2 hours)\n- SOUL-100: SearxNG + fallback (production grade, 4-6 hours)\n\nSee detailed research in comments below.\n\n## Remaining Features\n\n### File Search (Fuzzy Finding)\nStatus: Not yet researched\nConsider: fzf integration, glob patterns, or extend existing bash_execute\n\n### Trend Search\nStatus: Not yet researched  \nConsider: Reddit API, Hacker News, trending GitHub repos\n\n## References\n- cursor-agent search_tools.py\n- Consoul ToolRegistry: src/consoul/ai/tools/registry.py\n- Perplexica: https://github.com/ItzCrazyKns/Perplexica\n- LangChain integrations: https://python.langchain.com/docs/integrations/",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-14T17:27:43.759069",
+      "updated_at": "2025-11-14T17:27:43.759070",
+      "id": "20251114172743-3ce02697",
+      "ticket_id": "SOUL-91",
+      "author": "jared@goatbytes.io",
+      "content": "# Web Search Tool Research - Free LLM-Ready Options\n\nCompleted comprehensive research on free web search integration for LLM agents. Explored multiple approaches including self-hosted and zero-setup options.\n\n## Key Findings\n\n### 1. SearxNG (Self-Hosted Metasearch) - Production Grade\n- **Architecture**: Privacy-focused metasearch aggregating 135+ engines\n- **Integration**: Native LangChain support via `SearxSearchWrapper`\n- **Production Example**: Perplexica (17k stars) uses SearxNG + multi-LLM support\n- **Setup**: Docker deployment (~5 minutes)\n- **Cost**: Free, no API keys, no rate limits\n- **Pros**: Full control, privacy, proven at scale\n- **Cons**: Requires Docker hosting\n\n### 2. DuckDuckGo Search - Zero Setup Winner\n- **Architecture**: Free API wrapper via `duckduckgo-search` package\n- **Integration**: Native LangChain `DuckDuckGoSearchAPIWrapper`\n- **Setup**: `pip install` only, no config\n- **Cost**: Completely free, no hard rate limits\n- **Pros**: Works immediately, zero friction\n- **Cons**: Soft rate limiting, less control\n\n### 3. Jina AI Reader + Search - RAG Optimized\n- **Architecture**: URL-to-markdown converter + search API\n- **Free Tier**: 20 RPM (no key) or 200 RPM (free key), 10M trial tokens\n- **Best For**: RAG pipelines needing pre-cleaned content\n- **Usage**: Prepend `https://r.jina.ai/` to any URL\n\n### 4. Other Evaluated Options\n- **Brave Search API**: Privacy-first, independent index, limited free tier\n- **Exa** (Metaphor): AI-native semantic search, trial credits\n- **Tavily**: Built for LLM agents, 1000 free searches/month\n- **Serper**: Fast Google proxy, affordable but not fully free\n- **Firecrawl**: Web scraping + search, trial available\n\n## Implementation Patterns from Research\n\n### From local-llm-searxng-agent\n- Keyword-based triggering (\"latest\", \"current\", \"search for\")\n- Separate text vs image search modes\n- Context injection: prepend search results to query\n\n### From Perplexica\n- Focus modes (academic, code, news, Reddit, YouTube)\n- Citation tracking with source URLs\n- Multi-provider LLM support (Ollama, OpenAI, Claude, Groq)\n- SearxNG bundled in Docker image\n\n### From LangChain Integration\n- Tool wrapping for agents: `load_tools([\"searx-search\"])`\n- Engine-specific searches: `engines=[\"github\", \"arxiv\"]`\n- Structured results: title, snippet, URL\n\n## LangChain Code Examples\n\n### DuckDuckGo (Zero Setup)\n```python\nfrom langchain_community.utilities import DuckDuckGoSearchAPIWrapper\nsearch = DuckDuckGoSearchAPIWrapper(max_results=5)\nresults = search.run(\"query\")\n```\n\n### SearxNG (Self-Hosted)\n```python\nfrom langchain_community.utilities import SearxSearchWrapper\nsearch = SearxSearchWrapper(searx_host=\"http://127.0.0.1:8888\")\nresults = search.run(\"query\")\n# Or with metadata:\nresults = search.results(\"query\", num_results=5, engines=[\"google\", \"github\"])\n```\n\n### Jina AI Reader\n```python\nimport requests\nmarkdown = requests.get(\"https://r.jina.ai/https://example.com\").text\nsearch_results = requests.get(\"https://s.jina.ai/?q=python\").json()\n```\n\n## Recommendations\n\n### Option A: DuckDuckGo Quick Win\n- **Effort**: 1-2 hours\n- **Value**: Immediate web search, zero setup\n- **Use Case**: 80% of search needs, ships fast\n- **Implementation**: Single tool file using `DuckDuckGoSearchAPIWrapper`\n\n### Option B: SearxNG + DuckDuckGo Fallback\n- **Effort**: 4-6 hours (including Docker automation)\n- **Value**: Enterprise-grade with graceful degradation\n- **Use Case**: Production deployments wanting control\n- **Implementation**: Auto-detect SearxNG, fallback to DuckDuckGo\n\n## Dependencies Needed\n- `langchain-community` (may already be present)\n- `duckduckgo-search>=7.0.0` (for Option A/B)\n- Optional: Docker for SearxNG (Option B)\n\n## References Reviewed\n1. https://docs.langchain.com/oss/python/integrations/tools/searx_search\n2. https://github.com/ItzCrazyKns/Perplexica (17k stars)\n3. https://github.com/Dev-TechT/local-llm-searxng-agent\n4. https://medium.com/@animakit/local-metasearch-how-to-use-searxng-with-docker-and-langchain-010210ece775\n5. https://jina.ai/reader/\n6. Web search for 2025 free LLM search APIs\n\n## Next Steps\nCreating separate implementation tickets for:\n- SOUL-XXX: Implement DuckDuckGo web search tool (Option A)\n- SOUL-XXX: Add SearxNG support with DuckDuckGo fallback (Option B)",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-14T17:29:15.079855",
+      "updated_at": "2025-11-14T17:29:15.079856",
+      "id": "20251114172915-c26b3034",
+      "ticket_id": "SOUL-91",
+      "author": "jared@goatbytes.io",
+      "content": "Web search research completed. Created implementation tickets:\n- SOUL-99: DuckDuckGo web search tool (recommended first step)\n- SOUL-100: SearxNG support with DuckDuckGo fallback (optional advanced feature)\n\nBoth tickets include detailed implementation specs, testing requirements, and documentation plans.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 2,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:30.933150",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

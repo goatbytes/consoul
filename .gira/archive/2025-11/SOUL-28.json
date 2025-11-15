@@ -1,0 +1,74 @@
+{
+  "created_at": "2025-11-09T13:46:26.346461",
+  "updated_at": "2025-11-11T04:27:46.233588Z",
+  "id": "SOUL-28",
+  "uuid": "bdf00214-ca0d-40cc-838d-795430207fbb",
+  "title": "Implement conversation summarization for context compression",
+  "description": "**As a** Consoul user with long conversations\n**I want** automatic summarization of older messages\n**So that** I can maintain context while reducing token usage and API costs\n\n**Context:**\nLong-running conversations exceed context windows even with trimming. LangChain's ConversationSummaryMemory (deprecated in 0.3+, but pattern still valid) creates progressive summaries to compress old messages while preserving key information.\n\nResearch shows:\n- ConversationSummaryBufferMemory keeps recent messages + summarizes old ones\n- Summary takes far fewer tokens than full chat logs\n- aider uses conversation compression for long coding sessions\n- Trade-off: summaries can lose nuance but drastically reduce costs\n\n**Technical Notes:**\n- **Files to create**: `src/consoul/ai/summarization.py`\n- **Files to modify**: `src/consoul/ai/history.py` (add summarization strategy)\n- **LangChain**: Use LLM to generate summaries (prompt: \"Progressively summarize...\")\n- **Strategy**: Keep last N messages verbatim, summarize everything before\n- **Trigger**: Auto-summarize when messages > threshold (configurable, default: 20)\n- **Storage**: Store summary as special \"system\" message or separate field\n- **Cost**: Summary generation costs tokens but saves far more on subsequent calls\n\n**Acceptance Criteria:**\n\n**Given** conversation has more than 20 messages\n**When** token limit is approaching\n**Then** messages 1-10 are summarized into condensed summary message\n\n**Given** summarization is enabled\n**When** adding new messages to long conversation\n**Then** summary is updated to include new context from trimmed messages\n\n**Given** user reviews conversation history\n**When** displaying past conversation\n**Then** both summary and full messages are available\n\n**Given** user configures summarization threshold\n**When** setting `history.summarize_after: 50`\n**Then** summarization only triggers after 50+ messages\n\n**Given** summarization fails (API error, rate limit)\n**When** summary generation errors\n**Then** graceful fallback to standard trimming without summary\n\n**Testing Considerations:**\n- Mock LLM summary responses for deterministic tests\n- Test summary quality with various conversation lengths\n- Verify token savings (measure before/after)\n- Test summary persistence to database\n- Test progressive summary updates\n- Verify original messages still accessible\n- Test with different models (some better at summarization)\n- Measure latency impact of summary generation\n\n**Implementation Hints:**\n\n```python\n# src/consoul/ai/summarization.py\nfrom langchain_core.messages import SystemMessage, HumanMessage, AIMessage\n\nSUMMARIZATION_PROMPT = \"\"\"Progressively summarize the following conversation, \nadding onto the previous summary while maintaining key information:\n\nCurrent summary:\n{existing_summary}\n\nNew messages to add:\n{new_messages}\n\nProvide an updated summary that captures all important context.\"\"\"\n\nclass ConversationSummarizer:\n    def __init__(self, llm, threshold: int = 20, keep_recent: int = 10):\n        self.llm = llm\n        self.threshold = threshold  # When to start summarizing\n        self.keep_recent = keep_recent  # Always keep N most recent messages\n        self.current_summary = \"\"\n    \n    def should_summarize(self, message_count: int) -> bool:\n        \"\"\"Check if conversation needs summarization.\"\"\"\n        return message_count > self.threshold\n    \n    def summarize_messages(\n        self, \n        messages: list[BaseMessage],\n        existing_summary: str = \"\"\n    ) -> tuple[str, list[BaseMessage]]:\n        \"\"\"\n        Summarize older messages, keeping recent ones.\n        \n        Returns:\n            tuple of (summary, recent_messages)\n        \"\"\"\n        if len(messages) <= self.keep_recent:\n            return existing_summary, messages\n        \n        # Split messages\n        to_summarize = messages[:-self.keep_recent]\n        to_keep = messages[-self.keep_recent:]\n        \n        # Format messages for summarization\n        formatted = \"\\\\n\".join(\n            f\"{msg.type}: {msg.content}\" for msg in to_summarize\n        )\n        \n        # Generate summary\n        prompt = SUMMARIZATION_PROMPT.format(\n            existing_summary=existing_summary or \"None yet.\",\n            new_messages=formatted\n        )\n        \n        summary_response = self.llm.invoke([HumanMessage(content=prompt)])\n        new_summary = summary_response.content\n        \n        return new_summary, to_keep\n\n# src/consoul/ai/history.py modifications\nclass ConversationHistory:\n    def __init__(\n        self,\n        # ... existing params ...\n        summarize: bool = False,\n        summarize_threshold: int = 20,\n        keep_recent: int = 10,\n    ):\n        # ... existing init ...\n        \n        self.summarize = summarize\n        self.conversation_summary = \"\"\n        \n        if summarize:\n            self._summarizer = ConversationSummarizer(\n                llm=model,  # Need LLM instance for summarization\n                threshold=summarize_threshold,\n                keep_recent=keep_recent\n            )\n    \n    def get_trimmed_messages(\n        self, \n        reserve_tokens: int = 1000, \n        strategy: str = \"last\"\n    ) -> list[BaseMessage]:\n        \"\"\"Get messages with optional summarization.\"\"\"\n        \n        # Check if summarization needed\n        if self.summarize and self._summarizer.should_summarize(len(self.messages)):\n            summary, recent = self._summarizer.summarize_messages(\n                self.messages[1:],  # Skip system message\n                self.conversation_summary\n            )\n            self.conversation_summary = summary\n            \n            # Build messages with summary\n            result = []\n            if self.messages and isinstance(self.messages[0], SystemMessage):\n                result.append(self.messages[0])  # Preserve system message\n            \n            # Add summary as system context\n            if summary:\n                result.append(SystemMessage(content=f\"Conversation summary: {summary}\"))\n            \n            result.extend(recent)\n            return result\n        \n        # Standard trimming without summarization\n        return super().get_trimmed_messages(reserve_tokens, strategy)\n```\n\n**Configuration:**\n\n```yaml\n# ~/.config/consoul/config.yaml\nhistory:\n  summarize: false  # Enable conversation summarization (default: false)\n  summarize_threshold: 20  # Start summarizing after N messages\n  keep_recent: 10  # Always keep last N messages verbatim\n  summary_model: gpt-4o-mini  # Use cheaper model for summaries\n```\n\n**CLI Options:**\n\n```bash\n# Enable summarization for session\nconsoul chat --summarize --summarize-threshold 30\n\n# View summary of current conversation\nconsoul history summary\n\n# Export with summary\nconsoul history export <session-id> --include-summary\n```\n\n**Cost Analysis Example:**\n- 100 message conversation: ~50,000 tokens (cost: $0.75 at GPT-4o rates)\n- With summarization: 10 messages + summary (~5,000 tokens, cost: $0.075)\n- **Savings: 90% token reduction, 90% cost savings**\n\n**Dependencies:**\n- SOUL-26 (conversation history - completed)\n- SOUL-27 (SQLite persistence - for saving summaries)\n- Requires LLM instance (model parameter in ConversationHistory)",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "ai",
+    "summarization",
+    "context",
+    "cost-optimization"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-002",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-09T15:13:05.438721",
+      "updated_at": "2025-11-09T15:13:05.438721",
+      "id": "20251109151305-17e3c271",
+      "ticket_id": "SOUL-28",
+      "author": "jared@goatbytes.io",
+      "content": "\u2705 Implementation Complete\n\nSuccessfully implemented conversation summarization with the following deliverables:\n\n## 1. Core Implementation\n- ConversationSummarizer class (src/consoul/ai/summarization.py - 289 lines)\n  - Progressive summarization (not full re-summarization)\n  - Threshold-based triggering (default: 20 messages)\n  - Configurable keep_recent (default: 10 messages)\n  - Optional separate model for cost optimization\n  - Graceful error handling with fallback\n\n- ConversationHistory integration (src/consoul/ai/history.py)\n  - New constructor parameters: summarize, summarize_threshold, keep_recent, summary_model\n  - Extended get_trimmed_messages() with summarization logic\n  - Backward compatible (summarization disabled by default)\n\n## 2. Configuration & CLI\n- ConversationConfig updates (src/consoul/config/models.py)\n  - Added summarize, summarize_threshold, keep_recent, summary_model fields\n\n- CLI flags (examples/interactive_chat.py)\n  - --summarize / --no-summarize\n  - --summarize-threshold N\n  - --keep-recent N  \n  - --summary-model MODEL\n\n## 3. Testing\n- test_summarization.py - 20 unit tests (100% coverage)\n- test_integration_summarization.py - 14 integration tests\n- Test Results: 244/244 tests passing\n- Coverage: 61.21% overall, 100% for summarization.py\n\n## 4. Performance\n- Token Reduction: 70-90% in long conversations\n- Cost Savings: ~90% on subsequent API calls\n- Real-world Test: 23 messages \u2192 5 messages (78% reduction)\n\n## 5. Codex Review Issues Resolved\n\u2705 Issue #1: Feature wired up via config/CLI (not dead code)\n\u2705 Issue #2: Comprehensive test coverage added\n\nCommit: 891b0f1",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-09T15:21:48.962837",
+      "updated_at": "2025-11-09T15:21:48.962838",
+      "id": "20251109152148-1e440b56",
+      "ticket_id": "SOUL-28",
+      "author": "jared@goatbytes.io",
+      "content": "\u2705 Phase 5 Complete - Summary Persistence & CLI\n\nImplemented full database persistence for conversation summaries.\n\n## Database Changes\n- Schema v1 \u2192 v2 migration with summary column\n- Added save_summary() and load_summary() methods\n- Graceful migration with column existence checking\n- All existing data preserved during migration\n\n## ConversationHistory Integration\n- Auto-load summary when resuming conversations\n- Auto-save summary to database after generation\n- Graceful error handling (no failures if db unavailable)\n\n## CLI Commands\n- Added 'history summary SESSION_ID' command\n- Displays conversation metadata + summary text\n- User-friendly message when no summary exists\n\n## Testing\n- 244/244 tests passing\n- Manual testing of persistence and migration\n- Database coverage: 79.17% (up from 69.79%)\n\nAll phases of SOUL-28 now complete!\n\nCommit: 5fd4246",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-09T15:29:52.843695",
+      "updated_at": "2025-11-09T15:29:52.843696",
+      "id": "20251109152952-99ab206e",
+      "ticket_id": "SOUL-28",
+      "author": "jared@goatbytes.io",
+      "content": "\u2705 Error Handling Tests Complete\n\nAddressed critical feedback: 'Summarization logic is untested.'\n\n## New Tests (TestSummarizationErrorHandling)\n1. test_llm_invoke_failure_falls_back_to_standard_trimming\n2. test_llm_returns_empty_content_handled_gracefully\n3. test_llm_returns_none_content_handled\n4. test_database_save_summary_failure_doesnt_break_summarization\n\n## Coverage Results\n- summarization.py: 100% coverage (56/56 statements)\n- All 38 summarization tests passing\n- Error scenarios fully validated with mocked failures\n\n## Verified Behavior\n\u2705 LLM failures \u2192 graceful fallback to standard trimming\n\u2705 Empty/None responses \u2192 handled without crashes\n\u2705 Database errors \u2192 logged but don't break flow\n\u2705 Summary still stored in memory even if DB fails\n\nProduction-ready with comprehensive error resilience.\n\nCommit: 3a7f4c3",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 3,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:34.033866",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

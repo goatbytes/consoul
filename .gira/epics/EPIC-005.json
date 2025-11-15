@@ -1,9 +1,9 @@
 {
   "created_at": "2025-11-13T08:37:54.579800",
-  "updated_at": "2025-11-13T08:48:58.141859",
+  "updated_at": "2025-11-14T23:25:49.767941",
   "id": "EPIC-005",
-  "title": "File Operations & Read Tool System",
-  "description": "Create a comprehensive file reading system for Consoul that allows AI agents to safely read text files, PDFs, and other file types with proper security controls, line numbering, and size limits. This extends the tool calling system (EPIC-004) with safe, read-only file operations that enable AI models to access codebase files, documentation, and configuration without requiring user approval.",
+  "title": "File Operations System (Read & Edit)",
+  "description": "Create a comprehensive file operations system for Consoul that enables AI agents to safely read and edit files with proper security controls, validation, and user approval.\n\nThis extends the tool calling system (EPIC-004) with file I/O capabilities including:\n\n**Read Operations (safe, read-only)**:\n- read_file: Line-numbered text file reading with offset/limit\n- PDF support: Page extraction from PDF files\n- Size limits: Truncation controls for large files\n- Security: Path validation, extension filtering, blocked paths\n\n**Edit Operations (require approval)**:\n- edit_file_lines: Line-based editing with exact line ranges\n- edit_file_search_replace: Search/replace with progressive matching (strict → whitespace → fuzzy)\n- create_file: File creation with overwrite protection\n- delete_file: File deletion (DANGEROUS - always requires approval)\n- append_to_file: Append content to existing files\n\n**Key Features**:\n- Optimistic locking (expected_hash) prevents concurrent edit conflicts\n- Progressive matching with tolerance levels for robustness\n- Atomic writes (temp file → replace) prevent file corruption\n- TUI diff previews for all edit operations\n- Comprehensive audit logging with checksums\n- Security-first: RiskLevel.CAUTION for edits, DANGEROUS for deletes\n\n**Dependencies**:\n- Blocked by: EPIC-004 (Tool Calling System)\n- Enables: AI-assisted coding, file refactoring, documentation updates",
   "status": "active",
   "owner": "jared@goatbytes.io",
   "target_date": "2025-12-31",
@@ -15,7 +15,15 @@
     "SOUL-82",
     "SOUL-83",
     "SOUL-85",
-    "SOUL-86"
+    "SOUL-86",
+    "SOUL-103",
+    "SOUL-104",
+    "SOUL-105",
+    "SOUL-106",
+    "SOUL-107",
+    "SOUL-108",
+    "SOUL-109",
+    "SOUL-111"
   ],
   "comments": [
     {

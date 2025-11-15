@@ -1,0 +1,42 @@
+{
+  "created_at": "2025-11-08T14:19:42.687243",
+  "updated_at": "2025-11-09T00:02:44.893770Z",
+  "id": "SOUL-5",
+  "uuid": "d6007a81-e58c-421b-b05e-cc536e29c0b2",
+  "title": "Setup pytest with coverage reporting",
+  "description": "Configure pytest for testing with pytest-cov for coverage, pytest-asyncio for async tests, and pytest-mock. Setup tests/ directory structure, conftest.py, and coverage configuration targeting 80%+ coverage.",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-001",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-08T14:39:09.697245",
+      "updated_at": "2025-11-08T14:39:09.697246",
+      "id": "20251108143909-f6cc310a",
+      "ticket_id": "SOUL-5",
+      "author": "jared@goatbytes.io",
+      "content": "Setup pytest with coverage reporting:\n\n**Test Structure:**\n- tests/ directory with unit/ and integration/ subdirectories\n- Organized by module: ai, tui, config, utils\n- __init__.py files for proper package structure\n\n**Configuration (pyproject.toml):**\n- Pytest min version: 7.4\n- Test paths: tests/\n- Strict markers and config\n- Coverage reports: term-missing, html, xml\n- Custom markers: slow, integration, unit\n\n**Fixtures (conftest.py):**\n- sample_config: mock configuration dictionary\n- mock_ai_response: sample AI response text\n\n**Sample Tests (test_package.py):**\n- TestPackageMetadata: version, author, license, __all__ exports\n- TestSampleFixtures: fixture validation\n- All 6 tests passing\n\n**Coverage:**\n- Initial coverage: 28.57% (4/14 statements)\n- __init__.py: 100% coverage\n- HTML report: htmlcov/\n- XML report: coverage.xml\n\n**Verification:**\n- poetry install completed successfully\n- pytest runs without errors\n- Coverage reporting functional",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:34.659903",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}
