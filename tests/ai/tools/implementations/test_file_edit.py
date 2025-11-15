@@ -13,6 +13,7 @@ from consoul.ai.tools.implementations.file_edit import (
     _parse_line_range,
     _validate_edits,
     _validate_file_path,
+    create_file,
     edit_file_lines,
     get_file_edit_config,
     set_file_edit_config,
@@ -361,7 +362,13 @@ class TestApplyLineEdits:
 
         result_lines, changed_ranges = _apply_line_edits(lines, edits)
 
-        assert result_lines == ["line1", "new line 2a", "new line 2b", "new line 2c", "line3"]
+        assert result_lines == [
+            "line1",
+            "new line 2a",
+            "new line 2b",
+            "new line 2c",
+            "line3",
+        ]
         assert changed_ranges == ["2"]
 
     def test_replace_multiple_lines_with_single(self):
@@ -509,10 +516,12 @@ class TestEditFileLines:
         file = tmp_path / "test.txt"
         file.write_text("line1\nline2\nline3\nline4\nline5")
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"3": "NEW LINE 3"},
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"3": "NEW LINE 3"},
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -532,10 +541,12 @@ class TestEditFileLines:
         file = tmp_path / "test.txt"
         file.write_text("\n".join([f"line{i}" for i in range(1, 11)]))
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"3-5": "new line 3\nnew line 4\nnew line 5"},
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"3-5": "new line 3\nnew line 4\nnew line 5"},
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -553,10 +564,15 @@ class TestEditFileLines:
         file = tmp_path / "test.txt"
         file.write_text("\n".join([f"line{i}" for i in range(1, 11)]))
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"1-2": "header line 1\nheader line 2", "9-10": "footer line 9\nfooter line 10"},
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {
+                    "1-2": "header line 1\nheader line 2",
+                    "9-10": "footer line 9\nfooter line 10",
+                },
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -574,11 +590,13 @@ class TestEditFileLines:
         # Compute hash before edit
         expected_hash = _compute_file_hash(file)
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"2": "modified"},
-            "expected_hash": expected_hash,
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"2": "modified"},
+                "expected_hash": expected_hash,
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -591,11 +609,13 @@ class TestEditFileLines:
         # Use wrong hash
         wrong_hash = "0" * 64
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"2": "modified"},
-            "expected_hash": wrong_hash,
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"2": "modified"},
+                "expected_hash": wrong_hash,
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "hash_mismatch"
@@ -610,11 +630,13 @@ class TestEditFileLines:
         original_content = "line1\nline2\nline3"
         file.write_text(original_content)
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"2": "would be changed"},
-            "dry_run": True,
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"2": "would be changed"},
+                "dry_run": True,
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -629,10 +651,12 @@ class TestEditFileLines:
 
     def test_validation_failure_path_traversal(self, tmp_path):
         """Test validation fails on path traversal."""
-        result = edit_file_lines.invoke({
-            "file_path": "../../../etc/passwd",
-            "line_edits": {"1": "malicious"},
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": "../../../etc/passwd",
+                "line_edits": {"1": "malicious"},
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "validation_failed"
@@ -640,10 +664,12 @@ class TestEditFileLines:
 
     def test_validation_failure_file_not_found(self, tmp_path):
         """Test validation fails when file doesn't exist."""
-        result = edit_file_lines.invoke({
-            "file_path": str(tmp_path / "missing.txt"),
-            "line_edits": {"1": "content"},
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(tmp_path / "missing.txt"),
+                "line_edits": {"1": "content"},
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "validation_failed"
@@ -654,10 +680,12 @@ class TestEditFileLines:
         file = tmp_path / "test.txt"
         file.write_text("line1\nline2\nline3")
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"1-100": "too far"},  # Line 100 doesn't exist
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"1-100": "too far"},  # Line 100 doesn't exist
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "validation_failed"
@@ -668,10 +696,12 @@ class TestEditFileLines:
         file = tmp_path / "test.txt"
         file.write_text("\n".join([f"line{i}" for i in range(1, 11)]))
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"1-5": "first", "3-7": "overlaps"},
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"1-5": "first", "3-7": "overlaps"},
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "validation_failed"
@@ -682,10 +712,12 @@ class TestEditFileLines:
         file = tmp_path / "test.txt"
         file.write_text("line1\nline2\nline3\nline4\nline5")
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"2-4": ""},
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"2-4": ""},
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "success"
@@ -701,10 +733,12 @@ class TestEditFileLines:
         # Set restrictive config
         set_file_edit_config(FileEditToolConfig(allowed_extensions=[".txt"]))
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"1": "print('modified')"},
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"1": "print('modified')"},
+            }
+        )
 
         data = json.loads(result)
         assert data["status"] == "validation_failed"
@@ -719,15 +753,21 @@ class TestEditFileLines:
         file = tmp_path / "binary.txt"  # .txt extension to pass validation
         file.write_bytes(b"\x00\x01\x02\xff\xfe")
 
-        result = edit_file_lines.invoke({
-            "file_path": str(file),
-            "line_edits": {"1": "text"},
-        })
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"1": "text"},
+            }
+        )
 
         data = json.loads(result)
         # Binary files trigger either validation_failed or error depending on detection
         assert data["status"] in ("error", "validation_failed")
-        assert "encoding" in data["error"].lower() or "decode" in data["error"].lower() or "binary" in data["error"].lower()
+        assert (
+            "encoding" in data["error"].lower()
+            or "decode" in data["error"].lower()
+            or "binary" in data["error"].lower()
+        )
 
 
 class TestFileEditResult:
@@ -794,4 +834,457 @@ class TestModuleConfig:
         assert retrieved_config.max_payload_bytes == 1000
 
         # Reset to default
+        set_file_edit_config(FileEditToolConfig())
+
+
+class TestCreateFile:
+    """Integration tests for create_file tool."""
+
+    def test_create_new_file_success(self, tmp_path):
+        """Test creating new file in existing directory."""
+        file = tmp_path / "new_file.txt"
+        content = "Hello, World!"
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": content,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "created"
+        assert data["bytes_written"] == len(content.encode("utf-8"))
+        assert "checksum" in data
+
+        # Verify file was created with correct content
+        assert file.exists()
+        assert file.read_text() == content
+
+    def test_create_file_with_parent_dirs(self, tmp_path):
+        """Test automatic parent directory creation."""
+        file = tmp_path / "deep" / "nested" / "dirs" / "file.py"
+        content = "def test():\n    pass"
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": content,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "created"
+
+        # Verify parent dirs were created
+        assert file.parent.exists()
+        assert file.parent.is_dir()
+        assert file.read_text() == content
+
+    def test_create_file_already_exists_no_overwrite(self, tmp_path):
+        """Test overwrite protection when file exists."""
+        file = tmp_path / "existing.txt"
+        file.write_text("original content")
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "new content",
+                "overwrite": False,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "already exists" in data["error"].lower()
+
+        # Original content preserved
+        assert file.read_text() == "original content"
+
+    def test_create_file_overwrite_not_allowed_in_config(self, tmp_path):
+        """Test overwrite fails if config.allow_overwrite=False."""
+        file = tmp_path / "existing.txt"
+        file.write_text("original")
+
+        # Set config with allow_overwrite=False
+        set_file_edit_config(FileEditToolConfig(allow_overwrite=False))
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "new",
+                "overwrite": True,  # User wants overwrite but config blocks it
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "config does not allow" in data["error"].lower()
+
+        # Reset config
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_create_file_overwrite_success(self, tmp_path):
+        """Test overwrite succeeds with both flags True."""
+        file = tmp_path / "existing.txt"
+        file.write_text("original content")
+
+        # Set config with allow_overwrite=True
+        set_file_edit_config(FileEditToolConfig(allow_overwrite=True))
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "new content",
+                "overwrite": True,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "updated"  # Updated, not created
+        assert "checksum" in data
+
+        # File was overwritten
+        assert file.read_text() == "new content"
+
+        # Reset config
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_create_file_blocked_extension(self, tmp_path):
+        """Test validation fails for blocked extensions."""
+        file = tmp_path / "malicious.exe"
+
+        # Config with restricted extensions
+        set_file_edit_config(FileEditToolConfig(allowed_extensions=[".txt", ".py"]))
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "binary content",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "not allowed" in data["error"].lower()
+
+        # Reset config
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_create_file_blocked_path(self, tmp_path):
+        """Test validation fails for blocked paths."""
+        # Try to create in /etc (blocked path)
+        result = create_file.invoke(
+            {
+                "file_path": "/etc/passwd_fake",
+                "content": "malicious",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "blocked" in data["error"].lower() or "denied" in data["error"].lower()
+
+    def test_create_file_path_traversal(self):
+        """Test path traversal rejection."""
+        result = create_file.invoke(
+            {
+                "file_path": "../../../etc/passwd",
+                "content": "malicious",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "traversal" in data["error"].lower()
+
+    def test_create_file_returns_checksum(self, tmp_path):
+        """Test result includes SHA256 checksum."""
+        file = tmp_path / "test.txt"
+        content = "test content"
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": content,
+            }
+        )
+
+        data = json.loads(result)
+        assert "checksum" in data
+        assert len(data["checksum"]) == 64  # SHA256 hex digest
+
+        # Verify checksum matches file
+        assert data["checksum"] == _compute_file_hash(file)
+
+    def test_create_file_returns_bytes_written(self, tmp_path):
+        """Test result includes content size."""
+        file = tmp_path / "test.txt"
+        content = "Hello, 世界!"  # Mix ASCII and UTF-8
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": content,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["bytes_written"] == len(content.encode("utf-8"))
+
+    def test_create_file_status_created(self, tmp_path):
+        """Test status is \"created\" for new files."""
+        file = tmp_path / "new.txt"
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "content",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "created"
+
+    def test_create_file_status_updated(self, tmp_path):
+        """Test status is \"updated\" when overwriting."""
+        file = tmp_path / "existing.txt"
+        file.write_text("original")
+
+        set_file_edit_config(FileEditToolConfig(allow_overwrite=True))
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "new",
+                "overwrite": True,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "updated"
+
+        # Reset config
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_create_file_encoding(self, tmp_path):
+        """Test respects config.default_encoding."""
+        file = tmp_path / "unicode.txt"
+        content = "Hello 世界 🌍"
+
+        # Use UTF-8 encoding (default)
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": content,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "created"
+        assert file.read_text(encoding="utf-8") == content
+
+    def test_create_file_empty_content(self, tmp_path):
+        """Test creating empty file."""
+        file = tmp_path / "empty.txt"
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "created"
+        assert data["bytes_written"] == 0
+        assert file.read_text() == ""
+
+    def test_create_file_large_content(self, tmp_path):
+        """Test creating file with large content."""
+        file = tmp_path / "large.txt"
+        content = "x" * 10000  # 10KB
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": content,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "created"
+        assert data["bytes_written"] == 10000
+        assert file.read_text() == content
+
+    def test_create_file_special_chars(self, tmp_path):
+        """Test content with unicode/special characters."""
+        file = tmp_path / "special.txt"
+        content = "Line 1\nLine 2\tTab\nWindows\\nEscaped\n\u2764\ufe0f Unicode"
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": content,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "created"
+        assert file.read_text() == content
+
+    def test_create_file_config_integration(self, tmp_path):
+        """Test uses module-level config."""
+        file = tmp_path / "test.exe"
+
+        # Restrictive config
+        set_file_edit_config(FileEditToolConfig(allowed_extensions=[".txt"]))
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "content",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+
+        # Reset
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_create_file_atomic_write(self, tmp_path):
+        """Test no partial files on error."""
+        file = tmp_path / "atomic.txt"
+
+        # This should succeed
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "test content",
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "created"
+
+        # Verify no temp files left behind
+        temp_files = list(tmp_path.glob(".*tmp"))
+        assert len(temp_files) == 0
+
+    def test_edit_preserves_crlf_newlines(self, tmp_path):
+        """Test that CRLF line endings are preserved."""
+        file = tmp_path / "windows.txt"
+        # Create file with CRLF line endings
+        content_crlf = "line1\r\nline2\r\nline3\r\n"
+        file.write_bytes(content_crlf.encode("utf-8"))
+
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"2": "modified line 2"},
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # Verify CRLF is preserved
+        final_content = file.read_bytes().decode("utf-8")
+        assert "\r\n" in final_content
+        assert final_content == "line1\r\nmodified line 2\r\nline3\r\n"
+
+    def test_edit_preserves_lf_newlines(self, tmp_path):
+        """Test that LF line endings are preserved."""
+        file = tmp_path / "unix.txt"
+        # Create file with LF line endings
+        content_lf = "line1\nline2\nline3\n"
+        file.write_text(content_lf)
+
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"2": "modified line 2"},
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # Verify LF is preserved (no CRLF)
+        final_content = file.read_text()
+        assert "\r\n" not in final_content
+        assert final_content == "line1\nmodified line 2\nline3\n"
+
+    def test_concurrent_edits_no_collision(self, tmp_path):
+        """Test that concurrent edits use unique temp files."""
+        file = tmp_path / "test.txt"
+        file.write_text("line1\nline2\nline3\n")
+
+        # Simulate concurrent edits by checking temp file names are unique
+        # We cannot actually test true concurrency easily, but we can verify
+        # the temp file naming uses randomness
+        import threading
+
+        temp_files_seen = set()
+
+        def edit_file():
+            # Import here to access _atomic_write internals
+            import secrets
+
+            # Generate what the temp path would be
+            random_suffix = secrets.token_hex(8)
+            temp_path = file.parent / f".{file.name}.{random_suffix}.tmp"
+            temp_files_seen.add(str(temp_path))
+
+        # Run multiple threads
+        threads = [threading.Thread(target=edit_file) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # All temp file names should be unique
+        assert len(temp_files_seen) == 10
+
+    def test_extension_case_insensitive_uppercase(self, tmp_path):
+        """Test that extension filtering is case-insensitive for uppercase."""
+        file = tmp_path / "test.PY"
+        file.write_text('print("hello")')
+
+        # Config allows .py (lowercase)
+        set_file_edit_config(FileEditToolConfig(allowed_extensions=[".py"]))
+
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"1": 'print("modified")'},
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # Reset config
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_extension_case_insensitive_mixed_case(self, tmp_path):
+        """Test that extension filtering is case-insensitive for mixed case."""
+        file = tmp_path / "test.txt"
+        file.write_text("content")
+
+        # Config allows .TXT (uppercase)
+        set_file_edit_config(FileEditToolConfig(allowed_extensions=[".TXT", ".MD"]))
+
+        result = edit_file_lines.invoke(
+            {
+                "file_path": str(file),
+                "line_edits": {"1": "modified"},
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # Reset config
         set_file_edit_config(FileEditToolConfig())

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import tempfile
+import secrets
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
@@ -137,22 +137,25 @@ def _parse_line_range(line_range: str) -> tuple[int, int]:
     return num, num
 
 
-def _validate_file_path(file_path: str, config: FileEditToolConfig) -> Path:
+def _validate_file_path(
+    file_path: str, config: FileEditToolConfig, must_exist: bool = True
+) -> Path:
     """Validate file path for security and accessibility.
 
     Checks for path traversal attempts, blocked paths, and allowed extensions.
     Follows the same security pattern as read.py.
 
     Args:
-        file_path: Path to file to edit
+        file_path: Path to file to edit/create
         config: FileEditToolConfig with security settings
+        must_exist: If True, file must exist. If False, only parent dir must exist.
 
     Returns:
         Resolved absolute Path object
 
     Raises:
         ValueError: If path is invalid, blocked, or has disallowed extension
-        FileNotFoundError: If file does not exist
+        FileNotFoundError: If file does not exist (when must_exist=True)
     """
     # Check for path traversal attempts BEFORE resolving
     if ".." in file_path:
@@ -161,13 +164,14 @@ def _validate_file_path(file_path: str, config: FileEditToolConfig) -> Path:
     # Resolve to absolute path
     path = Path(file_path).resolve()
 
-    # Check if file exists
-    if not path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
+    # Check if file exists (only if must_exist=True)
+    if must_exist:
+        if not path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
 
-    # Check if it's actually a file (not directory)
-    if not path.is_file():
-        raise ValueError(f"Not a file: {file_path}")
+        # Check if it's actually a file (not directory)
+        if not path.is_file():
+            raise ValueError(f"Not a file: {file_path}")
 
     # Security: Block paths that match blocked_paths
     # Handle symlink resolution (e.g., /etc → /private/etc on macOS)
@@ -180,14 +184,16 @@ def _validate_file_path(file_path: str, config: FileEditToolConfig) -> Path:
     # Validate extension if allowed_extensions is not empty
     if config.allowed_extensions:
         extension = path.suffix.lower()
+        # Normalize config extensions to lowercase for case-insensitive comparison
+        allowed_lower = [ext.lower() for ext in config.allowed_extensions]
 
         # Handle extensionless files (empty string in allowed_extensions)
         if extension == "":
-            if "" not in config.allowed_extensions:
+            if "" not in allowed_lower:
                 raise ValueError(
                     "Extensionless files not allowed (extension filtering enabled)"
                 )
-        elif extension not in config.allowed_extensions:
+        elif extension not in allowed_lower:
             raise ValueError(
                 f"File extension {extension} not allowed for editing "
                 f"(allowed: {', '.join(config.allowed_extensions)})"
@@ -389,11 +395,15 @@ def _atomic_write(path: Path, content: str, encoding: str = "utf-8") -> None:
     """
     # Create temp file in same directory as target
     # (ensures same filesystem for atomic rename)
-    temp_path = path.parent / f".{path.name}.{tempfile.gettempprefix()}.tmp"
+    # Use random suffix to prevent collisions from concurrent edits
+    random_suffix = secrets.token_hex(8)
+    temp_path = path.parent / f".{path.name}.{random_suffix}.tmp"
 
     try:
-        # Write to temp file
-        temp_path.write_text(content, encoding=encoding)
+        # Write to temp file preserving line endings
+        # Use newline="" to prevent automatic LF->CRLF conversion on Windows
+        with temp_path.open("w", encoding=encoding, newline="") as f:
+            f.write(content)
 
         # Atomic rename (POSIX atomic operation)
         temp_path.replace(path)
@@ -430,7 +440,7 @@ class EditFileLinesInput(BaseModel):
     )
 
 
-@tool(args_schema=EditFileLinesInput)  # type: ignore[misc]
+@tool(args_schema=EditFileLinesInput)
 def edit_file_lines(
     file_path: str,
     line_edits: dict[str, str],
@@ -487,16 +497,18 @@ def edit_file_lines(
     try:
         # 1. Validate file path (security checks, extension filtering)
         try:
-            path = _validate_file_path(file_path, config)
+            path = _validate_file_path(file_path, config, must_exist=True)
         except (ValueError, FileNotFoundError) as e:
             return FileEditResult(
                 status="validation_failed",
                 error=f"Path validation failed: {e}",
             ).to_json()
 
-        # 2. Read current file content
+        # 2. Read current file content preserving line endings
+        # Use newline="" to prevent automatic CRLF->LF conversion
         try:
-            original_content = path.read_text(encoding=config.default_encoding)
+            with path.open("r", encoding=config.default_encoding, newline="") as f:
+                original_content = f.read()
         except UnicodeDecodeError:
             return FileEditResult(
                 status="error",
@@ -507,6 +519,16 @@ def edit_file_lines(
                 status="error",
                 error=f"Failed to read file: {e}",
             ).to_json()
+
+        # Detect newline style to preserve it
+        # Check for CRLF first (Windows), then LF (Unix), default to LF
+        if "\r\n" in original_content:
+            newline_char = "\r\n"
+        elif "\n" in original_content:
+            newline_char = "\n"
+        else:
+            # File has no newlines (single line or empty)
+            newline_char = "\n"
 
         original_lines = original_content.splitlines()
 
@@ -535,11 +557,12 @@ def edit_file_lines(
         # 5. Apply edits (bottom-to-top processing)
         new_lines, changed_ranges = _apply_line_edits(original_lines, line_edits)
 
+        # Reconstruct content using detected newline style
         # Preserve final newline if original had one
-        if original_content.endswith("\n"):
-            new_content = "\n".join(new_lines) + "\n"
+        if original_content.endswith(("\n", "\r\n")):
+            new_content = newline_char.join(new_lines) + newline_char
         else:
-            new_content = "\n".join(new_lines)
+            new_content = newline_char.join(new_lines)
 
         # 6. Generate diff preview
         preview = _create_diff_preview(original_content, new_content, str(path))
@@ -584,4 +607,114 @@ def edit_file_lines(
         return FileEditResult(
             status="error",
             error=f"Unexpected error: {type(e).__name__}: {e}",
+        ).to_json()
+
+
+class CreateFileInput(BaseModel):
+    """Input schema for create_file tool."""
+
+    file_path: str = Field(description="Absolute or relative path to file to create")
+    content: str = Field(description="Content to write to the file")
+    overwrite: bool = Field(
+        default=False,
+        description=(
+            "Allow overwriting existing file. "
+            "Requires both overwrite=True AND config.allow_overwrite=True."
+        ),
+    )
+
+
+@tool(args_schema=CreateFileInput)
+def create_file(
+    file_path: str,
+    content: str,
+    overwrite: bool = False,
+) -> str:
+    """Create new file with content.
+
+    Creates parent directories automatically if they don't exist.
+    Protects against accidental overwrites unless both overwrite=True
+    and config.allow_overwrite=True.
+
+    Args:
+        file_path: Absolute or relative path to file to create
+        content: Content to write to the file
+        overwrite: Allow overwriting existing file (requires config approval too)
+
+    Returns:
+        JSON-serialized FileEditResult with:
+        - status: "created" (new file) | "updated" (overwrite) |
+                  "validation_failed" | "error"
+        - checksum: SHA256 hex digest of written content
+        - bytes_written: Size of content in bytes
+        - error: Error message if status is not success
+
+    Example:
+        >>> result = create_file.invoke({
+        ...     "file_path": "src/new_module.py",
+        ...     "content": "def hello():\\n    return 'world'",
+        ... })
+        >>> data = json.loads(result)
+        >>> data["status"]
+        'created'
+        >>> data["checksum"]
+        'a1b2c3...'
+    """
+    try:
+        config = get_file_edit_config()
+
+        # Validate path (allow non-existent for creation)
+        path = _validate_file_path(file_path, config, must_exist=False)
+
+        # Check if file exists
+        file_exists = path.exists()
+
+        # Overwrite protection: both flags must be True
+        if file_exists and not (overwrite and config.allow_overwrite):
+            error_msg = f"File already exists: {file_path}. "
+            if not overwrite:
+                error_msg += "Use overwrite=True to replace existing file."
+            elif not config.allow_overwrite:
+                error_msg += (
+                    "Config does not allow overwrites (config.allow_overwrite=False)."
+                )
+
+            return FileEditResult(
+                status="validation_failed",
+                error=error_msg,
+            ).to_json()
+
+        # Create parent directories if they don't exist
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Atomic write using existing helper
+        encoding = config.default_encoding
+        _atomic_write(path, content, encoding=encoding)
+
+        # Compute checksum and size
+        checksum = _compute_file_hash(path, encoding=encoding)
+        bytes_written = len(content.encode(encoding))
+
+        # Return success result
+        status: Literal["success", "updated", "created"] = (
+            "updated" if file_exists else "created"
+        )
+        return FileEditResult(
+            status=status,  # type: ignore[arg-type]
+            bytes_written=bytes_written,
+            checksum=checksum,
+        ).to_json()
+
+    except (ValueError, FileNotFoundError) as e:
+        # Validation errors (path security, extension, blocked paths)
+        return FileEditResult(
+            status="validation_failed",
+            error=str(e),
+        ).to_json()
+
+    except Exception as e:
+        # Catch-all for unexpected errors (I/O, encoding, etc.)
+        return FileEditResult(
+            status="error",
+            error=f"Failed to create file: {type(e).__name__}: {e}",
         ).to_json()
