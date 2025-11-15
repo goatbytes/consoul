@@ -679,6 +679,28 @@ class ToolRegistry:
                 reason="Auto-approved (cached or whitelisted)",
             )
 
+        # For file edit tools with dry_run support, generate preview first
+        preview = None
+        file_edit_tools = {"create_file", "delete_file", "append_to_file"}
+        if tool_name in file_edit_tools:
+            try:
+                # Create dry_run arguments
+                dry_run_args = arguments.copy()
+                dry_run_args["dry_run"] = True
+
+                # Invoke tool with dry_run=True to get preview
+                result_str = metadata.tool.invoke(dry_run_args)
+
+                # Parse result to extract preview
+                import json as json_module
+                result_data = json_module.loads(result_str)
+                if "preview" in result_data:
+                    preview = result_data["preview"]
+            except Exception:
+                # If preview generation fails, continue without preview
+                # (approval will still work, just without diff visualization)
+                pass
+
         # Build approval request
         request = ToolApprovalRequest(
             tool_name=tool_name,
@@ -686,6 +708,7 @@ class ToolRegistry:
             risk_level=metadata.risk_level,
             tool_call_id=tool_call_id,
             description=metadata.description,
+            preview=preview,
             context=context or {},
         )
 
