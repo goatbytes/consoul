@@ -602,6 +602,40 @@ tools:
     timeout: 10              # Request timeout in seconds (max 30)
 ```
 
+**Configuration (Jina AI Search - Best Quality):**
+```yaml
+tools:
+  enabled: true
+  web_search:
+    # Jina Search (LLM-optimized, highest quality)
+    jina_api_key: ${JINA_API_KEY}  # Get free key at https://jina.ai (10M tokens)
+    jina_enabled: true              # Enable Jina Search (default: true)
+
+    # Common settings
+    max_results: 5                  # Jina returns top 5 with full content
+    timeout: 10
+```
+
+**Configuration (All Three Backends - Complete Setup):**
+```yaml
+tools:
+  enabled: true
+  web_search:
+    # Jina Search (priority 1: best quality, requires free API key)
+    jina_api_key: ${JINA_API_KEY}  # Optional but recommended
+    jina_enabled: true
+
+    # SearxNG (priority 2: self-hosted, privacy)
+    searxng_url: "http://localhost:8888"
+    searxng_engines: [google, arxiv, github]
+
+    # DuckDuckGo (priority 3: fallback)
+    max_results: 5
+    region: "wt-wt"
+    safesearch: "moderate"
+    timeout: 10
+```
+
 **Configuration (SearxNG + DuckDuckGo Fallback):**
 ```yaml
 tools:
@@ -639,23 +673,28 @@ tools:
 
 **Backend Comparison:**
 
-| Feature | DuckDuckGo | SearxNG |
-|---------|-----------|---------|
-| Setup | Zero setup | Docker required |
-| API Keys | None | None |
-| Engine Selection | ❌ | ✅ 135+ engines |
-| Categories | ❌ | ✅ (general, it, news, etc.) |
-| Privacy | ✅ Private | ✅ Self-hosted (full control) |
-| Rate Limits | Soft limits | No limits (self-hosted) |
-| Fallback | Primary | Fallback to DuckDuckGo |
+| Feature | Jina AI Search | SearxNG | DuckDuckGo |
+|---------|---------------|---------|------------|
+| Setup | Free API key | Docker required | Zero setup |
+| API Keys | Free (10M tokens) | None | None |
+| Quality | ⭐⭐⭐ LLM-optimized | ⭐⭐ Good | ⭐ Basic |
+| Engine Selection | ❌ | ✅ 135+ engines | ❌ |
+| Categories | ❌ | ✅ (general, it, news) | ❌ |
+| Content | Full page content | Standard snippets | Standard snippets |
+| Privacy | API call | ✅ Self-hosted | ✅ Private |
+| Rate Limits | 10M tokens free | No limits | Soft limits |
+| Result Count | Top 5 (full content) | Configurable | Configurable |
+| Best For | AI/LLM apps | Privacy, control | Quick setup |
+| Priority | 1st (if enabled) | 2nd (if configured) | 3rd (fallback) |
 
 **Advantages:**
+- ✅ **Best Quality**: Jina provides LLM-optimized results with full content
 - ✅ **Zero Setup**: DuckDuckGo works immediately, no config needed
 - ✅ **Production Grade**: SearxNG aggregates 135+ search engines
-- ✅ **Free**: Completely free, no API costs
-- ✅ **Privacy**: No tracking, self-hosted option available
+- ✅ **Free**: All backends free (Jina: 10M tokens, no CC)
+- ✅ **Privacy**: Self-hosted SearxNG, private DuckDuckGo
 - ✅ **Flexible**: Choose engines and categories (SearxNG)
-- ✅ **Resilient**: Automatic fallback ensures reliability
+- ✅ **Resilient**: 3-tier fallback ensures reliability
 
 **Setting Up SearxNG (Optional):**
 For production deployments, consider running SearxNG in Docker:
@@ -670,12 +709,39 @@ docker run -d -p 8888:8080 searxng/searxng:latest
 
 See [docs/advanced/searxng-setup.md](advanced/searxng-setup.md) for complete setup guide.
 
+**Getting a Free Jina AI API Key:**
+
+To enable Jina Search (highest quality results):
+
+1. Visit https://jina.ai/
+2. Click "Sign Up" (free account, no credit card required)
+3. Navigate to API Dashboard
+4. Generate a new API key
+5. Copy the key and add to your config:
+   ```yaml
+   tools:
+     web_search:
+       jina_api_key: "jina_YOUR_KEY_HERE"
+   ```
+   Or set as environment variable:
+   ```bash
+   export JINA_API_KEY="jina_YOUR_KEY_HERE"
+   ```
+
+**Free Tier Limits:**
+- 10 million tokens (extremely generous)
+- No credit card required
+- No expiration
+- Upgrade available for higher limits
+
 **Troubleshooting:**
 
 | Error | Cause | Solution |
 |-------|-------|----------|
 | `Web search failed: Network error` | No internet connection | Check network connectivity |
-| `Web search failed: Rate limiting` | Too many DuckDuckGo requests | Wait and retry, or configure SearxNG |
+| `Web search failed: Rate limiting` | Too many DuckDuckGo requests | Wait and retry, or configure Jina/SearxNG |
+| `Jina Search failed: Invalid API key` | Wrong or missing API key | Check `JINA_API_KEY` in config/environment |
+| `Jina Search failed: Rate limit exceeded` | Exceeded 10M token quota | Upgrade Jina plan or use fallback |
 | `SearxNG search failed: ...` | SearxNG unavailable | Will fallback to DuckDuckGo automatically |
 | `SearxNG search failed: SSL...` | Self-signed certificate | Set `searxng_verify_ssl: false` in config |
 | `max_results must be between 1 and 10` | Invalid parameter | Use value between 1-10 |

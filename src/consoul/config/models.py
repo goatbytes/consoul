@@ -545,9 +545,10 @@ class FindReferencesToolConfig(BaseModel):
 class WebSearchToolConfig(BaseModel):
     """Configuration for web_search tool execution.
 
-    Supports both SearxNG (self-hosted, production-grade) and DuckDuckGo (zero setup).
-    When searxng_url is configured, it will be used as primary with DuckDuckGo fallback.
-    No API keys needed - completely free web search integration.
+    Supports three backends with automatic fallback priority:
+    1. Jina AI Search (LLM-optimized, requires free API key) - Best quality
+    2. SearxNG (self-hosted, production-grade) - Privacy and control
+    3. DuckDuckGo (zero setup) - No configuration needed
 
     Example:
         >>> # DuckDuckGo only (zero setup)
@@ -556,8 +557,15 @@ class WebSearchToolConfig(BaseModel):
         ...     safesearch="strict",
         ... )
         >>>
-        >>> # SearxNG with fallback
+        >>> # Jina Search with fallback
         >>> config = WebSearchToolConfig(
+        ...     jina_api_key="your-api-key",
+        ...     max_results=5,
+        ... )
+        >>>
+        >>> # All three backends configured
+        >>> config = WebSearchToolConfig(
+        ...     jina_api_key="your-api-key",
         ...     searxng_url="http://localhost:8888",
         ...     searxng_engines=["google", "github", "arxiv"],
         ...     max_results=10,
@@ -613,6 +621,16 @@ class WebSearchToolConfig(BaseModel):
     searxng_verify_ssl: bool = Field(
         default=False,
         description="Verify SSL certificates for SearxNG requests. Set to False for self-signed certificates.",
+    )
+
+    # Jina Search settings (optional, best quality)
+    jina_api_key: str | None = Field(
+        default=None,
+        description="Jina AI API key for semantic search (get free key at jina.ai, 10M tokens free)",
+    )
+    jina_enabled: bool = Field(
+        default=True,
+        description="Enable Jina Search when API key is present (highest priority backend)",
     )
 
 

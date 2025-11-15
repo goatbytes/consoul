@@ -1,10 +1,9 @@
-"""Free web search tool with SearxNG and DuckDuckGo support.
+"""Free web search tool with Jina AI, SearxNG, and DuckDuckGo support.
 
-Provides flexible web search with automatic fallback:
-- SearxNG (self-hosted, production-grade) as primary when configured
-- DuckDuckGo (zero setup) as fallback or standalone
-- No API keys or authentication required
-- Privacy-focused search (no tracking)
+Provides flexible web search with automatic fallback priority:
+- Jina AI Search (LLM-optimized, requires free API key) - Best quality
+- SearxNG (self-hosted, production-grade) - Privacy and control
+- DuckDuckGo (zero setup) - No configuration needed
 - Returns structured JSON results
 - Engine selection and categories (SearxNG only)
 
@@ -32,7 +31,9 @@ from typing import Any
 
 import requests
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper, SearxSearchWrapper
+from langchain_community.utilities.jina_search import JinaSearchAPIWrapper
 from langchain_core.tools import tool
+from pydantic import SecretStr
 
 from consoul.ai.tools.exceptions import ToolExecutionError
 from consoul.config.models import WebSearchToolConfig
@@ -100,6 +101,121 @@ def _detect_searxng(searxng_url: str, timeout: int, verify_ssl: bool = False) ->
     except Exception as e:
         logger.debug(f"SearxNG detection failed for {searxng_url}: {e}")
         return False
+
+
+def _execute_jina_search(
+    api_key: str,
+    query: str,
+    max_results: int,
+    timeout: int,
+) -> list[dict[str, Any]]:
+    """Execute web search using Jina AI Search.
+
+    Args:
+        api_key: Jina AI API key
+        query: Search query string
+        max_results: Maximum number of results to return
+        timeout: Request timeout in seconds
+
+    Returns:
+        List of search result dictionaries
+
+    Raises:
+        ToolExecutionError: If search fails
+
+    Note:
+        Jina Search fetches top 5 results and processes each URL with r.jina.ai
+        for full content extraction. Results are LLM-optimized with clean markdown.
+    """
+    try:
+        # Initialize Jina search wrapper
+        search = JinaSearchAPIWrapper(
+            api_key=SecretStr(api_key),
+            base_url="https://s.jina.ai/",
+        )
+
+        # Execute search - this returns formatted text (possibly JSON)
+        raw_result = search.run(query)
+
+        # Try to parse as JSON first (Jina may return JSON array)
+        try:
+            parsed = json.loads(raw_result)
+            if isinstance(parsed, list):
+                # Already in list format - normalize structure
+                results = []
+                for item in parsed[:max_results]:
+                    results.append(
+                        {
+                            "title": item.get("title", ""),
+                            "snippet": item.get(
+                                "snippet", item.get("description", item.get("content", ""))
+                            ),
+                            "link": item.get("link", item.get("url", "")),
+                            "engine": "jina",
+                        }
+                    )
+                logger.info(f"Jina Search returned {len(results)} results")
+                return results
+        except json.JSONDecodeError:
+            # Not JSON - try parsing as text
+            pass
+
+        # Fallback: Parse text response
+        # Jina might return plain text with results separated by newlines
+        lines = raw_result.strip().split("\n")
+        results = []
+
+        # Try to extract structured data from text
+        # This is a best-effort parser for non-JSON responses
+        current_result: dict[str, Any] = {}
+        for line in lines:
+            line = line.strip()
+            if not line:
+                if current_result:
+                    results.append(current_result)
+                    current_result = {}
+                continue
+
+            # Try to parse title/link/snippet patterns
+            if line.startswith("Title:"):
+                current_result["title"] = line[6:].strip()
+            elif line.startswith("URL:") or line.startswith("Link:"):
+                current_result["link"] = line.split(":", 1)[1].strip()
+            elif "snippet" not in current_result:
+                current_result["snippet"] = line
+
+        # Add last result if exists
+        if current_result:
+            results.append(current_result)
+
+        # Ensure all results have required fields and engine tag
+        normalized_results = []
+        for item in results[:max_results]:
+            normalized_results.append(
+                {
+                    "title": item.get("title", ""),
+                    "snippet": item.get("snippet", ""),
+                    "link": item.get("link", ""),
+                    "engine": "jina",
+                }
+            )
+
+        if not normalized_results:
+            raise ToolExecutionError(
+                "Jina Search returned no parseable results. "
+                "The response format may have changed."
+            )
+
+        logger.info(f"Jina Search returned {len(normalized_results)} results")
+        return normalized_results
+
+    except ToolExecutionError:
+        raise
+    except Exception as e:
+        logger.error(f"Jina Search failed: {e}")
+        raise ToolExecutionError(
+            f"Jina Search failed: {e}. Falling back to next backend."
+        ) from e
 
 
 def _execute_searxng_search(
@@ -235,10 +351,12 @@ def web_search(
     engines: list[str] | None = None,
     categories: list[str] | None = None,
 ) -> str:
-    """Search the web using SearxNG (if configured) or DuckDuckGo.
+    """Search the web using Jina AI, SearxNG, or DuckDuckGo.
 
-    Performs web search with automatic fallback: tries SearxNG first (if configured),
-    falls back to DuckDuckGo on failure. Zero setup required for DuckDuckGo.
+    Performs web search with automatic fallback priority:
+    1. Jina Search (if API key configured) - Best quality, LLM-optimized
+    2. SearxNG (if URL configured) - Self-hosted, privacy-focused
+    3. DuckDuckGo (always available) - Zero setup required
 
     Args:
         query: Search query string (e.g., "Python web scraping tutorial")
@@ -255,7 +373,7 @@ def web_search(
                 "title": "Result title",
                 "snippet": "Brief description of the result...",
                 "link": "https://example.com/page",
-                "engine": "google"  # Only present for SearxNG results
+                "engine": "jina"  # Backend used: "jina", "google", etc.
             },
             ...
         ]
@@ -273,10 +391,15 @@ def web_search(
         '[{"title": "...", "snippet": "...", "link": "...", "engine": "arxiv"}]'
 
     Note:
-        - Completely free with no API keys required
-        - Privacy-focused (no tracking)
-        - SearxNG provides engine selection and categories
-        - Automatic fallback to DuckDuckGo if SearxNG unavailable
+        Backend priority (automatic fallback):
+        1. Jina Search (if API key configured) - LLM-optimized results
+        2. SearxNG (if URL configured) - Self-hosted meta-search
+        3. DuckDuckGo (always available) - Zero-config fallback
+
+        Features:
+        - SearxNG: Engine selection and category filtering
+        - Jina: Semantic search with full content extraction
+        - DuckDuckGo: Privacy-focused, no tracking
     """
     config = get_web_search_config()
 
@@ -308,7 +431,26 @@ def web_search(
 
     results: list[dict[str, Any]] = []
 
-    # Try SearxNG first if configured
+    # Priority 1: Try Jina Search first if configured (best quality)
+    if config.jina_api_key and config.jina_enabled:
+        try:
+            logger.info(f"Using Jina Search for query: {query}")
+
+            results = _execute_jina_search(
+                api_key=config.jina_api_key,
+                query=query,
+                max_results=max_results,
+                timeout=config.timeout,
+            )
+
+            # Return early if Jina succeeded
+            return json.dumps(results, indent=2, ensure_ascii=False)
+
+        except ToolExecutionError as e:
+            logger.warning(f"Jina Search failed, falling back to SearxNG/DuckDuckGo: {e}")
+            # Continue to next backend
+
+    # Priority 2: Try SearxNG if configured (self-hosted)
     if config.searxng_url:
         searxng_available = _detect_searxng(
             config.searxng_url, config.timeout, config.searxng_verify_ssl
