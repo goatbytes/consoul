@@ -612,6 +612,55 @@ class WebSearchToolConfig(BaseModel):
     )
 
 
+class ReadUrlToolConfig(BaseModel):
+    """Configuration for read_url tool execution.
+
+    Reads web pages and converts them to LLM-ready markdown using Jina AI Reader
+    (primary) with trafilatura fallback. Zero configuration for basic usage.
+
+    Example:
+        >>> # Basic usage (no API key, 20 RPM free tier)
+        >>> config = ReadUrlToolConfig()
+        >>>
+        >>> # With Jina API key (500 RPM free tier)
+        >>> config = ReadUrlToolConfig(
+        ...     jina_api_key="jina_xxx",
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    # Jina Reader settings (optional, best quality)
+    jina_api_key: str | None = Field(
+        default=None,
+        description="Jina AI API key for higher rate limits (500 RPM vs 20 RPM). Get free key at jina.ai",
+    )
+
+    # Common settings
+    timeout: int = Field(
+        default=10,
+        gt=0,
+        le=30,
+        description="Request timeout in seconds (max 30s)",
+    )
+
+    # Fallback settings
+    enable_fallback: bool = Field(
+        default=True,
+        description="Enable trafilatura fallback if Jina fails or is unavailable",
+    )
+
+    # Output settings
+    max_length: int = Field(
+        default=50000,
+        gt=0,
+        description="Maximum output length in characters (content will be truncated)",
+    )
+
+
 class ReadToolConfig(BaseModel):
     """Configuration for read file tool.
 
@@ -795,6 +844,10 @@ class ToolConfig(BaseModel):
     web_search: WebSearchToolConfig = Field(
         default_factory=WebSearchToolConfig,
         description="Web search tool-specific configuration",
+    )
+    read_url: ReadUrlToolConfig = Field(
+        default_factory=ReadUrlToolConfig,
+        description="Read URL tool-specific configuration",
     )
     read: ReadToolConfig = Field(
         default_factory=ReadToolConfig,

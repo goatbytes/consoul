@@ -1,0 +1,418 @@
+2025-11-14 18:17:29,080 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./log.txt
+2025-11-14 18:17:29,084 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,092 - urllib3.connectionpool - DEBUG - http://localhost:11434 "GET /api/tags HTTP/1.1" 200 None
+2025-11-14 18:17:29,156 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,162 - urllib3.connectionpool - DEBUG - http://localhost:11434 "GET /api/tags HTTP/1.1" 200 None
+2025-11-14 18:17:29,163 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,174 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,175 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,184 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,185 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,219 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,220 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,245 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,246 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,268 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,269 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,315 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,316 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,337 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,338 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,363 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,363 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,408 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,412 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,437 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,440 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,466 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,471 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,495 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,501 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,522 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,533 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,554 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,558 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,575 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,579 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,607 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,610 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,626 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,630 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,641 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,645 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,670 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,675 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,689 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,692 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,723 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,729 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,740 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,743 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,758 - urllib3.connectionpool - DEBUG - http://localhost:11434 "POST /api/show HTTP/1.1" 200 None
+2025-11-14 18:17:29,852 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,855 - urllib3.connectionpool - DEBUG - http://localhost:11434 "GET /api/tags HTTP/1.1" 200 None
+2025-11-14 18:17:29,856 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,858 - urllib3.connectionpool - DEBUG - http://localhost:11434 "GET /api/tags HTTP/1.1" 200 None
+2025-11-14 18:17:29,858 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:11434
+2025-11-14 18:17:29,860 - urllib3.connectionpool - DEBUG - http://localhost:11434 "GET /api/tags HTTP/1.1" 200 None
+2025-11-14 18:17:29,867 - asyncio - DEBUG - Using selector: KqueueSelector
+2025-11-14 18:17:37,032 - markdown_it.rules_block.code - DEBUG - entering code: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,032 - markdown_it.rules_block.fence - DEBUG - entering fence: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,032 - markdown_it.rules_block.blockquote - DEBUG - entering blockquote: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,032 - markdown_it.rules_block.hr - DEBUG - entering hr: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,032 - markdown_it.rules_block.list - DEBUG - entering list: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,032 - markdown_it.rules_block.reference - DEBUG - entering reference: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,032 - markdown_it.rules_block.html_block - DEBUG - entering html_block: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,032 - markdown_it.rules_block.heading - DEBUG - entering heading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,032 - markdown_it.rules_block.lheading - DEBUG - entering lheading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,032 - markdown_it.rules_block.paragraph - DEBUG - entering paragraph: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,033 - markdown_it.rules_block.code - DEBUG - entering code: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,033 - markdown_it.rules_block.fence - DEBUG - entering fence: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,033 - markdown_it.rules_block.blockquote - DEBUG - entering blockquote: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,033 - markdown_it.rules_block.hr - DEBUG - entering hr: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,033 - markdown_it.rules_block.list - DEBUG - entering list: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,033 - markdown_it.rules_block.reference - DEBUG - entering reference: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,033 - markdown_it.rules_block.html_block - DEBUG - entering html_block: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,033 - markdown_it.rules_block.heading - DEBUG - entering heading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,033 - markdown_it.rules_block.lheading - DEBUG - entering lheading: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,033 - markdown_it.rules_block.paragraph - DEBUG - entering paragraph: StateBlock(line=0,level=0,tokens=0), 0, 1, False
+2025-11-14 18:17:37,037 - consoul.ai.history - INFO - Created new conversation session: aecbdc42-e4f5-4230-b9fb-d4f2141d1cc3
+2025-11-14 18:17:37,049 - httpcore.connection - DEBUG - connect_tcp.started host='localhost' port=11434 local_address=None timeout=None socket_options=None
+2025-11-14 18:17:37,055 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x11f7b4380>
+2025-11-14 18:17:37,055 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-11-14 18:17:37,055 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-11-14 18:17:37,055 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-11-14 18:17:37,055 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-11-14 18:17:37,055 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-11-14 18:17:37,371 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Content-Type', b'application/x-ndjson'), (b'Date', b'Sat, 15 Nov 2025 02:17:37 GMT'), (b'Transfer-Encoding', b'chunked')])
+2025-11-14 18:17:37,373 - httpx - INFO - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2025-11-14 18:17:37,373 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-11-14 18:17:38,055 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-11-14 18:17:38,055 - httpcore.http11 - DEBUG - response_closed.started
+2025-11-14 18:17:38,055 - httpcore.http11 - DEBUG - response_closed.complete
+2025-11-14 18:17:38,056 - consoul.tui.app - DEBUG - Collected 14 chunks
+2025-11-14 18:17:38,056 - consoul.tui.app - DEBUG - Chunk 0: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 1: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 2: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 3: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 4: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 5: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 6: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 7: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 8: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 9: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 10: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 11: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 12: content='', tool_call_chunks=[{'name': 'web_search', 'args': '{"categories": [], "engines": [], "max_results": 5, "query": "GoatBytes.IO", "region": "wt-wt", "safesearch": "moderate"}', 'id': '6efc0efc-6c8c-441e-acdd-e70521c2fee9', 'index': None, 'type': 'tool_call_chunk'}]
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Chunk 13: content='', tool_call_chunks=None
+2025-11-14 18:17:38,057 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
+2025-11-14 18:17:38,058 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'web_search', 'args': {'categories': [], 'engines': [], 'max_results': 5, 'query': 'GoatBytes.IO', 'region': 'wt-wt', 'safesearch': 'moderate'}, 'id': '6efc0efc-6c8c-441e-acdd-e70521c2fee9', 'type': 'tool_call'}]
+2025-11-14 18:17:38,058 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
+2025-11-14 18:17:38,069 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:8888
+2025-11-14 18:17:38,072 - urllib3.connectionpool - DEBUG - http://localhost:8888 "GET /healthz HTTP/1.1" 200 2
+2025-11-14 18:17:38,072 - consoul.ai.tools.implementations.web_search - INFO - Using SearxNG for search: GoatBytes.IO
+2025-11-14 18:17:38,073 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:8888
+2025-11-14 18:17:38,076 - urllib3.connectionpool - DEBUG - http://localhost:8888 "GET /?language=en&format=json&q=GoatBytes.IO&engines=google%2Cduckduckgo%2Cbing%2Cgithub%2Cstackoverflow%2Carxiv%2Cwikipedia HTTP/1.1" 308 463
+2025-11-14 18:17:38,078 - urllib3.connectionpool - DEBUG - http://localhost:8888 "GET /search?language=en&format=json&q=GoatBytes.IO&engines=google%2Cduckduckgo%2Cbing%2Cgithub%2Cstackoverflow%2Carxiv%2Cwikipedia HTTP/1.1" 403 213
+2025-11-14 18:17:38,079 - consoul.ai.tools.implementations.web_search - WARNING - SearxNG search failed for query 'GoatBytes.IO': ('Searx API returned an error: ', '<!doctype html>\n<html lang=en>\n<title>403 Forbidden</title>\n<h1>Forbidden</h1>\n<p>You don&#39;t have the permission to access the requested resource. It is either read-protected or not readable by the server.</p>\n')
+2025-11-14 18:17:38,079 - consoul.ai.tools.implementations.web_search - WARNING - SearxNG failed, falling back to DuckDuckGo: SearxNG search failed: ('Searx API returned an error: ', '<!doctype html>\n<html lang=en>\n<title>403 Forbidden</title>\n<h1>Forbidden</h1>\n<p>You don&#39;t have the permission to access the requested resource. It is either read-protected or not readable by the server.</p>\n'). Falling back to DuckDuckGo.
+2025-11-14 18:17:38,079 - consoul.ai.tools.implementations.web_search - INFO - Using DuckDuckGo for search: GoatBytes.IO
+2025-11-14 18:17:38,094 - primp.utils - DEBUG - Loaded CA certs
+2025-11-14 18:17:38,095 - rquest.connect - DEBUG - starting new connection: https://html.duckduckgo.com/
+2025-11-14 18:17:38,095 - rquest.util.client.connect.dns - DEBUG - resolving html.duckduckgo.com
+2025-11-14 18:17:38,120 - rquest.util.client.connect.http - DEBUG - connecting to 52.250.42.157:443
+2025-11-14 18:17:38,169 - rquest.util.client.connect.http - DEBUG - connected to 52.250.42.157:443
+2025-11-14 18:17:38,318 - rquest.util.client.pool - DEBUG - pooling idle connection for PoolKey { uri: https://html.duckduckgo.com/, alpn_protos: None, network: default }
+2025-11-14 18:17:38,450 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'kl'
+2025-11-14 18:17:38,451 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'df'
+2025-11-14 18:17:38,451 - primp - INFO - response: https://html.duckduckgo.com/html 202
+2025-11-14 18:17:38,452 - duckduckgo_search.DDGS - DEBUG - _get_url() https://html.duckduckgo.com/html 202
+2025-11-14 18:17:38,452 - duckduckgo_search.DDGS - INFO - Error to search using html backend: https://html.duckduckgo.com/html 202 Ratelimit
+2025-11-14 18:17:39,205 - rquest.connect - DEBUG - starting new connection: https://lite.duckduckgo.com/
+2025-11-14 18:17:39,205 - rquest.util.client.connect.dns - DEBUG - resolving lite.duckduckgo.com
+2025-11-14 18:17:39,207 - rquest.util.client.connect.http - DEBUG - connecting to 52.250.42.157:443
+2025-11-14 18:17:39,256 - rquest.util.client.connect.http - DEBUG - connected to 52.250.42.157:443
+2025-11-14 18:17:39,308 - rquest.util.client.pool - DEBUG - pooling idle connection for PoolKey { uri: https://lite.duckduckgo.com/, alpn_protos: None, network: default }
+2025-11-14 18:17:39,430 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'kl'
+2025-11-14 18:17:39,431 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'df'
+2025-11-14 18:17:39,431 - primp - INFO - response: https://lite.duckduckgo.com/lite/ 202
+2025-11-14 18:17:39,431 - duckduckgo_search.DDGS - DEBUG - _get_url() https://lite.duckduckgo.com/lite/ 202
+2025-11-14 18:17:39,431 - duckduckgo_search.DDGS - INFO - Error to search using lite backend: https://lite.duckduckgo.com/lite/ 202 Ratelimit
+2025-11-14 18:17:39,431 - consoul.ai.tools.implementations.web_search - ERROR - DuckDuckGo search failed for query 'GoatBytes.IO': https://lite.duckduckgo.com/lite/ 202 Ratelimit
+2025-11-14 18:17:39,436 - httpcore.connection - DEBUG - connect_tcp.started host='localhost' port=11434 local_address=None timeout=None socket_options=None
+2025-11-14 18:17:39,436 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-11-14 18:17:39,437 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-11-14 18:17:39,438 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-11-14 18:17:39,439 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-11-14 18:17:39,439 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-11-14 18:17:39,441 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.anyio.AnyIOStream object at 0x1286bd9a0>
+2025-11-14 18:17:39,441 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-11-14 18:17:39,441 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-11-14 18:17:39,441 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-11-14 18:17:39,441 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-11-14 18:17:39,441 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-11-14 18:17:39,562 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Content-Type', b'application/x-ndjson'), (b'Date', b'Sat, 15 Nov 2025 02:17:39 GMT'), (b'Transfer-Encoding', b'chunked')])
+2025-11-14 18:17:39,562 - httpx - INFO - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2025-11-14 18:17:39,562 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-11-14 18:17:39,607 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-11-14 18:17:39,608 - httpcore.http11 - DEBUG - response_closed.started
+2025-11-14 18:17:39,608 - httpcore.http11 - DEBUG - response_closed.complete
+2025-11-14 18:17:39,816 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Content-Type', b'application/x-ndjson'), (b'Date', b'Sat, 15 Nov 2025 02:17:39 GMT'), (b'Transfer-Encoding', b'chunked')])
+2025-11-14 18:17:39,817 - httpx - INFO - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2025-11-14 18:17:39,817 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-11-14 18:17:41,171 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-11-14 18:17:41,171 - httpcore.http11 - DEBUG - response_closed.started
+2025-11-14 18:17:41,171 - httpcore.http11 - DEBUG - response_closed.complete
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Collected 74 chunks
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 0: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 1: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 2: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 3: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 4: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 5: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 6: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 7: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 8: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 9: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 10: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 11: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 12: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 13: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 14: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 15: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 16: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 17: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 18: content='', tool_call_chunks=None
+2025-11-14 18:17:41,171 - consoul.tui.app - DEBUG - Chunk 19: content='', tool_call_chunks=None
+2025-11-14 18:17:41,172 - consoul.tui.app - DEBUG - Chunk 20: content='', tool_call_chunks=None
+2025-11-14 18:17:41,172 - consoul.tui.app - DEBUG - Chunk 21: content='', tool_call_chunks=None
+2025-11-14 18:17:41,174 - consoul.tui.app - DEBUG - Chunk 22: content='', tool_call_chunks=None
+2025-11-14 18:17:41,174 - consoul.tui.app - DEBUG - Chunk 23: content='', tool_call_chunks=None
+2025-11-14 18:17:41,174 - consoul.tui.app - DEBUG - Chunk 24: content='', tool_call_chunks=None
+2025-11-14 18:17:41,179 - consoul.tui.app - DEBUG - Chunk 25: content='', tool_call_chunks=None
+2025-11-14 18:17:41,179 - consoul.tui.app - DEBUG - Chunk 26: content='', tool_call_chunks=None
+2025-11-14 18:17:41,179 - consoul.tui.app - DEBUG - Chunk 27: content='', tool_call_chunks=None
+2025-11-14 18:17:41,179 - consoul.tui.app - DEBUG - Chunk 28: content='', tool_call_chunks=None
+2025-11-14 18:17:41,179 - consoul.tui.app - DEBUG - Chunk 29: content='', tool_call_chunks=None
+2025-11-14 18:17:41,179 - consoul.tui.app - DEBUG - Chunk 30: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 31: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 32: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 33: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 34: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 35: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 36: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 37: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 38: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 39: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 40: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 41: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 42: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 43: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 44: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 45: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 46: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 47: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 48: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 49: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 50: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 51: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 52: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 53: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 54: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 55: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 56: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 57: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 58: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 59: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 60: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 61: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 62: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 63: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 64: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 65: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 66: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 67: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 68: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 69: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 70: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 71: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 72: content='', tool_call_chunks=[{'name': 'web_search', 'args': '{"categories": [], "engines": [], "max_results": 5, "query": "GoatBytes.IO", "region": "wt-wt", "safesearch": "moderate"}', 'id': '5fd024d9-f715-4317-b674-3613577d06e9', 'index': None, 'type': 'tool_call_chunk'}]
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Chunk 73: content='', tool_call_chunks=None
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'web_search', 'args': {'categories': [], 'engines': [], 'max_results': 5, 'query': 'GoatBytes.IO', 'region': 'wt-wt', 'safesearch': 'moderate'}, 'id': '5fd024d9-f715-4317-b674-3613577d06e9', 'type': 'tool_call'}]
+2025-11-14 18:17:41,180 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
+2025-11-14 18:17:41,184 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:8888
+2025-11-14 18:17:41,188 - urllib3.connectionpool - DEBUG - http://localhost:8888 "GET /healthz HTTP/1.1" 200 2
+2025-11-14 18:17:41,188 - consoul.ai.tools.implementations.web_search - INFO - Using SearxNG for search: GoatBytes.IO
+2025-11-14 18:17:41,188 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:8888
+2025-11-14 18:17:41,192 - urllib3.connectionpool - DEBUG - http://localhost:8888 "GET /?language=en&format=json&q=GoatBytes.IO&engines=google%2Cduckduckgo%2Cbing%2Cgithub%2Cstackoverflow%2Carxiv%2Cwikipedia HTTP/1.1" 308 463
+2025-11-14 18:17:41,195 - urllib3.connectionpool - DEBUG - http://localhost:8888 "GET /search?language=en&format=json&q=GoatBytes.IO&engines=google%2Cduckduckgo%2Cbing%2Cgithub%2Cstackoverflow%2Carxiv%2Cwikipedia HTTP/1.1" 403 213
+2025-11-14 18:17:41,195 - consoul.ai.tools.implementations.web_search - WARNING - SearxNG search failed for query 'GoatBytes.IO': ('Searx API returned an error: ', '<!doctype html>\n<html lang=en>\n<title>403 Forbidden</title>\n<h1>Forbidden</h1>\n<p>You don&#39;t have the permission to access the requested resource. It is either read-protected or not readable by the server.</p>\n')
+2025-11-14 18:17:41,195 - consoul.ai.tools.implementations.web_search - WARNING - SearxNG failed, falling back to DuckDuckGo: SearxNG search failed: ('Searx API returned an error: ', '<!doctype html>\n<html lang=en>\n<title>403 Forbidden</title>\n<h1>Forbidden</h1>\n<p>You don&#39;t have the permission to access the requested resource. It is either read-protected or not readable by the server.</p>\n'). Falling back to DuckDuckGo.
+2025-11-14 18:17:41,195 - consoul.ai.tools.implementations.web_search - INFO - Using DuckDuckGo for search: GoatBytes.IO
+2025-11-14 18:17:41,195 - primp.utils - DEBUG - Loaded CA certs
+2025-11-14 18:17:41,195 - rquest.connect - DEBUG - starting new connection: https://html.duckduckgo.com/
+2025-11-14 18:17:41,195 - rquest.util.client.connect.dns - DEBUG - resolving html.duckduckgo.com
+2025-11-14 18:17:41,197 - rquest.util.client.connect.http - DEBUG - connecting to 52.250.42.157:443
+2025-11-14 18:17:41,244 - rquest.util.client.connect.http - DEBUG - connected to 52.250.42.157:443
+2025-11-14 18:17:41,391 - rquest.util.client.pool - DEBUG - pooling idle connection for PoolKey { uri: https://html.duckduckgo.com/, alpn_protos: None, network: default }
+2025-11-14 18:17:41,527 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'kl'
+2025-11-14 18:17:41,527 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'df'
+2025-11-14 18:17:41,527 - primp - INFO - response: https://html.duckduckgo.com/html 202
+2025-11-14 18:17:41,527 - duckduckgo_search.DDGS - DEBUG - _get_url() https://html.duckduckgo.com/html 202
+2025-11-14 18:17:41,528 - duckduckgo_search.DDGS - INFO - Error to search using html backend: https://html.duckduckgo.com/html 202 Ratelimit
+2025-11-14 18:17:42,282 - rquest.connect - DEBUG - starting new connection: https://lite.duckduckgo.com/
+2025-11-14 18:17:42,282 - rquest.util.client.connect.dns - DEBUG - resolving lite.duckduckgo.com
+2025-11-14 18:17:42,284 - rquest.util.client.connect.http - DEBUG - connecting to 52.250.42.157:443
+2025-11-14 18:17:42,335 - rquest.util.client.connect.http - DEBUG - connected to 52.250.42.157:443
+2025-11-14 18:17:42,385 - rquest.util.client.pool - DEBUG - pooling idle connection for PoolKey { uri: https://lite.duckduckgo.com/, alpn_protos: None, network: default }
+2025-11-14 18:17:42,502 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'kl'
+2025-11-14 18:17:42,502 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'df'
+2025-11-14 18:17:42,503 - primp - INFO - response: https://lite.duckduckgo.com/lite/ 202
+2025-11-14 18:17:42,503 - duckduckgo_search.DDGS - DEBUG - _get_url() https://lite.duckduckgo.com/lite/ 202
+2025-11-14 18:17:42,503 - duckduckgo_search.DDGS - INFO - Error to search using lite backend: https://lite.duckduckgo.com/lite/ 202 Ratelimit
+2025-11-14 18:17:42,503 - consoul.ai.tools.implementations.web_search - ERROR - DuckDuckGo search failed for query 'GoatBytes.IO': https://lite.duckduckgo.com/lite/ 202 Ratelimit
+2025-11-14 18:17:42,508 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-11-14 18:17:42,510 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-11-14 18:17:42,511 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-11-14 18:17:42,512 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-11-14 18:17:42,512 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-11-14 18:17:42,914 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Content-Type', b'application/x-ndjson'), (b'Date', b'Sat, 15 Nov 2025 02:17:42 GMT'), (b'Transfer-Encoding', b'chunked')])
+2025-11-14 18:17:42,915 - httpx - INFO - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2025-11-14 18:17:42,915 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-11-14 18:17:44,324 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-11-14 18:17:44,325 - httpcore.http11 - DEBUG - response_closed.started
+2025-11-14 18:17:44,325 - httpcore.http11 - DEBUG - response_closed.complete
+2025-11-14 18:17:44,326 - consoul.tui.app - DEBUG - Collected 81 chunks
+2025-11-14 18:17:44,326 - consoul.tui.app - DEBUG - Chunk 0: content='', tool_call_chunks=None
+2025-11-14 18:17:44,331 - consoul.tui.app - DEBUG - Chunk 1: content='', tool_call_chunks=None
+2025-11-14 18:17:44,337 - consoul.tui.app - DEBUG - Chunk 2: content='', tool_call_chunks=None
+2025-11-14 18:17:44,339 - consoul.tui.app - DEBUG - Chunk 3: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 4: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 5: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 6: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 7: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 8: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 9: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 10: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 11: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 12: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 13: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 14: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 15: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 16: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 17: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 18: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 19: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 20: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 21: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 22: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 23: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 24: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 25: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 26: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 27: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 28: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 29: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 30: content='', tool_call_chunks=None
+2025-11-14 18:17:44,340 - consoul.tui.app - DEBUG - Chunk 31: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 32: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 33: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 34: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 35: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 36: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 37: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 38: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 39: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 40: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 41: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 42: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 43: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 44: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 45: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 46: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 47: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 48: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 49: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 50: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 51: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 52: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 53: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 54: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 55: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 56: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 57: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 58: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 59: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 60: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 61: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 62: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 63: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 64: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 65: content='', tool_call_chunks=None
+2025-11-14 18:17:44,341 - consoul.tui.app - DEBUG - Chunk 66: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 67: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 68: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 69: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 70: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 71: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 72: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 73: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 74: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 75: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 76: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 77: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 78: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 79: content='', tool_call_chunks=[{'name': 'web_search', 'args': '{"categories": [], "engines": [], "max_results": 3, "query": "GoatBytes.IO", "region": "us-en", "safesearch": "strict"}', 'id': '8c122030-2408-433b-8454-7f60678fe0d7', 'index': None, 'type': 'tool_call_chunk'}]
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Chunk 80: content='', tool_call_chunks=None
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'web_search', 'args': {'categories': [], 'engines': [], 'max_results': 3, 'query': 'GoatBytes.IO', 'region': 'us-en', 'safesearch': 'strict'}, 'id': '8c122030-2408-433b-8454-7f60678fe0d7', 'type': 'tool_call'}]
+2025-11-14 18:17:44,342 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
+2025-11-14 18:17:44,346 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:8888
+2025-11-14 18:17:44,351 - urllib3.connectionpool - DEBUG - http://localhost:8888 "GET /healthz HTTP/1.1" 200 2
+2025-11-14 18:17:44,351 - consoul.ai.tools.implementations.web_search - INFO - Using SearxNG for search: GoatBytes.IO
+2025-11-14 18:17:44,352 - urllib3.connectionpool - DEBUG - Starting new HTTP connection (1): localhost:8888
+2025-11-14 18:17:44,354 - urllib3.connectionpool - DEBUG - http://localhost:8888 "GET /?language=en&format=json&q=GoatBytes.IO&engines=google%2Cduckduckgo%2Cbing%2Cgithub%2Cstackoverflow%2Carxiv%2Cwikipedia HTTP/1.1" 308 463
+2025-11-14 18:17:44,357 - urllib3.connectionpool - DEBUG - http://localhost:8888 "GET /search?language=en&format=json&q=GoatBytes.IO&engines=google%2Cduckduckgo%2Cbing%2Cgithub%2Cstackoverflow%2Carxiv%2Cwikipedia HTTP/1.1" 403 213
+2025-11-14 18:17:44,357 - consoul.ai.tools.implementations.web_search - WARNING - SearxNG search failed for query 'GoatBytes.IO': ('Searx API returned an error: ', '<!doctype html>\n<html lang=en>\n<title>403 Forbidden</title>\n<h1>Forbidden</h1>\n<p>You don&#39;t have the permission to access the requested resource. It is either read-protected or not readable by the server.</p>\n')
+2025-11-14 18:17:44,357 - consoul.ai.tools.implementations.web_search - WARNING - SearxNG failed, falling back to DuckDuckGo: SearxNG search failed: ('Searx API returned an error: ', '<!doctype html>\n<html lang=en>\n<title>403 Forbidden</title>\n<h1>Forbidden</h1>\n<p>You don&#39;t have the permission to access the requested resource. It is either read-protected or not readable by the server.</p>\n'). Falling back to DuckDuckGo.
+2025-11-14 18:17:44,357 - consoul.ai.tools.implementations.web_search - INFO - Using DuckDuckGo for search: GoatBytes.IO
+2025-11-14 18:17:44,358 - primp.utils - DEBUG - Loaded CA certs
+2025-11-14 18:17:44,358 - rquest.connect - DEBUG - starting new connection: https://lite.duckduckgo.com/
+2025-11-14 18:17:44,358 - rquest.util.client.connect.dns - DEBUG - resolving lite.duckduckgo.com
+2025-11-14 18:17:44,360 - rquest.util.client.connect.http - DEBUG - connecting to 52.250.42.157:443
+2025-11-14 18:17:44,417 - rquest.util.client.connect.http - DEBUG - connected to 52.250.42.157:443
+2025-11-14 18:17:44,562 - rquest.util.client.pool - DEBUG - pooling idle connection for PoolKey { uri: https://lite.duckduckgo.com/, alpn_protos: None, network: default }
+2025-11-14 18:17:44,699 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'kl'
+2025-11-14 18:17:44,700 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'df'
+2025-11-14 18:17:44,700 - primp - INFO - response: https://lite.duckduckgo.com/lite/ 202
+2025-11-14 18:17:44,700 - duckduckgo_search.DDGS - DEBUG - _get_url() https://lite.duckduckgo.com/lite/ 202
+2025-11-14 18:17:44,700 - duckduckgo_search.DDGS - INFO - Error to search using lite backend: https://lite.duckduckgo.com/lite/ 202 Ratelimit
+2025-11-14 18:17:45,455 - rquest.connect - DEBUG - starting new connection: https://html.duckduckgo.com/
+2025-11-14 18:17:45,455 - rquest.util.client.connect.dns - DEBUG - resolving html.duckduckgo.com
+2025-11-14 18:17:45,459 - rquest.util.client.connect.http - DEBUG - connecting to 52.250.42.157:443
+2025-11-14 18:17:45,506 - rquest.util.client.connect.http - DEBUG - connected to 52.250.42.157:443
+2025-11-14 18:17:45,655 - rquest.util.client.pool - DEBUG - pooling idle connection for PoolKey { uri: https://html.duckduckgo.com/, alpn_protos: None, network: default }
+2025-11-14 18:17:45,786 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'kl'
+2025-11-14 18:17:45,787 - cookie_store.cookie_store - DEBUG - inserting secure cookie 'df'
+2025-11-14 18:17:45,787 - primp - INFO - response: https://html.duckduckgo.com/html 202
+2025-11-14 18:17:45,787 - duckduckgo_search.DDGS - DEBUG - _get_url() https://html.duckduckgo.com/html 202
+2025-11-14 18:17:45,787 - duckduckgo_search.DDGS - INFO - Error to search using html backend: https://html.duckduckgo.com/html 202 Ratelimit
+2025-11-14 18:17:45,788 - consoul.ai.tools.implementations.web_search - ERROR - DuckDuckGo search failed for query 'GoatBytes.IO': https://html.duckduckgo.com/html 202 Ratelimit
+2025-11-14 18:17:45,795 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-11-14 18:17:45,797 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-11-14 18:17:45,797 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-11-14 18:17:45,798 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-11-14 18:17:45,798 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-11-14 18:17:46,301 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Content-Type', b'application/x-ndjson'), (b'Date', b'Sat, 15 Nov 2025 02:17:46 GMT'), (b'Transfer-Encoding', b'chunked')])
+2025-11-14 18:17:46,301 - httpx - INFO - HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2025-11-14 18:17:46,301 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-11-14 18:17:46,302 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-11-14 18:17:46,302 - httpcore.http11 - DEBUG - response_closed.started
+2025-11-14 18:17:46,302 - httpcore.http11 - DEBUG - response_closed.complete
+2025-11-14 18:17:46,302 - consoul.tui.app - DEBUG - Collected 2 chunks
+2025-11-14 18:17:46,302 - consoul.tui.app - DEBUG - Chunk 0: content='', tool_call_chunks=None
+2025-11-14 18:17:46,302 - consoul.tui.app - DEBUG - Chunk 1: content='', tool_call_chunks=None
+2025-11-14 18:17:46,302 - consoul.tui.app - DEBUG - Found 0 tool_calls after merging chunks
+2025-11-14 18:17:46,303 - consoul.tui.app - DEBUG - Final tool_calls: []
+2025-11-14 18:17:46,304 - consoul.tui.app - DEBUG - Final message has 0 tool_calls

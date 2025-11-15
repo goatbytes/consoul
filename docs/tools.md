@@ -12,6 +12,7 @@ Comprehensive guide to Consoul's tool calling system for AI-powered command exec
   - [find_references](#find_references)
   - [read_file](#read_file)
   - [web_search](#web_search)
+  - [read_url](#read_url)
 - [Quick Start](#quick-start)
 - [Security Model](#security-model)
 - [Configuration](#configuration)
@@ -678,6 +679,168 @@ See [docs/advanced/searxng-setup.md](advanced/searxng-setup.md) for complete set
 | `max_results must be between 1 and 10` | Invalid parameter | Use value between 1-10 |
 | `Engine selection is disabled` | Config restricts engines | Set `enable_engine_selection: true` |
 | `Category selection is disabled` | Config restricts categories | Set `enable_categories: true` |
+
+### read_url
+
+Read and convert web pages to LLM-ready markdown.
+
+**Capabilities:**
+- **Dual Backend Support**: Jina AI Reader (primary) with trafilatura fallback
+- **Zero Setup**: Works immediately with 20 RPM free tier (no API key needed)
+- **LLM-Optimized**: Returns clean markdown optimized for AI processing
+- **Security-First**: SSRF protection blocks localhost and private IPs
+- **Privacy-Focused**: Optional local processing via trafilatura fallback
+- **Rate Limit Handling**: Automatic fallback on rate limiting
+- **Content Truncation**: Configurable max length to prevent context overflow
+
+**Risk Level**: SAFE (read-only web queries, no system modification)
+
+**Quick Start:**
+```python
+from consoul.ai.tools.implementations import read_url
+
+# Basic usage (uses Jina AI Reader with automatic fallback)
+result = read_url.invoke({"url": "https://goatbytes.io/about"})
+
+# Force local processing (privacy-focused)
+result = read_url.invoke({
+    "url": "https://example.com",
+    "use_fallback": True
+})
+```
+
+**Response Format:**
+```markdown
+Title: About GoatBytes.IO
+
+Markdown Content:
+GoatBytes.IO is a software development blog focused on...
+
+[Additional content in clean markdown format]
+```
+
+**Configuration (Zero Setup - Uses Defaults):**
+```yaml
+tools:
+  enabled: true
+  read_url:
+    timeout: 10              # Request timeout in seconds (max 30)
+    enable_fallback: true    # Enable trafilatura fallback if Jina fails
+    max_length: 50000        # Maximum output length (truncated if exceeded)
+```
+
+**Configuration (With Jina API Key for Higher Limits):**
+```yaml
+tools:
+  enabled: true
+  read_url:
+    jina_api_key: "your-free-api-key"  # Get free key at jina.ai (500 RPM)
+    timeout: 10
+    enable_fallback: true
+    max_length: 50000
+```
+
+**Parameters:**
+- `url` (str): URL to read (must be publicly accessible HTTP/HTTPS) (required)
+- `use_fallback` (bool | None): Force fallback to trafilatura for privacy (default: None = auto)
+
+**Common Use Cases:**
+- **Research**: Read documentation, blog posts, tutorials
+- **Content Analysis**: Extract article text for AI processing
+- **Web Scraping**: Convert web pages to structured markdown
+- **Integration with web_search**: Fetch and read search results
+- **Privacy Mode**: Use local trafilatura processing (no external API)
+
+**Backend Comparison:**
+
+| Feature | Jina AI Reader | trafilatura |
+|---------|---------------|-------------|
+| Setup | Zero setup | Zero setup |
+| API Keys | Optional (500 RPM with key) | None |
+| Rate Limits | 20 RPM free, 500 RPM with key | Unlimited (local) |
+| Quality | Excellent (LLM-optimized) | Good (standard extraction) |
+| Privacy | External API call | Local processing (private) |
+| JavaScript | ✅ Handles JS-heavy sites | ❌ May fail on JS-heavy sites |
+| Speed | ~1-2s | ~0.5-1s |
+| Fallback | Primary | Automatic fallback |
+
+**Security Features:**
+- **SSRF Protection**: Blocks localhost (127.0.0.1, ::1, etc.)
+- **Private IP Blocking**: Blocks 192.168.x.x, 10.x.x.x, 172.16-31.x.x
+- **Scheme Validation**: Only HTTP/HTTPS allowed
+- **Hostname Validation**: Requires valid hostname
+- **Content Truncation**: Prevents overwhelming LLM context windows
+
+**Advantages:**
+- ✅ **Zero Setup**: Works immediately without API keys
+- ✅ **Free**: Jina offers generous free tier (20 RPM), optional upgrade to 500 RPM
+- ✅ **LLM-Optimized**: Jina Reader provides clean, AI-ready markdown
+- ✅ **Privacy Option**: trafilatura processes locally without external calls
+- ✅ **Resilient**: Automatic fallback ensures reliability
+- ✅ **Security-First**: Multiple SSRF protection layers
+
+**Workflow Example (with web_search):**
+```python
+from consoul.ai.tools.implementations import web_search, read_url
+import json
+
+# Step 1: Search for relevant pages
+search_results = web_search.invoke({"query": "Python asyncio tutorial", "max_results": 3})
+results = json.loads(search_results)
+
+# Step 2: Read the top result
+top_link = results[0]["link"]
+content = read_url.invoke({"url": top_link})
+
+# Step 3: Process content with AI
+# AI can now analyze the full article content
+```
+
+**Troubleshooting:**
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Only HTTP(S) URLs are supported` | Invalid URL scheme | Use http:// or https:// URLs only |
+| `Cannot fetch localhost URLs` | Security restriction | SSRF protection blocks localhost |
+| `Cannot fetch private network URLs` | Security restriction | SSRF protection blocks private IPs |
+| `Jina AI Reader rate limit exceeded` | Too many requests | Wait, add JINA_API_KEY, or use fallback |
+| `Jina AI Reader authentication failed` | Invalid API key | Check JINA_API_KEY in config |
+| `Failed to download URL` | Network error or 404 | Check URL is valid and accessible |
+| `Failed to extract content` | JavaScript-heavy page | Try Jina (handles JS) or use fallback |
+| `trafilatura extraction failed` | Complex page structure | Use Jina instead (better JS handling) |
+| `Content truncated...` | Page exceeds max_length | Increase max_length in config |
+
+**Getting a Free Jina API Key:**
+
+To increase rate limits from 20 RPM to 500 RPM:
+
+1. Visit https://jina.ai/
+2. Sign up for free account (no credit card required)
+3. Generate API key
+4. Add to config:
+   ```yaml
+   tools:
+     read_url:
+       jina_api_key: "your-key-here"
+   ```
+
+**Privacy Considerations:**
+
+When using Jina AI Reader:
+- URLs are sent to Jina's API (https://r.jina.ai/)
+- Page content is processed by Jina's servers
+- No content is stored by Jina (stateless processing)
+
+When using trafilatura fallback:
+- All processing happens locally
+- No external API calls
+- Complete privacy
+- May fail on JavaScript-heavy sites
+
+Force local processing for maximum privacy:
+```python
+result = read_url.invoke({"url": "https://example.com", "use_fallback": True})
+```
 
 ---
 

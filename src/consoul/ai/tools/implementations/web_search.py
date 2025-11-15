@@ -30,7 +30,7 @@ import json
 import logging
 from typing import Any
 
-import requests  # type: ignore[import-untyped]
+import requests
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper, SearxSearchWrapper
 from langchain_core.tools import tool
 

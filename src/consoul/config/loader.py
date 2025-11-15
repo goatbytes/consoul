@@ -230,7 +230,7 @@ def select_intelligent_default_model() -> tuple[Provider, str]:
 
     # Priority 4: Ollama (free, local)
     try:
-        import requests  # type: ignore[import-untyped]
+        import requests
 
         response = requests.get("http://localhost:11434/api/tags", timeout=1)
         if response.status_code == 200:

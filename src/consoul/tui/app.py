@@ -217,11 +217,13 @@ class ConsoulApp(App[None]):
                         find_references,
                         grep_search,
                         read_file,
+                        read_url,
                         set_bash_config,
                         set_code_search_config,
                         set_find_references_config,
                         set_grep_search_config,
                         set_read_config,
+                        set_read_url_config,
                         set_web_search_config,
                         web_search,
                     )
@@ -250,6 +252,10 @@ class ConsoulApp(App[None]):
                     # Configure web_search tool with profile settings
                     if consoul_config.tools.web_search:
                         set_web_search_config(consoul_config.tools.web_search)
+
+                    # Configure read_url tool with profile settings
+                    if consoul_config.tools.read_url:
+                        set_read_url_config(consoul_config.tools.read_url)
 
                     # Create registry with CLI provider (we override approval in _request_tool_approval)
                     # The provider is required by registry but we don't use it - we show our own modal
@@ -298,6 +304,14 @@ class ConsoulApp(App[None]):
                         web_search,
                         risk_level=RiskLevel.SAFE,
                         tags=["search", "readonly", "web"],
+                        enabled=True,
+                    )
+
+                    # Register read_url tool (read-only URL fetching)
+                    self.tool_registry.register(
+                        read_url,
+                        risk_level=RiskLevel.SAFE,
+                        tags=["web", "readonly", "content"],
                         enabled=True,
                     )
 
