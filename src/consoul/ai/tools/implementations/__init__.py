@@ -16,6 +16,11 @@ from consoul.ai.tools.implementations.code_search import (
     get_code_search_config,
     set_code_search_config,
 )
+from consoul.ai.tools.implementations.file_edit import (
+    edit_file_lines,
+    get_file_edit_config,
+    set_file_edit_config,
+)
 from consoul.ai.tools.implementations.find_references import (
     find_references,
     get_find_references_config,
@@ -45,9 +50,11 @@ from consoul.ai.tools.implementations.web_search import (
 __all__ = [
     "bash_execute",
     "code_search",
+    "edit_file_lines",
     "find_references",
     "get_bash_config",
     "get_code_search_config",
+    "get_file_edit_config",
     "get_find_references_config",
     "get_grep_search_config",
     "get_read_config",
@@ -58,6 +65,7 @@ __all__ = [
     "read_url",
     "set_bash_config",
     "set_code_search_config",
+    "set_file_edit_config",
     "set_find_references_config",
     "set_grep_search_config",
     "set_read_config",
