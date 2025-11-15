@@ -7,6 +7,7 @@ configuration from multiple sources with clear precedence rules.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -72,14 +73,49 @@ def find_project_config() -> Path | None:
     return None
 
 
+def expand_env_vars(value: Any) -> Any:
+    """Recursively expand environment variables in config values.
+
+    Supports ${VAR_NAME} and $VAR_NAME syntax.
+    If the environment variable is not set, the original string is returned unchanged.
+
+    Args:
+        value: Configuration value (can be string, dict, list, or primitive)
+
+    Returns:
+        Value with environment variables expanded
+    """
+    if isinstance(value, str):
+        # Match ${VAR_NAME} or $VAR_NAME patterns
+        def replace_env_var(match: re.Match[str]) -> str:
+            var_name = match.group(1) or match.group(2)
+            return os.environ.get(var_name, match.group(0))
+
+        # Pattern: ${VAR_NAME} or $VAR_NAME
+        pattern = r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)"
+        return re.sub(pattern, replace_env_var, value)
+
+    if isinstance(value, dict):
+        return {k: expand_env_vars(v) for k, v in value.items()}
+
+    if isinstance(value, list):
+        return [expand_env_vars(item) for item in value]
+
+    # Return primitives unchanged (int, float, bool, None, etc.)
+    return value
+
+
 def load_yaml_config(path: Path) -> dict[str, Any]:
-    """Load and parse YAML config file.
+    """Load and parse YAML config file with environment variable expansion.
+
+    Supports ${VAR_NAME} and $VAR_NAME syntax for environment variables.
+    If the environment variable is not set, the original string is kept unchanged.
 
     Args:
         path: Path to YAML config file.
 
     Returns:
-        Parsed configuration dictionary, or empty dict if file doesn't exist.
+        Parsed configuration dictionary with env vars expanded, or empty dict if file doesn't exist.
 
     Raises:
         yaml.YAMLError: If YAML syntax is invalid.
@@ -98,7 +134,13 @@ def load_yaml_config(path: Path) -> dict[str, Any]:
                 raise ValueError(
                     f"Config file must contain a YAML mapping, got {type(content).__name__}"
                 )
-            return content
+            # Expand environment variables (guaranteed to return dict since input is dict)
+            expanded = expand_env_vars(content)
+            if not isinstance(expanded, dict):  # type guard
+                raise ValueError(
+                    f"Environment expansion corrupted config structure, got {type(expanded).__name__}"
+                )
+            return expanded
     except yaml.YAMLError as e:
         raise yaml.YAMLError(f"Invalid YAML in {path}: {e}") from e
     except OSError as e:

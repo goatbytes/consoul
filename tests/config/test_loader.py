@@ -10,6 +10,7 @@ from pydantic import SecretStr, ValidationError
 from consoul.config.loader import (
     create_default_config,
     deep_merge,
+    expand_env_vars,
     find_project_config,
     load_config,
     load_env_config,
@@ -102,6 +103,82 @@ class TestMergeConfigs:
         assert result == {"a": 1, "b": 2}
 
 
+class TestExpandEnvVars:
+    """Tests for expand_env_vars function."""
+
+    def test_expand_simple_string(self, monkeypatch: pytest.MonkeyPatch):
+        """Test expanding ${VAR} syntax."""
+        monkeypatch.setenv("TEST_VAR", "test_value")
+        result = expand_env_vars("${TEST_VAR}")
+        assert result == "test_value"
+
+    def test_expand_dollar_syntax(self, monkeypatch: pytest.MonkeyPatch):
+        """Test expanding $VAR syntax."""
+        monkeypatch.setenv("TEST_VAR", "test_value")
+        result = expand_env_vars("$TEST_VAR")
+        assert result == "test_value"
+
+    def test_expand_in_string(self, monkeypatch: pytest.MonkeyPatch):
+        """Test expanding vars within strings."""
+        monkeypatch.setenv("API_KEY", "secret123")
+        result = expand_env_vars("key: ${API_KEY}")
+        assert result == "key: secret123"
+
+    def test_expand_multiple_vars(self, monkeypatch: pytest.MonkeyPatch):
+        """Test expanding multiple variables in one string."""
+        monkeypatch.setenv("VAR1", "value1")
+        monkeypatch.setenv("VAR2", "value2")
+        result = expand_env_vars("${VAR1} and ${VAR2}")
+        assert result == "value1 and value2"
+
+    def test_expand_in_dict(self, monkeypatch: pytest.MonkeyPatch):
+        """Test expanding vars in dictionary values."""
+        monkeypatch.setenv("JINA_API_KEY", "jina_key_123")
+        config = {"tools": {"web_search": {"jina_api_key": "${JINA_API_KEY}"}}}
+        result = expand_env_vars(config)
+        assert result["tools"]["web_search"]["jina_api_key"] == "jina_key_123"
+
+    def test_expand_in_list(self, monkeypatch: pytest.MonkeyPatch):
+        """Test expanding vars in list items."""
+        monkeypatch.setenv("ITEM1", "first")
+        monkeypatch.setenv("ITEM2", "second")
+        result = expand_env_vars(["${ITEM1}", "${ITEM2}", "literal"])
+        assert result == ["first", "second", "literal"]
+
+    def test_undefined_var_unchanged(self):
+        """Test that undefined vars are left unchanged."""
+        result = expand_env_vars("${UNDEFINED_VAR}")
+        assert result == "${UNDEFINED_VAR}"
+
+    def test_mixed_defined_undefined(self, monkeypatch: pytest.MonkeyPatch):
+        """Test that defined vars expand while undefined stay unchanged."""
+        monkeypatch.setenv("DEFINED", "value")
+        result = expand_env_vars("${DEFINED} and ${UNDEFINED}")
+        assert result == "value and ${UNDEFINED}"
+
+    def test_primitives_unchanged(self):
+        """Test that primitive types are returned unchanged."""
+        assert expand_env_vars(42) == 42
+        assert expand_env_vars(3.14) == 3.14
+        assert expand_env_vars(True) is True
+        assert expand_env_vars(None) is None
+
+    def test_nested_structures(self, monkeypatch: pytest.MonkeyPatch):
+        """Test expanding vars in deeply nested structures."""
+        monkeypatch.setenv("KEY1", "val1")
+        monkeypatch.setenv("KEY2", "val2")
+        config = {
+            "outer": {
+                "inner": {"key": "${KEY1}", "list": ["${KEY2}", "literal"]},
+                "other": 123,
+            }
+        }
+        result = expand_env_vars(config)
+        assert result["outer"]["inner"]["key"] == "val1"
+        assert result["outer"]["inner"]["list"] == ["val2", "literal"]
+        assert result["outer"]["other"] == 123
+
+
 class TestLoadYamlConfig:
     """Tests for load_yaml_config function."""
 
@@ -150,6 +227,29 @@ class TestLoadYamlConfig:
         """Test loading None path returns empty dict."""
         result = load_yaml_config(None)
         assert result == {}
+
+    def test_load_yaml_with_env_vars(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Test that environment variables are expanded when loading YAML."""
+        monkeypatch.setenv("JINA_API_KEY", "jina_secret_key_123")
+        monkeypatch.setenv("SEARXNG_URL", "http://localhost:8888")
+
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text(
+            """
+tools:
+  web_search:
+    jina_api_key: ${JINA_API_KEY}
+    searxng_url: ${SEARXNG_URL}
+    max_results: 5
+"""
+        )
+
+        result = load_yaml_config(config_file)
+        assert result["tools"]["web_search"]["jina_api_key"] == "jina_secret_key_123"
+        assert result["tools"]["web_search"]["searxng_url"] == "http://localhost:8888"
+        assert result["tools"]["web_search"]["max_results"] == 5
 
 
 class TestCreateDefaultConfig:

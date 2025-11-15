@@ -717,16 +717,35 @@ To enable Jina Search (highest quality results):
 2. Click "Sign Up" (free account, no credit card required)
 3. Navigate to API Dashboard
 4. Generate a new API key
-5. Copy the key and add to your config:
-   ```yaml
+5. Copy the key and configure it:
+
+   **Option 1: Environment Variable (Recommended)**
+   ```bash
+   # Add to ~/.zshrc or ~/.bashrc
+   export JINA_API_KEY="jina_YOUR_KEY_HERE"
+
+   # In config, use ${VAR} syntax for automatic expansion:
+   # ~/.consoul/config.yaml
    tools:
      web_search:
-       jina_api_key: "jina_YOUR_KEY_HERE"
+       jina_api_key: ${JINA_API_KEY}  # Auto-expands from environment
    ```
-   Or set as environment variable:
-   ```bash
-   export JINA_API_KEY="jina_YOUR_KEY_HERE"
+
+   **Option 2: Direct in Config**
+   ```yaml
+   # ~/.consoul/config.yaml
+   tools:
+     web_search:
+       jina_api_key: "jina_YOUR_KEY_HERE"  # Direct value
    ```
+
+**Environment Variable Expansion:**
+
+Consoul supports `${VAR_NAME}` and `$VAR_NAME` syntax in YAML config files:
+- Environment variables are expanded when the config is loaded
+- If the variable is not set, the original string is kept unchanged
+- Works for any config value (strings, nested dicts, lists)
+- Useful for keeping API keys out of version control
 
 **Free Tier Limits:**
 - 10 million tokens (extremely generous)
