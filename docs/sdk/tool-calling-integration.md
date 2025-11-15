@@ -553,6 +553,229 @@ async def test_end_to_end_tool_execution():
     assert "test" in result
 ```
 
+## Working with Code Search Tools
+
+### Overview
+
+Consoul provides three complementary code search tools for semantic code analysis and navigation:
+
+- **grep_search** - Fast text-based pattern matching using ripgrep
+- **code_search** - AST-based symbol definition search using tree-sitter
+- **find_references** - Symbol usage finder for refactoring analysis
+
+All search tools are **RiskLevel.SAFE** (read-only) and can be auto-approved in most security policies.
+
+### Quick Start - Search Tools
+
+```python
+from consoul.ai.tools import ToolRegistry, RiskLevel
+from consoul.ai.tools.implementations import grep_search, code_search, find_references
+
+# Register all search tools (all SAFE - read-only)
+registry = ToolRegistry(config=config.tools, approval_provider=provider)
+
+registry.register(grep_search, risk_level=RiskLevel.SAFE, tags=["search", "text"])
+registry.register(code_search, risk_level=RiskLevel.SAFE, tags=["search", "ast"])
+registry.register(find_references, risk_level=RiskLevel.SAFE, tags=["search", "refactoring"])
+
+# Bind to AI model for tool calling
+model_with_tools = registry.bind_to_model(model)
+
+# AI can now use natural language search
+response = model_with_tools.invoke("""
+Find the ToolRegistry class definition, then find all places where it's instantiated
+""")
+```
+
+### Pattern 1: Programmatic Search Workflow
+
+```python
+from consoul.ai.tools import grep_search, code_search, find_references
+import json
+
+def analyze_symbol(symbol_name: str) -> dict:
+    """Complete symbol analysis for refactoring."""
+
+    # Step 1: Find definition
+    definition = code_search.invoke({
+        "query": symbol_name,
+        "symbol_type": "function",
+        "path": "src/"
+    })
+
+    def_data = json.loads(definition)
+    if not def_data:
+        return {"error": f"Symbol '{symbol_name}' not found"}
+
+    # Step 2: Find all usages
+    references = find_references.invoke({
+        "symbol": symbol_name,
+        "scope": "project",
+        "include_definition": True
+    })
+
+    ref_data = json.loads(references)
+
+    # Step 3: Analyze impact
+    files_affected = {ref["file"] for ref in ref_data}
+
+    return {
+        "symbol": symbol_name,
+        "definition": def_data[0],
+        "usage_count": len(ref_data) - 1,  # Exclude definition
+        "files_affected": len(files_affected),
+        "references": ref_data
+    }
+
+# Use in your application
+analysis = analyze_symbol("process_data")
+print(f"Refactoring impact: {analysis['usage_count']} usages in {analysis['files_affected']} files")
+```
+
+### Pattern 2: Multi-Step Discovery
+
+```python
+from consoul import Consoul
+
+# Initialize with search tools enabled
+console = Consoul(tools=True, profile="default")
+
+# Step 1: Fast text search to find candidates
+grep_results = console.chat("Find all files that mention 'authentication'")
+
+# Step 2: Find semantic definitions
+code_results = console.chat("Find the authenticate_user function definition")
+
+# Step 3: Find all usages
+ref_results = console.chat("Find all places where authenticate_user is called")
+
+# AI automatically chooses the right tool for each step
+```
+
+### Pattern 3: Dead Code Detection
+
+```python
+def find_unused_functions(directory: str) -> list[dict]:
+    """Find functions with zero references (potential dead code)."""
+
+    # Get all functions in directory
+    all_functions = code_search.invoke({
+        "symbol_type": "function",
+        "path": directory
+    })
+
+    functions = json.loads(all_functions)
+    unused = []
+
+    for func in functions:
+        # Check for usages
+        refs = find_references.invoke({
+            "symbol": func["name"],
+            "scope": "directory",
+            "path": directory
+        })
+
+        ref_count = len(json.loads(refs))
+
+        if ref_count == 0:
+            unused.append(func)
+
+    return unused
+
+# Use in code review automation
+unused = find_unused_functions("src/legacy/")
+print(f"Found {len(unused)} potentially unused functions")
+```
+
+### Configuration for Search Tools
+
+```python
+from consoul.config.models import (
+    CodeSearchToolConfig,
+    FindReferencesToolConfig,
+    GrepToolConfig
+)
+
+# Configure search behavior
+config = ToolConfig(
+    enabled=True,
+    permission_policy=PermissionPolicy.BALANCED,  # Auto-approve SAFE tools
+
+    # grep_search config
+    grep=GrepToolConfig(
+        # No special config needed - uses ripgrep or grep fallback
+    ),
+
+    # code_search config
+    code_search=CodeSearchToolConfig(
+        max_file_size_kb=1024,  # Skip files >1MB
+        max_results=100,        # Limit results to prevent overflow
+        supported_extensions=[".py", ".js", ".ts", ".go", ".rs"]
+    ),
+
+    # find_references config
+    find_references=FindReferencesToolConfig(
+        max_file_size_kb=1024,
+        max_results=100,
+        supported_extensions=[".py", ".js", ".ts", ".go", ".rs"]
+    )
+)
+```
+
+### Performance Optimization
+
+Both `code_search` and `find_references` use intelligent caching for 5-10x speedup:
+
+```python
+from consoul.ai.tools.cache import CodeSearchCache
+
+# Optional: Pre-warm cache for frequently searched directories
+cache = CodeSearchCache()
+
+# First search - parses files (slow)
+result1 = code_search.invoke({"query": ".*", "path": "src/core/"})
+
+# Second search - uses cache (fast)
+result2 = find_references.invoke({"symbol": "MyClass", "scope": "directory", "path": "src/core/"})
+
+# Check cache stats
+stats = cache.get_stats()
+print(f"Cache hit rate: {stats.hit_rate:.1%}")  # Should be >50% after warmup
+```
+
+### Language Support
+
+| Language | Extensions | grep_search | code_search | find_references |
+|----------|-----------|-------------|-------------|-----------------|
+| Python | .py | ✅ | ✅ | ✅ |
+| JavaScript | .js, .jsx | ✅ | ✅ | ✅ |
+| TypeScript | .ts, .tsx | ✅ | ✅ | ✅ |
+| Go | .go | ✅ | ✅ | ✅ |
+| Rust | .rs | ✅ | ✅ | ✅ |
+| Java | .java | ✅ | ✅ | ⚠️ |
+| C/C++ | .c, .cpp, .h, .hpp | ✅ | ✅ | ⚠️ |
+
+✅ Full support | ⚠️ Basic support
+
+### Use Cases
+
+| Use Case | Tool | Why |
+|----------|------|-----|
+| Find TODO comments | `grep_search` | Comments aren't in AST |
+| Find function definition | `code_search` | Semantic definition search |
+| Find all function calls | `find_references` | Usage tracking |
+| Search across any file type | `grep_search` | Works on all text |
+| Pre-refactoring analysis | `find_references` | Impact analysis |
+| Code inventory | `code_search` | List all symbols |
+| Dead code detection | `code_search` + `find_references` | Definition without usages |
+
+### Documentation
+
+See comprehensive guides:
+- [Code Search Guide](../user-guide/code-search.md) - Complete usage guide
+- [Troubleshooting](../user-guide/code-search-troubleshooting.md) - Common issues
+- [Working Examples](../examples/code-search-example.py) - Python code
+
 ## Working with Built-in Tools
 
 ### read_file Tool

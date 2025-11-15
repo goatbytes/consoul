@@ -548,6 +548,162 @@ result = read_file(file_path="design.pdf", start_page=1, end_page=3)
 result = read_file(file_path="report.pdf", start_page=10)
 ```
 
+## Tool Comparison
+
+### When to Use Which Tool
+
+| Task | Recommended Tool | Why |
+|------|------------------|-----|
+| Find TODO comments | `grep_search` | Comments aren't in AST |
+| Find function definition | `code_search` | Semantic structure-aware search |
+| Find all function calls | `find_references` | Tracks symbol usages |
+| Search error messages | `grep_search` | String literal search |
+| Pre-refactoring analysis | `find_references` | Impact analysis |
+| Search any file type | `grep_search` | Works on all text |
+| Find class definition | `code_search` | AST-based symbol search |
+| Locate dead code | `code_search` + `find_references` | Definition without usages |
+| Read file contents | `read_file` | Formatted output with line numbers |
+| Run analysis scripts | `bash_execute` | Execute commands |
+
+### Search Tools Comparison Matrix
+
+Comparison of the three code search tools:
+
+|  | grep_search | code_search | find_references |
+|---|-------------|-------------|-----------------|
+| **What it finds** | Text patterns | Symbol definitions | Symbol usages |
+| **Understanding** | Text-based | Structure-aware (AST) | Structure-aware (AST) |
+| **Speed** | Very fast (<1s) | Fast (cached: <1s, uncached: 1-2s) | Medium (cached: <1s, uncached: 2-3s) |
+| **File types** | Any text | Source code only | Source code only |
+| **Comments** | ✅ Finds in comments | ❌ Ignores comments | ❌ Ignores comments |
+| **Strings** | ✅ Finds in strings | ❌ Ignores strings | ❌ Ignores strings |
+| **Cache** | N/A | ✅ mtime-based | ✅ Shared with code_search |
+| **Context** | Line context (before/after) | Symbol context | Usage context |
+| **Regex support** | ✅ Full regex | ✅ Symbol names only | ✅ Symbol names only |
+| **Risk Level** | SAFE | SAFE | SAFE |
+
+### Multi-Language Support
+
+Support matrix for all available tools:
+
+| Language | Extensions | grep_search | code_search | find_references | read_file |
+|----------|-----------|-------------|-------------|-----------------|-----------|
+| **Python** | .py | ✅ | ✅ | ✅ | ✅ |
+| **JavaScript** | .js, .jsx | ✅ | ✅ | ✅ | ✅ |
+| **TypeScript** | .ts, .tsx | ✅ | ✅ | ✅ | ✅ |
+| **Go** | .go | ✅ | ✅ | ✅ | ✅ |
+| **Rust** | .rs | ✅ | ✅ | ✅ | ✅ |
+| **Java** | .java | ✅ | ✅ | ⚠️ | ✅ |
+| **C/C++** | .c, .cpp, .h, .hpp | ✅ | ✅ | ⚠️ | ✅ |
+| **Markdown** | .md | ✅ | ❌ | ❌ | ✅ |
+| **JSON** | .json | ✅ | ❌ | ❌ | ✅ |
+| **YAML** | .yaml, .yml | ✅ | ❌ | ❌ | ✅ |
+| **PDF** | .pdf | ❌ | ❌ | ❌ | ✅* |
+
+**Legend:**
+- ✅ Full support - All features work correctly
+- ⚠️ Basic support - Core features work, some edge cases may not be handled
+- ❌ No support - Tool doesn't work for this file type
+- \* Requires `pypdf` package (install with `pip install consoul[pdf]`)
+
+### Common Workflows
+
+#### Workflow 1: Refactoring a Function
+
+```python
+from consoul.ai.tools import code_search, find_references
+import json
+
+# Step 1: Find definition
+definition = code_search.invoke({
+    "query": "old_function_name",
+    "symbol_type": "function"
+})
+
+def_data = json.loads(definition)
+print(f"Defined at: {def_data[0]['file']}:{def_data[0]['line']}")
+
+# Step 2: Find all usages
+references = find_references.invoke({
+    "symbol": "old_function_name",
+    "scope": "project"
+})
+
+ref_data = json.loads(references)
+print(f"Used {len(ref_data)} times in {len({r['file'] for r in ref_data})} files")
+
+# Step 3: Review each usage before refactoring
+for ref in ref_data:
+    print(f"  {ref['file']}:{ref['line']} - {ref['type']}")
+```
+
+#### Workflow 2: Understanding a Feature
+
+```python
+# Step 1: Find documentation mentions
+docs = grep_search.invoke({
+    "pattern": "authentication",
+    "path": "docs/",
+    "case_sensitive": False
+})
+
+# Step 2: Find main classes
+classes = code_search.invoke({
+    "query": ".*Auth.*",
+    "symbol_type": "class",
+    "path": "src/"
+})
+
+# Step 3: Find dependencies
+references = find_references.invoke({
+    "symbol": "AuthManager",
+    "scope": "project"
+})
+```
+
+#### Workflow 3: Code Review
+
+```python
+# Find potential issues
+todos = grep_search.invoke({
+    "pattern": r"TODO|FIXME|XXX|HACK",
+    "glob_pattern": "*.py"
+})
+
+# Find new symbols added
+new_functions = code_search.invoke({
+    "query": "process_.*",
+    "symbol_type": "function",
+    "path": "src/new_feature/"
+})
+
+# Verify proper usage
+for func in json.loads(new_functions):
+    refs = find_references.invoke({
+        "symbol": func["name"],
+        "scope": "project"
+    })
+    ref_count = len(json.loads(refs))
+    print(f"{func['name']}: {ref_count} usages")
+```
+
+### Performance Characteristics
+
+| Tool | First Run | Cached | Cache Benefit | Typical Project (1000 files) |
+|------|-----------|--------|---------------|------------------------------|
+| **grep_search** | 0.5s | 0.5s | N/A (always fast) | 0.5-1s |
+| **code_search** | 2.5s | 0.3s | **8x faster** | 1-3s uncached, 0.2-0.5s cached |
+| **find_references** | 3.0s | 0.4s | **7x faster** | 2-4s uncached, 0.3-0.6s cached |
+| **read_file** | <0.1s | N/A | N/A | <0.1s per file |
+| **bash_execute** | Varies | N/A | N/A | Command-dependent |
+
+**Optimization Tips:**
+1. Use narrowest scope possible (`file` > `directory` > `project`)
+2. Install ripgrep for faster grep_search
+3. Filter by symbol_type in code_search
+4. Use case-sensitive search when possible
+5. Warm cache for frequently searched directories
+
 ## Quick Start
 
 ### 1. Enable Tool Calling

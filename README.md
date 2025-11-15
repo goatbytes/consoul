@@ -183,6 +183,117 @@ registry.register(get_weather, risk_level=RiskLevel.SAFE)
 
 See the [Security Policy](SECURITY.md) for best practices.
 
+## 🔍 Code Search
+
+Consoul includes powerful code search tools for semantic code analysis and navigation.
+
+### Available Search Tools
+
+- **grep_search** - Fast text-based pattern matching (uses ripgrep)
+- **code_search** - AST-based symbol search (find function/class definitions)
+- **find_references** - Symbol usage finder (find all usages of a symbol)
+
+### Quick Start
+
+Enable tools in your configuration:
+
+```yaml
+profiles:
+  default:
+    tools:
+      enabled: true  # Enables all search tools
+```
+
+Start Consoul and use natural language:
+
+```bash
+consoul
+
+> "Find all TODO comments in Python files"         # → grep_search
+> "Find the ToolRegistry class definition"         # → code_search
+> "Find all usages of bash_execute in the project" # → find_references
+```
+
+### Programmatic Usage
+
+```python
+from consoul import Consoul
+
+console = Consoul(tools=True)
+
+# Find function definitions
+console.chat("Find the calculate_total function")
+
+# Find all usages
+console.chat("Find all places where calculate_total is called")
+
+# Complex workflow
+console.chat("""
+First find the ShoppingCart class definition,
+then find all places where it's instantiated
+""")
+```
+
+### Direct Tool Usage
+
+```python
+from consoul.ai.tools import grep_search, code_search, find_references
+
+# Fast text search
+result = grep_search.invoke({
+    "pattern": "TODO",
+    "glob_pattern": "*.py"
+})
+
+# Find function definition
+result = code_search.invoke({
+    "query": "calculate_total",
+    "symbol_type": "function"
+})
+
+# Find all usages
+result = find_references.invoke({
+    "symbol": "bash_execute",
+    "scope": "project"
+})
+```
+
+### Tool Comparison
+
+| When to Use | Tool | Why |
+|-------------|------|-----|
+| Find text patterns, TODOs, comments | `grep_search` | Fast text matching |
+| Find where a function is defined | `code_search` | Semantic definition search |
+| Find all usages of a symbol | `find_references` | Reference tracking |
+| Search across any file type | `grep_search` | Works on all text |
+| Understand code structure | `code_search` | AST-based understanding |
+
+### Language Support
+
+| Language | grep_search | code_search | find_references |
+|----------|-------------|-------------|-----------------|
+| Python | ✅ | ✅ | ✅ |
+| JavaScript/TypeScript | ✅ | ✅ | ✅ |
+| Go | ✅ | ✅ | ✅ |
+| Rust | ✅ | ✅ | ✅ |
+| Java/C/C++ | ✅ | ✅ | ⚠️ |
+
+**Legend:** ✅ Full support | ⚠️ Basic support
+
+### Performance
+
+- **grep_search**: Very fast (<1s typical)
+- **code_search**: Fast with cache (~2s first run, <1s cached)
+- **find_references**: Medium (~3s first run, <1s cached)
+
+**Cache benefit**: 5-10x speedup on repeated searches
+
+### Documentation
+
+- **[Code Search Guide](docs/user-guide/code-search.md)** - Comprehensive usage guide
+- **[Troubleshooting](docs/user-guide/code-search-troubleshooting.md)** - Common issues and solutions
+- **[Code Examples](docs/examples/code-search-example.py)** - Working Python examples
+
 ## 📚 Documentation
 
 - [Installation Guide](docs/installation.md)
