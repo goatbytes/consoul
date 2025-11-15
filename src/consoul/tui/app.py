@@ -448,14 +448,23 @@ class ConsoulApp(App[None]):
         Sets up GC management and validates theme.
         """
         # Apply theme from config
-        try:
-            _ = load_theme(self.config.theme)  # type: ignore[arg-type]
+        # Custom themes (TCSS files): monokai, dracula, nord, gruvbox
+        # Built-in themes: textual-dark, textual-light, textual-ansi, tokyo-night, etc.
+        custom_themes = ["monokai", "dracula", "nord", "gruvbox"]
+
+        if self.config.theme in custom_themes:
+            # Load custom TCSS theme
+            try:
+                _ = load_theme(self.config.theme)  # type: ignore[arg-type]
+                self.theme = self.config.theme
+            except FileNotFoundError:
+                self.notify(
+                    f"Theme '{self.config.theme}' not found, using default",
+                    severity="warning",
+                )
+        else:
+            # Use Textual built-in theme
             self.theme = self.config.theme
-        except FileNotFoundError:
-            self.notify(
-                f"Theme '{self.config.theme}' not found, using default",
-                severity="warning",
-            )
 
         # Set up GC management (streaming-aware mode from research)
         if self.config.gc_mode == "streaming-aware":
