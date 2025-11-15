@@ -521,24 +521,24 @@ tools:
 
 ### web_search
 
-Search the web using DuckDuckGo's free API (zero setup required).
+Search the web using SearxNG (self-hosted) or DuckDuckGo (zero setup).
 
 **Capabilities:**
-- Free web search with no API keys or authentication
-- Privacy-focused (DuckDuckGo doesn't track searches)
-- Returns structured JSON with title, snippet, and link
-- Configurable result count (1-10 results)
-- SafeSearch filtering (strict/moderate/off)
-- Regional search support
+- **Dual Backend Support**: SearxNG (production-grade) with DuckDuckGo fallback
+- **Free**: No API keys or authentication required for either backend
+- **Privacy-Focused**: Neither backend tracks searches
+- **Engine Selection**: Choose specific search engines (SearxNG only)
+- **Categories**: Filter by topic like "it", "news", "academic" (SearxNG only)
+- **Automatic Fallback**: Gracefully degrades to DuckDuckGo if SearxNG unavailable
+- **Structured Results**: Returns JSON with title, snippet, link, and engine info
 
 **Risk Level**: SAFE (read-only web queries, no system modification)
 
-**Example:**
+**Quick Start (DuckDuckGo - Zero Setup):**
 ```python
 from consoul.ai.tools.implementations import web_search
 
-# Tools are LangChain StructuredTool instances; call via .invoke()
-# Basic search
+# Basic search (uses DuckDuckGo by default)
 result = web_search.invoke({"query": "Python programming tutorials"})
 
 # Search with custom result count
@@ -546,12 +546,29 @@ result = web_search.invoke({
     "query": "LangChain documentation",
     "max_results": 3
 })
+```
 
-# Search with SafeSearch strict mode
+**Advanced Usage (SearxNG with Engine Selection):**
+```python
+# Search specific engines (requires SearxNG configured)
 result = web_search.invoke({
-    "query": "machine learning",
-    "max_results": 5,
-    "safesearch": "strict"
+    "query": "machine learning research",
+    "engines": ["google", "arxiv", "github"],
+    "max_results": 5
+})
+
+# Search with categories
+result = web_search.invoke({
+    "query": "Python security vulnerability",
+    "categories": ["it", "news"],
+    "max_results": 10
+})
+
+# Use DuckDuckGo parameters (ignored by SearxNG)
+result = web_search.invoke({
+    "query": "data science",
+    "safesearch": "strict",
+    "region": "us-en"
 })
 ```
 
@@ -561,17 +578,19 @@ result = web_search.invoke({
   {
     "title": "Python Tutorial - GeeksforGeeks",
     "snippet": "Learn Python programming with tutorials, examples, and exercises...",
-    "link": "https://www.geeksforgeeks.org/python/..."
+    "link": "https://www.geeksforgeeks.org/python/...",
+    "engine": "google"  // Only present for SearxNG results
   },
   {
     "title": "How to Use Python: Your First Steps",
     "snippet": "Start your Python journey with this beginner-friendly guide...",
-    "link": "https://realpython.com/python-first-steps/"
+    "link": "https://realpython.com/python-first-steps/",
+    "engine": "duckduckgo"
   }
 ]
 ```
 
-**Configuration:**
+**Configuration (DuckDuckGo Only - Zero Setup):**
 ```yaml
 tools:
   enabled: true
@@ -582,46 +601,85 @@ tools:
     timeout: 10              # Request timeout in seconds (max 30)
 ```
 
+**Configuration (SearxNG + DuckDuckGo Fallback):**
+```yaml
+tools:
+  enabled: true
+  web_search:
+    # Common settings
+    max_results: 5
+    timeout: 10
+
+    # SearxNG settings (enterprise-grade)
+    searxng_url: "http://localhost:8888"  # Your SearxNG instance
+    searxng_engines:
+      - google
+      - duckduckgo
+      - bing
+      - github        # Code search
+      - stackoverflow # Programming Q&A
+      - arxiv         # Academic papers
+    enable_engine_selection: true   # Allow custom engines per query
+    enable_categories: true         # Allow category filtering
+
+    # DuckDuckGo settings (fallback)
+    region: "wt-wt"
+    safesearch: "moderate"
+```
+
 **Common Use Cases:**
-- Finding documentation and tutorials
-- Researching current events or recent information
-- Looking up error messages and solutions
-- Discovering libraries and tools
-- Finding code examples and best practices
-- Researching technical topics
+- **General Search**: Finding documentation, tutorials, current events
+- **Code Search**: GitHub, Stack Overflow (SearxNG with engine selection)
+- **Academic Research**: arXiv, Google Scholar (SearxNG with engine selection)
+- **News**: Filter by "news" category (SearxNG only)
+- **IT/Tech**: Filter by "it" category (SearxNG only)
+- **Error Lookup**: Search error messages and solutions
+
+**Backend Comparison:**
+
+| Feature | DuckDuckGo | SearxNG |
+|---------|-----------|---------|
+| Setup | Zero setup | Docker required |
+| API Keys | None | None |
+| Engine Selection | ❌ | ✅ 135+ engines |
+| Categories | ❌ | ✅ (general, it, news, etc.) |
+| Privacy | ✅ Private | ✅ Self-hosted (full control) |
+| Rate Limits | Soft limits | No limits (self-hosted) |
+| Fallback | Primary | Fallback to DuckDuckGo |
 
 **Advantages:**
-- ✅ **Zero Setup**: No API keys, no authentication, works immediately
-- ✅ **Free**: Completely free with no usage limits (soft rate limits may apply)
-- ✅ **Privacy**: DuckDuckGo doesn't track your searches
-- ✅ **Simple**: Easy to use with minimal configuration
+- ✅ **Zero Setup**: DuckDuckGo works immediately, no config needed
+- ✅ **Production Grade**: SearxNG aggregates 135+ search engines
+- ✅ **Free**: Completely free, no API costs
+- ✅ **Privacy**: No tracking, self-hosted option available
+- ✅ **Flexible**: Choose engines and categories (SearxNG)
+- ✅ **Resilient**: Automatic fallback ensures reliability
 
-**Limitations:**
-- ⚠️ **Rate Limiting**: Soft rate limits may apply (no hard documented limits)
-- ⚠️ **Result Quality**: May vary compared to paid APIs like Google Custom Search
-- ⚠️ **No Advanced Features**: No engine selection, categories, or image search (for advanced features, see SOUL-100 for SearxNG support)
+**Setting Up SearxNG (Optional):**
+For production deployments, consider running SearxNG in Docker:
+
+```bash
+# Quick start (5 minutes)
+docker run -d -p 8888:8080 searxng/searxng:latest
+
+# Configure Consoul to use SearxNG
+# Edit ~/.consoul/profiles/default/config.yaml
+```
+
+See [docs/advanced/searxng-setup.md](advanced/searxng-setup.md) for complete setup guide.
 
 **Troubleshooting:**
 
 | Error | Cause | Solution |
 |-------|-------|----------|
 | `Web search failed: Network error` | No internet connection | Check network connectivity |
-| `Web search failed: Rate limiting` | Too many requests | Wait a few moments and retry |
+| `Web search failed: Rate limiting` | Too many DuckDuckGo requests | Wait and retry, or configure SearxNG |
+| `SearxNG search failed: ...` | SearxNG unavailable | Will fallback to DuckDuckGo automatically |
 | `max_results must be between 1 and 10` | Invalid parameter | Use value between 1-10 |
-| `safesearch must be 'strict', 'moderate', or 'off'` | Invalid parameter | Use valid safesearch value |
-
-**Future Enhancements:**
-See SOUL-100 for planned SearxNG integration, which adds:
-- Self-hosted search aggregation (135+ engines)
-- Engine-specific searches (GitHub, Stack Overflow, arXiv)
-- Category filtering (images, news, code, academic)
-- Complete privacy control
+| `Engine selection is disabled` | Config restricts engines | Set `enable_engine_selection: true` |
+| `Category selection is disabled` | Config restricts categories | Set `enable_categories: true` |
 
 ---
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `PDF has no extractable text` | Scanned/image PDF | PDF is scanned or contains only images |
 
 **PDF Support:**
 

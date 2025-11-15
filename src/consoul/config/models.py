@@ -545,13 +545,22 @@ class FindReferencesToolConfig(BaseModel):
 class WebSearchToolConfig(BaseModel):
     """Configuration for web_search tool execution.
 
-    Controls web search behavior via DuckDuckGo (zero setup required).
+    Supports both SearxNG (self-hosted, production-grade) and DuckDuckGo (zero setup).
+    When searxng_url is configured, it will be used as primary with DuckDuckGo fallback.
     No API keys needed - completely free web search integration.
 
     Example:
+        >>> # DuckDuckGo only (zero setup)
         >>> config = WebSearchToolConfig(
         ...     max_results=10,
         ...     safesearch="strict",
+        ... )
+        >>>
+        >>> # SearxNG with fallback
+        >>> config = WebSearchToolConfig(
+        ...     searxng_url="http://localhost:8888",
+        ...     searxng_engines=["google", "github", "arxiv"],
+        ...     max_results=10,
         ... )
     """
 
@@ -560,25 +569,46 @@ class WebSearchToolConfig(BaseModel):
         validate_assignment=True,
     )
 
+    # Common settings
     max_results: int = Field(
         default=5,
         gt=0,
         le=10,
         description="Maximum number of search results to return (1-10)",
     )
-    region: str = Field(
-        default="wt-wt",
-        description="Region code for search results (default 'wt-wt' for global)",
-    )
-    safesearch: Literal["strict", "moderate", "off"] = Field(
-        default="moderate",
-        description="SafeSearch filter level",
-    )
     timeout: int = Field(
         default=10,
         gt=0,
         le=30,
         description="Request timeout in seconds (max 30s)",
+    )
+
+    # DuckDuckGo settings (used as fallback or standalone)
+    region: str = Field(
+        default="wt-wt",
+        description="Region code for DuckDuckGo search results (default 'wt-wt' for global)",
+    )
+    safesearch: Literal["strict", "moderate", "off"] = Field(
+        default="moderate",
+        description="SafeSearch filter level for DuckDuckGo",
+    )
+
+    # SearxNG settings (optional, enterprise-grade)
+    searxng_url: str | None = Field(
+        default=None,
+        description="SearxNG instance URL (e.g., 'http://localhost:8888'). If None, uses DuckDuckGo only.",
+    )
+    searxng_engines: list[str] = Field(
+        default_factory=lambda: ["google", "duckduckgo", "bing"],
+        description="Default SearxNG engines to use when searxng_url is configured",
+    )
+    enable_engine_selection: bool = Field(
+        default=True,
+        description="Allow users to specify custom engines via tool parameters (SearxNG only)",
+    )
+    enable_categories: bool = Field(
+        default=True,
+        description="Allow users to specify search categories like 'it', 'news' (SearxNG only)",
     )
 
 
