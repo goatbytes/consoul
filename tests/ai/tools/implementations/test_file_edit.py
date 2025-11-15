@@ -13,7 +13,9 @@ from consoul.ai.tools.implementations.file_edit import (
     _parse_line_range,
     _validate_edits,
     _validate_file_path,
+    append_to_file,
     create_file,
+    delete_file,
     edit_file_lines,
     edit_file_search_replace,
     get_file_edit_config,
@@ -1653,3 +1655,504 @@ class TestEditFileSearchReplace:
         data = json.loads(result)
         assert data["status"] == "validation_failed"
         assert "Overlapping" in data["error"]
+
+class TestDeleteFile:
+    """Integration tests for delete_file tool."""
+
+    def test_delete_existing_file_success(self, tmp_path):
+        """Test deleting existing file."""
+        file = tmp_path / "delete_me.txt"
+        file.write_text("temporary content")
+
+        result = delete_file.invoke({"file_path": str(file)})
+
+        data = json.loads(result)
+        assert data["status"] == "deleted"
+        assert data["path"] == str(file.resolve())
+        assert "timestamp" in data
+        # Verify ISO format timestamp
+        from datetime import datetime
+        datetime.fromisoformat(data["timestamp"])  # Should not raise
+
+        # Verify file was actually deleted
+        assert not file.exists()
+
+    def test_delete_nonexistent_file_error(self, tmp_path):
+        """Test deleting non-existent file returns error."""
+        file = tmp_path / "does_not_exist.txt"
+
+        result = delete_file.invoke({"file_path": str(file)})
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "not found" in data["error"].lower()
+
+    def test_delete_directory_rejected(self, tmp_path):
+        """Test cannot delete directories."""
+        directory = tmp_path / "some_dir"
+        directory.mkdir()
+
+        result = delete_file.invoke({"file_path": str(directory)})
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "not a file" in data["error"].lower()
+
+        # Directory should still exist
+        assert directory.exists()
+
+    def test_delete_blocked_path_rejected(self, tmp_path):
+        """Test security validation blocks deletion of restricted paths."""
+        file = tmp_path / "test.txt"
+        file.write_text("content")
+
+        # Set config with blocked path
+        set_file_edit_config(FileEditToolConfig(blocked_paths=[str(tmp_path)]))
+
+        result = delete_file.invoke({"file_path": str(file)})
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "blocked" in data["error"].lower()
+
+        # File should still exist
+        assert file.exists()
+
+        # Reset config
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_delete_path_traversal_blocked(self, tmp_path):
+        """Test path traversal attempts are blocked."""
+        result = delete_file.invoke({"file_path": "../../../etc/passwd"})
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "traversal" in data["error"].lower()
+
+    def test_delete_with_extension_filtering(self, tmp_path):
+        """Test extension filtering is respected."""
+        file = tmp_path / "script.sh"
+        file.write_text("#!/bin/bash")
+
+        # Set config to only allow .txt files
+        set_file_edit_config(FileEditToolConfig(allowed_extensions=[".txt"]))
+
+        result = delete_file.invoke({"file_path": str(file)})
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "extension" in data["error"].lower()
+
+        # File should still exist
+        assert file.exists()
+
+        # Reset config
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_delete_absolute_path(self, tmp_path):
+        """Test deletion with absolute path."""
+        file = tmp_path / "absolute.txt"
+        file.write_text("content")
+
+        result = delete_file.invoke({"file_path": str(file.resolve())})
+
+        data = json.loads(result)
+        assert data["status"] == "deleted"
+        assert not file.exists()
+
+    def test_delete_relative_path(self, tmp_path):
+        """Test deletion with relative path."""
+        import os
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            file = tmp_path / "relative.txt"
+            file.write_text("content")
+
+            result = delete_file.invoke({"file_path": "relative.txt"})
+
+            data = json.loads(result)
+            assert data["status"] == "deleted"
+            assert not file.exists()
+        finally:
+            os.chdir(original_cwd)
+
+    def test_delete_returns_absolute_path(self, tmp_path):
+        """Test that result contains absolute path."""
+        file = tmp_path / "test.txt"
+        file.write_text("content")
+
+        result = delete_file.invoke({"file_path": str(file)})
+
+        data = json.loads(result)
+        from pathlib import Path
+        assert Path(data["path"]).is_absolute()
+
+    def test_delete_timestamp_format(self, tmp_path):
+        """Test timestamp is in ISO format with timezone."""
+        file = tmp_path / "test.txt"
+        file.write_text("content")
+
+        result = delete_file.invoke({"file_path": str(file)})
+
+        data = json.loads(result)
+        # Should be ISO format with timezone
+        assert "T" in data["timestamp"]
+        assert "+" in data["timestamp"] or "Z" in data["timestamp"] or data["timestamp"].endswith("+00:00")
+
+    def test_delete_config_integration(self, tmp_path):
+        """Test that delete_file uses FileEditToolConfig."""
+        file = tmp_path / "test.txt"
+        file.write_text("content")
+
+        # Set config with specific settings
+        config = FileEditToolConfig(
+            allowed_extensions=[".txt"],
+            blocked_paths=[],
+        )
+        set_file_edit_config(config)
+
+        result = delete_file.invoke({"file_path": str(file)})
+
+        data = json.loads(result)
+        assert data["status"] == "deleted"
+
+        # Reset
+        set_file_edit_config(FileEditToolConfig())
+
+
+class TestAppendToFile:
+    """Integration tests for append_to_file tool."""
+
+    def test_append_to_existing_file(self, tmp_path):
+        """Test appending to existing file."""
+        file = tmp_path / "append.txt"
+        file.write_text("line1\nline2\n")
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "line3",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert "checksum" in data
+        assert "bytes_written" in data
+
+        # Verify content
+        assert file.read_text() == "line1\nline2\nline3"
+
+    def test_append_with_newline_separator(self, tmp_path):
+        """Test newline separator added when original doesn't end with newline."""
+        file = tmp_path / "test.txt"
+        file.write_text("no trailing newline")
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "appended line",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # Should have newline separator
+        assert file.read_text() == "no trailing newline\nappended line"
+
+    def test_append_no_separator_when_ends_with_newline(self, tmp_path):
+        """Test no double newline when original ends with newline."""
+        file = tmp_path / "test.txt"
+        file.write_text("has trailing newline\n")
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "appended line",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # Should not have double newline
+        assert file.read_text() == "has trailing newline\nappended line"
+        assert file.read_text().count("\n\n") == 0
+
+    def test_append_to_empty_file(self, tmp_path):
+        """Test appending to empty file."""
+        file = tmp_path / "empty.txt"
+        file.write_text("")
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "first line",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # No separator for empty file
+        assert file.read_text() == "first line"
+
+    def test_append_create_if_missing_true(self, tmp_path):
+        """Test creating file when create_if_missing=True."""
+        file = tmp_path / "new_file.txt"
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "new content",
+            "create_if_missing": True,
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # File should be created
+        assert file.exists()
+        assert file.read_text() == "new content"
+
+    def test_append_create_if_missing_false(self, tmp_path):
+        """Test error when file missing and create_if_missing=False."""
+        file = tmp_path / "missing.txt"
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "content",
+            "create_if_missing": False,
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "not found" in data["error"].lower()
+        assert "create_if_missing" in data["error"]
+
+        # File should not be created
+        assert not file.exists()
+
+    def test_append_creates_parent_dirs(self, tmp_path):
+        """Test parent directories are created when needed."""
+        file = tmp_path / "deep" / "nested" / "dirs" / "file.txt"
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "content",
+            "create_if_missing": True,
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # Parent dirs should exist
+        assert file.parent.exists()
+        assert file.exists()
+
+    def test_append_payload_size_limit(self, tmp_path):
+        """Test payload size limit checks total size."""
+        file = tmp_path / "test.txt"
+        existing = "x" * 500
+        file.write_text(existing)
+
+        # Set low payload limit
+        set_file_edit_config(FileEditToolConfig(max_payload_bytes=600))
+
+        # Try to append 200 bytes (total would be 700)
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "y" * 200,
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "exceed" in data["error"].lower()
+
+        # Original content preserved
+        assert file.read_text() == existing
+
+        # Reset
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_append_preserves_crlf(self, tmp_path):
+        """Test CRLF line endings are preserved."""
+        file = tmp_path / "crlf.txt"
+        file.write_bytes(b"line1\r\nline2\r\n")
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "line3",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # CRLF should be preserved
+        content = file.read_bytes()
+        assert b"\r\n" in content
+
+    def test_append_preserves_lf(self, tmp_path):
+        """Test LF line endings are preserved."""
+        file = tmp_path / "lf.txt"
+        file.write_bytes(b"line1\nline2\n")
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "line3",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # Should still be LF (no CRLF)
+        content = file.read_bytes()
+        assert b"\r\n" not in content
+        assert b"\n" in content
+
+    def test_append_atomic_write(self, tmp_path):
+        """Test atomic write pattern is used."""
+        file = tmp_path / "test.txt"
+        file.write_text("original")
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "appended",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # No temp files should be left behind
+        temp_files = list(tmp_path.glob("*.tmp*"))
+        assert len(temp_files) == 0
+
+    def test_append_returns_checksum(self, tmp_path):
+        """Test checksum of final content is returned."""
+        file = tmp_path / "test.txt"
+        file.write_text("content\n")
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "more",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert "checksum" in data
+        assert len(data["checksum"]) == 64  # SHA256 hex digest
+
+        # Verify checksum is correct
+        import hashlib
+        expected = hashlib.sha256(file.read_bytes()).hexdigest()
+        assert data["checksum"] == expected
+
+    def test_append_returns_bytes_written(self, tmp_path):
+        """Test bytes_written reflects total file size."""
+        file = tmp_path / "test.txt"
+        original = "original content"
+        file.write_text(original)
+
+        appended = "new content"
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": appended,
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # bytes_written should be total file size
+        final_content = file.read_text()
+        assert data["bytes_written"] == len(final_content.encode("utf-8"))
+
+    def test_append_blocked_path(self, tmp_path):
+        """Test security validation blocks append to restricted paths."""
+        file = tmp_path / "test.txt"
+        file.write_text("content")
+
+        # Set config with blocked path
+        set_file_edit_config(FileEditToolConfig(blocked_paths=[str(tmp_path)]))
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "should not append",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "blocked" in data["error"].lower()
+
+        # Original content preserved
+        assert file.read_text() == "content"
+
+        # Reset
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_append_path_traversal(self, tmp_path):
+        """Test path traversal attempts are blocked."""
+        result = append_to_file.invoke({
+            "file_path": "../../../tmp/malicious.txt",
+            "content": "bad content",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "traversal" in data["error"].lower()
+
+    def test_append_extension_filtering(self, tmp_path):
+        """Test extension filtering is respected."""
+        file = tmp_path / "script.sh"
+        file.write_text("#!/bin/bash\n")
+
+        # Set config to only allow .txt files
+        set_file_edit_config(FileEditToolConfig(allowed_extensions=[".txt"]))
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "echo hello",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "extension" in data["error"].lower()
+
+        # Original content preserved
+        assert file.read_text() == "#!/bin/bash\n"
+
+        # Reset
+        set_file_edit_config(FileEditToolConfig())
+
+    def test_append_encoding_handling(self, tmp_path):
+        """Test UTF-8 encoding is used."""
+        file = tmp_path / "unicode.txt"
+        file.write_text("Hello 世界\n", encoding="utf-8")
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "Привет мир",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # UTF-8 should be preserved
+        content = file.read_text(encoding="utf-8")
+        assert "世界" in content
+        assert "Привет" in content
+
+    def test_append_config_integration(self, tmp_path):
+        """Test that append_to_file uses FileEditToolConfig."""
+        file = tmp_path / "test.txt"
+        file.write_text("line1\n")
+
+        # Set config with specific settings
+        config = FileEditToolConfig(
+            allowed_extensions=[".txt"],
+            default_encoding="utf-8",
+        )
+        set_file_edit_config(config)
+
+        result = append_to_file.invoke({
+            "file_path": str(file),
+            "content": "line2",
+        })
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+
+        # Reset
+        set_file_edit_config(FileEditToolConfig())

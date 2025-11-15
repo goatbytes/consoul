@@ -1081,3 +1081,205 @@ def edit_file_search_replace(
             status="error",
             error=f"Failed to edit file: {type(e).__name__}: {e}",
         ).to_json()
+
+
+class DeleteFileInput(BaseModel):
+    """Input schema for delete_file tool."""
+
+    file_path: str = Field(description="Absolute or relative path to file to delete")
+
+
+class AppendToFileInput(BaseModel):
+    """Input schema for append_to_file tool."""
+
+    file_path: str = Field(description="Absolute or relative path to file")
+    content: str = Field(description="Content to append to end of file")
+    create_if_missing: bool = Field(
+        default=False,
+        description="Create file if it doesn't exist. If False, returns error when file missing.",
+    )
+
+
+@tool(args_schema=DeleteFileInput)
+def delete_file(file_path: str) -> str:
+    """Delete file (DANGEROUS - always requires approval).
+
+    Deletes the specified file after validation checks. This operation
+    is classified as DANGEROUS and requires user approval even in
+    permissive approval modes.
+
+    Args:
+        file_path: Absolute or relative path to file to delete
+
+    Returns:
+        JSON-serialized result with:
+        - status: "deleted" | "validation_failed" | "error"
+        - path: Absolute path that was deleted
+        - timestamp: ISO format deletion timestamp for audit trail
+        - error: Error message if status is not "deleted"
+
+    Example:
+        >>> result = delete_file.invoke({"file_path": "temp/old_file.txt"})
+        >>> data = json.loads(result)
+        >>> data["status"]
+        'deleted'
+        >>> data["path"]
+        '/abs/path/to/temp/old_file.txt'
+    """
+    try:
+        from datetime import datetime, timezone
+
+        config = get_file_edit_config()
+
+        # Validate path (must exist for deletion)
+        path = _validate_file_path(file_path, config, must_exist=True)
+
+        # Delete the file
+        path.unlink()
+
+        # Return tombstone entry for audit trail
+        return json.dumps(
+            {
+                "status": "deleted",
+                "path": str(path),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+
+    except FileNotFoundError as e:
+        # File doesn't exist
+        return FileEditResult(
+            status="validation_failed",
+            error=str(e),
+        ).to_json()
+
+    except ValueError as e:
+        # Path security validation failed (traversal, blocked path, extension)
+        return FileEditResult(
+            status="validation_failed",
+            error=str(e),
+        ).to_json()
+
+    except Exception as e:
+        # Catch-all for unexpected errors (permission denied, I/O errors, etc.)
+        return FileEditResult(
+            status="error",
+            error=f"Failed to delete file: {type(e).__name__}: {e}",
+        ).to_json()
+
+
+@tool(args_schema=AppendToFileInput)
+def append_to_file(
+    file_path: str,
+    content: str,
+    create_if_missing: bool = False,
+) -> str:
+    """Append content to end of file.
+
+    Appends content to the end of an existing file with smart newline handling.
+    Can optionally create the file if it doesn't exist.
+
+    Args:
+        file_path: Absolute or relative path to file
+        content: Content to append to end of file
+        create_if_missing: Create file if it doesn't exist (default: False)
+
+    Returns:
+        JSON-serialized FileEditResult with:
+        - status: "success" | "validation_failed" | "error"
+        - checksum: SHA256 hex digest of final file content
+        - bytes_written: Total size of final file in bytes
+        - error: Error message if status is not success
+
+    Example:
+        >>> result = append_to_file.invoke({
+        ...     "file_path": "logs/app.log",
+        ...     "content": "New log entry",
+        ...     "create_if_missing": True,
+        ... })
+        >>> data = json.loads(result)
+        >>> data["status"]
+        'success'
+    """
+    try:
+        config = get_file_edit_config()
+
+        # Validate path (allow non-existent if create_if_missing=True)
+        path = _validate_file_path(file_path, config, must_exist=False)
+
+        # Check if file exists
+        file_exists = path.exists()
+
+        if not file_exists:
+            if not create_if_missing:
+                return FileEditResult(
+                    status="validation_failed",
+                    error=f"File not found: {file_path}. Set create_if_missing=True to create it.",
+                ).to_json()
+
+            # Create parent directories if needed
+            path.parent.mkdir(parents=True, exist_ok=True)
+            original_content = ""
+        else:
+            # Read existing content preserving line endings (newline="" preserves CRLF/LF)
+            with path.open("r", encoding=config.default_encoding, newline="") as f:
+                original_content = f.read()
+
+        # Smart newline separator:
+        # - Empty file: no separator
+        # - Ends with newline: no separator
+        # - Doesn't end with newline: add separator
+        if original_content and not original_content.endswith(("\n", "\r\n")):
+            separator = "\n"
+        else:
+            separator = ""
+
+        # Combine with new content
+        final_content = original_content + separator + content
+
+        # Check payload size limit (final size)
+        payload_bytes = len(final_content.encode(config.default_encoding))
+        if payload_bytes > config.max_payload_bytes:
+            return FileEditResult(
+                status="validation_failed",
+                error=(
+                    f"Final file size ({payload_bytes:,} bytes) would exceed maximum allowed "
+                    f"({config.max_payload_bytes:,} bytes)"
+                ),
+            ).to_json()
+
+        # Atomic write
+        _atomic_write(path, final_content, encoding=config.default_encoding)
+
+        # Compute checksum of final content
+        checksum = _compute_file_hash(path, encoding=config.default_encoding)
+
+        # Return success result
+        return FileEditResult(
+            status="success",
+            bytes_written=payload_bytes,
+            checksum=checksum,
+        ).to_json()
+
+    except FileNotFoundError as e:
+        # Path validation failed (parent directory doesn't exist)
+        return FileEditResult(
+            status="validation_failed",
+            error=str(e),
+        ).to_json()
+
+    except ValueError as e:
+        # Path security validation failed
+        return FileEditResult(
+            status="validation_failed",
+            error=str(e),
+        ).to_json()
+
+    except Exception as e:
+        # Catch-all for unexpected errors
+        return FileEditResult(
+            status="error",
+            error=f"Failed to append to file: {type(e).__name__}: {e}",
+        ).to_json()
