@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from rich.syntax import Syntax
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
@@ -124,6 +125,16 @@ class ToolApprovalModal(ModalScreen[bool]):
         text-style: none;
     }
 
+    ToolApprovalModal .diff-preview {
+        width: 100%;
+        height: auto;
+        max-height: 25;
+        border: solid $accent;
+        background: $surface-darken-1;
+        margin: 0 0 1 0;
+        padding: 1;
+    }
+
     ToolApprovalModal .button-container {
         width: 100%;
         height: auto;
@@ -186,6 +197,21 @@ class ToolApprovalModal(ModalScreen[bool]):
             if self.request.description:
                 yield Label("Description", classes="section-title")
                 yield Static(self.request.description, classes="description")
+
+            # Diff Preview section (if preview available)
+            if self.request.preview:
+                yield Label("Preview", classes="section-title")
+                with VerticalScroll(classes="diff-preview"):
+                    # Create syntax-highlighted diff using Rich
+                    syntax = Syntax(
+                        self.request.preview,
+                        lexer="diff",
+                        theme="monokai",
+                        line_numbers=False,
+                        word_wrap=False,
+                        indent_guides=False,
+                    )
+                    yield Static(syntax)
 
             # Arguments section
             if self.request.arguments:

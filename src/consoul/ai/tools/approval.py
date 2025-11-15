@@ -29,6 +29,7 @@ class ToolApprovalRequest:
         risk_level: Security risk assessment (SAFE, CAUTION, DANGEROUS)
         tool_call_id: Unique identifier for this tool call from AI message
         description: Human-readable tool description
+        preview: Optional diff preview for file operations (unified diff format)
         context: Additional metadata for host app (user_id, session_id, etc.)
 
     Example:
@@ -48,6 +49,7 @@ class ToolApprovalRequest:
     risk_level: RiskLevel
     tool_call_id: str
     description: str = ""
+    preview: str | None = None
     context: dict[str, Any] = field(default_factory=dict)
 
 
