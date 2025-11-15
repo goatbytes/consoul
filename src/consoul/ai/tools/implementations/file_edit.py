@@ -643,8 +643,7 @@ def create_file(
 
     Returns:
         JSON-serialized FileEditResult with:
-        - status: "created" (new file) | "updated" (overwrite) |
-                  "validation_failed" | "error"
+        - status: "success" | "validation_failed" | "error"
         - checksum: SHA256 hex digest of written content
         - bytes_written: Size of content in bytes
         - error: Error message if status is not success
@@ -656,7 +655,7 @@ def create_file(
         ... })
         >>> data = json.loads(result)
         >>> data["status"]
-        'created'
+        'success'
         >>> data["checksum"]
         'a1b2c3...'
     """
@@ -665,6 +664,18 @@ def create_file(
 
         # Validate path (allow non-existent for creation)
         path = _validate_file_path(file_path, config, must_exist=False)
+
+        # Check payload size limit
+        encoding = config.default_encoding
+        payload_bytes = len(content.encode(encoding))
+        if payload_bytes > config.max_payload_bytes:
+            return FileEditResult(
+                status="validation_failed",
+                error=(
+                    f"Content size ({payload_bytes:,} bytes) exceeds maximum allowed "
+                    f"({config.max_payload_bytes:,} bytes)"
+                ),
+            ).to_json()
 
         # Check if file exists
         file_exists = path.exists()
@@ -688,20 +699,15 @@ def create_file(
         path.parent.mkdir(parents=True, exist_ok=True)
 
         # Atomic write using existing helper
-        encoding = config.default_encoding
         _atomic_write(path, content, encoding=encoding)
 
-        # Compute checksum and size
+        # Compute checksum
         checksum = _compute_file_hash(path, encoding=encoding)
-        bytes_written = len(content.encode(encoding))
 
-        # Return success result
-        status: Literal["success", "updated", "created"] = (
-            "updated" if file_exists else "created"
-        )
+        # Return success result (use "success" to match FileEditResult contract)
         return FileEditResult(
-            status=status,  # type: ignore[arg-type]
-            bytes_written=bytes_written,
+            status="success",
+            bytes_written=payload_bytes,
             checksum=checksum,
         ).to_json()
 

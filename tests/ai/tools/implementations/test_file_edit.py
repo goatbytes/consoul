@@ -853,7 +853,7 @@ class TestCreateFile:
         )
 
         data = json.loads(result)
-        assert data["status"] == "created"
+        assert data["status"] == "success"
         assert data["bytes_written"] == len(content.encode("utf-8"))
         assert "checksum" in data
 
@@ -874,7 +874,7 @@ class TestCreateFile:
         )
 
         data = json.loads(result)
-        assert data["status"] == "created"
+        assert data["status"] == "success"
 
         # Verify parent dirs were created
         assert file.parent.exists()
@@ -941,7 +941,7 @@ class TestCreateFile:
         )
 
         data = json.loads(result)
-        assert data["status"] == "updated"  # Updated, not created
+        assert data["status"] == "success"
         assert "checksum" in data
 
         # File was overwritten
@@ -1032,8 +1032,8 @@ class TestCreateFile:
         data = json.loads(result)
         assert data["bytes_written"] == len(content.encode("utf-8"))
 
-    def test_create_file_status_created(self, tmp_path):
-        """Test status is \"created\" for new files."""
+    def test_create_file_status_success_new(self, tmp_path):
+        """Test status is \"success\" for new files."""
         file = tmp_path / "new.txt"
 
         result = create_file.invoke(
@@ -1044,10 +1044,10 @@ class TestCreateFile:
         )
 
         data = json.loads(result)
-        assert data["status"] == "created"
+        assert data["status"] == "success"
 
-    def test_create_file_status_updated(self, tmp_path):
-        """Test status is \"updated\" when overwriting."""
+    def test_create_file_status_success_overwrite(self, tmp_path):
+        """Test status is \"success\" when overwriting."""
         file = tmp_path / "existing.txt"
         file.write_text("original")
 
@@ -1062,7 +1062,7 @@ class TestCreateFile:
         )
 
         data = json.loads(result)
-        assert data["status"] == "updated"
+        assert data["status"] == "success"
 
         # Reset config
         set_file_edit_config(FileEditToolConfig())
@@ -1081,7 +1081,7 @@ class TestCreateFile:
         )
 
         data = json.loads(result)
-        assert data["status"] == "created"
+        assert data["status"] == "success"
         assert file.read_text(encoding="utf-8") == content
 
     def test_create_file_empty_content(self, tmp_path):
@@ -1096,7 +1096,7 @@ class TestCreateFile:
         )
 
         data = json.loads(result)
-        assert data["status"] == "created"
+        assert data["status"] == "success"
         assert data["bytes_written"] == 0
         assert file.read_text() == ""
 
@@ -1113,7 +1113,7 @@ class TestCreateFile:
         )
 
         data = json.loads(result)
-        assert data["status"] == "created"
+        assert data["status"] == "success"
         assert data["bytes_written"] == 10000
         assert file.read_text() == content
 
@@ -1130,7 +1130,7 @@ class TestCreateFile:
         )
 
         data = json.loads(result)
-        assert data["status"] == "created"
+        assert data["status"] == "success"
         assert file.read_text() == content
 
     def test_create_file_config_integration(self, tmp_path):
@@ -1166,11 +1166,39 @@ class TestCreateFile:
         )
 
         data = json.loads(result)
-        assert data["status"] == "created"
+        assert data["status"] == "success"
 
         # Verify no temp files left behind
         temp_files = list(tmp_path.glob(".*tmp"))
         assert len(temp_files) == 0
+
+    def test_create_file_payload_size_limit(self, tmp_path):
+        """Test max_payload_bytes enforcement."""
+        file = tmp_path / "large.txt"
+
+        # Set strict limit
+        set_file_edit_config(FileEditToolConfig(max_payload_bytes=100))
+
+        # Try to create file exceeding limit
+        large_content = "x" * 200  # 200 bytes
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": large_content,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "validation_failed"
+        assert "exceeds maximum allowed" in data["error"]
+        assert "200" in data["error"]  # Actual size
+        assert "100" in data["error"]  # Limit
+
+        # File should not be created
+        assert not file.exists()
+
+        # Reset config
+        set_file_edit_config(FileEditToolConfig())
 
     def test_edit_preserves_crlf_newlines(self, tmp_path):
         """Test that CRLF line endings are preserved."""
