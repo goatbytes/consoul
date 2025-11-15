@@ -1085,6 +1085,10 @@ class ConsoulApp(App[None]):
         Handles execution errors gracefully, returning error message
         as tool result (so AI can see what went wrong).
 
+        IMPORTANT: Tool execution runs in a thread pool executor to prevent
+        blocking the Textual event loop. This keeps the UI responsive during
+        long-running tool operations (e.g., bash commands, file I/O).
+
         Args:
             tool_call: Parsed tool call with name, arguments
 
@@ -1111,7 +1115,15 @@ class ConsoulApp(App[None]):
                 return f"Unknown tool: {tool_call.name}"
 
             # Execute the tool using its invoke method
-            result = tool_metadata.tool.invoke(tool_call.arguments)
+            # Run in executor to avoid blocking the event loop and freezing the UI
+            import asyncio
+
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(
+                None,  # Use default executor
+                tool_metadata.tool.invoke,
+                tool_call.arguments,
+            )
             return str(result)
 
         except Exception as e:
