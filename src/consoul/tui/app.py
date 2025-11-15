@@ -592,6 +592,10 @@ class ConsoulApp(App[None]):
             await self.chat_view.add_message(error_bubble)
             return
 
+        # Reset tool call tracking for new user message
+        self._tool_call_data = {}
+        self._tool_results = {}
+
         # Add user message to chat view
         user_bubble = MessageBubble(user_message, role="user", show_metadata=True)
         await self.chat_view.add_message(user_bubble)
@@ -1182,8 +1186,8 @@ class ConsoulApp(App[None]):
 
         # Store pending tool calls for tracking
         self._pending_tool_calls = list(parsed_calls)
-        self._tool_results = {}  # Reset results
-        self._tool_call_data = {}  # Reset tool call display data
+        # Don't reset _tool_results and _tool_call_data - we may have multiple rounds
+        # of tool calls in a single response (e.g., model makes multiple tool batches)
 
         for tool_call in parsed_calls:
             self.log.info(
