@@ -7,6 +7,7 @@ terminal user interface for interactive AI conversations.
 from __future__ import annotations
 
 import gc
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -35,6 +36,8 @@ from consoul.tui.css.themes import load_theme
 from consoul.tui.widgets import MessageBubble
 
 __all__ = ["ConsoulApp"]
+
+logger = logging.getLogger(__name__)
 
 
 # Custom Messages for tool approval workflow
@@ -737,27 +740,6 @@ class ConsoulApp(App[None]):
                         and not exception_caught
                     ):
                         try:
-                            # Debug: Log chunk collection
-                            import logging
-
-                            logger = logging.getLogger(__name__)
-                            logger.debug(f"Collected {len(collected_chunks)} chunks")
-
-                            # Debug: Log ALL chunks with full tool_call_chunks details
-                            for i, chunk in enumerate(collected_chunks):
-                                tc_detail = None
-                                if (
-                                    hasattr(chunk, "tool_call_chunks")
-                                    and chunk.tool_call_chunks
-                                ):
-                                    tc_detail = [
-                                        dict(tc) if hasattr(tc, "__dict__") else tc
-                                        for tc in chunk.tool_call_chunks
-                                    ]
-                                logger.debug(
-                                    f"Chunk {i}: content={repr(chunk.content)[:50]}, tool_call_chunks={tc_detail}"
-                                )
-
                             # Accumulate tool_call_chunks from all chunks
                             # OpenAI streams tool calls incrementally across chunks as strings:
                             # - Early chunks have name, id, and args='' (empty string)
