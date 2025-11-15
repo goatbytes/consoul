@@ -177,6 +177,7 @@ result = find_references.invoke({
 | **TypeScript** | .ts, .tsx | ✅ | ✅ | ✅ | Full support |
 | **JSX** | .jsx | ✅ | ✅ | ✅ | Full support |
 | **Go** | .go | ✅ | ✅ | ✅ | Full support |
+| **Kotlin** | .kt | ✅ | ✅ | ✅ | Full support |
 | **Rust** | .rs | ✅ | ✅ | ❌ | Use grep_search for references |
 | **Java** | .java | ✅ | ✅ | ❌ | Use grep_search for references |
 | **C** | .c, .h | ✅ | ✅ | ❌ | Use grep_search for references |
@@ -186,7 +187,7 @@ result = find_references.invoke({
 - ✅ Full support - All features work correctly
 - ❌ No support - Tool doesn't work for this language
 
-**Note:** find_references currently only implements reference detection for Python, JavaScript/TypeScript, and Go. For Rust, Java, and C/C++, use grep_search for text-based reference finding.
+**Note:** find_references currently implements reference detection for Python, JavaScript/TypeScript, Go, and Kotlin. For Rust, Java, and C/C++, use grep_search for text-based reference finding.
 
 ### Detected Node Types by Language
 

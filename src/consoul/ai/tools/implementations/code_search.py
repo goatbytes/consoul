@@ -198,31 +198,40 @@ def _extract_symbols_from_tree(
                     symbol_name = child.text.decode("utf-8")
                     break
 
-        # JavaScript/TypeScript
+        # JavaScript/TypeScript / Kotlin - function_declaration (distinguish by child type)
         elif node_type in ("function_declaration", "function"):
             symbol_type = "function"
+            # Check for Kotlin first (has simple_identifier)
             for child in node.children:
-                if child.type == "identifier":
+                if child.type == "simple_identifier":
                     symbol_name = child.text.decode("utf-8")
                     break
+            # Otherwise JavaScript/TypeScript (has identifier)
+            if not symbol_name:
+                for child in node.children:
+                    if child.type == "identifier":
+                        symbol_name = child.text.decode("utf-8")
+                        break
+
+        # JavaScript/TypeScript / Kotlin - class_declaration (distinguish by checking for fun keyword in children)
         elif node_type == "class_declaration":
             symbol_type = "class"
+            # Check for type_identifier (both JS/TS and Kotlin use this)
             for child in node.children:
-                if child.type in ("identifier", "type_identifier"):
+                if child.type == "type_identifier":
                     symbol_name = child.text.decode("utf-8")
                     break
+            # Fallback to identifier (JavaScript can use this)
+            if not symbol_name:
+                for child in node.children:
+                    if child.type == "identifier":
+                        symbol_name = child.text.decode("utf-8")
+                        break
+
         elif node_type == "method_definition":
             symbol_type = "method"
             for child in node.children:
                 if child.type in ("property_identifier", "identifier"):
-                    symbol_name = child.text.decode("utf-8")
-                    break
-
-        # Go
-        elif node_type == "function_declaration":
-            symbol_type = "function"
-            for child in node.children:
-                if child.type == "identifier":
                     symbol_name = child.text.decode("utf-8")
                     break
         elif node_type == "method_declaration":
@@ -259,7 +268,8 @@ def _extract_symbols_from_tree(
                 if child.type == "identifier":
                     symbol_name = child.text.decode("utf-8")
                     break
-        elif node_type in ("class_declaration", "struct_specifier"):
+        elif node_type == "struct_specifier":
+            # C/C++ struct
             symbol_type = "class"
             for child in node.children:
                 if child.type in ("identifier", "type_identifier"):

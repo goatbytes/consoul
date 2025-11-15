@@ -306,16 +306,32 @@ def _is_reference_node(
                 if symbol_pattern.match(name):
                     return (name, "attribute_access")
 
-    # JavaScript/TypeScript references
+    # JavaScript/TypeScript / Go / Kotlin - call_expression (distinguish by child type)
     elif node_type == "call_expression":
-        # Function call: foo() or obj.method()
+        # Try Kotlin first (simple_identifier + navigation_expression)
+        for child in node.children:
+            if child.type == "simple_identifier":
+                name = child.text.decode("utf-8")
+                if symbol_pattern.match(name):
+                    return (name, "call")
+            elif child.type == "navigation_expression":
+                # Kotlin: obj.method() - check navigation suffix
+                for subchild in child.children:
+                    if subchild.type == "navigation_suffix":
+                        for id_node in subchild.children:
+                            if id_node.type == "simple_identifier":
+                                name = id_node.text.decode("utf-8")
+                                if symbol_pattern.match(name):
+                                    return (name, "method_call")
+
+        # Then JavaScript/TypeScript (identifier + member_expression)
         for child in node.children:
             if child.type == "identifier":
                 name = child.text.decode("utf-8")
                 if symbol_pattern.match(name):
                     return (name, "call")
             elif child.type == "member_expression":
-                # obj.method()
+                # JS/TS: obj.method()
                 for subchild in child.children:
                     if subchild.type in ("identifier", "property_identifier"):
                         name = subchild.text.decode("utf-8")
@@ -323,7 +339,7 @@ def _is_reference_node(
                             return (name, "method_call")
 
     elif node_type == "import_specifier":
-        # import {foo} from './mod'
+        # JavaScript/TypeScript: import {foo} from './mod'
         for child in node.children:
             if child.type == "identifier":
                 name = child.text.decode("utf-8")
@@ -331,29 +347,42 @@ def _is_reference_node(
                     return (name, "import")
 
     elif node_type == "member_expression":
-        # obj.foo
+        # JavaScript/TypeScript: obj.foo
         for child in node.children:
             if child.type in ("identifier", "property_identifier"):
                 name = child.text.decode("utf-8")
                 if symbol_pattern.match(name):
                     return (name, "member_access")
 
-    # Go references
-    elif node_type == "call_expression":
-        # Function call: foo()
-        for child in node.children:
-            if child.type == "identifier":
-                name = child.text.decode("utf-8")
-                if symbol_pattern.match(name):
-                    return (name, "call")
-
     elif node_type == "selector_expression":
-        # obj.Method()
+        # Go: obj.Method()
         for child in node.children:
             if child.type in ("identifier", "field_identifier"):
                 name = child.text.decode("utf-8")
                 if symbol_pattern.match(name):
                     return (name, "method_call")
+
+    elif node_type == "navigation_expression":
+        # Property access: obj.property
+        for child in node.children:
+            if child.type == "navigation_suffix":
+                for id_node in child.children:
+                    if id_node.type == "simple_identifier":
+                        name = id_node.text.decode("utf-8")
+                        if symbol_pattern.match(name):
+                            return (name, "property_access")
+
+    elif node_type == "import_header":
+        # import com.example.MyClass
+        for child in node.children:
+            if child.type == "identifier":
+                # Get the last identifier in dotted path
+                for subchild in reversed(child.children):
+                    if subchild.type == "simple_identifier":
+                        name = subchild.text.decode("utf-8")
+                        if symbol_pattern.match(name):
+                            return (name, "import")
+                        break
 
     return None
 

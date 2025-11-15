@@ -360,8 +360,9 @@ Go:
 - Python (.py) - Full support
 - JavaScript/TypeScript (.js, .jsx, .ts, .tsx) - Full support
 - Go (.go) - Full support
+- Kotlin (.kt) - Full support
 
-**Note:** While code_search supports Rust, Java, and C/C++, find_references currently only implements reference detection for Python, JavaScript/TypeScript, and Go. Use grep_search for text-based reference finding in other languages.
+**Note:** While code_search supports Rust, Java, and C/C++, find_references currently only implements reference detection for Python, JavaScript/TypeScript, Go, and Kotlin. Use grep_search for text-based reference finding in other languages.
 
 **Scope Options:**
 
@@ -591,6 +592,7 @@ Support matrix for all available tools:
 | **JavaScript** | .js, .jsx | ✅ | ✅ | ✅ | ✅ |
 | **TypeScript** | .ts, .tsx | ✅ | ✅ | ✅ | ✅ |
 | **Go** | .go | ✅ | ✅ | ✅ | ✅ |
+| **Kotlin** | .kt | ✅ | ✅ | ✅ | ✅ |
 | **Rust** | .rs | ✅ | ✅ | ❌ | ✅ |
 | **Java** | .java | ✅ | ✅ | ❌ | ✅ |
 | **C/C++** | .c, .cpp, .h, .hpp | ✅ | ✅ | ❌ | ✅ |
@@ -604,7 +606,7 @@ Support matrix for all available tools:
 - ❌ No support - Tool doesn't work for this file type
 - \* Requires `pypdf` package (install with `pip install consoul[pdf]`)
 
-**Note:** find_references only supports Python, JavaScript/TypeScript, and Go. For Rust, Java, and C/C++, use grep_search for text-based reference finding.
+**Note:** find_references supports Python, JavaScript/TypeScript, Go, and Kotlin. For Rust, Java, and C/C++, use grep_search for text-based reference finding.
 
 ### Common Workflows
 
