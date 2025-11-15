@@ -4,6 +4,7 @@ import pytest
 
 from consoul.config.models import (
     ConsoulConfig,
+    FileEditToolConfig,
     ProfileConfig,
     ReadToolConfig,
     ToolConfig,
@@ -248,3 +249,121 @@ class TestReadToolConfig:
         """Test that extra fields are not allowed."""
         with pytest.raises(ValueError, match="Extra inputs are not permitted"):
             ReadToolConfig(invalid_field="value")
+
+
+class TestFileEditToolConfig:
+    """Tests for FileEditToolConfig model."""
+
+    def test_default_file_edit_config(self):
+        """Test FileEditToolConfig defaults."""
+        config = FileEditToolConfig()
+
+        assert config.max_edits == 50
+        assert config.max_payload_bytes == 1048576  # 1MB
+        assert config.default_encoding == "utf-8"
+        assert config.allow_overwrite is False
+        assert config.timeout == 30
+        assert len(config.allowed_extensions) > 0
+        assert ".py" in config.allowed_extensions
+        assert ".md" in config.allowed_extensions
+        assert len(config.blocked_paths) > 0
+        assert "/etc/shadow" in config.blocked_paths
+        assert "/etc/passwd" in config.blocked_paths
+
+    def test_file_edit_config_custom_values(self):
+        """Test FileEditToolConfig with custom values."""
+        config = FileEditToolConfig(
+            max_edits=25,
+            max_payload_bytes=524288,  # 512KB
+            default_encoding="latin-1",
+            allow_overwrite=True,
+            timeout=60,
+        )
+
+        assert config.max_edits == 25
+        assert config.max_payload_bytes == 524288
+        assert config.default_encoding == "latin-1"
+        assert config.allow_overwrite is True
+        assert config.timeout == 60
+
+    def test_file_edit_config_validation_positive_integers(self):
+        """Test that limits must be positive."""
+        # max_edits must be positive
+        with pytest.raises(ValueError, match="greater than 0"):
+            FileEditToolConfig(max_edits=0)
+
+        with pytest.raises(ValueError, match="greater than 0"):
+            FileEditToolConfig(max_edits=-1)
+
+        # max_payload_bytes must be positive
+        with pytest.raises(ValueError, match="greater than 0"):
+            FileEditToolConfig(max_payload_bytes=0)
+
+        with pytest.raises(ValueError, match="greater than 0"):
+            FileEditToolConfig(max_payload_bytes=-100)
+
+        # timeout must be positive
+        with pytest.raises(ValueError, match="greater than 0"):
+            FileEditToolConfig(timeout=0)
+
+        with pytest.raises(ValueError, match="greater than 0"):
+            FileEditToolConfig(timeout=-1)
+
+    def test_file_edit_config_max_edits_limits(self):
+        """Test max_edits has reasonable upper limit."""
+        # Should allow 1-100
+        config = FileEditToolConfig(max_edits=1)
+        assert config.max_edits == 1
+
+        config = FileEditToolConfig(max_edits=100)
+        assert config.max_edits == 100
+
+        # Should reject over 100
+        with pytest.raises(ValueError, match="less than or equal to 100"):
+            FileEditToolConfig(max_edits=101)
+
+    def test_file_edit_config_timeout_limits(self):
+        """Test timeout has reasonable upper limit."""
+        # Should allow up to 600 seconds (10 minutes)
+        config = FileEditToolConfig(timeout=600)
+        assert config.timeout == 600
+
+        # Should reject over 600
+        with pytest.raises(ValueError, match="less than or equal to 600"):
+            FileEditToolConfig(timeout=601)
+
+    def test_file_edit_config_custom_extensions(self):
+        """Test custom allowed extensions."""
+        config = FileEditToolConfig(allowed_extensions=[".py", ".md", ".custom"])
+
+        assert config.allowed_extensions == [".py", ".md", ".custom"]
+
+    def test_file_edit_config_custom_blocked_paths(self):
+        """Test custom blocked paths."""
+        config = FileEditToolConfig(blocked_paths=["/custom/blocked", "/another/path"])
+
+        assert config.blocked_paths == ["/custom/blocked", "/another/path"]
+
+    def test_file_edit_config_in_tool_config(self):
+        """Test FileEditToolConfig integrates with ToolConfig."""
+        tool_config = ToolConfig(
+            enabled=True, file_edit=FileEditToolConfig(max_edits=25, timeout=60)
+        )
+
+        assert tool_config.file_edit.max_edits == 25
+        assert tool_config.file_edit.timeout == 60
+        assert tool_config.file_edit.allow_overwrite is False
+
+    def test_file_edit_config_default_in_tool_config(self):
+        """Test ToolConfig uses FileEditToolConfig defaults."""
+        tool_config = ToolConfig()
+
+        assert tool_config.file_edit.max_edits == 50
+        assert tool_config.file_edit.max_payload_bytes == 1048576
+        assert tool_config.file_edit.default_encoding == "utf-8"
+        assert tool_config.file_edit.allow_overwrite is False
+
+    def test_file_edit_config_extra_fields_forbidden(self):
+        """Test that extra fields are not allowed."""
+        with pytest.raises(ValueError, match="Extra inputs are not permitted"):
+            FileEditToolConfig(invalid_field="value")

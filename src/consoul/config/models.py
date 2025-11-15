@@ -782,6 +782,109 @@ class ReadToolConfig(BaseModel):
     )
 
 
+class FileEditToolConfig(BaseModel):
+    """Configuration for file editing tools.
+
+    Controls security, validation, and operational limits for file editing operations
+    including edit_file_lines, edit_file_search_replace, create_file, delete_file,
+    and append_to_file.
+
+    Security features:
+    - Extension allowlisting prevents editing dangerous file types
+    - Path blocking prevents editing sensitive system files
+    - Payload size limits prevent memory exhaustion
+    - Edit count limits prevent runaway LLM modifications
+
+    Example:
+        >>> config = FileEditToolConfig(
+        ...     max_edits=25,
+        ...     max_payload_bytes=524288,  # 512KB
+        ...     allow_overwrite=True,
+        ...     allowed_extensions=[".py", ".md", ".txt"]
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    allowed_extensions: list[str] = Field(
+        default_factory=lambda: [
+            "",  # Extensionless files (Dockerfile, Makefile, LICENSE, etc.)
+            ".py",
+            ".md",
+            ".txt",
+            ".json",
+            ".yaml",
+            ".yml",
+            ".js",
+            ".ts",
+            ".jsx",
+            ".tsx",
+            ".java",
+            ".kt",
+            ".go",
+            ".rs",
+            ".c",
+            ".cpp",
+            ".h",
+            ".hpp",
+            ".sh",
+            ".bash",
+            ".zsh",
+            ".fish",
+            ".toml",
+            ".ini",
+            ".cfg",
+            ".conf",
+            ".xml",
+            ".html",
+            ".css",
+            ".scss",
+            ".sql",
+            ".gradle",
+            ".properties",
+        ],
+        description="File extensions allowed for editing (empty list = allow all, empty string '' = extensionless files)",
+    )
+    blocked_paths: list[str] = Field(
+        default_factory=lambda: [
+            "/etc/shadow",
+            "/etc/passwd",
+            "/proc",
+            "/dev",
+            "/sys",
+        ],
+        description="File paths/prefixes that cannot be edited (security)",
+    )
+    max_edits: int = Field(
+        default=50,
+        gt=0,
+        le=100,
+        description="Maximum number of edit operations per tool call (prevents runaway LLM edits)",
+    )
+    max_payload_bytes: int = Field(
+        default=1048576,  # 1MB
+        gt=0,
+        description="Maximum total bytes for edit payloads (prevents memory exhaustion)",
+    )
+    default_encoding: str = Field(
+        default="utf-8",
+        description="Default text encoding for file operations",
+    )
+    allow_overwrite: bool = Field(
+        default=False,
+        description="Allow create_file to overwrite existing files (requires approval)",
+    )
+    timeout: int = Field(
+        default=30,
+        gt=0,
+        le=600,
+        description="Default timeout for file edit operations in seconds (max 10 minutes)",
+    )
+
+
 class ToolConfig(BaseModel):
     """Configuration for tool calling system.
 
@@ -874,6 +977,10 @@ class ToolConfig(BaseModel):
     read: ReadToolConfig = Field(
         default_factory=ReadToolConfig,
         description="Read file tool-specific configuration",
+    )
+    file_edit: FileEditToolConfig = Field(
+        default_factory=FileEditToolConfig,
+        description="File editing tools configuration",
     )
     audit_logging: bool = Field(
         default=True,
