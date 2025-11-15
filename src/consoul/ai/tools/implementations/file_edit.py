@@ -629,6 +629,10 @@ class CreateFileInput(BaseModel):
             "Requires both overwrite=True AND config.allow_overwrite=True."
         ),
     )
+    dry_run: bool = Field(
+        default=False,
+        description="If True, preview changes without modifying file",
+    )
 
 
 @tool(args_schema=CreateFileInput)
@@ -636,6 +640,7 @@ def create_file(
     file_path: str,
     content: str,
     overwrite: bool = False,
+    dry_run: bool = False,
 ) -> str:
     """Create new file with content.
 
@@ -647,12 +652,14 @@ def create_file(
         file_path: Absolute or relative path to file to create
         content: Content to write to the file
         overwrite: Allow overwriting existing file (requires config approval too)
+        dry_run: If True, preview changes without modifying file
 
     Returns:
         JSON-serialized FileEditResult with:
         - status: "success" | "validation_failed" | "error"
         - checksum: SHA256 hex digest of written content
         - bytes_written: Size of content in bytes
+        - preview: Unified diff preview (when dry_run=True)
         - error: Error message if status is not success
 
     Example:
@@ -704,6 +711,23 @@ def create_file(
 
         # Create parent directories if they don't exist
         path.parent.mkdir(parents=True, exist_ok=True)
+
+        # If dry_run, generate preview and return without modifying file
+        if dry_run:
+            # For new files, show all content with "new file" marker
+            # For overwrites, show diff from existing content
+            if file_exists:
+                original_content = path.read_text(encoding=encoding)
+                preview = _create_diff_preview(original_content, content, str(path))
+            else:
+                # New file - create diff showing all new content
+                preview = _create_diff_preview("", content, str(path))
+
+            return FileEditResult(
+                status="success",
+                bytes_written=payload_bytes,
+                preview=preview,
+            ).to_json()
 
         # Atomic write using existing helper
         _atomic_write(path, content, encoding=encoding)
@@ -972,15 +996,27 @@ def edit_file_search_replace(
                                 if i < len(matched_file_lines):
                                     matched_line = matched_file_lines[i]
                                     # Extract indentation from matched file line
-                                    file_indent_count, file_indent_char = _get_indentation(matched_line)
-                                    file_indent_str = file_indent_char * file_indent_count
-                                    normalized_lines.append(file_indent_str + stripped_replace)
+                                    file_indent_count, file_indent_char = (
+                                        _get_indentation(matched_line)
+                                    )
+                                    file_indent_str = (
+                                        file_indent_char * file_indent_count
+                                    )
+                                    normalized_lines.append(
+                                        file_indent_str + stripped_replace
+                                    )
                                 else:
                                     # Extra lines in replacement - use same indentation as last matched line
                                     if matched_file_lines:
-                                        last_indent_count, last_indent_char = _get_indentation(matched_file_lines[-1])
-                                        last_indent_str = last_indent_char * last_indent_count
-                                        normalized_lines.append(last_indent_str + stripped_replace)
+                                        last_indent_count, last_indent_char = (
+                                            _get_indentation(matched_file_lines[-1])
+                                        )
+                                        last_indent_str = (
+                                            last_indent_char * last_indent_count
+                                        )
+                                        normalized_lines.append(
+                                            last_indent_str + stripped_replace
+                                        )
                                     else:
                                         normalized_lines.append(stripped_replace)
 
@@ -1101,6 +1137,10 @@ class DeleteFileInput(BaseModel):
     """Input schema for delete_file tool."""
 
     file_path: str = Field(description="Absolute or relative path to file to delete")
+    dry_run: bool = Field(
+        default=False,
+        description="If True, preview changes without modifying file",
+    )
 
 
 class AppendToFileInput(BaseModel):
@@ -1112,10 +1152,14 @@ class AppendToFileInput(BaseModel):
         default=False,
         description="Create file if it doesn't exist. If False, returns error when file missing.",
     )
+    dry_run: bool = Field(
+        default=False,
+        description="If True, preview changes without modifying file",
+    )
 
 
 @tool(args_schema=DeleteFileInput)
-def delete_file(file_path: str) -> str:
+def delete_file(file_path: str, dry_run: bool = False) -> str:
     """Delete file (DANGEROUS - always requires approval).
 
     Deletes the specified file after validation checks. This operation
@@ -1124,12 +1168,14 @@ def delete_file(file_path: str) -> str:
 
     Args:
         file_path: Absolute or relative path to file to delete
+        dry_run: If True, preview changes without modifying file
 
     Returns:
         JSON-serialized result with:
         - status: "deleted" | "validation_failed" | "error"
         - path: Absolute path that was deleted
         - timestamp: ISO format deletion timestamp for audit trail
+        - preview: Diff showing file deletion (when dry_run=True)
         - error: Error message if status is not "deleted"
 
     Example:
@@ -1147,6 +1193,18 @@ def delete_file(file_path: str) -> str:
 
         # Validate path (must exist for deletion)
         path = _validate_file_path(file_path, config, must_exist=True)
+
+        # If dry_run, generate preview and return without modifying file
+        if dry_run:
+            # Read existing content to show what will be deleted
+            original_content = path.read_text(encoding=config.default_encoding)
+            # Create diff showing file deletion (original -> empty)
+            preview = _create_diff_preview(original_content, "", str(path))
+
+            return FileEditResult(
+                status="success",
+                preview=preview,
+            ).to_json()
 
         # Delete the file
         path.unlink()
@@ -1189,6 +1247,7 @@ def append_to_file(
     file_path: str,
     content: str,
     create_if_missing: bool = False,
+    dry_run: bool = False,
 ) -> str:
     """Append content to end of file.
 
@@ -1199,12 +1258,14 @@ def append_to_file(
         file_path: Absolute or relative path to file
         content: Content to append to end of file
         create_if_missing: Create file if it doesn't exist (default: False)
+        dry_run: If True, preview changes without modifying file
 
     Returns:
         JSON-serialized FileEditResult with:
         - status: "success" | "validation_failed" | "error"
         - checksum: SHA256 hex digest of final file content
         - bytes_written: Total size of final file in bytes
+        - preview: Unified diff preview (when dry_run=True)
         - error: Error message if status is not success
 
     Example:
@@ -1263,6 +1324,15 @@ def append_to_file(
                     f"Final file size ({payload_bytes:,} bytes) would exceed maximum allowed "
                     f"({config.max_payload_bytes:,} bytes)"
                 ),
+            ).to_json()
+
+        # If dry_run, generate preview and return without modifying file
+        if dry_run:
+            preview = _create_diff_preview(original_content, final_content, str(path))
+            return FileEditResult(
+                status="success",
+                bytes_written=payload_bytes,
+                preview=preview,
             ).to_json()
 
         # Atomic write

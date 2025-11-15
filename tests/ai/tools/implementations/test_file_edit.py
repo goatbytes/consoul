@@ -2275,3 +2275,117 @@ class TestAppendToFile:
 
         # Reset
         set_file_edit_config(FileEditToolConfig())
+
+
+class TestAppendFileDryRun:
+    """Tests for append_to_file dry_run functionality."""
+
+    def test_append_dry_run_generates_preview(self, tmp_path):
+        """Test that dry_run=True generates diff preview without modifying file."""
+        file = tmp_path / "test.txt"
+        file.write_text("line1\nline2\n")
+        original_content = file.read_text()
+
+        result = append_to_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "line3",
+                "dry_run": True,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert "preview" in data
+        assert data["preview"]  # Non-empty diff
+        assert "+line3" in data["preview"]  # Shows addition
+
+        # File should NOT be modified
+        assert file.read_text() == original_content
+
+
+class TestDeleteFileDryRun:
+    """Tests for delete_file dry_run functionality."""
+
+    def test_delete_dry_run_generates_preview(self, tmp_path):
+        """Test that dry_run=True generates diff preview without deleting file."""
+        file = tmp_path / "test.txt"
+        original_content = "line1\nline2\nline3\n"
+        file.write_text(original_content)
+
+        result = delete_file.invoke(
+            {
+                "file_path": str(file),
+                "dry_run": True,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert "preview" in data
+        assert data["preview"]  # Non-empty diff
+        assert "-line1" in data["preview"]  # Shows deletion
+        assert "-line2" in data["preview"]
+        assert "-line3" in data["preview"]
+
+        # File should NOT be deleted
+        assert file.exists()
+        assert file.read_text() == original_content
+
+
+class TestCreateFileDryRun:
+    """Tests for create_file dry_run functionality."""
+
+    def test_create_dry_run_generates_preview(self, tmp_path):
+        """Test that dry_run=True generates diff preview without creating file."""
+        file = tmp_path / "new_file.txt"
+        content = "line1\nline2\n"
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": content,
+                "dry_run": True,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert "preview" in data
+        assert data["preview"]  # Non-empty diff
+        assert "+line1" in data["preview"]  # Shows addition
+        assert "+line2" in data["preview"]
+
+        # File should NOT be created
+        assert not file.exists()
+
+    def test_create_overwrite_dry_run_shows_diff(self, tmp_path):
+        """Test that dry_run=True shows diff for file overwrites."""
+        file = tmp_path / "existing.txt"
+        file.write_text("old content\n")
+
+        # Configure to allow overwrites
+        config = FileEditToolConfig(allow_overwrite=True)
+        set_file_edit_config(config)
+
+        result = create_file.invoke(
+            {
+                "file_path": str(file),
+                "content": "new content\n",
+                "overwrite": True,
+                "dry_run": True,
+            }
+        )
+
+        data = json.loads(result)
+        assert data["status"] == "success"
+        assert "preview" in data
+        assert data["preview"]  # Non-empty diff
+        assert "-old content" in data["preview"]  # Shows removal
+        assert "+new content" in data["preview"]  # Shows addition
+
+        # File should NOT be modified
+        assert file.read_text() == "old content\n"
+
+        # Reset
+        set_file_edit_config(FileEditToolConfig())
