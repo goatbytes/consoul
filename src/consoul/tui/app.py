@@ -222,6 +222,8 @@ class ConsoulApp(App[None]):
                         set_find_references_config,
                         set_grep_search_config,
                         set_read_config,
+                        set_web_search_config,
+                        web_search,
                     )
                     from consoul.ai.tools.providers import CliApprovalProvider
 
@@ -244,6 +246,10 @@ class ConsoulApp(App[None]):
                     # Configure find_references tool with profile settings
                     if consoul_config.tools.find_references:
                         set_find_references_config(consoul_config.tools.find_references)
+
+                    # Configure web_search tool with profile settings
+                    if consoul_config.tools.web_search:
+                        set_web_search_config(consoul_config.tools.web_search)
 
                     # Create registry with CLI provider (we override approval in _request_tool_approval)
                     # The provider is required by registry but we don't use it - we show our own modal
@@ -284,6 +290,14 @@ class ConsoulApp(App[None]):
                         find_references,
                         risk_level=RiskLevel.SAFE,
                         tags=["search", "readonly", "ast"],
+                        enabled=True,
+                    )
+
+                    # Register web_search tool (read-only web search)
+                    self.tool_registry.register(
+                        web_search,
+                        risk_level=RiskLevel.SAFE,
+                        tags=["search", "readonly", "web"],
                         enabled=True,
                     )
 
