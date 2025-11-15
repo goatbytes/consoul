@@ -112,16 +112,24 @@ def tui(
 
         log_path = tui_config.log_file or "textual.log"
 
-        # Configure root logger
+        # Configure root logger to WARNING to suppress third-party debug spam
+        # (urllib3, httpcore, httpx, markdown_it, asyncio all log at DEBUG)
         logging.basicConfig(
-            level=logging.DEBUG,
+            level=logging.WARNING,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             handlers=[logging.FileHandler(log_path, mode="w"), logging.StreamHandler()],
         )
 
-        # Enable debug logging for our widgets
+        # Enable debug logging ONLY for our packages
         logging.getLogger("textual").setLevel(logging.DEBUG)
         logging.getLogger("consoul").setLevel(logging.DEBUG)
+
+        # Explicitly silence noisy third-party loggers
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+        logging.getLogger("httpcore").setLevel(logging.WARNING)
+        logging.getLogger("httpx").setLevel(logging.WARNING)
+        logging.getLogger("markdown_it").setLevel(logging.WARNING)
+        logging.getLogger("asyncio").setLevel(logging.WARNING)
 
         # Create a logger to confirm setup
         logger = logging.getLogger(__name__)
