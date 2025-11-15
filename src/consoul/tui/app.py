@@ -1150,6 +1150,17 @@ class ConsoulApp(App[None]):
             return
 
         try:
+            # Validate: Check that we have tool results for all pending tool calls
+            expected_ids = {tc.id for tc in self._pending_tool_calls}
+            actual_ids = {tr.tool_call_id for tr in tool_results}
+
+            if expected_ids != actual_ids:
+                missing = expected_ids - actual_ids
+                extra = actual_ids - expected_ids
+                self.log.warning(
+                    f"Tool call ID mismatch - Missing: {missing}, Extra: {extra}"
+                )
+
             # Add tool results to conversation history and persist them
             for tool_msg in tool_results:
                 self.conversation.messages.append(tool_msg)
