@@ -610,6 +610,10 @@ class WebSearchToolConfig(BaseModel):
         default=True,
         description="Allow users to specify search categories like 'it', 'news' (SearxNG only)",
     )
+    searxng_verify_ssl: bool = Field(
+        default=False,
+        description="Verify SSL certificates for SearxNG requests. Set to False for self-signed certificates.",
+    )
 
 
 class ReadUrlToolConfig(BaseModel):

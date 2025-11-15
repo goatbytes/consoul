@@ -622,6 +622,7 @@ tools:
       - arxiv         # Academic papers
     enable_engine_selection: true   # Allow custom engines per query
     enable_categories: true         # Allow category filtering
+    searxng_verify_ssl: false       # Set false for self-signed certificates (default: false)
 
     # DuckDuckGo settings (fallback)
     region: "wt-wt"
@@ -676,6 +677,7 @@ See [docs/advanced/searxng-setup.md](advanced/searxng-setup.md) for complete set
 | `Web search failed: Network error` | No internet connection | Check network connectivity |
 | `Web search failed: Rate limiting` | Too many DuckDuckGo requests | Wait and retry, or configure SearxNG |
 | `SearxNG search failed: ...` | SearxNG unavailable | Will fallback to DuckDuckGo automatically |
+| `SearxNG search failed: SSL...` | Self-signed certificate | Set `searxng_verify_ssl: false` in config |
 | `max_results must be between 1 and 10` | Invalid parameter | Use value between 1-10 |
 | `Engine selection is disabled` | Config restricts engines | Set `enable_engine_selection: true` |
 | `Category selection is disabled` | Config restricts categories | Set `enable_categories: true` |

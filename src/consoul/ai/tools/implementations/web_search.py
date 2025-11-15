@@ -65,12 +65,13 @@ def get_web_search_config() -> WebSearchToolConfig:
     return _TOOL_CONFIG if _TOOL_CONFIG is not None else WebSearchToolConfig()
 
 
-def _detect_searxng(searxng_url: str, timeout: int) -> bool:
+def _detect_searxng(searxng_url: str, timeout: int, verify_ssl: bool = False) -> bool:
     """Check if SearxNG instance is available and healthy.
 
     Args:
         searxng_url: SearxNG instance URL
         timeout: Request timeout in seconds
+        verify_ssl: Whether to verify SSL certificates (False for self-signed certs)
 
     Returns:
         True if SearxNG is available and responding
@@ -81,6 +82,7 @@ def _detect_searxng(searxng_url: str, timeout: int) -> bool:
             f"{searxng_url.rstrip('/')}/healthz",
             timeout=timeout,
             allow_redirects=True,
+            verify=verify_ssl,  # Match SearxSearchWrapper's unsecure setting
         )
         if response.status_code == 200:
             return True
@@ -91,6 +93,7 @@ def _detect_searxng(searxng_url: str, timeout: int) -> bool:
             params={"q": "test", "format": "json"},
             timeout=timeout,
             allow_redirects=True,
+            verify=verify_ssl,  # Match SearxSearchWrapper's unsecure setting
         )
         return bool(response.status_code == 200)
 
@@ -106,6 +109,7 @@ def _execute_searxng_search(
     engines: list[str] | None,
     categories: list[str] | None,
     timeout: int,
+    verify_ssl: bool = False,
 ) -> list[dict[str, Any]]:
     """Execute web search using SearxNG.
 
@@ -116,6 +120,7 @@ def _execute_searxng_search(
         engines: List of search engines to use
         categories: List of search categories
         timeout: Request timeout in seconds
+        verify_ssl: Whether to verify SSL certificates (False for self-signed certs)
 
     Returns:
         List of search result dictionaries
@@ -125,9 +130,10 @@ def _execute_searxng_search(
     """
     try:
         # Initialize SearxNG search wrapper
+        # Note: SearxSearchWrapper uses 'unsecure' parameter (inverted logic)
         search = SearxSearchWrapper(
             searx_host=searxng_url,
-            unsecure=True,  # Allow self-signed certificates
+            unsecure=not verify_ssl,  # unsecure=True means skip verification
         )
 
         # Build kwargs for search
@@ -304,7 +310,9 @@ def web_search(
 
     # Try SearxNG first if configured
     if config.searxng_url:
-        searxng_available = _detect_searxng(config.searxng_url, config.timeout)
+        searxng_available = _detect_searxng(
+            config.searxng_url, config.timeout, config.searxng_verify_ssl
+        )
 
         if searxng_available:
             try:
@@ -320,6 +328,7 @@ def web_search(
                     engines=search_engines,
                     categories=categories,
                     timeout=config.timeout,
+                    verify_ssl=config.searxng_verify_ssl,
                 )
 
                 # Return early if SearxNG succeeded
