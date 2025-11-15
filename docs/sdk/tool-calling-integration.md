@@ -758,7 +758,7 @@ print(f"Cache hit rate: {stats.hit_rate:.1%}")  # Should be >50% after warmup
 
 ✅ Full support | ❌ No support
 
-**Note:** find_references supports Python, JavaScript/TypeScript, Go, and Kotlin. For other languages, use grep_search for text-based reference finding.
+**Note:** find_references supports Python, JavaScript/TypeScript, Go, Kotlin, and Java. For other languages, use grep_search for text-based reference finding.
 
 ### Use Cases
 

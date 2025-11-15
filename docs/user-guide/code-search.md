@@ -187,7 +187,7 @@ result = find_references.invoke({
 - ✅ Full support - All features work correctly
 - ❌ No support - Tool doesn't work for this language
 
-**Note:** find_references currently implements reference detection for Python, JavaScript/TypeScript, Go, and Kotlin. For Rust, Java, and C/C++, use grep_search for text-based reference finding.
+**Note:** find_references currently implements reference detection for Python, JavaScript/TypeScript, Go, Kotlin, and Java. For Rust and C/C++, use grep_search for text-based reference finding.
 
 ### Detected Node Types by Language
 

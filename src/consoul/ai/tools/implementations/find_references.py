@@ -384,6 +384,40 @@ def _is_reference_node(
                             return (name, "import")
                         break
 
+    # Java references
+    elif node_type == "method_invocation":
+        # Java method call: calc.add(5) or System.out.println()
+        # The method name is the LAST identifier child (first is the object)
+        identifiers = [
+            child.text.decode("utf-8")
+            for child in node.children
+            if child.type == "identifier"
+        ]
+        if identifiers:
+            # Last identifier is the method name
+            name = identifiers[-1]
+            if symbol_pattern.match(name):
+                return (name, "method_call")
+
+    elif node_type == "object_creation_expression":
+        # Java constructor call: new Calculator(10)
+        for child in node.children:
+            if child.type == "type_identifier":
+                name = child.text.decode("utf-8")
+                if symbol_pattern.match(name):
+                    return (name, "constructor_call")
+
+    elif node_type == "import_declaration":
+        # Java import: import java.util.ArrayList
+        for child in node.children:
+            if child.type == "scoped_identifier":
+                # Get last part: ArrayList from java.util.ArrayList
+                parts = child.text.decode("utf-8").split(".")
+                if parts:
+                    name = parts[-1]
+                    if symbol_pattern.match(name):
+                        return (name, "import")
+
     return None
 
 

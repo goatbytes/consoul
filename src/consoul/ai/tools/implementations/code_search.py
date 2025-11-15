@@ -235,11 +235,19 @@ def _extract_symbols_from_tree(
                     symbol_name = child.text.decode("utf-8")
                     break
         elif node_type == "method_declaration":
+            # Go (field_identifier) or Java/C/C++ (identifier)
             symbol_type = "method"
+            # Try Java/C/C++ first (identifier)
             for child in node.children:
-                if child.type == "field_identifier":
+                if child.type == "identifier":
                     symbol_name = child.text.decode("utf-8")
                     break
+            # Then try Go (field_identifier)
+            if not symbol_name:
+                for child in node.children:
+                    if child.type == "field_identifier":
+                        symbol_name = child.text.decode("utf-8")
+                        break
         elif node_type == "type_declaration":
             symbol_type = "class"  # Treat Go structs/interfaces as classes
             for child in node.children:
@@ -261,13 +269,16 @@ def _extract_symbols_from_tree(
                     symbol_name = child.text.decode("utf-8")
                     break
 
-        # Java/C/C++
-        elif node_type == "method_declaration":
+        # Java
+        elif node_type == "constructor_declaration":
+            # Java constructor
             symbol_type = "method"
             for child in node.children:
                 if child.type == "identifier":
                     symbol_name = child.text.decode("utf-8")
                     break
+
+        # C/C++
         elif node_type == "struct_specifier":
             # C/C++ struct
             symbol_type = "class"
