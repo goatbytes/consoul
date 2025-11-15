@@ -67,6 +67,7 @@ consoul --profile creative chat "Write a poem" # Use specific profile
 - 🎨 **Beautiful TUI** - Rich, interactive terminal interface powered by Textual
 - 🤖 **Multi-Provider Support** - OpenAI, Anthropic Claude, Google Gemini, Ollama
 - 🛠️ **Tool Calling** - AI-powered command execution with security controls
+- ✏️ **File Editing** - AI-powered file manipulation with safety controls and progressive matching
 - 🔍 **Code Search** - AST-based semantic search across Python, TypeScript, Go, Rust, Java, C/C++
 - 📝 **Conversation History** - Save and resume conversations
 - ⚙️ **Flexible Configuration** - YAML-based profiles with environment overrides

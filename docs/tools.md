@@ -995,29 +995,168 @@ Comparison of the three code search tools:
 | **Regex support** | ✅ Full regex | ✅ Symbol names only | ✅ Symbol names only |
 | **Risk Level** | SAFE | SAFE | SAFE |
 
+### File Editing Tools
+
+Consoul provides AI-powered file editing capabilities with safety controls and progressive matching.
+
+**Available Tools:**
+- `edit_file_lines` - Line-based editing with exact line ranges
+- `edit_file_search_replace` - Search/replace with progressive matching
+- `create_file` - Safe file creation with overwrite protection
+- `delete_file` - Validated file deletion
+- `append_to_file` - Content appending with smart newline handling
+
+**Risk Level**: CAUTION (all file editing tools require approval)
+
+**Quick Example:**
+```python
+from consoul import Consoul
+
+console = Consoul(tools=True)
+
+# Let AI edit files
+console.chat("Fix the typo in line 12 of README.md")
+console.chat("Refactor the login function to use async/await")
+console.chat("Add type hints to all functions in src/models.py")
+```
+
+**Key Features:**
+
+| Feature | Description |
+|---------|-------------|
+| **Line-based editing** | Edit specific lines or ranges with surgical precision |
+| **Progressive matching** | Strict/whitespace/fuzzy tolerance for search/replace |
+| **Safety controls** | Path validation, extension filtering, size limits |
+| **Dry-run previews** | Preview changes before applying |
+| **Atomic operations** | Temp file + rename prevents corruption |
+| **Optimistic locking** | Detect concurrent edits via expected_hash |
+| **Format preservation** | Maintains tabs/spaces and CRLF/LF |
+
+**Progressive Matching Levels:**
+
+| Tolerance | Use Case | Example |
+|-----------|----------|---------|
+| **strict** | Exact match | Replace constants, literals |
+| **whitespace** | Ignore indentation | Refactoring with different indent |
+| **fuzzy** | Handle typos | "calculate_totle" → "calculate_total" (94% match) |
+
+**Tool Reference:**
+
+```python
+from consoul.ai.tools.implementations import (
+    edit_file_lines,
+    edit_file_search_replace,
+    create_file,
+    delete_file,
+    append_to_file
+)
+
+# Edit specific lines
+edit_file_lines.invoke({
+    "file_path": "src/main.py",
+    "line_edits": {"42": "    logger.error('Error occurred')"}
+})
+
+# Search/replace with whitespace tolerance
+edit_file_search_replace.invoke({
+    "file_path": "src/auth.py",
+    "edits": [
+        {"search": "def login():\n    validate()\n    return True",
+         "replace": "async def login():\n    await validate()\n    return True"}
+    ],
+    "tolerance": "whitespace"  # Ignores indentation differences
+})
+
+# Create new file
+create_file.invoke({
+    "file_path": "src/new_module.py",
+    "content": "\"\"\"New module.\"\"\"\n\ndef hello():\n    return 'world'\n"
+})
+
+# Delete file
+delete_file.invoke({
+    "file_path": "old_module.py"
+})
+
+# Append content
+append_to_file.invoke({
+    "file_path": "CHANGELOG.md",
+    "content": "\n## v2.0.0\n\n- Added file editing tools\n"
+})
+```
+
+**Configuration:**
+
+```yaml
+profiles:
+  default:
+    tools:
+      enabled: true
+      permission_policy: balanced  # Prompts for file edits
+      file_edit:
+        allowed_extensions:
+          - ".py"
+          - ".js"
+          - ".ts"
+          - ".md"
+          - ".txt"
+          - ".json"
+          - ".yaml"
+        blocked_paths:
+          - "/etc"
+          - "/sys"
+          - "~/.ssh"
+        max_payload_bytes: 1048576  # 1MB limit
+        max_edits: 50
+        allow_overwrite: false
+```
+
+**Security:**
+- Path traversal protection (blocks `..`)
+- Extension validation
+- Blocked path enforcement
+- User approval required (CAUTION level)
+- Audit logging
+- Size limits
+
+**Common Use Cases:**
+- Refactor function signatures
+- Add error handling
+- Fix linter errors
+- Update configuration values
+- Add documentation
+- Rename variables/classes
+
+**See Also:**
+- [File Editing Guide](user-guide/file-editing.md) - Comprehensive documentation
+- [Examples](../examples/file-editing/) - Working code examples
+
+---
+
 ### Multi-Language Support
 
 Support matrix for all available tools:
 
-| Language | Extensions | grep_search | code_search | find_references | read_file |
-|----------|-----------|-------------|-------------|-----------------|-----------|
-| **Python** | .py | ✅ | ✅ | ✅ | ✅ |
-| **JavaScript** | .js, .jsx | ✅ | ✅ | ✅ | ✅ |
-| **TypeScript** | .ts, .tsx | ✅ | ✅ | ✅ | ✅ |
-| **Go** | .go | ✅ | ✅ | ✅ | ✅ |
-| **Kotlin** | .kt | ✅ | ✅ | ✅ | ✅ |
-| **Rust** | .rs | ✅ | ✅ | ❌ | ✅ |
-| **Java** | .java | ✅ | ✅ | ❌ | ✅ |
-| **C/C++** | .c, .cpp, .h, .hpp | ✅ | ✅ | ❌ | ✅ |
-| **Markdown** | .md | ✅ | ❌ | ❌ | ✅ |
-| **JSON** | .json | ✅ | ❌ | ❌ | ✅ |
-| **YAML** | .yaml, .yml | ✅ | ❌ | ❌ | ✅ |
-| **PDF** | .pdf | ❌ | ❌ | ❌ | ✅* |
+| Language | Extensions | grep_search | code_search | find_references | read_file | file_edit* |
+|----------|-----------|-------------|-------------|-----------------|-----------|-----------|
+| **Python** | .py | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **JavaScript** | .js, .jsx | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **TypeScript** | .ts, .tsx | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Go** | .go | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Kotlin** | .kt | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Rust** | .rs | ✅ | ✅ | ❌ | ✅ | ✅ |
+| **Java** | .java | ✅ | ✅ | ❌ | ✅ | ✅ |
+| **C/C++** | .c, .cpp, .h, .hpp | ✅ | ✅ | ❌ | ✅ | ✅ |
+| **Markdown** | .md | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **JSON** | .json | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **YAML** | .yaml, .yml | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **PDF** | .pdf | ❌ | ❌ | ❌ | ✅** | ❌ |
 
 **Legend:**
 - ✅ Full support - All features work correctly
 - ❌ No support - Tool doesn't work for this file type
-- \* Requires `pypdf` package (install with `pip install consoul[pdf]`)
+- \* File editing requires extension in `allowed_extensions` config (default: all allowed)
+- \*\* Requires `pypdf` package (install with `pip install consoul[pdf]`)
 
 **Note:** find_references supports Python, JavaScript/TypeScript, Go, Kotlin, and Java. For Rust and C/C++, use grep_search for text-based reference finding.
 
