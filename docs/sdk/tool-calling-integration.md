@@ -751,11 +751,13 @@ print(f"Cache hit rate: {stats.hit_rate:.1%}")  # Should be >50% after warmup
 | JavaScript | .js, .jsx | ✅ | ✅ | ✅ |
 | TypeScript | .ts, .tsx | ✅ | ✅ | ✅ |
 | Go | .go | ✅ | ✅ | ✅ |
-| Rust | .rs | ✅ | ✅ | ✅ |
-| Java | .java | ✅ | ✅ | ⚠️ |
-| C/C++ | .c, .cpp, .h, .hpp | ✅ | ✅ | ⚠️ |
+| Rust | .rs | ✅ | ✅ | ❌ |
+| Java | .java | ✅ | ✅ | ❌ |
+| C/C++ | .c, .cpp, .h, .hpp | ✅ | ✅ | ❌ |
 
-✅ Full support | ⚠️ Basic support
+✅ Full support | ❌ No support
+
+**Note:** find_references currently only supports Python, JavaScript/TypeScript, and Go. For other languages, use grep_search for text-based reference finding.
 
 ### Use Cases
 

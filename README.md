@@ -275,10 +275,12 @@ result = find_references.invoke({
 | Python | ✅ | ✅ | ✅ |
 | JavaScript/TypeScript | ✅ | ✅ | ✅ |
 | Go | ✅ | ✅ | ✅ |
-| Rust | ✅ | ✅ | ✅ |
-| Java/C/C++ | ✅ | ✅ | ⚠️ |
+| Rust | ✅ | ✅ | ❌ |
+| Java/C/C++ | ✅ | ✅ | ❌ |
 
-**Legend:** ✅ Full support | ⚠️ Basic support
+**Legend:** ✅ Full support | ❌ No support
+
+**Note:** find_references currently only supports Python, JavaScript/TypeScript, and Go. For other languages, use grep_search for text-based reference finding.
 
 ### Performance
 
