@@ -46,12 +46,18 @@ class ChatView(VerticalScroll):
         """Add a message to the chat view.
 
         Mounts the message widget and auto-scrolls to bottom if enabled.
+        Only counts user and assistant messages (not system/error/tool messages).
 
         Args:
             message_widget: Widget (typically MessageBubble) to add
         """
         await self.mount(message_widget)
-        self.message_count += 1
+
+        # Only count user and assistant messages (not system/error/tool)
+        if hasattr(message_widget, "role"):
+            role = getattr(message_widget, "role", None)
+            if role in ("user", "assistant"):
+                self.message_count += 1
 
         if self.auto_scroll:
             # Scroll to bottom to show new message

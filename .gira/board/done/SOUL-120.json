@@ -1,0 +1,22 @@
+{
+  "created_at": "2025-11-15T10:25:16.906093",
+  "updated_at": "2025-11-15T10:25:16.906100",
+  "id": "SOUL-120",
+  "uuid": "69421ebb-b220-4e84-98bd-f9832f974fd3",
+  "title": "Enhance system prompt with tool awareness guidance",
+  "description": "",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-005",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}
