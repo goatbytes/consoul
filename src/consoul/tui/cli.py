@@ -39,15 +39,7 @@ def tui(
     """
     from consoul.config import load_config
 
-    tui_config = TuiConfig()
-    if theme:
-        tui_config.theme = theme
-    if debug:
-        tui_config.debug = True
-    if log_file:
-        tui_config.log_file = log_file
-
-    # Load Consoul config and apply CLI overrides
+    # Load Consoul config first to get TUI settings
     consoul_config = None
 
     # Get CLI context from parent command
@@ -57,14 +49,11 @@ def tui(
         model_override = parent_ctx.params.get("model")
 
         if model_override:
-            # Create a minimal config with the overridden model
+            # Load full config first to preserve TUI and other settings
+            consoul_config = load_config()
+
             # Determine provider and create provider config
-            from consoul.config.models import (
-                ConsoulConfig,
-                ProfileConfig,
-                Provider,
-                ProviderConfig,
-            )
+            from consoul.config.models import Provider, ProviderConfig
 
             provider: Provider
             if "gpt" in model_override.lower() or "o1" in model_override.lower():
@@ -80,31 +69,32 @@ def tui(
             temp = parent_ctx.params.get("temperature")
             max_tok = parent_ctx.params.get("max_tokens")
 
-            provider_config = ProviderConfig(
-                default_temperature=temp if temp is not None else 1.0,
-                default_max_tokens=max_tok if max_tok is not None else 4096,
-            )
+            # Update provider config with CLI overrides
+            if provider not in consoul_config.provider_configs:
+                consoul_config.provider_configs[provider] = ProviderConfig()
 
-            # Create simple profile (no model, just settings)
-            profile = ProfileConfig(
-                name="cli-override",
-                description=f"CLI override with {model_override}",
-                system_prompt="You are a helpful AI assistant.",
-            )
+            if temp is not None:
+                consoul_config.provider_configs[provider].default_temperature = temp
+            if max_tok is not None:
+                consoul_config.provider_configs[provider].default_max_tokens = max_tok
 
-            # Create config with provider/model at root level
-            consoul_config = ConsoulConfig(
-                profiles={"cli-override": profile},
-                active_profile="cli-override",
-                current_provider=provider,
-                current_model=model_override,
-                provider_configs={provider: provider_config},
-            )
+            # Override model and provider
+            consoul_config.current_provider = provider
+            consoul_config.current_model = model_override
         else:
             # Load default config
             consoul_config = load_config()
     else:
         consoul_config = load_config()
+
+    # Get TUI config from loaded config, then apply CLI overrides
+    tui_config = consoul_config.tui if consoul_config else TuiConfig()
+    if theme:
+        tui_config.theme = theme
+    if debug:
+        tui_config.debug = True
+    if log_file:
+        tui_config.log_file = log_file
 
     # Set up logging if debug mode enabled
     if tui_config.debug:
