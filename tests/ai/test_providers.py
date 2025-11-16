@@ -808,11 +808,12 @@ class TestGetChatModel:
         assert result == mock_chat_model
         # Verify HuggingFacePipeline.from_model_id was called
         mock_pipeline.from_model_id.assert_called_once()
-        pipeline_kwargs = mock_pipeline.from_model_id.call_args.kwargs
-        assert pipeline_kwargs["model_id"] == "meta-llama/Llama-3.1-8B-Instruct"
-        assert pipeline_kwargs["task"] == "text-generation"
-        assert "model_kwargs" in pipeline_kwargs
-        assert pipeline_kwargs["model_kwargs"]["temperature"] == 0.7
+        call_kwargs = mock_pipeline.from_model_id.call_args.kwargs
+        assert call_kwargs["model_id"] == "meta-llama/Llama-3.1-8B-Instruct"
+        assert call_kwargs["task"] == "text-generation"
+        # Verify generation parameters are in pipeline_kwargs, not model_kwargs
+        assert "pipeline_kwargs" in call_kwargs
+        assert call_kwargs["pipeline_kwargs"]["temperature"] == 0.7
         # Verify ChatHuggingFace was called with the pipeline
         mock_chat_hf.assert_called_once()
         assert mock_chat_hf.call_args.kwargs["llm"] == mock_llm
@@ -878,6 +879,47 @@ class TestGetChatModel:
             pipeline_kwargs["model_kwargs"]["quantization_config"]
             == mock_quant_instance
         )
+
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.llms.huggingface_pipeline.HuggingFacePipeline")
+    def test_get_chat_model_huggingface_local_all_generation_params(
+        self, mock_pipeline, mock_chat_hf
+    ):
+        """Test that all generation parameters go to pipeline_kwargs."""
+        mock_llm = MagicMock()
+        mock_pipeline.from_model_id.return_value = mock_llm
+        mock_chat_model = MagicMock()
+        mock_chat_hf.return_value = mock_chat_model
+
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            local=True,
+            temperature=0.8,
+            max_tokens=1024,
+            stop_sequences=["END", "STOP"],
+            top_p=0.95,
+            top_k=50,
+            repetition_penalty=1.1,
+            do_sample=True,
+        )
+
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        call_kwargs = mock_pipeline.from_model_id.call_args.kwargs
+        # Verify all generation parameters are in pipeline_kwargs
+        assert "pipeline_kwargs" in call_kwargs
+        pipeline_kwargs = call_kwargs["pipeline_kwargs"]
+        assert pipeline_kwargs["temperature"] == 0.8
+        assert pipeline_kwargs["max_new_tokens"] == 1024
+        assert pipeline_kwargs["stop_sequences"] == ["END", "STOP"]
+        assert pipeline_kwargs["top_p"] == 0.95
+        assert pipeline_kwargs["top_k"] == 50
+        assert pipeline_kwargs["repetition_penalty"] == 1.1
+        assert pipeline_kwargs["do_sample"] is True
 
     @patch("consoul.config.env.get_api_key")
     def test_get_chat_model_missing_api_key(self, mock_get_api_key):

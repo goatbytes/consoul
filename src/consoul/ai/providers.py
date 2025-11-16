@@ -664,27 +664,32 @@ def get_chat_model(
                 "task": params.pop("task", "text-generation"),
             }
 
-            # Add model_kwargs for generation parameters
-            model_kwargs = params.pop("model_kwargs", {})
+            # Add pipeline_kwargs for generation parameters
+            pipeline_kwargs = {}
             if "temperature" in params:
-                model_kwargs["temperature"] = params.pop("temperature")
+                pipeline_kwargs["temperature"] = params.pop("temperature")
             if "max_tokens" in params or "max_new_tokens" in params:
-                model_kwargs["max_new_tokens"] = params.pop(
+                pipeline_kwargs["max_new_tokens"] = params.pop(
                     "max_tokens", params.pop("max_new_tokens", 512)
                 )
             if "stop" in params:
-                model_kwargs["stop_sequences"] = params.pop("stop")
+                # HuggingFace uses stop_sequences
+                pipeline_kwargs["stop_sequences"] = params.pop("stop")
             if "do_sample" in params:
-                model_kwargs["do_sample"] = params.pop("do_sample")
+                pipeline_kwargs["do_sample"] = params.pop("do_sample")
             if "repetition_penalty" in params:
-                model_kwargs["repetition_penalty"] = params.pop("repetition_penalty")
+                pipeline_kwargs["repetition_penalty"] = params.pop("repetition_penalty")
             if "top_p" in params:
-                model_kwargs["top_p"] = params.pop("top_p")
+                pipeline_kwargs["top_p"] = params.pop("top_p")
             if "top_k" in params:
-                model_kwargs["top_k"] = params.pop("top_k")
+                pipeline_kwargs["top_k"] = params.pop("top_k")
 
-            if model_kwargs:
-                pipeline_params["model_kwargs"] = model_kwargs
+            if pipeline_kwargs:
+                pipeline_params["pipeline_kwargs"] = pipeline_kwargs
+
+            # Add model_kwargs if provided (for model initialization, not generation)
+            if "model_kwargs" in params:
+                pipeline_params["model_kwargs"] = params.pop("model_kwargs")
 
             # Add device configuration
             if device:
