@@ -513,6 +513,7 @@ ConversationList DataTable > .datatable--hover {
 #empty-conversation-label {
     display: none;  /* Hidden by default, shown via Python when row_count == 0 */
     align: center middle;
+    hatch: right $surface-lighten-1 70%;  /* Diagonal lines like posting */
 }
 
 .empty-state-content {
@@ -523,6 +524,7 @@ ConversationList DataTable > .datatable--hover {
 
 .empty-state-content Label {
     text-align: center;
+    color: $text-muted;
 }
 
 /* ============================================================================
