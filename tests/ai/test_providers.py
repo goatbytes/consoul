@@ -70,6 +70,21 @@ class TestProviderDetection:
         provider = get_provider_from_model("mistral")
         assert provider == Provider.OLLAMA
 
+    def test_detect_huggingface_meta_llama(self):
+        """Test detecting HuggingFace from meta-llama model name."""
+        provider = get_provider_from_model("meta-llama/Llama-2-7b-hf")
+        assert provider == Provider.HUGGINGFACE
+
+    def test_detect_huggingface_mistralai(self):
+        """Test detecting HuggingFace from mistralai model name."""
+        provider = get_provider_from_model("mistralai/Mistral-7B-v0.1")
+        assert provider == Provider.HUGGINGFACE
+
+    def test_detect_huggingface_microsoft(self):
+        """Test detecting HuggingFace from microsoft model name."""
+        provider = get_provider_from_model("microsoft/phi-2")
+        assert provider == Provider.HUGGINGFACE
+
     def test_detect_unknown_model(self):
         """Test that unknown model returns None."""
         provider = get_provider_from_model("unknown-model-123")

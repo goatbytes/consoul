@@ -53,6 +53,7 @@ class Provider(str, Enum):
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
     OLLAMA = "ollama"
+    HUGGINGFACE = "huggingface"
 
 
 class ProviderConfig(BaseModel):

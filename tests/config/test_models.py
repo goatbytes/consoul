@@ -27,6 +27,7 @@ class TestProvider:
         assert Provider.ANTHROPIC == "anthropic"
         assert Provider.GOOGLE == "google"
         assert Provider.OLLAMA == "ollama"
+        assert Provider.HUGGINGFACE == "huggingface"
 
 
 class TestModelConfig:

@@ -33,13 +33,24 @@ PROVIDER_PACKAGES = {
     Provider.ANTHROPIC: "langchain_anthropic",
     Provider.GOOGLE: "langchain_google_genai",
     Provider.OLLAMA: "langchain_ollama",
+    Provider.HUGGINGFACE: "langchain_huggingface",
 }
 
 # Model name patterns for provider detection
+# Note: Order matters! HuggingFace patterns (with slashes) must be checked before Ollama
+# to prevent "mistralai/" from matching Ollama's "mistral" pattern
 PROVIDER_PATTERNS: dict[Provider, list[str]] = {
     Provider.OPENAI: ["gpt-", "o1-", "text-davinci"],
     Provider.ANTHROPIC: ["claude-"],
     Provider.GOOGLE: ["gemini-", "palm-"],
+    Provider.HUGGINGFACE: [
+        "meta-llama/",
+        "mistralai/",
+        "google/",
+        "openai-community/",
+        "microsoft/",
+        "facebook/",
+    ],
     Provider.OLLAMA: ["llama", "mistral", "phi", "qwen", "codellama"],
 }
 
@@ -49,6 +60,7 @@ PROVIDER_DOCS = {
     Provider.ANTHROPIC: "https://docs.anthropic.com/claude/docs/models-overview",
     Provider.GOOGLE: "https://ai.google.dev/models/gemini",
     Provider.OLLAMA: "https://ollama.com/library",
+    Provider.HUGGINGFACE: "https://huggingface.co/models",
 }
 
 # API key environment variable names
@@ -57,6 +69,7 @@ API_KEY_ENV_VARS = {
     Provider.ANTHROPIC: "ANTHROPIC_API_KEY",
     Provider.GOOGLE: "GOOGLE_API_KEY",
     Provider.OLLAMA: None,  # Ollama doesn't require API key
+    Provider.HUGGINGFACE: "HUGGINGFACEHUB_API_TOKEN",
 }
 
 
