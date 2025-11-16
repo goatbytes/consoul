@@ -348,7 +348,9 @@ class PermissionManagerScreen(ModalScreen[bool]):
             # Whitelist section
             yield Label("Whitelist Patterns", classes="section-title")
 
-            whitelist_table = DataTable(id="whitelist-table", cursor_type="row")
+            whitelist_table: DataTable[str] = DataTable(
+                id="whitelist-table", cursor_type="row"
+            )
             whitelist_table.add_columns("Pattern", "Type", "Description")
             yield whitelist_table
 
@@ -360,7 +362,7 @@ class PermissionManagerScreen(ModalScreen[bool]):
             # Blocklist section
             yield Label("Blocklist Patterns (Read-only)", classes="section-title")
 
-            blocklist_table = DataTable(
+            blocklist_table: DataTable[str] = DataTable(
                 id="blocklist-table",
                 cursor_type="none",
                 classes="blocklist-table",

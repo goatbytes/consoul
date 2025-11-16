@@ -240,8 +240,13 @@ def _create_tiktoken_counter(model_name: str) -> Callable[[list[BaseMessage]], i
         for message in messages:
             # Message overhead (role markers, etc.)
             num_tokens += 4
-            # Content tokens
-            num_tokens += len(encoding.encode(message.content))
+            # Content tokens - handle both string and complex content
+            content = (
+                message.content
+                if isinstance(message.content, str)
+                else str(message.content)
+            )
+            num_tokens += len(encoding.encode(content))
         # Add 2 for priming (assistant response start)
         num_tokens += 2
         return num_tokens

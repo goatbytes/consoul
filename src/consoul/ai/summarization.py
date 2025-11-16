@@ -224,7 +224,7 @@ class ConversationSummarizer:
             >>> len(context)  # 12 instead of 30
             12
         """
-        result = []
+        result: list[BaseMessage] = []
 
         # Preserve original system message if it exists
         if messages and isinstance(messages[0], SystemMessage):
@@ -240,7 +240,7 @@ class ConversationSummarizer:
 
         # Add recent messages verbatim
         if len(messages) > self.keep_recent:
-            recent_messages = messages[-self.keep_recent :]
+            recent_messages: list[BaseMessage] = messages[-self.keep_recent :]
         else:
             recent_messages = messages
 

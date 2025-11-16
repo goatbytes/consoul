@@ -85,7 +85,12 @@ def stream_response(
                     if not chunk.content:
                         continue
 
-                    token = chunk.content
+                    # Handle both string and complex content
+                    token = (
+                        chunk.content
+                        if isinstance(chunk.content, str)
+                        else str(chunk.content)
+                    )
                     collected_tokens.append(token)
 
                     # Update live display with accumulated response
@@ -111,9 +116,14 @@ def stream_response(
                     console.print("Assistant: ", end="")
                     first_token = False
 
-                token = chunk.content
+                # Handle both string and complex content
+                token = (
+                    chunk.content
+                    if isinstance(chunk.content, str)
+                    else str(chunk.content)
+                )
                 collected_tokens.append(token)
-                console.print(token, end="", flush=True)
+                console.print(token, end="")
 
             # Final newline after complete response
             if collected_tokens:

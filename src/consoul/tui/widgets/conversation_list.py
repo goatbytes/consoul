@@ -83,7 +83,7 @@ class ConversationList(Container):
         Yields:
             DataTable widget for displaying conversations
         """
-        self.table = DataTable(cursor_type="row", zebra_stripes=True)
+        self.table: DataTable[str] = DataTable(cursor_type="row", zebra_stripes=True)
         yield self.table
 
     def on_mount(self) -> None:

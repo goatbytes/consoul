@@ -137,10 +137,6 @@ class StreamingResponse(RichLog):
             self.token_buffer.clear()
             self.last_render_time = current_time
 
-    async def _render_content(self, force: bool = False) -> None:
-        """No longer used - render() method is called automatically."""
-        pass
-
     async def finalize_stream(self) -> None:
         """Finalize streaming and render final content.
 
