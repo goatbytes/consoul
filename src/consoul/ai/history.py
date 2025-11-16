@@ -405,11 +405,26 @@ class ConversationHistory:
             >>> len(history)
             1
         """
+        # Create conversation in DB on first user message if not already created
+        if self.persist and self._db and not self._conversation_created:
+            try:
+                self.session_id = self._db.create_conversation(self.model_name)
+                self._conversation_created = True
+                logger.info(f"Created new conversation session: {self.session_id}")
+
+                # Persist any existing system messages that were added before first user message
+                for msg in self.messages:
+                    if isinstance(msg, SystemMessage):
+                        self._persist_message_sync(msg)
+            except Exception as e:
+                logger.warning(f"Failed to create conversation in database: {e}")
+                self.persist = False
+
         message = HumanMessage(content=content)
         self.messages.append(message)
 
-        # Note: Persistence handled separately in async contexts (TUI)
-        # SDK users can call _persist_message_sync() if needed
+        # Persist if enabled (blocking for sync SDK)
+        self._persist_message_sync(message)
 
     def _persist_message_sync(self, message: BaseMessage) -> None:
         """Synchronously persist a message (blocking).
@@ -484,8 +499,9 @@ class ConversationHistory:
         message = AIMessage(content=content)
         self.messages.append(message)
 
-        # Note: Persistence happens via explicit calls in TUI app
-        # No auto-persistence for assistant messages to avoid blocking
+        # Persist if enabled (blocking for sync SDK)
+        # TUI handles persistence separately via async _persist_message()
+        self._persist_message_sync(message)
 
     def add_message(self, role: str, content: str) -> None:
         """Add message to history with specified role.
