@@ -152,8 +152,21 @@ class FileAuditLogger:
         # Convert string to Path if needed
         self.log_file = _Path(log_file) if not isinstance(log_file, _Path) else log_file
 
+    def _write_sync(self, event_json: str) -> None:
+        """Synchronous write helper for executor.
+
+        Args:
+            event_json: JSON string to write to log file
+        """
+        # Ensure directory exists
+        self.log_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Append to file
+        with self.log_file.open("a", encoding="utf-8") as f:
+            f.write(event_json + "\n")
+
     async def log_event(self, event: AuditEvent) -> None:
-        """Log event to JSONL file.
+        """Log event to JSONL file asynchronously to avoid blocking UI.
 
         Args:
             event: AuditEvent to log
@@ -163,18 +176,18 @@ class FileAuditLogger:
             Errors are printed to stderr for debugging.
         """
         try:
-            # Ensure directory exists
-            self.log_file.parent.mkdir(parents=True, exist_ok=True)
-
-            # Convert event to JSON and append to file
+            # Convert event to JSON
             event_json = json.dumps(event.to_dict())
 
-            # Use async file I/O to avoid blocking
-            # Note: For now using sync I/O since Python's async file I/O
-            # support is limited without aiofiles. In production, consider
-            # adding aiofiles dependency for true async I/O.
-            with self.log_file.open("a", encoding="utf-8") as f:
-                f.write(event_json + "\n")
+            # Run blocking file I/O in executor to avoid blocking event loop
+            import asyncio
+
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,  # Use default ThreadPoolExecutor
+                self._write_sync,
+                event_json,
+            )
 
         except Exception as e:
             # Silently fail - don't disrupt tool execution

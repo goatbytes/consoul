@@ -326,8 +326,8 @@ class ConversationHistory:
             logger.error(f"Failed to load conversation from database: {e}")
             raise ValueError(f"Failed to load session {session_id}: {e}") from e
 
-    def _persist_message(self, message: BaseMessage) -> None:
-        """Persist a message to database.
+    async def _persist_message(self, message: BaseMessage) -> None:
+        """Persist a message to database asynchronously to avoid blocking UI.
 
         Args:
             message: Message to persist
@@ -348,14 +348,24 @@ class ConversationHistory:
             # Count tokens for this message
             tokens = self._token_counter([message])
 
-            # Save to database
-            self._db.save_message(self.session_id, role, message.content, tokens)
+            # Run blocking database write in executor to avoid blocking event loop
+            import asyncio
+
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,  # Use default ThreadPoolExecutor
+                self._db.save_message,
+                self.session_id,
+                role,
+                message.content,
+                tokens,
+            )
 
         except Exception as e:
             # Don't fail the operation if persistence fails, just log
             logger.warning(f"Failed to persist message: {e}")
 
-    def add_system_message(self, content: str) -> None:
+    async def add_system_message(self, content: str) -> None:
         """Add or replace system message.
 
         System messages are always stored at position 0. If a system message
@@ -381,9 +391,9 @@ class ConversationHistory:
             self.messages.insert(0, system_message)
 
         # Persist if enabled
-        self._persist_message(system_message)
+        await self._persist_message(system_message)
 
-    def add_user_message(self, content: str) -> None:
+    async def add_user_message(self, content: str) -> None:
         """Add user message to conversation history.
 
         Args:
@@ -398,14 +408,22 @@ class ConversationHistory:
         # Create conversation in DB on first user message if not already created
         if self.persist and self._db and not self._conversation_created:
             try:
-                self.session_id = self._db.create_conversation(self.model_name)
+                # Run blocking DB operation in executor
+                import asyncio
+
+                loop = asyncio.get_event_loop()
+                self.session_id = await loop.run_in_executor(
+                    None,
+                    self._db.create_conversation,
+                    self.model_name,
+                )
                 self._conversation_created = True
                 logger.info(f"Created new conversation session: {self.session_id}")
 
                 # Persist any existing system messages that were added before first user message
                 for msg in self.messages:
                     if isinstance(msg, SystemMessage):
-                        self._persist_message(msg)
+                        await self._persist_message(msg)
             except Exception as e:
                 logger.warning(f"Failed to create conversation in database: {e}")
                 self.persist = False
@@ -414,7 +432,7 @@ class ConversationHistory:
         self.messages.append(message)
 
         # Persist if enabled
-        self._persist_message(message)
+        await self._persist_message(message)
 
     def add_assistant_message(self, content: str) -> None:
         """Add assistant message to conversation history.

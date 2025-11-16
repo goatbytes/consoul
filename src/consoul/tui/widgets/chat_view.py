@@ -60,8 +60,9 @@ class ChatView(VerticalScroll):
                 self.message_count += 1
 
         if self.auto_scroll:
-            # Scroll to bottom to show new message
-            self.scroll_end(animate=True)
+            # Defer scroll until after layout pass to avoid race condition
+            # Widget height isn't finalized until after next layout
+            self.call_after_refresh(self.scroll_end, animate=True)
 
     async def clear_messages(self) -> None:
         """Remove all messages from the chat view.

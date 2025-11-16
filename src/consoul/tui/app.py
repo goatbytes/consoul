@@ -441,6 +441,12 @@ class ConsoulApp(App[None]):
         self._tool_call_data: dict[
             str, dict[str, Any]
         ] = {}  # Map tool_call_id -> display data
+        self._tool_call_iterations = (
+            0  # Track tool calling rounds to prevent infinite loops
+        )
+        self._max_tool_iterations = (
+            5  # Maximum rounds of tool calls before forcing stop
+        )
 
     def on_mount(self) -> None:
         """Initialize app after mounting (message pump is running).
@@ -573,7 +579,12 @@ class ConsoulApp(App[None]):
         Args:
             event: MessageSubmit event containing user's message content
         """
+        import time
+
         from consoul.tui.widgets import MessageBubble
+
+        t0 = time.time()
+        logger.info("[TIMING] Message submit handler started")
 
         user_message = event.content
 
@@ -592,32 +603,106 @@ class ConsoulApp(App[None]):
             await self.chat_view.add_message(error_bubble)
             return
 
+        t1 = time.time()
+        logger.info(f"[TIMING] Model check complete: {(t1 - t0) * 1000:.1f}ms")
+
         # Reset tool call tracking for new user message
         self._tool_call_data = {}
         self._tool_results = {}
+        self._tool_call_iterations = 0
+        if hasattr(self, "_last_tool_signature"):
+            del self._last_tool_signature
 
-        # Add user message to chat view
+        t2 = time.time()
+        logger.info(f"[TIMING] Reset tracking: {(t2 - t1) * 1000:.1f}ms")
+
+        # Add user message to chat view FIRST for immediate visual feedback
         user_bubble = MessageBubble(user_message, role="user", show_metadata=True)
         await self.chat_view.add_message(user_bubble)
+
+        t3 = time.time()
+        logger.info(f"[TIMING] Added message bubble: {(t3 - t2) * 1000:.1f}ms")
+
+        # Show typing indicator immediately
+        await self.chat_view.show_typing_indicator()
+
+        t4 = time.time()
+        logger.info(f"[TIMING] Added typing indicator: {(t4 - t3) * 1000:.1f}ms")
+
+        # The real issue: everything after this point blocks the event loop
+        # We need to move ALL remaining work to a background worker
+        # so the UI stays responsive during "Thinking..." phase
+
+        t5 = time.time()
+        logger.info(
+            f"[TIMING] Starting background processing: {(t5 - t4) * 1000:.1f}ms"
+        )
 
         # Track if this is the first message (conversation not yet in DB)
         is_first_message = (
             self.conversation.persist and not self.conversation._conversation_created
         )
 
-        # Add to conversation history (creates DB conversation on first message)
-        self.conversation.add_user_message(user_message)
+        # Add user message to conversation history immediately (in-memory)
+        from langchain_core.messages import HumanMessage
 
-        # Reload conversation list if this was the first message
-        if is_first_message and hasattr(self, "conversation_list"):
-            self.conversation_list.reload_conversations()
-            self._update_top_bar_state()  # Update conversation count
+        message = HumanMessage(content=user_message)
+        self.conversation.messages.append(message)
 
-        # Show typing indicator before streaming
-        await self.chat_view.show_typing_indicator()
+        # Move EVERYTHING to a background worker to keep UI responsive
+        async def _process_and_stream() -> None:
+            t6 = time.time()
+            logger.info(
+                f"[TIMING] Worker started: {(t6 - t0) * 1000:.1f}ms from submit"
+            )
 
-        # Start streaming AI response
-        await self._stream_ai_response()
+            # Persist to DB in background
+            if is_first_message and self.conversation._db:
+                try:
+                    import asyncio
+
+                    loop = asyncio.get_event_loop()
+                    self.conversation.session_id = await loop.run_in_executor(
+                        None,
+                        self.conversation._db.create_conversation,
+                        self.conversation.model_name,
+                    )
+                    self.conversation._conversation_created = True
+                    logger.info(
+                        f"Created conversation session: {self.conversation.session_id}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to create conversation in DB: {e}")
+                    self.conversation.persist = False
+
+            # Persist message to DB
+            if self.conversation.persist:
+                await self.conversation._persist_message(message)
+
+            # Reload conversation list if first message
+            if is_first_message and hasattr(self, "conversation_list"):
+                await self.conversation_list.reload_conversations()
+                self._update_top_bar_state()
+
+            t7 = time.time()
+            logger.info(f"[TIMING] DB persist complete: {(t7 - t6) * 1000:.1f}ms")
+
+            # Start streaming AI response
+            logger.info("[TIMING] About to call _stream_ai_response")
+            await self._stream_ai_response()
+
+            t8 = time.time()
+            logger.info(
+                f"[TIMING] Worker complete: {(t8 - t6) * 1000:.1f}ms, total: {(t8 - t0) * 1000:.1f}ms"
+            )
+
+        # Fire off all processing in background worker
+        # This keeps the UI responsive during the entire "Thinking..." phase
+        self.run_worker(_process_and_stream(), exclusive=False)
+
+        logger.info(
+            f"[TIMING] Message handler exiting, worker launched: {(time.time() - t0) * 1000:.1f}ms"
+        )
 
     async def _stream_ai_response(self) -> None:
         """Stream AI response token-by-token to TUI.
@@ -628,25 +713,66 @@ class ConsoulApp(App[None]):
         Runs the blocking LangChain stream() call in a background worker
         to prevent freezing the UI event loop.
         """
+        import time
+
         from consoul.ai.exceptions import StreamingError
         from consoul.ai.history import to_dict_message
         from consoul.tui.widgets import MessageBubble, StreamingResponse
+
+        s0 = time.time()
+        logger.info("[TIMING] _stream_ai_response ENTRY")
+
+        # DEBUG: Log entry to verify this method is called
+        logger.debug(
+            f"[TOOL_FLOW] _stream_ai_response ENTRY - iteration {self._tool_call_iterations}/{self._max_tool_iterations}"
+        )
 
         # Update streaming state
         self._stream_cancelled = False
         self.streaming = True  # Update reactive state
         self._update_top_bar_state()  # Update top bar streaming indicator
 
+        s1 = time.time()
+        logger.info(f"[TIMING] Updated streaming state: {(s1 - s0) * 1000:.1f}ms")
+
         try:
             # Get trimmed messages for context window
+            # This can be slow due to token counting, so run in executor
             model_config = self.consoul_config.get_current_model_config()  # type: ignore[union-attr]
             reserve_tokens = model_config.max_tokens or 4096
-            messages = self.conversation.get_trimmed_messages(  # type: ignore[union-attr]
-                reserve_tokens=reserve_tokens
+
+            s2 = time.time()
+            logger.info(f"[TIMING] Got model config: {(s2 - s1) * 1000:.1f}ms")
+
+            # Run token counting and message trimming in executor to avoid blocking
+            import asyncio
+
+            loop = asyncio.get_event_loop()
+            messages = await loop.run_in_executor(
+                None,
+                self.conversation.get_trimmed_messages,  # type: ignore[union-attr]
+                reserve_tokens,
             )
 
-            # Convert to dict format for LangChain
-            messages_dict = [to_dict_message(msg) for msg in messages]
+            s3 = time.time()
+            logger.info(f"[TIMING] Got trimmed messages: {(s3 - s2) * 1000:.1f}ms")
+
+            self.log.info(
+                f"[TOOL_FLOW] _stream_ai_response starting - "
+                f"iteration={self._tool_call_iterations}/{self._max_tool_iterations}, "
+                f"conversation_messages={len(self.conversation.messages) if self.conversation else 0}, "
+                f"trimmed_messages={len(messages)}"
+            )
+
+            # Convert to dict format for LangChain (also can be slow with many messages)
+            messages_dict = await loop.run_in_executor(
+                None, lambda: [to_dict_message(msg) for msg in messages]
+            )
+
+            s4 = time.time()
+            logger.info(
+                f"[TIMING] Converted to dict: {(s4 - s3) * 1000:.1f}ms, total prep: {(s4 - s0) * 1000:.1f}ms"
+            )
 
             # Stream tokens in background worker to avoid blocking UI
             collected_tokens: list[str] = []
@@ -851,11 +977,21 @@ class ConsoulApp(App[None]):
                             logger.debug(
                                 f"Final message has {len(final_message.tool_calls) if final_message.tool_calls else 0} tool_calls"
                             )
+                            logger.debug(
+                                "[TOOL_FLOW] About to send final_message to main thread"
+                            )
                         except Exception:
                             # If message reconstruction fails, don't block completion
+                            logger.debug(
+                                "[TOOL_FLOW] Exception during message reconstruction",
+                                exc_info=True,
+                            )
                             final_message = None
 
                     # Send final message to main thread
+                    logger.debug(
+                        f"[TOOL_FLOW] Sending final_message to queue: has_message={final_message is not None}"
+                    )
                     asyncio.run_coroutine_threadsafe(
                         message_queue.put(final_message), event_loop
                     )
@@ -868,6 +1004,9 @@ class ConsoulApp(App[None]):
 
             # Wait for first token, then replace typing indicator with streaming widget
             first_token = await token_queue.get()
+            logger.debug(
+                f"[TOOL_FLOW] Got first_token: is_none={first_token is None}, value={first_token[:50] if first_token else 'None'}"
+            )
 
             # Hide typing indicator and create streaming response widget
             await self.chat_view.hide_typing_indicator()
@@ -935,6 +1074,9 @@ class ConsoulApp(App[None]):
 
             # Get final AIMessage with potential tool_calls
             final_message = await message_queue.get()
+            logger.debug(
+                f"[TOOL_FLOW] Got final_message from queue: type={type(final_message).__name__}, is_none={final_message is None}"
+            )
 
             # Check if we have content OR tool calls (tool calls can come with empty content)
             has_content = not self._stream_cancelled and full_response.strip()
@@ -944,34 +1086,71 @@ class ConsoulApp(App[None]):
                 and final_message.tool_calls
             )
 
+            logger.debug(
+                f"[TOOL_FLOW] Response check: has_content={has_content}, "
+                f"has_tool_calls_in_message={has_tool_calls_in_message}, "
+                f"full_response_len={len(full_response)}, "
+                f"cancelled={self._stream_cancelled}"
+            )
+
             if has_content or has_tool_calls_in_message:
                 # Add to conversation history
                 # Important: Use final_message directly to preserve tool_calls attribute
                 if final_message:
                     self.conversation.messages.append(final_message)  # type: ignore[union-attr]
                     # Persist to DB (content only, tool_calls are transient)
-                    self.conversation._persist_message(final_message)  # type: ignore[union-attr]
+                    await self.conversation._persist_message(final_message)  # type: ignore[union-attr]
                 elif has_content:
                     # Fallback if final_message reconstruction failed but we have content
                     self.conversation.add_assistant_message(full_response)  # type: ignore[union-attr]
 
                 # Check for tool calls in the final message
+                logger.debug(
+                    f"[TOOL_FLOW] Checking final_message for tool calls: has_final_message={final_message is not None}"
+                )
                 if final_message:
                     from consoul.ai.tools.parser import has_tool_calls, parse_tool_calls
 
+                    logger.debug("[TOOL_FLOW] Calling has_tool_calls()")
                     if has_tool_calls(final_message):
                         parsed_calls = parse_tool_calls(final_message)
-                        self.log.info(
-                            f"Tool calls detected: {len(parsed_calls)} call(s)"
+                        logger.debug(
+                            f"[TOOL_FLOW] Tool calls detected in model response: "
+                            f"{len(parsed_calls)} call(s), "
+                            f"content_length={len(full_response)}"
                         )
+                        for i, call in enumerate(parsed_calls):
+                            self.log.info(
+                                f"[TOOL_FLOW]   Tool {i + 1}: {call.name}({list(call.arguments.keys()) if isinstance(call.arguments, dict) else '...'})"
+                            )
 
-                        # If stream widget is empty (no content), remove it
-                        # Tool call widgets will replace it
+                        # If stream widget is empty (no content), replace with tool indicator
                         if not full_response.strip():
+                            logger.debug(
+                                "[TOOL_FLOW] Replacing empty stream widget with tool execution message"
+                            )
                             await stream_widget.remove()
 
+                            # Show minimal tool execution indicator
+                            tool_names = ", ".join([call.name for call in parsed_calls])
+                            tool_indicator = MessageBubble(
+                                f"🔧 Executing: {tool_names}",
+                                role="system",
+                                show_metadata=False,
+                            )
+                            await self.chat_view.add_message(tool_indicator)
+
                         # Handle tool calls
+                        logger.debug(
+                            f"[TOOL_FLOW] Calling _handle_tool_calls with {len(parsed_calls)} calls"
+                        )
                         await self._handle_tool_calls(parsed_calls)
+                        logger.debug("[TOOL_FLOW] _handle_tool_calls completed")
+                    else:
+                        self.log.info(
+                            f"[TOOL_FLOW] No tool calls in model response, "
+                            f"content_length={len(full_response)}"
+                        )
 
                 # Generate title if this is the first exchange
                 if self.title_generator and self._should_generate_title():
@@ -1146,7 +1325,17 @@ class ConsoulApp(App[None]):
             >>> tool_results = [ToolMessage(content="...", tool_call_id="call_123")]
             >>> await self._continue_with_tool_results(tool_results)
         """
+        self.log.info(
+            f"[TOOL_FLOW] _continue_with_tool_results called with {len(tool_results)} results"
+        )
+
         if not tool_results or not self.conversation or not self.chat_model:
+            self.log.warning(
+                f"[TOOL_FLOW] Skipping continuation - "
+                f"tool_results={bool(tool_results)}, "
+                f"conversation={bool(self.conversation)}, "
+                f"chat_model={bool(self.chat_model)}"
+            )
             return
 
         try:
@@ -1154,25 +1343,43 @@ class ConsoulApp(App[None]):
             expected_ids = {tc.id for tc in self._pending_tool_calls}
             actual_ids = {tr.tool_call_id for tr in tool_results}
 
+            self.log.info(
+                f"[TOOL_FLOW] Validating tool results - "
+                f"Expected IDs: {expected_ids}, Actual IDs: {actual_ids}"
+            )
+
             if expected_ids != actual_ids:
                 missing = expected_ids - actual_ids
                 extra = actual_ids - expected_ids
                 self.log.warning(
-                    f"Tool call ID mismatch - Missing: {missing}, Extra: {extra}"
+                    f"[TOOL_FLOW] Tool call ID mismatch - Missing: {missing}, Extra: {extra}"
                 )
 
             # Add tool results to conversation history and persist them
+            self.log.info(
+                f"[TOOL_FLOW] Adding {len(tool_results)} tool messages to conversation"
+            )
             for tool_msg in tool_results:
                 self.conversation.messages.append(tool_msg)
                 # Persist to database for audit trail (critical for security)
-                self.conversation._persist_message(tool_msg)
+                await self.conversation._persist_message(tool_msg)
+                self.log.debug(
+                    f"[TOOL_FLOW] Added tool message: id={tool_msg.tool_call_id}, "
+                    f"content_length={len(tool_msg.content)}"
+                )
 
             # Stream AI's final response with tool results
             # Reuse existing streaming infrastructure
+            self.log.info(
+                "[TOOL_FLOW] Calling _stream_ai_response to get model continuation"
+            )
             await self._stream_ai_response()
+            self.log.info("[TOOL_FLOW] _stream_ai_response completed")
 
         except Exception as e:
-            self.log.error(f"Error continuing with tool results: {e}", exc_info=True)
+            self.log.error(
+                f"[TOOL_FLOW] Error continuing with tool results: {e}", exc_info=True
+            )
 
             # Hide typing indicator if shown
             await self.chat_view.hide_typing_indicator()
@@ -1207,14 +1414,63 @@ class ConsoulApp(App[None]):
             via the message passing system.
         """
 
+        # Increment iteration counter
+        self._tool_call_iterations += 1
+        logger.debug(
+            f"[TOOL_FLOW] Tool call iteration {self._tool_call_iterations} "
+            f"with {len(parsed_calls)} tool(s)"
+        )
+
+        # Detect infinite loops by checking for repeated identical tool calls
+        # Create signature of current tool call batch
+        call_signature = tuple(
+            (
+                call.name,
+                frozenset(call.arguments.items())
+                if isinstance(call.arguments, dict)
+                else str(call.arguments),
+            )
+            for call in parsed_calls
+        )
+
+        # Check if this exact call was made in the last iteration
+        if (
+            hasattr(self, "_last_tool_signature")
+            and call_signature == self._last_tool_signature
+        ):
+            logger.warning(
+                "[TOOL_FLOW] Detected repeated identical tool call - stopping to prevent loop"
+            )
+            error_bubble = MessageBubble(
+                "**Tool calling loop detected**\n\n"
+                "The model made the same tool call twice in a row, indicating it's stuck.\n\n"
+                "Try:\n"
+                "- Using a more capable model (GPT-4, Claude, etc.)\n"
+                "- Simplifying your request\n"
+                "- Being more specific about what you want",
+                role="error",
+                show_metadata=False,
+            )
+            await self.chat_view.add_message(error_bubble)
+            return
+
+        # Store signature for next iteration
+        self._last_tool_signature = call_signature
+
         # Store pending tool calls for tracking
         self._pending_tool_calls = list(parsed_calls)
-        # Don't reset _tool_results and _tool_call_data - we may have multiple rounds
-        # of tool calls in a single response (e.g., model makes multiple tool batches)
+
+        # Reset tool results for this new batch
+        # Each call to _handle_tool_calls represents a new batch of tools
+        # We must reset to avoid counting tools from previous iterations
+        self._tool_results = {}
+        logger.debug(
+            f"[TOOL_FLOW] Reset tool results for new batch of {len(parsed_calls)} tools"
+        )
 
         for tool_call in parsed_calls:
-            self.log.info(
-                f"Tool call detected: {tool_call.name} with args: {tool_call.arguments}"
+            logger.debug(
+                f"[TOOL_FLOW] Tool call detected: {tool_call.name} with args: {tool_call.arguments}"
             )
 
             # Initialize tool call data with PENDING status
@@ -1227,7 +1483,13 @@ class ConsoulApp(App[None]):
 
             # Emit approval request message (non-blocking)
             # This will be handled by on_tool_approval_requested outside streaming context
+            logger.debug(
+                f"[TOOL_FLOW] Posting ToolApprovalRequested for {tool_call.name}"
+            )
             self.post_message(ToolApprovalRequested(tool_call))
+            logger.debug(
+                f"[TOOL_FLOW] Posted ToolApprovalRequested for {tool_call.name}"
+            )
 
     # Message handlers for tool approval workflow
 
@@ -1240,6 +1502,10 @@ class ConsoulApp(App[None]):
         Args:
             message: ToolApprovalRequested with tool_call and widget
         """
+        logger.debug(
+            f"[TOOL_FLOW] on_tool_approval_requested called for {message.tool_call.name}"
+        )
+
         from consoul.ai.tools import ToolApprovalRequest
         from consoul.tui.widgets import ToolApprovalModal
 
@@ -1330,6 +1596,9 @@ class ConsoulApp(App[None]):
         # - BALANCED policy to auto-approve SAFE commands
         # - Whitelisted commands to bypass approval
         # - TRUSTING policy to auto-approve SAFE+CAUTION commands
+        logger.debug(
+            f"[TOOL_FLOW] Checking if approval needed for {message.tool_call.name}"
+        )
         try:
             needs_approval = (
                 not self.tool_registry
@@ -1337,14 +1606,19 @@ class ConsoulApp(App[None]):
                     message.tool_call.name, message.tool_call.arguments
                 )
             )
+            logger.debug(
+                f"[TOOL_FLOW] Approval check result: needs_approval={needs_approval}"
+            )
         except Exception as e:
             # Tool not found or other error - require approval
-            self.log.warning(
-                f"Error checking approval for '{message.tool_call.name}': {e}"
+            logger.error(
+                f"[TOOL_FLOW] Error checking approval for '{message.tool_call.name}': {e}",
+                exc_info=True,
             )
             needs_approval = True
 
         if not needs_approval:
+            logger.debug(f"[TOOL_FLOW] Auto-approving {message.tool_call.name}")
             # Auto-approve based on policy or whitelist
             self.log.info(
                 f"Auto-approving tool '{message.tool_call.name}' "
@@ -1447,9 +1721,19 @@ class ConsoulApp(App[None]):
 
         from consoul.ai.tools.audit import AuditEvent
 
+        logger.debug(
+            f"[TOOL_FLOW] on_tool_approval_result: "
+            f"tool={message.tool_call.name}, "
+            f"approved={message.approved}, "
+            f"call_id={message.tool_call.id}"
+        )
+
         if message.approved:
             # Update tool call data to EXECUTING
             self._tool_call_data[message.tool_call.id]["status"] = "EXECUTING"
+            self.log.info(
+                f"[TOOL_FLOW] Executing approved tool: {message.tool_call.name}"
+            )
 
             # Log execution start
             start_time = time.time()
@@ -1469,8 +1753,14 @@ class ConsoulApp(App[None]):
                 self._tool_call_data[message.tool_call.id]["status"] = "SUCCESS"
                 self._tool_call_data[message.tool_call.id]["result"] = result
 
-                # Log successful result
                 duration_ms = int((time.time() - start_time) * 1000)
+                self.log.info(
+                    f"[TOOL_FLOW] Tool execution SUCCESS: "
+                    f"{message.tool_call.name} in {duration_ms}ms, "
+                    f"result_length={len(result)}"
+                )
+
+                # Log successful result
                 if self.tool_registry and self.tool_registry.audit_logger:
                     await self.tool_registry.audit_logger.log_event(
                         AuditEvent(
@@ -1488,10 +1778,15 @@ class ConsoulApp(App[None]):
                 result = f"Tool execution failed: {e}"
                 self._tool_call_data[message.tool_call.id]["status"] = "ERROR"
                 self._tool_call_data[message.tool_call.id]["result"] = result
-                self.log.error(f"Tool execution failed: {e}", exc_info=True)
+
+                duration_ms = int((time.time() - start_time) * 1000)
+                self.log.error(
+                    f"[TOOL_FLOW] Tool execution ERROR: "
+                    f"{message.tool_call.name} failed after {duration_ms}ms - {e}",
+                    exc_info=True,
+                )
 
                 # Log error
-                duration_ms = int((time.time() - start_time) * 1000)
                 if self.tool_registry and self.tool_registry.audit_logger:
                     await self.tool_registry.audit_logger.log_event(
                         AuditEvent(
@@ -1507,18 +1802,34 @@ class ConsoulApp(App[None]):
             result = f"Tool execution denied: {message.reason}"
             self._tool_call_data[message.tool_call.id]["status"] = "DENIED"
             self._tool_call_data[message.tool_call.id]["result"] = result
+            self.log.info(
+                f"[TOOL_FLOW] Tool DENIED: {message.tool_call.name} - {message.reason}"
+            )
 
         # Store result
         tool_message = ToolMessage(content=result, tool_call_id=message.tool_call.id)
         self._tool_results[message.tool_call.id] = tool_message
 
         # Check if all tools are done
-        if len(self._tool_results) == len(self._pending_tool_calls):
+        completed = len(self._tool_results)
+        total = len(self._pending_tool_calls)
+        logger.debug(
+            f"[TOOL_FLOW] Tool completion status: {completed}/{total} tools completed"
+        )
+
+        if completed == total:
             # All tools completed - feed results back to AI
+            logger.debug(
+                f"[TOOL_FLOW] All {total} tools completed, continuing with tool results"
+            )
             tool_results = [
                 self._tool_results[tc.id] for tc in self._pending_tool_calls
             ]
             await self._continue_with_tool_results(tool_results)
+        else:
+            self.log.info(
+                f"[TOOL_FLOW] Waiting for remaining tools ({total - completed} pending)"
+            )
 
     # Action handlers (placeholders for Phase 2+)
 

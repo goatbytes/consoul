@@ -7,7 +7,6 @@ with support for lazy loading and FTS5 full-text search for performance with
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING, ClassVar
 
 from textual.binding import Binding
@@ -98,20 +97,26 @@ class ConversationList(Container):
         self.table.add_column("Title", key="title")
         self.table.show_header = False
 
-        # Load initial conversations
-        self.load_conversations()
+        # Load initial conversations asynchronously
+        self.run_worker(self.load_conversations(), exclusive=True)
 
-    def load_conversations(self, limit: int | None = None) -> None:
-        """Load conversations from database.
+    async def load_conversations(self, limit: int | None = None) -> None:
+        """Load conversations from database asynchronously to avoid blocking UI.
 
         Args:
             limit: Number of conversations to load (default: INITIAL_LOAD)
         """
         limit = limit or self.INITIAL_LOAD
 
-        # Fetch from database
-        conversations = self.db.list_conversations(
-            limit=limit, offset=self.loaded_count
+        # Fetch from database in executor to avoid blocking
+        import asyncio
+
+        loop = asyncio.get_event_loop()
+        conversations = await loop.run_in_executor(
+            None,
+            self.db.list_conversations,
+            limit,
+            self.loaded_count,
         )
 
         # Add rows to table
@@ -128,8 +133,8 @@ class ConversationList(Container):
         self.conversation_count = self.loaded_count
         self._update_title()
 
-    def reload_conversations(self) -> None:
-        """Reload all conversations from database.
+    async def reload_conversations(self) -> None:
+        """Reload all conversations from database asynchronously to avoid blocking UI.
 
         Clears current list and reloads from the beginning.
         Useful when a new conversation is created.
@@ -137,7 +142,7 @@ class ConversationList(Container):
         self.table.clear()
         self.loaded_count = 0
         self._is_searching = False
-        self.load_conversations()
+        await self.load_conversations()
 
     def _get_conversation_title(self, conv: dict) -> str:  # type: ignore[type-arg]
         """Get conversation title from metadata or generate from first message.
@@ -201,14 +206,21 @@ class ConversationList(Container):
             self.table.clear()
             self.loaded_count = 0
             self._is_searching = False
-            self.load_conversations()
+            await self.load_conversations()
             return
 
         # Mark as searching to prevent lazy load
         self._is_searching = True
 
-        # FTS5 search
-        results = self.db.search_conversations(query)
+        # FTS5 search in executor to avoid blocking
+        import asyncio
+
+        loop = asyncio.get_event_loop()
+        results = await loop.run_in_executor(
+            None,
+            self.db.search_conversations,
+            query,
+        )
 
         # Clear and populate with results
         self.table.clear()
@@ -238,8 +250,10 @@ class ConversationList(Container):
 
         # Check if near bottom (within LAZY_LOAD_THRESHOLD rows)
         if event.cursor_row >= self.table.row_count - self.LAZY_LOAD_THRESHOLD:
-            # Load next batch
-            self.load_conversations(limit=self.INITIAL_LOAD)
+            # Load next batch asynchronously
+            self.run_worker(
+                self.load_conversations(limit=self.INITIAL_LOAD), exclusive=True
+            )
 
     async def action_rename_conversation(self) -> None:
         """Prompt to rename the currently selected conversation."""

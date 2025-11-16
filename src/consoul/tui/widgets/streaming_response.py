@@ -121,6 +121,14 @@ class StreamingResponse(RichLog):
                 self._last_written_length = len(self.full_content)
                 # Scroll to bottom to follow the streaming content
                 self.scroll_end(animate=False)
+
+                # Notify parent to scroll as our height changed
+                # Use call_after_refresh to ensure layout is updated first
+                if self.parent and hasattr(self.parent, "scroll_end"):
+                    self.parent.call_after_refresh(
+                        self.parent.scroll_end, animate=False
+                    )
+
             self.token_buffer.clear()
             self.last_render_time = current_time
 
