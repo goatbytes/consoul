@@ -283,7 +283,11 @@ class ConversationSummarizer:
             else:  # AIMessage or other
                 role = "AI"
 
-            content = msg.content.strip()
+            # Handle complex content (could be str or list)
+            content_str = (
+                msg.content if isinstance(msg.content, str) else str(msg.content)
+            )
+            content = content_str.strip()
             formatted_lines.append(f"{role}: {content}")
 
         return "\n".join(formatted_lines)

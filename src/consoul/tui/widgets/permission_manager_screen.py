@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from textual.binding import Binding, BindingType
 from textual.containers import Horizontal, Vertical
+from textual.coordinate import Coordinate
 from textual.screen import ModalScreen
 from textual.widgets import (
     Button,
@@ -502,7 +503,7 @@ class PermissionManagerScreen(ModalScreen[bool]):
             return
 
         # Get pattern from selected row
-        row_key = table.coordinate_to_cell_key((table.cursor_row, 0)).row_key
+        row_key = table.coordinate_to_cell_key(Coordinate(table.cursor_row, 0)).row_key
         cell = table.get_cell(row_key, "Pattern")
         pattern = str(cell)
 

@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.coordinate import Coordinate
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Footer, Input
@@ -657,7 +658,11 @@ class ConsoulApp(App[None]):
             )
 
             # Persist to DB in background
-            if is_first_message and self.conversation._db:
+            if (
+                self.conversation is not None
+                and is_first_message
+                and self.conversation._db
+            ):
                 try:
                     import asyncio
 
@@ -676,7 +681,7 @@ class ConsoulApp(App[None]):
                     self.conversation.persist = False
 
             # Persist message to DB
-            if self.conversation.persist:
+            if self.conversation is not None and self.conversation.persist:
                 await self.conversation._persist_message(message)
 
             # Reload conversation list if first message
@@ -2023,7 +2028,7 @@ class ConsoulApp(App[None]):
                 ):
                     if str(row_key.value) == session_id:
                         self.conversation_list.table.update_cell_at(
-                            (row_index, 0), title
+                            Coordinate(row_index, 0), title
                         )
                         self.log.debug("Updated conversation list UI with title")
                         break

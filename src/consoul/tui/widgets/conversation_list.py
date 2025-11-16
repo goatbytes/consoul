@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 from textual.binding import Binding, BindingType
 from textual.containers import Container
+from textual.coordinate import Coordinate
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import ModalScreen
@@ -266,7 +267,9 @@ class ConversationList(Container):
             return
 
         conversation_id = str(row_key)
-        current_title = str(self.table.get_cell_at((self.table.cursor_row, 0)))
+        current_title = str(
+            self.table.get_cell_at(Coordinate(self.table.cursor_row, 0))
+        )
 
         # Prompt for new title using app's built-in input
         self.app.push_screen(
@@ -289,7 +292,7 @@ class ConversationList(Container):
         for row_index, row_key in enumerate(self.table.rows.keys()):
             if str(row_key.value) == conversation_id:
                 # Update row
-                self.table.update_cell_at((row_index, 0), new_title)
+                self.table.update_cell_at(Coordinate(row_index, 0), new_title)
                 self._update_title()
                 break
 

@@ -170,7 +170,11 @@ class SearchBar(Static):
 
     def on_click(self, event: Click) -> None:
         """Handle click events (clear button)."""
-        if hasattr(event.widget, "id") and event.widget.id == "clear-button":
+        if (
+            event.widget is not None
+            and hasattr(event.widget, "id")
+            and event.widget.id == "clear-button"
+        ):
             self._clear_search()
             event.stop()
 

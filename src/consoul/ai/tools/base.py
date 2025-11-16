@@ -90,7 +90,11 @@ def get_tool_schema(tool: BaseTool) -> dict[str, Any]:
     """
     # LangChain tools have args_schema which is a Pydantic model
     if hasattr(tool, "args_schema") and tool.args_schema:
-        schema: dict[str, Any] = tool.args_schema.model_json_schema()
+        # args_schema could be BaseModel type or dict
+        args_schema = tool.args_schema
+        if isinstance(args_schema, dict):
+            return args_schema
+        schema: dict[str, Any] = args_schema.model_json_schema()
         return schema
 
     # Fallback: try to get schema from tool directly

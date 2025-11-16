@@ -322,7 +322,9 @@ class ContextualTopBar(Static):
         # Determine which element was clicked
         target_id = (
             event.control.id
-            if hasattr(event, "control") and hasattr(event.control, "id")
+            if hasattr(event, "control")
+            and event.control is not None
+            and hasattr(event.control, "id")
             else None
         )
 

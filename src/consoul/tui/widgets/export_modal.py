@@ -235,10 +235,16 @@ class ExportModal(ModalScreen[str | None]):
                 "format-html": "html",
                 "format-csv": "csv",
             }
+            pressed_button = format_selector.pressed_button
             selected_format = format_map.get(
-                str(format_selector.pressed_button.id), "json"
+                str(pressed_button.id) if pressed_button is not None else "", "json"
             )
-            is_current_scope = scope_selector.pressed_button.id == "scope-current"
+            scope_button = scope_selector.pressed_button
+            is_current_scope = (
+                scope_button.id == "scope-current"
+                if scope_button is not None
+                else False
+            )
 
             filepath = Path(filepath_input.value).expanduser()
 
