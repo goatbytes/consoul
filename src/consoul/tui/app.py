@@ -103,19 +103,20 @@ class ConsoulApp(App[None]):
         Binding("q", "quit", "Quit", priority=True),
         Binding("ctrl+c", "quit", "Quit", priority=True, show=False),
         # Conversation
-        Binding("ctrl+n", "new_conversation", "New Chat"),
+        Binding("ctrl+n", "new_conversation", "New Chat", show=True),
         Binding("ctrl+l", "clear_conversation", "Clear"),
         Binding("escape", "cancel_stream", "Cancel", show=False),
         # Navigation
         Binding("ctrl+p", "switch_profile", "Profile", show=False),
         Binding("ctrl+m", "switch_model", "Model", show=False),
-        Binding("ctrl+e", "export_conversation", "Export", show=False),
+        Binding("ctrl+e", "export_conversation", "Export", show=True),
         Binding("ctrl+i", "import_conversation", "Import", show=False),
         Binding("ctrl+s", "search_history", "Search", show=False),
         Binding("/", "focus_input", "Input", show=False),
         # UI
+        Binding("ctrl+b", "toggle_sidebar", "Sidebar", show=True),
         Binding("ctrl+comma", "settings", "Settings", show=False),
-        Binding("ctrl+shift+p", "permissions", "Permissions", show=False),
+        Binding("ctrl+shift+p", "permissions", "Permissions", show=True),
         Binding("f1", "help", "Help", show=False),
     ]
 
@@ -2030,6 +2031,14 @@ class ConsoulApp(App[None]):
                 model=self.current_model,
             )
         )
+
+    def action_toggle_sidebar(self) -> None:
+        """Toggle conversation list sidebar visibility."""
+        if not hasattr(self, "conversation_list"):
+            return
+
+        # Toggle display
+        self.conversation_list.display = not self.conversation_list.display
 
     def _should_generate_title(self) -> bool:
         """Check if we should generate a title for current conversation.
