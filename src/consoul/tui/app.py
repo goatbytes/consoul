@@ -1108,12 +1108,20 @@ class ConsoulApp(App[None]):
 
                     # Show notification to user
                     self.notify(
-                        f"Model {self.current_model} doesn't support tools. Continuing without tools.",
+                        f"Model {self.current_model} doesn't support tools. Retrying...",
                         severity="warning",
-                        timeout=5,
+                        timeout=3,
                     )
 
-                    # Retry the request without tools
+                    # Show typing indicator before retry
+                    await self.chat_view.show_typing_indicator()
+
+                    # Reset streaming state for retry
+                    self._stream_cancelled = False
+                    self.streaming = True
+                    self._update_top_bar_state()
+
+                    # Retry the request without tools (conversation already has user message)
                     await self._stream_ai_response()
                     return
 
