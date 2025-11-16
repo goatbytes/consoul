@@ -17,8 +17,6 @@ from textual.reactive import reactive
 from textual.screen import ModalScreen
 from textual.widgets import Button, DataTable, Input, Label
 
-from consoul.tui.widgets.center_middle import CenterMiddle
-
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
@@ -86,13 +84,12 @@ class ConversationList(Container):
             DataTable widget for displaying conversations and empty state label
         """
         # Empty state message (shown when no conversations exist)
-        with CenterMiddle(id="empty-conversation-label"):
-            yield Vertical(
-                Label("[dim i]No conversations yet[/]"),
-                Label(""),
-                Label("[dim]Start a new conversation by typing a message below[/]"),
-                classes="empty-state-content",
-            )
+        # Don't use CenterMiddle here - it blocks the hatch pattern
+        yield Vertical(
+            Label("[dim i]No conversations yet[/]"),
+            id="empty-conversation-label",
+            classes="empty-state-content",
+        )
 
         # Conversation table
         self.table: DataTable[str] = DataTable(cursor_type="row", zebra_stripes=True)
@@ -201,17 +198,13 @@ class ConversationList(Container):
 
     def _update_empty_state(self) -> None:
         """Update visibility of empty state label based on conversation count."""
-        try:
-            empty_label = self.query_one("#empty-conversation-label")
-            is_empty = self.table.row_count == 0
+        is_empty = self.table.row_count == 0
 
-            # Show empty state when no conversations, hide table
-            # Show table when conversations exist, hide empty state
-            empty_label.display = is_empty
-            self.table.display = not is_empty
-        except Exception:
-            # Widget not mounted yet or not found
-            pass
+        # Add/remove "empty" class which triggers CSS to show/hide empty state
+        self.set_class(is_empty, "empty")
+
+        # Hide table when empty to make room for empty state
+        self.table.display = not is_empty
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle conversation selection.
