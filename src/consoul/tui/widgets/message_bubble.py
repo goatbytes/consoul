@@ -9,15 +9,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
-from rich.markdown import Markdown
 from rich.text import Text
 from textual import on
 from textual.containers import Container, Horizontal
 from textual.reactive import reactive
-from textual.widgets import Button, Static
+from textual.widgets import Button, Markdown, Static
 
 if TYPE_CHECKING:
-    from rich.console import RenderableType
     from textual.app import ComposeResult
 
 __all__ = ["MessageBubble"]
@@ -74,8 +72,9 @@ class MessageBubble(Container):
 
     def compose(self) -> ComposeResult:
         """Compose the message bubble with content and metadata."""
-        # Create content static widget
-        yield Static(id="message-content", classes="message-content")
+        # Create markdown widget for content (supports clickable links)
+        # Will fallback to Static with Text if markdown fails
+        yield Markdown(id="message-content", classes="message-content")
 
         # Add metadata footer if enabled
         if self.show_metadata:
@@ -129,27 +128,25 @@ class MessageBubble(Container):
         """Render message content with markdown and optional metadata."""
         # Try to get child widgets - if they don't exist yet, schedule retry
         try:
-            content_widget = self.query_one("#message-content", Static)
+            content_widget = self.query_one("#message-content", Markdown)
         except Exception:
             # Child widgets not available yet, retry later
             self.call_later(self._render_message)
             return
 
-        # Check if markdown previously failed - skip markdown if so
-        if self._markdown_failed:
-            # Use plain text directly without retrying markdown
-            content_renderable: RenderableType = Text(self.content_text)
-        else:
-            # Try markdown rendering for the first time
-            try:
-                content_renderable = Markdown(self.content_text)
-            except Exception:
-                # Fallback to plain text if markdown fails
-                self._markdown_failed = True
-                content_renderable = Text(self.content_text)
-
-        # Update content widget
-        content_widget.update(content_renderable)
+        # Update markdown widget with content
+        # The Markdown widget handles parsing and rendering
+        try:
+            content_widget.update(self.content_text)
+        except Exception:
+            # If markdown fails, fallback to showing raw text
+            # Replace with Static widget showing plain text
+            self._markdown_failed = True
+            content_widget.remove()
+            static_widget = Static(
+                Text(self.content_text), id="message-content", classes="message-content"
+            )
+            self.mount(static_widget, before=0)
 
         # Update metadata if present
         if self.show_metadata:
@@ -202,6 +199,22 @@ class MessageBubble(Container):
         if self.tool_calls:
             modal = ToolCallDetailsModal(tool_calls=self.tool_calls)
             await self.app.push_screen(modal)
+
+    @on(Markdown.LinkClicked)
+    def handle_link_clicked(self, event: Markdown.LinkClicked) -> None:
+        """Handle markdown link clicks by opening in browser.
+
+        Args:
+            event: LinkClicked event containing the URL
+        """
+        import webbrowser
+
+        try:
+            # Open the link in the default browser
+            webbrowser.open(event.href)
+            self.app.notify(f"Opening: {event.href}", severity="information", timeout=2)
+        except Exception as e:
+            self.app.notify(f"Failed to open link: {e}", severity="error")
 
     def watch_role(self, new_role: str) -> None:
         """Update styling when role changes.
