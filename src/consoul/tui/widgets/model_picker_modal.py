@@ -231,7 +231,50 @@ MODEL_INFO = {
         "cost": "moderate",
         "description": "Legacy flash model",
     },
-    # Note: Ollama models are fetched dynamically from local service
+    # HuggingFace Models (popular models, local models fetched dynamically)
+    "meta-llama/Llama-3.1-8B-Instruct": {
+        "provider": "huggingface",
+        "context": "128K",
+        "cost": "free",
+        "description": "Meta's Llama 3.1 8B instruction model",
+    },
+    "meta-llama/Llama-3.2-3B-Instruct": {
+        "provider": "huggingface",
+        "context": "128K",
+        "cost": "free",
+        "description": "Smaller Llama 3.2 model",
+    },
+    "mistralai/Mistral-7B-Instruct-v0.3": {
+        "provider": "huggingface",
+        "context": "32K",
+        "cost": "free",
+        "description": "Mistral AI's 7B instruction model",
+    },
+    "google/flan-t5-xxl": {
+        "provider": "huggingface",
+        "context": "2K",
+        "cost": "free",
+        "description": "Google's FLAN-T5 XXL (11B params)",
+    },
+    "google/flan-t5-base": {
+        "provider": "huggingface",
+        "context": "512",
+        "cost": "free",
+        "description": "Smaller FLAN-T5 base (250M params)",
+    },
+    "microsoft/Phi-3-mini-4k-instruct": {
+        "provider": "huggingface",
+        "context": "4K",
+        "cost": "free",
+        "description": "Microsoft's Phi-3 Mini (3.8B params)",
+    },
+    "tiiuae/falcon-7b-instruct": {
+        "provider": "huggingface",
+        "context": "2K",
+        "cost": "free",
+        "description": "TII's Falcon 7B instruction model",
+    },
+    # Note: Ollama and HuggingFace local models are fetched dynamically
 }
 
 
@@ -353,9 +396,13 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         self._model_map: dict[str, dict[str, str]] = {}  # row_key -> model metadata
 
         # Check if Ollama is available
-        from consoul.ai.providers import is_ollama_running
+        from consoul.ai.providers import (
+            get_huggingface_local_models,
+            is_ollama_running,
+        )
 
         self._ollama_available = is_ollama_running()
+        self._huggingface_available = len(get_huggingface_local_models()) > 0
 
         super().__init__(**kwargs)
         self.current_model = current_model
@@ -363,7 +410,8 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         self.active_provider = current_provider.value
         log.info(
             f"ModelPickerModal: Initialized with current_model={current_model}, "
-            f"current_provider={current_provider}, ollama_available={self._ollama_available}"
+            f"current_provider={current_provider}, ollama_available={self._ollama_available}, "
+            f"huggingface_available={self._huggingface_available}"
         )
 
     def compose(self) -> ComposeResult:
@@ -372,11 +420,13 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             # Header
             yield Label("Select AI Model & Provider", classes="modal-header")
 
-            # Provider tabs (conditionally include Ollama)
+            # Provider tabs (conditionally include Ollama and HuggingFace)
             with Horizontal(id="provider-tabs"):
                 providers = ["openai", "anthropic", "google"]
                 if self._ollama_available:
                     providers.append("ollama")
+                if self._huggingface_available:
+                    providers.append("huggingface")
 
                 for provider in providers:
                     tab_classes = "provider-tab"
@@ -425,7 +475,13 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
     def watch_active_provider(self, provider: str) -> None:
         """React to provider tab changes."""
         # Update tab styling
-        for tab_id in ["tab-openai", "tab-anthropic", "tab-google", "tab-ollama"]:
+        for tab_id in [
+            "tab-openai",
+            "tab-anthropic",
+            "tab-google",
+            "tab-ollama",
+            "tab-huggingface",
+        ]:
             try:
                 tab = self.query_one(f"#{tab_id}", Label)
                 if tab_id == f"tab-{provider}":
@@ -489,6 +545,29 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                             "cost": "free",
                             "description": "Local Ollama model",
                         }
+
+        # For HuggingFace, fetch local cached models
+        elif provider_value == "huggingface":
+            from consoul.ai.providers import get_huggingface_local_models
+
+            hf_models = get_huggingface_local_models()
+            for model_info in hf_models:
+                model_name = model_info.get("name", "")
+                if model_name and model_name not in provider_models:
+                    # Format size
+                    size_gb = model_info.get("size_gb", 0)
+                    if size_gb >= 1:
+                        size_str = f"{size_gb:.1f}GB"
+                    else:
+                        size_str = f"{size_gb * 1024:.0f}MB"
+
+                    # Add local HuggingFace model
+                    provider_models[model_name] = {
+                        "provider": "huggingface",
+                        "context": "?",  # Context length not easily determined
+                        "cost": "free",
+                        "description": f"Local model ({size_str})",
+                    }
 
         # Apply search filter if provided
         if search_query:
@@ -572,7 +651,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         # Provider tab clicks
         if target_id and target_id.startswith("tab-"):
             provider = target_id.replace("tab-", "")
-            if provider in ["openai", "anthropic", "google", "ollama"]:
+            if provider in ["openai", "anthropic", "google", "ollama", "huggingface"]:
                 self.active_provider = provider
                 log.info(f"ModelPickerModal: Switched to provider '{provider}'")
 

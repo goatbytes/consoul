@@ -157,6 +157,55 @@ def get_ollama_models(
         return []
 
 
+def get_huggingface_local_models() -> list[dict[str, Any]]:
+    """Get list of locally cached HuggingFace models.
+
+    Scans the HuggingFace cache directory (~/.cache/huggingface/hub/) and
+    returns information about downloaded models.
+
+    Returns:
+        List of model dicts with 'name', 'size', and 'revisions' keys.
+        Sorted by name. Returns empty list if no models cached or scan fails.
+
+    Example:
+        >>> models = get_huggingface_local_models()
+        >>> for model in models:
+        ...     print(f"{model['name']} ({model['size_gb']:.1f}GB)")
+        meta-llama/Llama-3.1-8B-Instruct (8.5GB)
+        google/flan-t5-base (1.2GB)
+    """
+    try:
+        from huggingface_hub import scan_cache_dir
+    except ImportError:
+        # huggingface_hub not installed
+        return []
+
+    try:
+        # Scan the HuggingFace cache
+        cache_info = scan_cache_dir()
+
+        model_list: list[dict[str, Any]] = []
+        for repo in cache_info.repos:
+            # Only include models (not datasets)
+            if repo.repo_type == "model":
+                model_info: dict[str, Any] = {
+                    "name": repo.repo_id,
+                    "size": repo.size_on_disk,
+                    "size_gb": repo.size_on_disk / (1024**3),  # Convert to GB
+                    "nb_files": repo.nb_files,
+                    "revisions": len(list(repo.revisions)),
+                }
+                model_list.append(model_info)
+
+        # Sort by name alphabetically
+        model_list.sort(key=lambda m: m.get("name", "").lower())
+
+        return model_list
+    except Exception:
+        # Scan failed (cache doesn't exist, permission error, etc.)
+        return []
+
+
 def select_best_ollama_model(
     base_url: str = "http://localhost:11434",
 ) -> str | None:
