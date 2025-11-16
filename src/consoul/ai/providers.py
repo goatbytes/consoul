@@ -645,7 +645,17 @@ def get_chat_model(
             "do_sample": params.pop("do_sample", True),
         }
 
-        # Add optional parameters if present
+        # Add core generation parameters that HuggingFaceEndpoint supports
+        if "temperature" in params:
+            hf_params["temperature"] = params.pop("temperature")
+        if "max_tokens" in params:
+            # HuggingFaceEndpoint uses max_length for total context + generation
+            hf_params["max_length"] = params.pop("max_tokens")
+        if "stop" in params:
+            # Map stop to stop_sequences for HuggingFaceEndpoint
+            hf_params["stop_sequences"] = params.pop("stop")
+
+        # Add optional sampling parameters if present
         if "repetition_penalty" in params:
             hf_params["repetition_penalty"] = params.pop("repetition_penalty")
         if "top_p" in params:

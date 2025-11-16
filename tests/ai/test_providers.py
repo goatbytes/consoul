@@ -611,6 +611,7 @@ class TestGetChatModel:
         assert endpoint_kwargs["task"] == "text-generation"
         assert endpoint_kwargs["max_new_tokens"] == 512
         assert endpoint_kwargs["do_sample"] is True
+        assert endpoint_kwargs["temperature"] == 0.7  # Verify temperature is passed
         assert endpoint_kwargs["huggingfacehub_api_token"] == "hf_test123"
         # Verify ChatHuggingFace was called with the endpoint
         mock_chat_hf.assert_called_once()
@@ -649,6 +650,7 @@ class TestGetChatModel:
         assert endpoint_kwargs["task"] == "text-generation"
         assert endpoint_kwargs["max_new_tokens"] == 1024
         assert endpoint_kwargs["do_sample"] is True
+        assert endpoint_kwargs["temperature"] == 0.8  # Verify temperature is passed
         assert endpoint_kwargs["repetition_penalty"] == 1.1
         assert endpoint_kwargs["top_p"] == 0.95
         assert endpoint_kwargs["top_k"] == 50
@@ -698,6 +700,90 @@ class TestGetChatModel:
         error_msg = str(exc_info.value)
         assert "invalid/model-name" in error_msg
         assert "not found" in error_msg.lower()
+
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    def test_get_chat_model_huggingface_max_tokens(self, mock_endpoint, mock_chat_hf):
+        """Test that max_tokens is mapped to max_length."""
+        mock_llm = MagicMock()
+        mock_endpoint.return_value = mock_llm
+        mock_chat_model = MagicMock()
+        mock_chat_hf.return_value = mock_chat_model
+
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            max_tokens=2048,
+        )
+        api_key = SecretStr("hf_test123")
+
+        result = get_chat_model(config, api_key=api_key)
+
+        assert result == mock_chat_model
+        endpoint_kwargs = mock_endpoint.call_args.kwargs
+        assert endpoint_kwargs["max_length"] == 2048
+
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    def test_get_chat_model_huggingface_stop_sequences(
+        self, mock_endpoint, mock_chat_hf
+    ):
+        """Test that stop sequences are passed to HuggingFaceEndpoint."""
+        mock_llm = MagicMock()
+        mock_endpoint.return_value = mock_llm
+        mock_chat_model = MagicMock()
+        mock_chat_hf.return_value = mock_chat_model
+
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            stop_sequences=["END", "STOP"],
+        )
+        api_key = SecretStr("hf_test123")
+
+        result = get_chat_model(config, api_key=api_key)
+
+        assert result == mock_chat_model
+        endpoint_kwargs = mock_endpoint.call_args.kwargs
+        assert endpoint_kwargs["stop_sequences"] == ["END", "STOP"]
+
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    def test_get_chat_model_huggingface_no_extra_params(
+        self, mock_endpoint, mock_chat_hf
+    ):
+        """Test that ChatHuggingFace only receives expected parameters."""
+        mock_llm = MagicMock()
+        mock_endpoint.return_value = mock_llm
+        mock_chat_model = MagicMock()
+        mock_chat_hf.return_value = mock_chat_model
+
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            temperature=0.9,
+            max_tokens=1024,
+            stop_sequences=["END"],
+        )
+        api_key = SecretStr("hf_test123")
+
+        result = get_chat_model(config, api_key=api_key)
+
+        assert result == mock_chat_model
+        # Verify ChatHuggingFace doesn't receive generation params
+        chat_hf_kwargs = mock_chat_hf.call_args.kwargs
+        assert "llm" in chat_hf_kwargs
+        assert "temperature" not in chat_hf_kwargs
+        assert "max_tokens" not in chat_hf_kwargs
+        assert "stop" not in chat_hf_kwargs
+        assert "max_length" not in chat_hf_kwargs
+        assert "stop_sequences" not in chat_hf_kwargs
 
     @patch("consoul.config.env.get_api_key")
     def test_get_chat_model_missing_api_key(self, mock_get_api_key):
