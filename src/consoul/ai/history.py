@@ -365,7 +365,7 @@ class ConversationHistory:
             # Don't fail the operation if persistence fails, just log
             logger.warning(f"Failed to persist message: {e}")
 
-    async def add_system_message(self, content: str) -> None:
+    def add_system_message(self, content: str) -> None:
         """Add or replace system message.
 
         System messages are always stored at position 0. If a system message
@@ -390,8 +390,8 @@ class ConversationHistory:
             # Insert at beginning
             self.messages.insert(0, system_message)
 
-        # Persist if enabled
-        await self._persist_message(system_message)
+        # Note: Persistence is handled by add_user_message when conversation is created
+        # System messages added during initialization are persisted later
 
     async def add_user_message(self, content: str) -> None:
         """Add user message to conversation history.
@@ -449,8 +449,8 @@ class ConversationHistory:
         message = AIMessage(content=content)
         self.messages.append(message)
 
-        # Persist if enabled
-        self._persist_message(message)
+        # Note: Persistence happens via explicit calls in TUI app
+        # No auto-persistence for assistant messages to avoid blocking
 
     def add_message(self, role: str, content: str) -> None:
         """Add message to history with specified role.
@@ -473,7 +473,12 @@ class ConversationHistory:
         if role_lower == "system":
             self.add_system_message(content)
         elif role_lower in ("user", "human"):
-            self.add_user_message(content)
+            # Note: This is synchronous wrapper - just add to memory without persistence
+            # Use add_user_message() directly for async/persistence support
+            from langchain_core.messages import HumanMessage
+
+            message = HumanMessage(content=content)
+            self.messages.append(message)
         elif role_lower in ("assistant", "ai"):
             self.add_assistant_message(content)
         else:

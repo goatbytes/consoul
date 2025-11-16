@@ -64,9 +64,13 @@ class StreamingResponse(RichLog):
         """Initialize streaming response widget on mount."""
         self.border_title = "Assistant"
         self.add_class("streaming-response")
+        # Disable scrollbars since parent ChatView handles scrolling
+        self.show_vertical_scrollbar = False
+        self.show_horizontal_scrollbar = False
         # Set up a timer to continuously scroll parent during streaming
         # Use faster interval (50ms) for smoother scrolling
-        self.set_interval(0.05, self._auto_scroll_parent)
+        # Store timer reference so we can stop it on finalize
+        self._scroll_timer = self.set_interval(0.05, self._auto_scroll_parent)
 
     def _auto_scroll_parent(self) -> None:
         """Periodically scroll parent container during streaming.
@@ -75,7 +79,8 @@ class StreamingResponse(RichLog):
         to the bottom as the streaming widget grows in height.
         """
         if self.streaming and self.parent and hasattr(self.parent, "scroll_end"):
-            self.parent.scroll_end(animate=False)
+            # Use call_after_refresh to avoid race conditions with layout
+            self.parent.call_after_refresh(self.parent.scroll_end, animate=False)
 
     async def add_token(self, token: str) -> None:
         """Add a streaming token to the response.
@@ -143,11 +148,25 @@ class StreamingResponse(RichLog):
         tokens, and updates the border title with token count.
         """
         self.streaming = False
+
+        # Stop the auto-scroll timer to prevent race conditions
+        if hasattr(self, "_scroll_timer") and self._scroll_timer:
+            self._scroll_timer.stop()
+
         self.token_buffer.clear()
         # Write final content without cursor
         self.clear()
         self.write(self.full_content)
         self.border_title = f"Assistant ({self.token_count} tokens)"
+
+        # Scroll self to bottom first (in case content is taller than viewport)
+        self.scroll_end(animate=False)
+
+        # Notify parent to scroll after final content render
+        # Use animate=False to prevent animation drift causing scroll-up
+        # scroll_end() already uses call_after_refresh internally for proper timing
+        if self.parent and hasattr(self.parent, "scroll_end"):
+            self.parent.scroll_end(animate=False)
 
     def reset(self) -> None:
         """Clear content and reset state.

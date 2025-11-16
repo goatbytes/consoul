@@ -372,6 +372,8 @@ StreamingResponse {
     padding: 1 2;
     border: round $success;
     border-title-color: $success;
+    scrollbar-size: 0 0;
+    overflow-y: hidden;
 }
 
 StreamingResponse.streaming {

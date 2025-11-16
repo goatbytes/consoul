@@ -99,7 +99,12 @@ class ChatView(VerticalScroll):
             await self.mount(self._typing_indicator)
 
             if self.auto_scroll:
-                self.scroll_end(animate=True)
+                # Defer scroll until after layout pass to avoid race condition
+                # Use two refresh cycles to ensure both user message and typing indicator are laid out
+                def _scroll_after_layout() -> None:
+                    self.call_after_refresh(self.scroll_end, animate=True)
+
+                self.call_after_refresh(_scroll_after_layout)
 
     async def hide_typing_indicator(self) -> None:
         """Hide typing indicator when streaming begins.

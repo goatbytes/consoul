@@ -1060,7 +1060,7 @@ class ConsoulApp(App[None]):
 
                     await asyncio.sleep(0)
 
-            # Finalize streaming widget
+            # Finalize streaming widget (this handles scrolling internally)
             await stream_widget.finalize_stream()
 
             # Get complete response
@@ -1908,11 +1908,11 @@ class ConsoulApp(App[None]):
         """Show import modal."""
         from consoul.tui.widgets.import_modal import ImportModal
 
-        def on_import(success: bool) -> None:
+        async def on_import(success: bool) -> None:
             if success:
                 self.notify("Import successful", severity="success")
                 # Reload conversation list
-                self.conversation_list.load_conversations()
+                await self.conversation_list.load_conversations()
 
         modal = ImportModal(db=self.conversation_list.db)
         self.push_screen(modal, on_import)
