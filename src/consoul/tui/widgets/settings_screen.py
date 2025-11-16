@@ -525,9 +525,9 @@ class SettingsScreen(ModalScreen[bool]):
         """
         try:
             # Post message to toggle sidebar (temporary preview)
-            from consoul.tui.widgets.sidebar import Sidebar
+            from consoul.tui.widgets.conversation_list import ConversationList
 
-            sidebar = self.app.query_one(Sidebar)
+            sidebar = self.app.query_one(ConversationList)
             if show and not sidebar.display:
                 sidebar.display = True
             elif not show and sidebar.display:
@@ -602,7 +602,9 @@ class SettingsScreen(ModalScreen[bool]):
             for button in gc_mode_set.query(RadioButton):
                 button_id = str(button.id)
                 if button_id.endswith(self._original_config.gc_mode):
-                    gc_mode_set.pressed_button = button
+                    button.value = (
+                        True  # Press the button instead of setting pressed_button
+                    )
                     break
         except Exception:
             pass
@@ -612,7 +614,9 @@ class SettingsScreen(ModalScreen[bool]):
             for button in renderer_set.query(RadioButton):
                 button_id = str(button.id)
                 if button_id.endswith(self._original_config.stream_renderer):
-                    renderer_set.pressed_button = button
+                    button.value = (
+                        True  # Press the button instead of setting pressed_button
+                    )
                     break
         except Exception:
             pass
@@ -644,7 +648,7 @@ class SettingsScreen(ModalScreen[bool]):
             error_label.update("")
 
             # Collect values from widgets
-            settings = {}
+            settings: dict[str, Any] = {}
 
             # Switches
             for switch_id in [

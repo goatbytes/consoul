@@ -431,11 +431,11 @@ class PermissionManagerScreen(ModalScreen[bool]):
                 confirmed = await self._confirm_unrestricted_policy()
                 if not confirmed:
                     # Reset to previous policy
-                    event.select.value = self.config.tools.permission_policy
+                    event.select.value = self.config.tools.permission_policy  # type: ignore[assignment]
                     return
 
             # Update config
-            self.config.tools.permission_policy = new_policy
+            self.config.tools.permission_policy = new_policy  # type: ignore[assignment]
 
             # Update description
             description = self.query_one("#policy-description", Static)
