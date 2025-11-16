@@ -29,7 +29,7 @@
       "id": "20251115095026-bdb60b8a",
       "ticket_id": "SOUL-111",
       "author": "jared@goatbytes.io",
-      "content": "Comprehensive file editing documentation completed and committed (9cbb752).\n\nDeliverables:\n✅ docs/user-guide/file-editing.md (800+ lines)\n   - Complete guide covering all 5 tools\n   - Configuration reference\n   - Security & permissions\n   - Progressive matching explained\n   - Common workflows\n   - Troubleshooting\n\n✅ docs/tools.md updated (~140 lines added)\n   - File editing section with quick reference\n   - Progressive matching table\n   - Configuration examples\n   - Multi-language support table updated\n\n✅ SECURITY.md updated (~190 lines added)\n   - File operations security section\n   - Path validation details\n   - Threat model\n   - Security checklist\n   - Configuration best practices\n\n✅ README.md updated\n   - Added file editing to features list\n\n✅ Working examples created (docs/examples/file-editing/)\n   - simple_edit.py: Natural language editing\n   - search_replace.py: Progressive matching demos\n   - refactoring.py: Multi-file workflows\n   - config_examples.yaml: 8 environment configs\n   - README.md: Examples guide\n\nAll acceptance criteria met:\n✅ User guide with clear tool explanations\n✅ All config options documented with defaults\n✅ Troubleshooting explains tolerance levels\n✅ Working example scripts in docs/examples/\n✅ Security section explains validation & approval\n\nTotal documentation: ~2600+ lines\nCommit: 9cbb752",
+      "content": "Comprehensive file editing documentation completed and committed (9cbb752).\n\nDeliverables:\n\u2705 docs/user-guide/file-editing.md (800+ lines)\n   - Complete guide covering all 5 tools\n   - Configuration reference\n   - Security & permissions\n   - Progressive matching explained\n   - Common workflows\n   - Troubleshooting\n\n\u2705 docs/tools.md updated (~140 lines added)\n   - File editing section with quick reference\n   - Progressive matching table\n   - Configuration examples\n   - Multi-language support table updated\n\n\u2705 SECURITY.md updated (~190 lines added)\n   - File operations security section\n   - Path validation details\n   - Threat model\n   - Security checklist\n   - Configuration best practices\n\n\u2705 README.md updated\n   - Added file editing to features list\n\n\u2705 Working examples created (docs/examples/file-editing/)\n   - simple_edit.py: Natural language editing\n   - search_replace.py: Progressive matching demos\n   - refactoring.py: Multi-file workflows\n   - config_examples.yaml: 8 environment configs\n   - README.md: Examples guide\n\nAll acceptance criteria met:\n\u2705 User guide with clear tool explanations\n\u2705 All config options documented with defaults\n\u2705 Troubleshooting explains tolerance levels\n\u2705 Working example scripts in docs/examples/\n\u2705 Security section explains validation & approval\n\nTotal documentation: ~2600+ lines\nCommit: 9cbb752",
       "edited": false,
       "edit_count": 0,
       "is_ai_generated": false,
@@ -42,5 +42,10 @@
   "comment_count": 1,
   "story_points": 3,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-16T08:16:44.172799",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

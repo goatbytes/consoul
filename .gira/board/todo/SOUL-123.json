@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-16T08:03:22.880815",
-  "updated_at": "2025-11-16T08:03:22.880824",
+  "updated_at": "2025-11-16T16:15:53.070252Z",
   "id": "SOUL-123",
   "uuid": "b3024b0e-48e3-4e73-9916-a8640b850233",
   "title": "Implement HuggingFace provider initialization in get_chat_model()",
@@ -13,6 +13,7 @@
     "providers",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

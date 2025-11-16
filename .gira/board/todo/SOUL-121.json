@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-16T08:02:25.906690",
-  "updated_at": "2025-11-16T08:02:25.906700",
+  "updated_at": "2025-11-16T16:15:53.066868Z",
   "id": "SOUL-121",
   "uuid": "108f5d27-24b6-4a19-8a15-6b2dd97f654a",
   "title": "Add HuggingFace provider to Provider enum and configuration",
@@ -13,6 +13,7 @@
     "providers",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

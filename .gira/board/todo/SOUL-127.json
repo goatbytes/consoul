@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-16T08:04:53.553289",
-  "updated_at": "2025-11-16T08:04:53.553301",
+  "updated_at": "2025-11-16T16:15:53.078450Z",
   "id": "SOUL-127",
   "uuid": "3ac3d45a-aa6b-4885-9be3-66313cc415d4",
   "title": "Document HuggingFace provider usage in README and configuration guide",
@@ -12,6 +12,7 @@
     "documentation",
     "providers"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

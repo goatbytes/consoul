@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-16T08:04:14.122743",
-  "updated_at": "2025-11-16T08:04:14.122753",
+  "updated_at": "2025-11-16T16:15:53.071137Z",
   "id": "SOUL-125",
   "uuid": "263cb1e5-8f82-4483-9607-794c995a7cca",
   "title": "Add HuggingFace provider integration tests with real API",
@@ -13,6 +13,7 @@
     "ai",
     "providers"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

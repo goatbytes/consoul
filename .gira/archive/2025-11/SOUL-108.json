@@ -29,5 +29,10 @@
   "comment_count": 0,
   "story_points": 5,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-16T08:16:44.123312",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

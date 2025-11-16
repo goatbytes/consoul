@@ -6,7 +6,9 @@
       "title",
       "status",
       "assignee",
-      "priority"
+      "priority",
+      "epic",
+      "created"
     ],
     "column_order": [
       "id",
@@ -14,7 +16,17 @@
       "title",
       "status",
       "assignee",
-      "priority"
+      "priority",
+      "epic",
+      "sprint",
+      "story_points",
+      "labels",
+      "due_date",
+      "version",
+      "comments",
+      "created",
+      "updated",
+      "reporter"
     ],
     "column_widths": {
       "id": 12,

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-16T08:03:43.866380",
-  "updated_at": "2025-11-16T08:03:43.866386",
+  "updated_at": "2025-11-16T16:15:53.074279Z",
   "id": "SOUL-124",
   "uuid": "1028f61d-47d3-4845-a837-f79c95475fe8",
   "title": "Add pyproject.toml dependencies for HuggingFace support",
@@ -12,6 +12,7 @@
     "dependencies",
     "providers"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
