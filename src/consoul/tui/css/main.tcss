@@ -509,6 +509,22 @@ ConversationList DataTable > .datatable--hover {
     background: $surface-lighten-1;
 }
 
+/* Empty state for conversation list */
+#empty-conversation-label {
+    display: none;  /* Hidden by default, shown via Python when row_count == 0 */
+    align: center middle;
+}
+
+.empty-state-content {
+    align: center middle;
+    text-align: center;
+    padding: 1 2;
+}
+
+.empty-state-content Label {
+    text-align: center;
+}
+
 /* ============================================================================
  * Scrollbars
  * ============================================================================ */

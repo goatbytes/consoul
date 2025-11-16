@@ -6,6 +6,7 @@ chat views, input areas, message bubbles, and modal dialogs.
 
 from __future__ import annotations
 
+from consoul.tui.widgets.center_middle import CenterMiddle
 from consoul.tui.widgets.chat_view import ChatView
 from consoul.tui.widgets.contextual_top_bar import ContextualTopBar
 from consoul.tui.widgets.conversation_list import ConversationList
@@ -26,6 +27,7 @@ from consoul.tui.widgets.tool_call_widget import ToolCallWidget
 from consoul.tui.widgets.typing_indicator import TypingIndicator
 
 __all__ = [
+    "CenterMiddle",
     "ChatView",
     "ContextualTopBar",
     "ConversationList",

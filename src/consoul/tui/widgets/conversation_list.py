@@ -10,12 +10,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar
 
 from textual.binding import Binding, BindingType
-from textual.containers import Container
+from textual.containers import Container, Vertical
 from textual.coordinate import Coordinate
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import ModalScreen
 from textual.widgets import Button, DataTable, Input, Label
+
+from consoul.tui.widgets.center_middle import CenterMiddle
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
@@ -81,8 +83,18 @@ class ConversationList(Container):
         """Compose conversation list widgets.
 
         Yields:
-            DataTable widget for displaying conversations
+            DataTable widget for displaying conversations and empty state label
         """
+        # Empty state message (shown when no conversations exist)
+        with CenterMiddle(id="empty-conversation-label"):
+            yield Vertical(
+                Label("[dim i]No conversations yet[/]"),
+                Label(""),
+                Label("[dim]Start a new conversation by typing a message below[/]"),
+                classes="empty-state-content",
+            )
+
+        # Conversation table
         self.table: DataTable[str] = DataTable(cursor_type="row", zebra_stripes=True)
         yield self.table
 
@@ -133,6 +145,7 @@ class ConversationList(Container):
 
         self.conversation_count = self.loaded_count
         self._update_title()
+        self._update_empty_state()
 
     async def reload_conversations(self) -> None:
         """Reload all conversations from database asynchronously to avoid blocking UI.
@@ -143,6 +156,7 @@ class ConversationList(Container):
         self.table.clear()
         self.loaded_count = 0
         self._is_searching = False
+        self._update_empty_state()  # Update after clearing
         await self.load_conversations()
 
     def _get_conversation_title(self, conv: dict) -> str:  # type: ignore[type-arg]
@@ -181,6 +195,15 @@ class ConversationList(Container):
     def _update_title(self) -> None:
         """Update border title with count."""
         self.border_title = f"Conversations ({self.conversation_count})"
+
+    def _update_empty_state(self) -> None:
+        """Update visibility of empty state label based on conversation count."""
+        try:
+            empty_label = self.query_one("#empty-conversation-label")
+            empty_label.display = self.table.row_count == 0
+        except Exception:
+            # Widget not mounted yet or not found
+            pass
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle conversation selection.
