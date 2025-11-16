@@ -721,6 +721,23 @@ def get_chat_model(
                     f"Install local model support with: pip install 'consoul[huggingface-local]'"
                 ) from e
 
+            # Verify required dependencies for local execution
+            import importlib.util
+
+            missing_deps = []
+            if importlib.util.find_spec("transformers") is None:
+                missing_deps.append("transformers")
+            if importlib.util.find_spec("torch") is None:
+                missing_deps.append("torch")
+
+            if missing_deps:
+                raise MissingDependencyError(
+                    f"Local HuggingFace execution requires transformers and torch.\n\n"
+                    f"Missing: {', '.join(missing_deps)}\n\n"
+                    f"Install with: poetry install --extras huggingface-local\n"
+                    f"Or: pip install 'consoul[huggingface-local]'"
+                )
+
             # Build pipeline params
             pipeline_params = {
                 "model_id": params.pop("model"),
