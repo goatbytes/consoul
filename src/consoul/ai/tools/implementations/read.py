@@ -418,7 +418,7 @@ class ReadFileInput(BaseModel):
     )
 
 
-@tool(args_schema=ReadFileInput)  # type: ignore[misc]
+@tool(args_schema=ReadFileInput)
 def read_file(
     file_path: str,
     offset: int | None = None,

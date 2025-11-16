@@ -6,7 +6,7 @@ import json
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from rich.syntax import Syntax
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, Static
@@ -157,7 +157,7 @@ class ToolApprovalModal(ModalScreen[bool]):
     }
     """
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("y", "approve", "Approve", show=False),
         Binding("n", "deny", "Deny", show=False),
         Binding("escape", "deny", "Deny", show=False),

@@ -406,7 +406,7 @@ def _search_symbols(
     return matching_symbols
 
 
-@tool  # type: ignore[misc]
+@tool
 def code_search(
     query: str,
     path: str = ".",

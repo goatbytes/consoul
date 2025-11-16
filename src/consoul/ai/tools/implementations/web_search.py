@@ -148,7 +148,8 @@ def _execute_jina_search(
                         {
                             "title": item.get("title", ""),
                             "snippet": item.get(
-                                "snippet", item.get("description", item.get("content", ""))
+                                "snippet",
+                                item.get("description", item.get("content", "")),
                             ),
                             "link": item.get("link", item.get("url", "")),
                             "engine": "jina",
@@ -342,7 +343,7 @@ def _execute_duckduckgo_search(
         ) from e
 
 
-@tool  # type: ignore[misc]
+@tool
 def web_search(
     query: str,
     max_results: int | None = None,
@@ -447,7 +448,9 @@ def web_search(
             return json.dumps(results, indent=2, ensure_ascii=False)
 
         except ToolExecutionError as e:
-            logger.warning(f"Jina Search failed, falling back to SearxNG/DuckDuckGo: {e}")
+            logger.warning(
+                f"Jina Search failed, falling back to SearxNG/DuckDuckGo: {e}"
+            )
             # Continue to next backend
 
     # Priority 2: Try SearxNG if configured (self-hosted)

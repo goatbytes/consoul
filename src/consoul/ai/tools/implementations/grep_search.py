@@ -373,7 +373,7 @@ def _execute_search(
         raise ToolExecutionError(f"Search execution failed: {e}") from e
 
 
-@tool  # type: ignore[misc]
+@tool
 def grep_search(
     pattern: str,
     path: str = ".",

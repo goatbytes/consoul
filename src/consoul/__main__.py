@@ -12,33 +12,33 @@ from consoul.config.loader import load_config
 from consoul.config.profiles import get_builtin_profiles, get_profile_description
 
 
-@click.group(invoke_without_command=True)  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@click.group(invoke_without_command=True)
+@click.option(
     "--profile",
     "-p",
     default="default",
     help="Configuration profile to use",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--list-profiles",
     is_flag=True,
     help="List all available profiles and exit",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--temperature",
     type=float,
     help="Override model temperature (0.0-2.0)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--model",
     help="Override model name",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--max-tokens",
     type=int,
     help="Override maximum tokens to generate",
 )
-@click.pass_context  # type: ignore[misc]
+@click.pass_context
 def cli(
     ctx: click.Context,
     profile: str,
@@ -107,8 +107,8 @@ def cli(
         click.echo(ctx.get_help())
 
 
-@cli.command()  # type: ignore[misc]
-@click.pass_context  # type: ignore[misc]
+@cli.command()
+@click.pass_context
 def chat(ctx: click.Context) -> None:
     """Start an interactive chat session."""
     click.echo("Chat functionality - Coming Soon!")
@@ -118,31 +118,31 @@ def chat(ctx: click.Context) -> None:
     click.echo(f"Model: {config.current_provider.value} - {config.current_model}")
 
 
-@cli.command()  # type: ignore[misc]
-@click.argument("config_path", type=click.Path(path_type=Path))  # type: ignore[misc]
-@click.pass_context  # type: ignore[misc]
+@cli.command()
+@click.argument("config_path", type=click.Path(path_type=Path))
+@click.pass_context
 def init(ctx: click.Context, config_path: Path) -> None:
     """Initialize a new Consoul configuration file."""
     click.echo(f"Initializing config at: {config_path}")
     click.echo("Init functionality - Coming Soon!")
 
 
-@cli.group()  # type: ignore[misc]
-@click.pass_context  # type: ignore[misc]
+@cli.group()
+@click.pass_context
 def history(ctx: click.Context) -> None:
     """Manage conversation history."""
     pass
 
 
-@history.command("list")  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@history.command("list")
+@click.option(
     "--limit",
     "-n",
     type=int,
     default=10,
     help="Number of conversations to show (default: 10)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--db-path",
     type=click.Path(path_type=Path),
     help="Path to history database (default: ~/.consoul/history.db)",
@@ -179,9 +179,9 @@ def list_history(limit: int, db_path: Path | None) -> None:
         sys.exit(1)
 
 
-@history.command("show")  # type: ignore[misc]
-@click.argument("session_id")  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@history.command("show")
+@click.argument("session_id")
+@click.option(
     "--db-path",
     type=click.Path(path_type=Path),
     help="Path to history database (default: ~/.consoul/history.db)",
@@ -234,9 +234,9 @@ def show_history(session_id: str, db_path: Path | None) -> None:
         sys.exit(1)
 
 
-@history.command("summary")  # type: ignore[misc]
-@click.argument("session_id")  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@history.command("summary")
+@click.argument("session_id")
+@click.option(
     "--db-path",
     type=click.Path(path_type=Path),
     help="Path to history database (default: ~/.consoul/history.db)",
@@ -284,42 +284,42 @@ def summary_history(session_id: str, db_path: Path | None) -> None:
         sys.exit(1)
 
 
-@history.command("search")  # type: ignore[misc]
-@click.argument("query")  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@history.command("search")
+@click.argument("query")
+@click.option(
     "--limit",
     "-n",
     type=int,
     default=20,
     help="Maximum number of results to return (default: 20)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--model",
     help="Filter results by model name",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--after",
     help="Filter results after this date (ISO format: YYYY-MM-DD)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--before",
     help="Filter results before this date (ISO format: YYYY-MM-DD)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--context",
     "-c",
     type=int,
     default=2,
     help="Number of surrounding messages to show (default: 2)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--format",
     "-f",
     type=click.Choice(["text", "json"], case_sensitive=False),
     default="text",
     help="Output format (default: text)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--db-path",
     type=click.Path(path_type=Path),
     help="Path to history database (default: ~/.consoul/history.db)",
@@ -436,14 +436,14 @@ def search_history(
         sys.exit(1)
 
 
-@history.command("delete")  # type: ignore[misc]
-@click.argument("session_id")  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@history.command("delete")
+@click.argument("session_id")
+@click.option(
     "--db-path",
     type=click.Path(path_type=Path),
     help="Path to history database (default: ~/.consoul/history.db)",
 )
-@click.confirmation_option(prompt="Are you sure you want to delete this conversation?")  # type: ignore[misc]
+@click.confirmation_option(prompt="Are you sure you want to delete this conversation?")
 def delete_history(session_id: str, db_path: Path | None) -> None:
     """Delete a conversation session."""
     from consoul.ai.database import (
@@ -465,13 +465,13 @@ def delete_history(session_id: str, db_path: Path | None) -> None:
         sys.exit(1)
 
 
-@history.command("clear")  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@history.command("clear")
+@click.option(
     "--db-path",
     type=click.Path(path_type=Path),
     help="Path to history database (default: ~/.consoul/history.db)",
 )
-@click.confirmation_option(  # type: ignore[misc]
+@click.confirmation_option(
     prompt="Are you sure you want to delete ALL conversations? This cannot be undone!"
 )
 def clear_history(db_path: Path | None) -> None:
@@ -488,8 +488,8 @@ def clear_history(db_path: Path | None) -> None:
         sys.exit(1)
 
 
-@history.command("stats")  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@history.command("stats")
+@click.option(
     "--db-path",
     type=click.Path(path_type=Path),
     help="Path to history database (default: ~/.consoul/history.db)",
@@ -519,22 +519,22 @@ def stats_history(db_path: Path | None) -> None:
         sys.exit(1)
 
 
-@history.command("export")  # type: ignore[misc]
-@click.argument("session_id", required=False)  # type: ignore[misc]
-@click.argument("output_file", type=click.Path(path_type=Path))  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@history.command("export")
+@click.argument("session_id", required=False)
+@click.argument("output_file", type=click.Path(path_type=Path))
+@click.option(
     "--format",
     "-f",
     type=click.Choice(["json", "markdown", "html", "csv"], case_sensitive=False),
     default="json",
     help="Output format (default: json)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--all",
     is_flag=True,
     help="Export all conversations (JSON format only)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--db-path",
     type=click.Path(path_type=Path),
     help="Path to history database (default: ~/.consoul/history.db)",
@@ -632,14 +632,14 @@ def export_history(
         sys.exit(1)
 
 
-@history.command("import")  # type: ignore[misc]
-@click.argument("import_file", type=click.Path(exists=True, path_type=Path))  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@history.command("import")
+@click.argument("import_file", type=click.Path(exists=True, path_type=Path))
+@click.option(
     "--dry-run",
     is_flag=True,
     help="Validate import file without importing",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--db-path",
     type=click.Path(path_type=Path),
     help="Path to history database (default: ~/.consoul/history.db)",

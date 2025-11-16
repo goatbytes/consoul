@@ -242,7 +242,7 @@ def _run_command(
         raise ToolExecutionError(f"Failed to execute command: {e}") from e
 
 
-@tool  # type: ignore[misc]
+@tool
 def bash_execute(
     command: str,
     timeout: int | None = None,

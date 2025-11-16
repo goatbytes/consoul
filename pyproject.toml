@@ -145,6 +145,7 @@ pre-commit = "^4.4.0"
 attrs = "^25.4.0"
 types-pyyaml = "^6.0.12.20250915"
 types-requests = "^2.32.4.20250913"
+types-pyperclip = "^1.9.0.20250801"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.6.1"
@@ -270,6 +271,9 @@ module = [
     "langchain_ollama.*",
     "pydantic.*",
     "click.*",
+    "diskcache.*",
+    "grep_ast.*",
+    "pypdf.*",
 ]
 ignore_missing_imports = true
 

@@ -501,7 +501,7 @@ def _find_symbol_references(
     return all_references
 
 
-@tool  # type: ignore[misc]
+@tool
 def find_references(
     symbol: str,
     path: str = ".",

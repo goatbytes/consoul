@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, Static, TabbedContent, TabPane
@@ -139,7 +139,7 @@ class HelpModal(ModalScreen[None]):
     }
     """
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("escape", "close", "Close", show=False),
     ]
 
@@ -169,13 +169,11 @@ class HelpModal(ModalScreen[None]):
             yield Label("Consoul Help", classes="modal-title")
 
             with TabbedContent():
-                with TabPane("Keyboard Shortcuts"):
-                    with VerticalScroll():
-                        yield from self._compose_shortcuts_tab()
+                with TabPane("Keyboard Shortcuts"), VerticalScroll():
+                    yield from self._compose_shortcuts_tab()
 
-                with TabPane("About"):
-                    with VerticalScroll():
-                        yield from self._compose_about_tab()
+                with TabPane("About"), VerticalScroll():
+                    yield from self._compose_about_tab()
 
             # Close button
             with Horizontal(classes="button-container"):

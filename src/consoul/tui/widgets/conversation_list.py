@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.containers import Container
 from textual.message import Message
 from textual.reactive import reactive
@@ -56,7 +56,7 @@ class ConversationList(Container):
     selected_id: reactive[str | None] = reactive(None)
 
     # Key bindings
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("f2", "rename_conversation", "Rename", show=False),
     ]
 

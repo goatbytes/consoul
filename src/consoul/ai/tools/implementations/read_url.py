@@ -241,7 +241,7 @@ def _read_with_trafilatura(url: str, timeout: int) -> str:
         ) from e
 
 
-@tool  # type: ignore[misc]
+@tool
 def read_url(
     url: str,
     use_fallback: bool | None = None,
