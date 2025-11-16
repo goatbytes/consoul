@@ -1908,9 +1908,9 @@ class ConsoulApp(App[None]):
         """Show import modal."""
         from consoul.tui.widgets.import_modal import ImportModal
 
-        async def on_import(success: bool) -> None:
+        async def on_import(success: bool | None) -> None:
             if success:
-                self.notify("Import successful", severity="success")
+                self.notify("Import successful", severity="information")
                 # Reload conversation list
                 await self.conversation_list.load_conversations()
 

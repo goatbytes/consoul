@@ -348,6 +348,14 @@ class ConversationHistory:
             # Count tokens for this message
             tokens = self._token_counter([message])
 
+            # Handle both string and complex content types
+            content = message.content
+            if isinstance(content, list):
+                # Complex content - serialize to string
+                import json
+
+                content = json.dumps(content)
+
             # Run blocking database write in executor to avoid blocking event loop
             import asyncio
 
@@ -357,7 +365,7 @@ class ConversationHistory:
                 self._db.save_message,
                 self.session_id,
                 role,
-                message.content,
+                content,
                 tokens,
             )
 
@@ -439,11 +447,18 @@ class ConversationHistory:
 
         try:
             role = message.type
-            tokens = self.token_counter.count_message_tokens(message)
+            tokens = self._token_counter([message])
+            # Handle both string and complex content types
+            content = message.content
+            if isinstance(content, list):
+                # Complex content - serialize to string
+                import json
+
+                content = json.dumps(content)
             self._db.save_message(
                 self.session_id,
                 role,
-                message.content,
+                content,
                 tokens,
             )
         except Exception as e:
