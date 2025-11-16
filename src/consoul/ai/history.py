@@ -393,7 +393,7 @@ class ConversationHistory:
         # Note: Persistence is handled by add_user_message when conversation is created
         # System messages added during initialization are persisted later
 
-    async def add_user_message(self, content: str) -> None:
+    def add_user_message(self, content: str) -> None:
         """Add user message to conversation history.
 
         Args:
@@ -404,6 +404,41 @@ class ConversationHistory:
             >>> history.add_user_message("Hello!")
             >>> len(history)
             1
+        """
+        message = HumanMessage(content=content)
+        self.messages.append(message)
+
+        # Note: Persistence handled separately in async contexts (TUI)
+        # SDK users can call _persist_message_sync() if needed
+
+    def _persist_message_sync(self, message: BaseMessage) -> None:
+        """Synchronously persist a message (blocking).
+
+        For use in synchronous contexts like SDK. TUI should use async version.
+
+        Args:
+            message: Message to persist
+        """
+        if not self.persist or not self._db or not self.session_id:
+            return
+
+        try:
+            role = message.type
+            tokens = self.token_counter.count_message_tokens(message)
+            self._db.save_message(
+                self.session_id,
+                role,
+                message.content,
+                tokens,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to persist message: {e}")
+
+    async def add_user_message_async(self, content: str) -> None:
+        """Add user message to conversation history (async version for TUI).
+
+        Args:
+            content: User message content
         """
         # Create conversation in DB on first user message if not already created
         if self.persist and self._db and not self._conversation_created:

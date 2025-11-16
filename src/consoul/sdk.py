@@ -345,12 +345,8 @@ class Consoul:
         """
         self._track_request(message)
 
-        # Add user message synchronously (persistence handled later if enabled)
-        from langchain_core.messages import HumanMessage
-
-        # Just add to memory, no persistence in sync SDK
-        user_message = HumanMessage(content=message)
-        self.history.messages.append(user_message)
+        # Add user message (synchronous version for SDK)
+        self.history.add_user_message(message)
 
         # Get response (streaming handled internally)
         messages = self.history.get_trimmed_messages(reserve_tokens=1000)
