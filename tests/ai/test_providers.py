@@ -5,6 +5,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import SecretStr
 
+# Check if langchain_huggingface is available
+try:
+    import langchain_huggingface  # noqa: F401
+
+    HAS_HUGGINGFACE = True
+except ImportError:
+    HAS_HUGGINGFACE = False
+
 from consoul.ai.exceptions import (
     InvalidModelError,
     MissingAPIKeyError,
@@ -21,6 +29,7 @@ from consoul.ai.providers import (
 from consoul.config.models import (
     AnthropicModelConfig,
     GoogleModelConfig,
+    HuggingFaceModelConfig,
     OllamaModelConfig,
     OpenAIModelConfig,
     Provider,
@@ -361,6 +370,63 @@ class TestBuildModelParams:
         assert params["top_p"] == 0.9
         assert params["top_k"] == 40
 
+    def test_build_params_huggingface_basic(self):
+        """Test building basic parameters for HuggingFace model."""
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            temperature=0.7,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "meta-llama/Llama-3.1-8B-Instruct"
+        assert params["temperature"] == 0.7
+        # HuggingFaceModelConfig has defaults
+        assert params["task"] == "text-generation"
+        assert params["max_new_tokens"] == 512
+        assert params["do_sample"] is True
+
+    def test_build_params_huggingface_full(self):
+        """Test building full parameters for HuggingFace model."""
+        config = HuggingFaceModelConfig(
+            model="mistralai/Mistral-7B-Instruct-v0.2",
+            temperature=0.8,
+            max_tokens=2048,
+            task="text-generation",
+            max_new_tokens=1024,
+            do_sample=True,
+            repetition_penalty=1.1,
+            top_p=0.95,
+            top_k=50,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "mistralai/Mistral-7B-Instruct-v0.2"
+        assert params["temperature"] == 0.8
+        assert params["max_tokens"] == 2048
+        assert params["task"] == "text-generation"
+        assert params["max_new_tokens"] == 1024
+        assert params["do_sample"] is True
+        assert params["repetition_penalty"] == 1.1
+        assert params["top_p"] == 0.95
+        assert params["top_k"] == 50
+
+    def test_build_params_huggingface_with_model_kwargs(self):
+        """Test building HuggingFace parameters with model_kwargs."""
+        model_kwargs = {"use_cache": True, "return_full_text": False}
+        config = HuggingFaceModelConfig(
+            model="google/flan-t5-xxl",
+            temperature=0.5,
+            model_kwargs=model_kwargs,
+        )
+
+        params = build_model_params(config)
+
+        assert params["model"] == "google/flan-t5-xxl"
+        assert params["temperature"] == 0.5
+        assert params["model_kwargs"] == model_kwargs
+
     def test_build_params_openai_with_seed(self):
         """Test building parameters for OpenAI model with seed."""
         config = OpenAIModelConfig(
@@ -515,6 +581,123 @@ class TestGetChatModel:
         assert call_kwargs["model_provider"] == "ollama"
         # No API key for Ollama
         assert "ollama_api_key" not in call_kwargs
+
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    def test_get_chat_model_huggingface(self, mock_endpoint, mock_chat_hf):
+        """Test initializing HuggingFace chat model."""
+        mock_llm = MagicMock()
+        mock_endpoint.return_value = mock_llm
+        mock_chat_model = MagicMock()
+        mock_chat_hf.return_value = mock_chat_model
+
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            temperature=0.7,
+            task="text-generation",
+            max_new_tokens=512,
+        )
+        api_key = SecretStr("hf_test123")
+
+        result = get_chat_model(config, api_key=api_key)
+
+        assert result == mock_chat_model
+        # Verify HuggingFaceEndpoint was called with correct params
+        endpoint_kwargs = mock_endpoint.call_args.kwargs
+        assert endpoint_kwargs["repo_id"] == "meta-llama/Llama-3.1-8B-Instruct"
+        assert endpoint_kwargs["task"] == "text-generation"
+        assert endpoint_kwargs["max_new_tokens"] == 512
+        assert endpoint_kwargs["do_sample"] is True
+        assert endpoint_kwargs["huggingfacehub_api_token"] == "hf_test123"
+        # Verify ChatHuggingFace was called with the endpoint
+        mock_chat_hf.assert_called_once()
+        chat_hf_kwargs = mock_chat_hf.call_args.kwargs
+        assert chat_hf_kwargs["llm"] == mock_llm
+
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    def test_get_chat_model_huggingface_with_params(self, mock_endpoint, mock_chat_hf):
+        """Test initializing HuggingFace model with all parameters."""
+        mock_llm = MagicMock()
+        mock_endpoint.return_value = mock_llm
+        mock_chat_model = MagicMock()
+        mock_chat_hf.return_value = mock_chat_model
+
+        config = HuggingFaceModelConfig(
+            model="mistralai/Mistral-7B-Instruct-v0.2",
+            temperature=0.8,
+            task="text-generation",
+            max_new_tokens=1024,
+            do_sample=True,
+            repetition_penalty=1.1,
+            top_p=0.95,
+            top_k=50,
+        )
+        api_key = SecretStr("hf_test456")
+
+        result = get_chat_model(config, api_key=api_key)
+
+        assert result == mock_chat_model
+        endpoint_kwargs = mock_endpoint.call_args.kwargs
+        assert endpoint_kwargs["repo_id"] == "mistralai/Mistral-7B-Instruct-v0.2"
+        assert endpoint_kwargs["task"] == "text-generation"
+        assert endpoint_kwargs["max_new_tokens"] == 1024
+        assert endpoint_kwargs["do_sample"] is True
+        assert endpoint_kwargs["repetition_penalty"] == 1.1
+        assert endpoint_kwargs["top_p"] == 0.95
+        assert endpoint_kwargs["top_k"] == 50
+        assert endpoint_kwargs["huggingfacehub_api_token"] == "hf_test456"
+
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    @patch("consoul.config.env.get_api_key")
+    def test_get_chat_model_huggingface_missing_api_key(
+        self, mock_get_api_key, mock_endpoint
+    ):
+        """Test that missing HuggingFace API key raises MissingAPIKeyError."""
+        mock_get_api_key.return_value = None
+        mock_endpoint.side_effect = Exception("API token required")
+
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            temperature=0.7,
+        )
+
+        with pytest.raises(MissingAPIKeyError) as exc_info:
+            get_chat_model(config)
+
+        error_msg = str(exc_info.value)
+        assert "HUGGINGFACEHUB_API_TOKEN" in error_msg
+        assert "huggingface" in error_msg.lower()
+
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    def test_get_chat_model_huggingface_invalid_model(self, mock_endpoint):
+        """Test that invalid HuggingFace model raises InvalidModelError."""
+        mock_endpoint.side_effect = Exception("Model not found (404)")
+
+        config = HuggingFaceModelConfig(
+            model="invalid/model-name",
+            temperature=0.7,
+        )
+        api_key = SecretStr("hf_test123")
+
+        with pytest.raises(InvalidModelError) as exc_info:
+            get_chat_model(config, api_key=api_key)
+
+        error_msg = str(exc_info.value)
+        assert "invalid/model-name" in error_msg
+        assert "not found" in error_msg.lower()
 
     @patch("consoul.config.env.get_api_key")
     def test_get_chat_model_missing_api_key(self, mock_get_api_key):

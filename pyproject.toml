@@ -49,6 +49,7 @@ dependencies = [
     "langchain-anthropic>=1.0.0",
     "langchain-google-genai>=2.0.0",
     "langchain-ollama>=1.0.0",
+    "langchain-huggingface>=0.1.0",
     "click>=8.1.0",
     "pydantic>=2.12.4",
     "pydantic-settings>=2.0.0",

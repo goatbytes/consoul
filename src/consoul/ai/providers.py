@@ -619,6 +619,8 @@ def get_chat_model(
             params["anthropic_api_key"] = resolved_api_key
         elif provider == Provider.GOOGLE:
             params["google_api_key"] = resolved_api_key
+        elif provider == Provider.HUGGINGFACE:
+            params["huggingfacehub_api_token"] = resolved_api_key
 
     # Add Ollama-specific base_url parameter
     if provider == Provider.OLLAMA:
@@ -631,7 +633,65 @@ def get_chat_model(
     # Merge with any additional kwargs
     params.update(kwargs)
 
-    # Initialize the model
+    # Special handling for HuggingFace - requires wrapper pattern
+    if provider == Provider.HUGGINGFACE:
+        from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
+
+        # Extract HuggingFace-specific params
+        hf_params = {
+            "repo_id": params.pop("model"),
+            "task": params.pop("task", "text-generation"),
+            "max_new_tokens": params.pop("max_new_tokens", 512),
+            "do_sample": params.pop("do_sample", True),
+        }
+
+        # Add optional parameters if present
+        if "repetition_penalty" in params:
+            hf_params["repetition_penalty"] = params.pop("repetition_penalty")
+        if "top_p" in params:
+            hf_params["top_p"] = params.pop("top_p")
+        if "top_k" in params:
+            hf_params["top_k"] = params.pop("top_k")
+        if "model_kwargs" in params:
+            hf_params.update(params.pop("model_kwargs"))
+
+        # Add API token if present
+        if "huggingfacehub_api_token" in params:
+            hf_params["huggingfacehub_api_token"] = params.pop(
+                "huggingfacehub_api_token"
+            )
+
+        try:
+            # Initialize endpoint and wrap with ChatHuggingFace
+            llm = HuggingFaceEndpoint(**hf_params)
+            return ChatHuggingFace(llm=llm, **params)  # type: ignore[no-any-return]
+        except ImportError as e:
+            raise MissingDependencyError(
+                f"Failed to import langchain-huggingface: {e}\n\n"
+                f"Install with: pip install langchain-huggingface"
+            ) from e
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "api token" in error_msg or "authentication" in error_msg:
+                raise MissingAPIKeyError(
+                    "HuggingFace API token required.\n\n"
+                    "Set HUGGINGFACEHUB_API_TOKEN environment variable or pass api_key parameter.\n\n"
+                    "Get your API token at: https://huggingface.co/settings/tokens"
+                ) from e
+            elif "not found" in error_msg or "404" in error_msg:
+                raise InvalidModelError(
+                    f"Model '{model_config.model}' not found on HuggingFace Hub.\n\n"
+                    f"Error: {e}\n\n"
+                    f"Search for models at: https://huggingface.co/models"
+                ) from e
+            else:
+                raise InvalidModelError(
+                    f"Failed to initialize HuggingFace model '{model_config.model}'.\n\n"
+                    f"Error: {e}\n\n"
+                    f"See available models: https://huggingface.co/models"
+                ) from e
+
+    # Initialize the model using init_chat_model for other providers
     try:
         return init_chat_model(  # type: ignore[no-any-return]
             model_provider=provider.value,
