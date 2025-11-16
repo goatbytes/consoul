@@ -396,13 +396,12 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         self._model_map: dict[str, dict[str, str]] = {}  # row_key -> model metadata
 
         # Check if Ollama is available
-        from consoul.ai.providers import (
-            get_huggingface_local_models,
-            is_ollama_running,
-        )
+        from consoul.ai.providers import is_ollama_running
 
         self._ollama_available = is_ollama_running()
-        self._huggingface_available = len(get_huggingface_local_models()) > 0
+        # Don't check HuggingFace availability on startup (slow cache scan)
+        # Always show HuggingFace tab, will load models on-demand when selected
+        self._huggingface_available = True
 
         super().__init__(**kwargs)
         self.current_model = current_model

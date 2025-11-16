@@ -1,3 +1,5 @@
+![Consoul Banner](.art/banner/consoul-banner-100.jpg)
+
 # Consoul
 
 A beautiful terminal-based AI chat interface built with Textual and LangChain
