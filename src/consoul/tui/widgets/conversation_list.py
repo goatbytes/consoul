@@ -110,6 +110,9 @@ class ConversationList(Container):
         self.table.add_column("Title", key="title")
         self.table.show_header = False
 
+        # Show empty state initially (will be hidden if conversations are loaded)
+        self._update_empty_state()
+
         # Load initial conversations asynchronously
         self.run_worker(self.load_conversations(), exclusive=True)
 
@@ -200,7 +203,12 @@ class ConversationList(Container):
         """Update visibility of empty state label based on conversation count."""
         try:
             empty_label = self.query_one("#empty-conversation-label")
-            empty_label.display = self.table.row_count == 0
+            is_empty = self.table.row_count == 0
+
+            # Show empty state when no conversations, hide table
+            # Show table when conversations exist, hide empty state
+            empty_label.display = is_empty
+            self.table.display = not is_empty
         except Exception:
             # Widget not mounted yet or not found
             pass
