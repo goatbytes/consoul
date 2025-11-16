@@ -464,6 +464,8 @@ def get_chat_model(
         >>> chat_model = get_chat_model("gpt-4o", temperature=0.7)
         >>> chat_model = get_chat_model("claude-3-5-sonnet-20241022")
     """
+    from consoul.config.models import HuggingFaceModelConfig
+
     # Handle string model names with provider auto-detection
     if isinstance(model_config, str):
         model_name = model_config
@@ -619,7 +621,19 @@ def get_chat_model(
 
     # Resolve API key (if required for this provider)
     resolved_api_key: str | None = None
-    if provider != Provider.OLLAMA:  # Ollama doesn't need API key
+
+    # Check if API key is needed for this provider/model combination
+    api_key_required = provider != Provider.OLLAMA  # Ollama doesn't need API key
+
+    # HuggingFace local models don't need API key
+    if (
+        provider == Provider.HUGGINGFACE
+        and isinstance(model_config, HuggingFaceModelConfig)
+        and model_config.local
+    ):
+        api_key_required = False
+
+    if api_key_required:
         if api_key is not None:
             # Explicit override provided
             resolved_api_key = api_key.get_secret_value()
