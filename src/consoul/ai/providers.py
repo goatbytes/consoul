@@ -655,14 +655,15 @@ def supports_tool_calling(model: BaseChatModel) -> bool:
         >>> model = get_chat_model("claude-3-5-sonnet-20241022")
         >>> supports_tool_calling(model)
         True
-        >>> ollama_model = get_chat_model("llama3")
+        >>> ollama_model = get_chat_model("deepseek-r1:70b")
         >>> supports_tool_calling(ollama_model)
         False
 
     Note:
-        This is a lightweight check that doesn't actually bind tools,
-        just inspects the method implementation. Some models may support
-        tools but have different APIs (e.g., require specific formats).
+        This checks if bind_tools is implemented, but some models may
+        still reject tool calls at runtime (e.g., Ollama models that
+        don't support tools will return 400 errors). Use try/except
+        when actually invoking tools for robust error handling.
     """
     # Check if model has bind_tools method
     if not hasattr(model, "bind_tools"):

@@ -1083,7 +1083,41 @@ class ConsoulApp(App[None]):
             # Check if background thread encountered an exception
             stream_exception = await exception_queue.get()
             if stream_exception:
-                # Re-raise to trigger error handling (same as sync errors)
+                # Check if this is a "model does not support tools" error from Ollama
+                error_msg = str(stream_exception).lower()
+                if "does not support tools" in error_msg and "400" in error_msg:
+                    self.log.warning(
+                        f"Model {self.current_model} rejected tool calls. "
+                        "Retrying without tools..."
+                    )
+
+                    # Remove the failed stream widget
+                    await stream_widget.remove()
+
+                    # Remove tool binding from model
+                    from consoul.ai import get_chat_model
+
+                    model_config = self.consoul_config.get_current_model_config()  # type: ignore[union-attr]
+                    self.chat_model = get_chat_model(
+                        model_config, config=self.consoul_config
+                    )
+
+                    # Update conversation's model reference
+                    if self.conversation:
+                        self.conversation._model = self.chat_model
+
+                    # Show notification to user
+                    self.notify(
+                        f"Model {self.current_model} doesn't support tools. Continuing without tools.",
+                        severity="warning",
+                        timeout=5,
+                    )
+
+                    # Retry the request without tools
+                    await self._stream_ai_response()
+                    return
+
+                # Re-raise other exceptions to trigger error handling
                 raise stream_exception
 
             # Get final AIMessage with potential tool_calls
