@@ -785,6 +785,100 @@ class TestGetChatModel:
         assert "max_length" not in chat_hf_kwargs
         assert "stop_sequences" not in chat_hf_kwargs
 
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.llms.huggingface_pipeline.HuggingFacePipeline")
+    def test_get_chat_model_huggingface_local(self, mock_pipeline, mock_chat_hf):
+        """Test local execution with HuggingFacePipeline."""
+        mock_llm = MagicMock()
+        mock_pipeline.from_model_id.return_value = mock_llm
+        mock_chat_model = MagicMock()
+        mock_chat_hf.return_value = mock_chat_model
+
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            local=True,
+            temperature=0.7,
+        )
+
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        # Verify HuggingFacePipeline.from_model_id was called
+        mock_pipeline.from_model_id.assert_called_once()
+        pipeline_kwargs = mock_pipeline.from_model_id.call_args.kwargs
+        assert pipeline_kwargs["model_id"] == "meta-llama/Llama-3.1-8B-Instruct"
+        assert pipeline_kwargs["task"] == "text-generation"
+        assert "model_kwargs" in pipeline_kwargs
+        assert pipeline_kwargs["model_kwargs"]["temperature"] == 0.7
+        # Verify ChatHuggingFace was called with the pipeline
+        mock_chat_hf.assert_called_once()
+        assert mock_chat_hf.call_args.kwargs["llm"] == mock_llm
+
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.llms.huggingface_pipeline.HuggingFacePipeline")
+    def test_get_chat_model_huggingface_local_with_device(
+        self, mock_pipeline, mock_chat_hf
+    ):
+        """Test local execution with device specification."""
+        mock_llm = MagicMock()
+        mock_pipeline.from_model_id.return_value = mock_llm
+        mock_chat_model = MagicMock()
+        mock_chat_hf.return_value = mock_chat_model
+
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            local=True,
+            device="cuda",
+        )
+
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        pipeline_kwargs = mock_pipeline.from_model_id.call_args.kwargs
+        assert pipeline_kwargs["device"] == "cuda"
+
+    @pytest.mark.skipif(
+        not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
+    )
+    @patch("transformers.BitsAndBytesConfig")
+    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.llms.huggingface_pipeline.HuggingFacePipeline")
+    def test_get_chat_model_huggingface_local_with_quantization(
+        self, mock_pipeline, mock_chat_hf, mock_quant_config
+    ):
+        """Test local execution with 4-bit quantization."""
+        mock_llm = MagicMock()
+        mock_pipeline.from_model_id.return_value = mock_llm
+        mock_chat_model = MagicMock()
+        mock_chat_hf.return_value = mock_chat_model
+        mock_quant_instance = MagicMock()
+        mock_quant_config.return_value = mock_quant_instance
+
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            local=True,
+            quantization="4bit",
+        )
+
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        # Verify BitsAndBytesConfig was created with load_in_4bit=True
+        mock_quant_config.assert_called_once_with(load_in_4bit=True)
+        # Verify quantization config was added to model_kwargs
+        pipeline_kwargs = mock_pipeline.from_model_id.call_args.kwargs
+        assert "model_kwargs" in pipeline_kwargs
+        assert (
+            pipeline_kwargs["model_kwargs"]["quantization_config"]
+            == mock_quant_instance
+        )
+
     @patch("consoul.config.env.get_api_key")
     def test_get_chat_model_missing_api_key(self, mock_get_api_key):
         """Test that missing API key raises MissingAPIKeyError."""

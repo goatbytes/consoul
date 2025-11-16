@@ -135,6 +135,7 @@ duckduckgo-search = "^7.0.0"           # Free web search via DuckDuckGo (zero se
 
 [tool.poetry.extras]
 pdf = ["pypdf"]
+huggingface-local = ["transformers", "torch", "accelerate", "bitsandbytes"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.2"

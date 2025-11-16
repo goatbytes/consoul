@@ -229,6 +229,52 @@ class TestHuggingFaceModelConfig:
         assert config.top_k == 50
         assert config.top_p == 0.95
 
+    def test_huggingface_local_defaults(self):
+        """Test that local execution defaults to False."""
+        config = HuggingFaceModelConfig(model="meta-llama/Llama-3.1-8B-Instruct")
+        assert config.local is False
+        assert config.device is None
+        assert config.quantization is None
+
+    def test_huggingface_local_execution(self):
+        """Test local execution configuration."""
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            local=True,
+            device="cuda",
+        )
+        assert config.local is True
+        assert config.device == "cuda"
+
+    def test_huggingface_quantization_4bit(self):
+        """Test 4-bit quantization configuration."""
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            local=True,
+            quantization="4bit",
+        )
+        assert config.quantization == "4bit"
+
+    def test_huggingface_quantization_8bit(self):
+        """Test 8-bit quantization configuration."""
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            local=True,
+            quantization="8bit",
+        )
+        assert config.quantization == "8bit"
+
+    def test_huggingface_invalid_quantization(self):
+        """Test that invalid quantization raises validation error."""
+        with pytest.raises(ValidationError) as exc_info:
+            HuggingFaceModelConfig(
+                model="meta-llama/Llama-3.1-8B-Instruct",
+                local=True,
+                quantization="16bit",  # Invalid value
+            )
+        errors = exc_info.value.errors()
+        assert any("quantization" in str(error) for error in errors)
+
 
 class TestConversationConfig:
     """Tests for ConversationConfig."""

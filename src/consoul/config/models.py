@@ -291,6 +291,18 @@ class HuggingFaceModelConfig(BaseModelConfig):
         default=None,
         description="Additional model-specific kwargs",
     )
+    local: bool = Field(
+        default=False,
+        description="Use local model execution (HuggingFacePipeline) instead of API",
+    )
+    device: str | None = Field(
+        default=None,
+        description="Device for local execution (e.g., 'cuda', 'cpu', 'mps')",
+    )
+    quantization: Literal["4bit", "8bit"] | None = Field(
+        default=None,
+        description="Quantization mode for local models (requires bitsandbytes)",
+    )
 
 
 # Type alias for discriminated union of all model configs

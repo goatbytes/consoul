@@ -347,6 +347,12 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
             params["top_k"] = model_config.top_k
         if model_config.model_kwargs is not None:
             params["model_kwargs"] = model_config.model_kwargs
+        # Local execution parameters
+        params["local"] = model_config.local
+        if model_config.device is not None:
+            params["device"] = model_config.device
+        if model_config.quantization is not None:
+            params["quantization"] = model_config.quantization
 
     return params
 
@@ -633,73 +639,160 @@ def get_chat_model(
     # Merge with any additional kwargs
     params.update(kwargs)
 
-    # Special handling for HuggingFace - requires wrapper pattern
+    # Special handling for HuggingFace - supports both API and local execution
     if provider == Provider.HUGGINGFACE:
-        from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
+        from langchain_huggingface import ChatHuggingFace
 
-        # Extract HuggingFace-specific params
-        hf_params = {
-            "repo_id": params.pop("model"),
-            "task": params.pop("task", "text-generation"),
-            "max_new_tokens": params.pop("max_new_tokens", 512),
-            "do_sample": params.pop("do_sample", True),
-        }
+        # Check if user wants local execution
+        use_local = params.pop("local", False)
+        device = params.pop("device", None)
+        quantization = params.pop("quantization", None)
 
-        # Add core generation parameters that HuggingFaceEndpoint supports
-        if "temperature" in params:
-            hf_params["temperature"] = params.pop("temperature")
-        if "max_tokens" in params:
-            # HuggingFaceEndpoint uses max_length for total context + generation
-            hf_params["max_length"] = params.pop("max_tokens")
-        if "stop" in params:
-            # Map stop to stop_sequences for HuggingFaceEndpoint
-            hf_params["stop_sequences"] = params.pop("stop")
-
-        # Add optional sampling parameters if present
-        if "repetition_penalty" in params:
-            hf_params["repetition_penalty"] = params.pop("repetition_penalty")
-        if "top_p" in params:
-            hf_params["top_p"] = params.pop("top_p")
-        if "top_k" in params:
-            hf_params["top_k"] = params.pop("top_k")
-        if "model_kwargs" in params:
-            hf_params.update(params.pop("model_kwargs"))
-
-        # Add API token if present
-        if "huggingfacehub_api_token" in params:
-            hf_params["huggingfacehub_api_token"] = params.pop(
-                "huggingfacehub_api_token"
-            )
-
-        try:
-            # Initialize endpoint and wrap with ChatHuggingFace
-            llm = HuggingFaceEndpoint(**hf_params)
-            return ChatHuggingFace(llm=llm, **params)  # type: ignore[no-any-return]
-        except ImportError as e:
-            raise MissingDependencyError(
-                f"Failed to import langchain-huggingface: {e}\n\n"
-                f"Install with: pip install langchain-huggingface"
-            ) from e
-        except Exception as e:
-            error_msg = str(e).lower()
-            if "api token" in error_msg or "authentication" in error_msg:
-                raise MissingAPIKeyError(
-                    "HuggingFace API token required.\n\n"
-                    "Set HUGGINGFACEHUB_API_TOKEN environment variable or pass api_key parameter.\n\n"
-                    "Get your API token at: https://huggingface.co/settings/tokens"
+        if use_local:
+            # Local execution with HuggingFacePipeline
+            try:
+                from langchain_huggingface import HuggingFacePipeline
+            except ImportError as e:
+                raise MissingDependencyError(
+                    f"Failed to import HuggingFacePipeline: {e}\n\n"
+                    f"Install local model support with: pip install 'consoul[huggingface-local]'"
                 ) from e
-            elif "not found" in error_msg or "404" in error_msg:
+
+            # Build pipeline params
+            pipeline_params = {
+                "model_id": params.pop("model"),
+                "task": params.pop("task", "text-generation"),
+            }
+
+            # Add model_kwargs for generation parameters
+            model_kwargs = params.pop("model_kwargs", {})
+            if "temperature" in params:
+                model_kwargs["temperature"] = params.pop("temperature")
+            if "max_tokens" in params or "max_new_tokens" in params:
+                model_kwargs["max_new_tokens"] = params.pop(
+                    "max_tokens", params.pop("max_new_tokens", 512)
+                )
+            if "stop" in params:
+                model_kwargs["stop_sequences"] = params.pop("stop")
+            if "do_sample" in params:
+                model_kwargs["do_sample"] = params.pop("do_sample")
+            if "repetition_penalty" in params:
+                model_kwargs["repetition_penalty"] = params.pop("repetition_penalty")
+            if "top_p" in params:
+                model_kwargs["top_p"] = params.pop("top_p")
+            if "top_k" in params:
+                model_kwargs["top_k"] = params.pop("top_k")
+
+            if model_kwargs:
+                pipeline_params["model_kwargs"] = model_kwargs
+
+            # Add device configuration
+            if device:
+                pipeline_params["device"] = device
+
+            # Add quantization if requested
+            if quantization:
+                try:
+                    from transformers import BitsAndBytesConfig
+                except ImportError as e:
+                    raise MissingDependencyError(
+                        f"Quantization requires transformers with bitsandbytes: {e}\n\n"
+                        f"Install with: pip install 'consoul[huggingface-local]'"
+                    ) from e
+
+                if quantization == "4bit":
+                    quant_config = BitsAndBytesConfig(load_in_4bit=True)
+                elif quantization == "8bit":
+                    quant_config = BitsAndBytesConfig(load_in_8bit=True)
+                else:
+                    quant_config = None
+
+                if quant_config:
+                    if "model_kwargs" not in pipeline_params:
+                        pipeline_params["model_kwargs"] = {}
+                    pipeline_params["model_kwargs"]["quantization_config"] = (
+                        quant_config
+                    )
+
+            try:
+                llm = HuggingFacePipeline.from_model_id(**pipeline_params)
+                return ChatHuggingFace(llm=llm, **params)  # type: ignore[no-any-return]
+            except Exception as e:
                 raise InvalidModelError(
-                    f"Model '{model_config.model}' not found on HuggingFace Hub.\n\n"
+                    f"Failed to load local HuggingFace model '{pipeline_params['model_id']}'.\n\n"
                     f"Error: {e}\n\n"
-                    f"Search for models at: https://huggingface.co/models"
+                    f"Make sure the model exists and you have enough memory/GPU resources."
                 ) from e
-            else:
-                raise InvalidModelError(
-                    f"Failed to initialize HuggingFace model '{model_config.model}'.\n\n"
-                    f"Error: {e}\n\n"
-                    f"See available models: https://huggingface.co/models"
+        else:
+            # API-based execution with HuggingFaceEndpoint
+            from langchain_huggingface import HuggingFaceEndpoint
+
+            # Extract HuggingFace-specific params
+            hf_params = {
+                "repo_id": params.pop("model"),
+                "task": params.pop("task", "text-generation"),
+                "max_new_tokens": params.pop("max_new_tokens", 512),
+                "do_sample": params.pop("do_sample", True),
+            }
+
+            # Add core generation parameters that HuggingFaceEndpoint supports
+            if "temperature" in params:
+                hf_params["temperature"] = params.pop("temperature")
+            if "max_tokens" in params:
+                # HuggingFaceEndpoint uses max_length for total context + generation
+                hf_params["max_length"] = params.pop("max_tokens")
+            if "stop" in params:
+                # Map stop to stop_sequences for HuggingFaceEndpoint
+                hf_params["stop_sequences"] = params.pop("stop")
+
+            # Add optional sampling parameters if present
+            if "repetition_penalty" in params:
+                hf_params["repetition_penalty"] = params.pop("repetition_penalty")
+            if "top_p" in params:
+                hf_params["top_p"] = params.pop("top_p")
+            if "top_k" in params:
+                hf_params["top_k"] = params.pop("top_k")
+            if "model_kwargs" in params:
+                hf_params.update(params.pop("model_kwargs"))
+
+            # Add API token if present
+            if "huggingfacehub_api_token" in params:
+                hf_params["huggingfacehub_api_token"] = params.pop(
+                    "huggingfacehub_api_token"
+                )
+
+            try:
+                # Initialize endpoint and wrap with ChatHuggingFace
+                llm = HuggingFaceEndpoint(**hf_params)
+                return ChatHuggingFace(llm=llm, **params)  # type: ignore[no-any-return]
+            except ImportError as e:
+                raise MissingDependencyError(
+                    f"Failed to import langchain-huggingface: {e}\n\n"
+                    f"Install with: pip install langchain-huggingface"
                 ) from e
+            except Exception as e:
+                error_msg = str(e).lower()
+                if "api token" in error_msg or "authentication" in error_msg:
+                    raise MissingAPIKeyError(
+                        "HuggingFace API token required for API-based execution.\n\n"
+                        "Option 1: Set HUGGINGFACEHUB_API_TOKEN environment variable\n"
+                        "Get token at: https://huggingface.co/settings/tokens\n\n"
+                        "Option 2: Use local execution instead (no token required)\n"
+                        "Set local=True in HuggingFaceModelConfig and install:\n"
+                        "pip install 'consoul[huggingface-local]'"
+                    ) from e
+                elif "not found" in error_msg or "404" in error_msg:
+                    raise InvalidModelError(
+                        f"Model '{model_config.model}' not found on HuggingFace Hub.\n\n"
+                        f"Error: {e}\n\n"
+                        f"Search for models at: https://huggingface.co/models"
+                    ) from e
+                else:
+                    raise InvalidModelError(
+                        f"Failed to initialize HuggingFace model '{model_config.model}'.\n\n"
+                        f"Error: {e}\n\n"
+                        f"See available models: https://huggingface.co/models"
+                    ) from e
 
     # Initialize the model using init_chat_model for other providers
     try:
