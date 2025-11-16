@@ -268,6 +268,7 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
     from consoul.config.models import (
         AnthropicModelConfig,
         GoogleModelConfig,
+        HuggingFaceModelConfig,
         OllamaModelConfig,
         OpenAIModelConfig,
     )
@@ -330,6 +331,22 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
             params["top_p"] = model_config.top_p
         if model_config.top_k is not None:
             params["top_k"] = model_config.top_k
+
+    elif isinstance(model_config, HuggingFaceModelConfig):
+        if model_config.task is not None:
+            params["task"] = model_config.task
+        if model_config.max_new_tokens is not None:
+            params["max_new_tokens"] = model_config.max_new_tokens
+        if model_config.do_sample is not None:
+            params["do_sample"] = model_config.do_sample
+        if model_config.repetition_penalty is not None:
+            params["repetition_penalty"] = model_config.repetition_penalty
+        if model_config.top_p is not None:
+            params["top_p"] = model_config.top_p
+        if model_config.top_k is not None:
+            params["top_k"] = model_config.top_k
+        if model_config.model_kwargs is not None:
+            params["model_kwargs"] = model_config.model_kwargs
 
     return params
 
@@ -412,6 +429,7 @@ def get_chat_model(
         from consoul.config.models import (
             AnthropicModelConfig,
             GoogleModelConfig,
+            HuggingFaceModelConfig,
             OllamaModelConfig,
             OpenAIModelConfig,
         )
@@ -442,6 +460,13 @@ def get_chat_model(
         candidate_count = kwargs.pop("candidate_count", None)
         safety_settings = kwargs.pop("safety_settings", None)
         generation_config = kwargs.pop("generation_config", None)
+
+        # HuggingFace-specific parameters
+        task = kwargs.pop("task", "text-generation")
+        max_new_tokens = kwargs.pop("max_new_tokens", 512)
+        do_sample = kwargs.pop("do_sample", True)
+        repetition_penalty = kwargs.pop("repetition_penalty", None)
+        model_kwargs = kwargs.pop("model_kwargs", None)
 
         # Build appropriate config based on provider
         if provider == Provider.OPENAI:
@@ -489,6 +514,20 @@ def get_chat_model(
                 stop_sequences=stop_sequences,
                 top_p=top_p,
                 top_k=top_k,
+            )
+        elif provider == Provider.HUGGINGFACE:
+            model_config = HuggingFaceModelConfig(
+                model=model_name,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stop_sequences=stop_sequences,
+                task=task,
+                max_new_tokens=max_new_tokens,
+                do_sample=do_sample,
+                repetition_penalty=repetition_penalty,
+                top_p=top_p,
+                top_k=top_k,
+                model_kwargs=model_kwargs,
             )
 
     provider = model_config.provider

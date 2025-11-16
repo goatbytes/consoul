@@ -11,6 +11,7 @@ from consoul.config.models import (
     ConsoulConfig,
     ContextConfig,
     ConversationConfig,
+    HuggingFaceModelConfig,
     OllamaModelConfig,
     OpenAIModelConfig,
     ProfileConfig,
@@ -135,6 +136,98 @@ class TestModelConfig:
                 invalid_field="value",
             )
         assert "Extra inputs are not permitted" in str(exc_info.value)
+
+
+class TestHuggingFaceModelConfig:
+    """Tests for HuggingFaceModelConfig."""
+
+    def test_valid_huggingface_model_config(self):
+        """Test creating a valid HuggingFace ModelConfig."""
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            temperature=0.7,
+            max_new_tokens=512,
+        )
+        assert config.provider == Provider.HUGGINGFACE
+        assert config.model == "meta-llama/Llama-3.1-8B-Instruct"
+        assert config.temperature == 0.7
+        assert config.max_new_tokens == 512
+
+    def test_default_task(self):
+        """Test default task is text-generation."""
+        config = HuggingFaceModelConfig(model="meta-llama/Llama-3.1-8B-Instruct")
+        assert config.task == "text-generation"
+
+    def test_task_validation(self):
+        """Test task validation with valid values."""
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            task="text2text-generation",
+        )
+        assert config.task == "text2text-generation"
+
+    def test_invalid_task(self):
+        """Test that invalid task raises validation error."""
+        with pytest.raises(ValidationError) as exc_info:
+            HuggingFaceModelConfig(
+                model="meta-llama/Llama-3.1-8B-Instruct",
+                task="invalid-task",
+            )
+        assert "Input should be" in str(exc_info.value)
+
+    def test_max_new_tokens_validation(self):
+        """Test max_new_tokens validation."""
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            max_new_tokens=1024,
+        )
+        assert config.max_new_tokens == 1024
+
+        # Test upper bound
+        with pytest.raises(ValidationError) as exc_info:
+            HuggingFaceModelConfig(
+                model="meta-llama/Llama-3.1-8B-Instruct",
+                max_new_tokens=5000,
+            )
+        assert "less than or equal to 4096" in str(exc_info.value)
+
+    def test_repetition_penalty_validation(self):
+        """Test repetition_penalty must be between 1.0 and 2.0."""
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            repetition_penalty=1.2,
+        )
+        assert config.repetition_penalty == 1.2
+
+        with pytest.raises(ValidationError) as exc_info:
+            HuggingFaceModelConfig(
+                model="meta-llama/Llama-3.1-8B-Instruct",
+                repetition_penalty=0.5,
+            )
+        assert "greater than or equal to 1" in str(exc_info.value)
+
+    def test_do_sample_default(self):
+        """Test do_sample defaults to True."""
+        config = HuggingFaceModelConfig(model="meta-llama/Llama-3.1-8B-Instruct")
+        assert config.do_sample is True
+
+    def test_model_kwargs(self):
+        """Test model_kwargs for additional parameters."""
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            model_kwargs={"return_full_text": False, "num_beams": 4},
+        )
+        assert config.model_kwargs == {"return_full_text": False, "num_beams": 4}
+
+    def test_huggingface_has_top_k_and_top_p(self):
+        """Test that HuggingFace config has both top_k and top_p."""
+        config = HuggingFaceModelConfig(
+            model="meta-llama/Llama-3.1-8B-Instruct",
+            top_k=50,
+            top_p=0.95,
+        )
+        assert config.top_k == 50
+        assert config.top_p == 0.95
 
 
 class TestConversationConfig:

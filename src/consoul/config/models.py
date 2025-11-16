@@ -241,9 +241,65 @@ class OllamaModelConfig(BaseModelConfig):
     )
 
 
+class HuggingFaceModelConfig(BaseModelConfig):
+    """HuggingFace-specific model configuration.
+
+    Supports both HuggingFaceEndpoint (API-based) and HuggingFacePipeline
+    (local model execution) configuration parameters.
+    """
+
+    provider: Literal[Provider.HUGGINGFACE] = Provider.HUGGINGFACE
+    task: (
+        Literal[
+            "text-generation",
+            "text2text-generation",
+            "summarization",
+        ]
+        | None
+    ) = Field(
+        default="text-generation",
+        description="HuggingFace task type",
+    )
+    max_new_tokens: int | None = Field(
+        default=512,
+        gt=0,
+        le=4096,
+        description="Maximum new tokens to generate",
+    )
+    do_sample: bool = Field(
+        default=True,
+        description="Enable sampling (vs greedy decoding)",
+    )
+    repetition_penalty: float | None = Field(
+        default=None,
+        ge=1.0,
+        le=2.0,
+        description="Repetition penalty (1.0 = no penalty)",
+    )
+    top_p: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Nucleus sampling parameter (0.0-1.0)",
+    )
+    top_k: int | None = Field(
+        default=None,
+        gt=0,
+        description="Top-k sampling parameter",
+    )
+    model_kwargs: dict[str, Any] | None = Field(
+        default=None,
+        description="Additional model-specific kwargs",
+    )
+
+
 # Type alias for discriminated union of all model configs
 ModelConfigUnion = Annotated[
-    OpenAIModelConfig | AnthropicModelConfig | GoogleModelConfig | OllamaModelConfig,
+    OpenAIModelConfig
+    | AnthropicModelConfig
+    | GoogleModelConfig
+    | OllamaModelConfig
+    | HuggingFaceModelConfig,
     Field(discriminator="provider"),
 ]
 
