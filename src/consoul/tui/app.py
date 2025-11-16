@@ -612,7 +612,7 @@ class ConsoulApp(App[None]):
         self._tool_results = {}
         self._tool_call_iterations = 0
         if hasattr(self, "_last_tool_signature"):
-            del self._last_tool_signature
+            del self._last_tool_signature  # type: ignore[has-type]
 
         t2 = time.time()
         logger.info(f"[TIMING] Reset tracking: {(t2 - t1) * 1000:.1f}ms")
@@ -1441,7 +1441,7 @@ class ConsoulApp(App[None]):
         # Check if this exact call was made in the last iteration
         if (
             hasattr(self, "_last_tool_signature")
-            and call_signature == self._last_tool_signature
+            and call_signature == self._last_tool_signature  # type: ignore[has-type]
         ):
             logger.warning(
                 "[TOOL_FLOW] Detected repeated identical tool call - stopping to prevent loop"

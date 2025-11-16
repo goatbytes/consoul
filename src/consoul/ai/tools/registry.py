@@ -693,6 +693,7 @@ class ToolRegistry:
 
                 # Parse result to extract preview
                 import json as json_module
+
                 result_data = json_module.loads(result_str)
                 if "preview" in result_data:
                     preview = result_data["preview"]

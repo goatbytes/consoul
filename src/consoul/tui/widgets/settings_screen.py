@@ -542,9 +542,9 @@ class SettingsScreen(ModalScreen[bool]):
             self.app.theme = self._original_config.theme
 
             # Revert sidebar
-            from consoul.tui.widgets.sidebar import Sidebar
+            from consoul.tui.widgets.conversation_list import ConversationList
 
-            sidebar = self.app.query_one(Sidebar)
+            sidebar = self.app.query_one(ConversationList)
             if self._original_config.show_sidebar and not sidebar.display:
                 sidebar.display = True
             elif not self._original_config.show_sidebar and sidebar.display:
