@@ -29,5 +29,10 @@ repos:
         additional_dependencies:
           - types-setuptools
           - pydantic>=2.0
+          - pydantic-settings>=2.0
           - types-pyyaml
+          - types-requests
+          - types-pyperclip
+          - langchain-core
+          - textual
         files: ^src/

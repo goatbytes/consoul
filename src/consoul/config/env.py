@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from consoul.config.models import Provider
 
 
-class EnvSettings(BaseSettings):  # type: ignore[misc]
+class EnvSettings(BaseSettings):
     """Environment variable settings with .env file support.
 
     Loads settings from:

@@ -581,7 +581,7 @@ def get_chat_model(
 
     # Initialize the model
     try:
-        return init_chat_model(
+        return init_chat_model(  # type: ignore[no-any-return]
             model_provider=provider.value,
             **params,
         )

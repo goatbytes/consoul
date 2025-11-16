@@ -510,7 +510,7 @@ class ToolRegistry:
 
         # Bind tools to model if any are available
         if tools_to_bind:
-            return model.bind_tools(tools_to_bind)
+            return model.bind_tools(tools_to_bind)  # type: ignore[return-value]
 
         return model
 

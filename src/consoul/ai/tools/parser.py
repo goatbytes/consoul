@@ -112,7 +112,7 @@ def parse_tool_calls(message: AIMessage) -> list[ParsedToolCall]:
                 id=str(tool_id),
                 name=str(tool_name),
                 arguments=arguments,
-                raw=tool_call,
+                raw=tool_call,  # type: ignore[arg-type]
             )
             parsed_calls.append(parsed_call)
 

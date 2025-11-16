@@ -377,7 +377,7 @@ class ConsoulApp(App[None]):
                     # Bind tools to model (extract BaseTool from metadata)
                     if tool_metadata_list:
                         tools = [meta.tool for meta in tool_metadata_list]
-                        self.chat_model = self.chat_model.bind_tools(tools)
+                        self.chat_model = self.chat_model.bind_tools(tools)  # type: ignore[assignment]
                         self.log.info(f"Bound {len(tools)} tools to chat model")
 
             except Exception as e:
@@ -853,7 +853,7 @@ class ConsoulApp(App[None]):
                         collected_chunks.append(chunk)
 
                         # Normalize content (handles str, list of blocks, None)
-                        token = normalize_chunk_content(chunk.content)
+                        token = normalize_chunk_content(chunk.content)  # type: ignore[arg-type]
 
                         # Skip empty tokens
                         if not token:
@@ -900,7 +900,7 @@ class ConsoulApp(App[None]):
                                 ):
                                     continue
 
-                                for tc in chunk.tool_call_chunks:
+                                for tc in chunk.tool_call_chunks:  # type: ignore[attr-defined]
                                     if not isinstance(tc, dict):
                                         continue
 
@@ -970,7 +970,7 @@ class ConsoulApp(App[None]):
                             # Normalize all content (handles str, list blocks, None)
                             content_parts: list[str] = []
                             for c in collected_chunks:
-                                normalized = normalize_chunk_content(c.content)
+                                normalized = normalize_chunk_content(c.content)  # type: ignore[arg-type]
                                 if normalized:
                                     content_parts.append(normalized)
 
@@ -1172,7 +1172,7 @@ class ConsoulApp(App[None]):
                         self.run_worker(
                             self._generate_and_save_title(
                                 self.conversation.session_id,  # type: ignore[union-attr]
-                                user_msg,
+                                user_msg,  # type: ignore[arg-type]
                                 full_response,
                             ),
                             exclusive=False,
@@ -1946,7 +1946,7 @@ class ConsoulApp(App[None]):
             self.notify("Configuration not loaded", severity="error")
             return
 
-        result = await self.push_screen(
+        result = await self.push_screen(  # type: ignore[func-returns-value]
             SettingsScreen(config=self.config, consoul_config=self.consoul_config)
         )
         if result:
@@ -1962,7 +1962,7 @@ class ConsoulApp(App[None]):
             self.notify("Configuration not loaded", severity="error")
             return
 
-        result = await self.push_screen(PermissionManagerScreen(self.consoul_config))
+        result = await self.push_screen(PermissionManagerScreen(self.consoul_config))  # type: ignore[func-returns-value]
         if result:
             self.notify(
                 "Permission settings saved successfully", severity="information"
@@ -2302,7 +2302,7 @@ class ConsoulApp(App[None]):
                 tool_metadata_list = self.tool_registry.list_tools(enabled_only=True)
                 if tool_metadata_list:
                     tools = [meta.tool for meta in tool_metadata_list]
-                    self.chat_model = self.chat_model.bind_tools(tools)
+                    self.chat_model = self.chat_model.bind_tools(tools)  # type: ignore[assignment]
                     self.log.info(
                         f"Re-bound {len(tools)} tools to new model {model_name}"
                     )
