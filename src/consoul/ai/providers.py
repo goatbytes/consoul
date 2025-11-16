@@ -738,6 +738,21 @@ def get_chat_model(
                     f"Or: pip install 'consoul[huggingface-local]'"
                 )
 
+            # Warn about macOS issues
+            import platform
+
+            if platform.system() == "Darwin":
+                import warnings
+
+                warnings.warn(
+                    "Local HuggingFace execution on macOS may experience segmentation faults "
+                    "due to PyTorch/Transformers compatibility issues. "
+                    "Consider using API mode (local=False) or Ollama for local execution. "
+                    "See HUGGINGFACE_LOCAL_ISSUES.md for details.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+
             # Build pipeline params
             pipeline_params = {
                 "model_id": params.pop("model"),

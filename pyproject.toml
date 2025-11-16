@@ -67,8 +67,8 @@ dependencies = [
 
 [project.optional-dependencies]
 pdf = ["pypdf>=6.2.0"]
-huggingface-local = ["transformers>=4.45.0", "torch>=2.5.0", "accelerate>=1.2.0"]
-huggingface-quantization = ["transformers>=4.45.0", "torch>=2.5.0", "accelerate>=1.2.0", "bitsandbytes>=0.45.0"]
+huggingface-local = ["transformers>=4.45.0", "torch>=2.4.0,<2.5.0", "accelerate>=1.2.0"]
+huggingface-quantization = ["transformers>=4.45.0", "torch>=2.4.0,<2.5.0", "accelerate>=1.2.0", "bitsandbytes>=0.45.0"]
 
 
 [project.urls]
@@ -128,7 +128,7 @@ pypdf = {version = "^6.2.0", optional = true}
 
 # HuggingFace local execution dependencies
 transformers = {version = "^4.45.0", optional = true}
-torch = {version = "^2.5.0", optional = true}
+torch = {version = "~2.4.0", optional = true}  # 2.5+ has segfault issues on macOS
 accelerate = {version = "^1.2.0", optional = true}
 bitsandbytes = {version = "^0.45.0", optional = true}
 
@@ -143,7 +143,7 @@ duckduckgo-search = "^7.0.0"           # Free web search via DuckDuckGo (zero se
 
 [tool.poetry.extras]
 pdf = ["pypdf"]
-huggingface-local = ["transformers", "torch", "accelerate"]
+huggingface-local = ["transformers", "torch", "accelerate"]  # torch pinned to 2.4.x due to macOS segfaults in 2.5+
 huggingface-quantization = ["transformers", "torch", "accelerate", "bitsandbytes"]
 
 [tool.poetry.group.dev.dependencies]
