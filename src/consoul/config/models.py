@@ -1275,15 +1275,10 @@ class ConsoulConfig(BaseModel):
         elif self.current_provider == Provider.GOOGLE:
             return GoogleModelConfig(**model_params)
         elif self.current_provider == Provider.HUGGINGFACE:
-            # Check if model is available locally
-            from consoul.ai.providers import get_huggingface_local_models
-
-            local_models = get_huggingface_local_models()
-            local_model_names = {m["name"] for m in local_models}
-            is_local = self.current_model in local_model_names
-
-            # Add HuggingFace-specific params
-            model_params["local"] = is_local
+            # Don't check if model is local on startup (slow cache scan)
+            # Default to API mode (local=False) for better startup performance
+            # The TUI model picker will set local=True when selecting cached models
+            model_params["local"] = False
 
             return HuggingFaceModelConfig(**model_params)
         else:  # OLLAMA
