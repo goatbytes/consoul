@@ -376,9 +376,18 @@ class ConsoulApp(App[None]):
 
                     # Bind tools to model (extract BaseTool from metadata)
                     if tool_metadata_list:
-                        tools = [meta.tool for meta in tool_metadata_list]
-                        self.chat_model = self.chat_model.bind_tools(tools)  # type: ignore[assignment]
-                        self.log.info(f"Bound {len(tools)} tools to chat model")
+                        # Check if model supports tool calling
+                        from consoul.ai.providers import supports_tool_calling
+
+                        if supports_tool_calling(self.chat_model):
+                            tools = [meta.tool for meta in tool_metadata_list]
+                            self.chat_model = self.chat_model.bind_tools(tools)  # type: ignore[assignment]
+                            self.log.info(f"Bound {len(tools)} tools to chat model")
+                        else:
+                            self.log.warning(
+                                f"Model {self.current_model} does not support tool calling. "
+                                "Tools are disabled for this model."
+                            )
 
             except Exception as e:
                 # Log error but allow app to start (graceful degradation)
@@ -2301,11 +2310,20 @@ class ConsoulApp(App[None]):
             if self.tool_registry:
                 tool_metadata_list = self.tool_registry.list_tools(enabled_only=True)
                 if tool_metadata_list:
-                    tools = [meta.tool for meta in tool_metadata_list]
-                    self.chat_model = self.chat_model.bind_tools(tools)  # type: ignore[assignment]
-                    self.log.info(
-                        f"Re-bound {len(tools)} tools to new model {model_name}"
-                    )
+                    # Check if model supports tool calling
+                    from consoul.ai.providers import supports_tool_calling
+
+                    if supports_tool_calling(self.chat_model):
+                        tools = [meta.tool for meta in tool_metadata_list]
+                        self.chat_model = self.chat_model.bind_tools(tools)  # type: ignore[assignment]
+                        self.log.info(
+                            f"Re-bound {len(tools)} tools to new model {model_name}"
+                        )
+                    else:
+                        self.log.warning(
+                            f"Model {model_name} does not support tool calling. "
+                            "Tools are disabled for this model."
+                        )
 
             # Preserve conversation by updating model reference
             if self.conversation:

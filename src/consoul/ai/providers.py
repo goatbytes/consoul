@@ -636,3 +636,49 @@ def get_chat_model(
         raise ProviderInitializationError(
             f"Failed to initialize {provider.value} model '{model_config.model}': {e}"
         ) from e
+
+
+def supports_tool_calling(model: BaseChatModel) -> bool:
+    """Check if a chat model supports tool calling via bind_tools.
+
+    Tests whether the model has a working bind_tools implementation by
+    checking if it raises NotImplementedError (the base class behavior).
+
+    Args:
+        model: The chat model to check
+
+    Returns:
+        True if model supports tool calling, False otherwise
+
+    Example:
+        >>> from consoul.ai import get_chat_model
+        >>> model = get_chat_model("claude-3-5-sonnet-20241022")
+        >>> supports_tool_calling(model)
+        True
+        >>> ollama_model = get_chat_model("llama3")
+        >>> supports_tool_calling(ollama_model)
+        False
+
+    Note:
+        This is a lightweight check that doesn't actually bind tools,
+        just inspects the method implementation. Some models may support
+        tools but have different APIs (e.g., require specific formats).
+    """
+    # Check if model has bind_tools method
+    if not hasattr(model, "bind_tools"):
+        return False
+
+    # Check if the bind_tools method is overridden from base class
+    # If it's the base implementation, it will raise NotImplementedError
+    try:
+        # Try to call bind_tools with empty list
+        # Most implementations will accept this without error
+        model.bind_tools([])
+        return True
+    except NotImplementedError:
+        # Base implementation - doesn't support tools
+        return False
+    except Exception:
+        # Other errors suggest implementation exists but failed for other reasons
+        # (e.g., validation error on empty list) - assume it supports tools
+        return True

@@ -27,6 +27,7 @@ from consoul.ai.providers import (
     build_model_params,
     get_chat_model,
     get_provider_from_model,
+    supports_tool_calling,
     validate_provider_dependencies,
 )
 from consoul.ai.streaming import stream_response
@@ -66,5 +67,6 @@ __all__ = [
     "get_model_token_limit",
     "get_provider_from_model",
     "stream_response",
+    "supports_tool_calling",
     "validate_provider_dependencies",
 ]

@@ -510,7 +510,20 @@ class ToolRegistry:
 
         # Bind tools to model if any are available
         if tools_to_bind:
-            return model.bind_tools(tools_to_bind)  # type: ignore[return-value]
+            # Check if model supports tool calling before binding
+            from consoul.ai.providers import supports_tool_calling
+
+            if supports_tool_calling(model):
+                return model.bind_tools(tools_to_bind)  # type: ignore[return-value]
+            else:
+                # Model doesn't support tools - return original model
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    f"Model does not support tool calling. "
+                    f"Skipping binding of {len(tools_to_bind)} tools."
+                )
 
         return model
 
