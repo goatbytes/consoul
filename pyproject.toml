@@ -49,7 +49,7 @@ dependencies = [
     "langchain-anthropic>=1.0.0",
     "langchain-google-genai>=2.0.0",
     "langchain-ollama>=1.0.0",
-    "langchain-huggingface>=0.1.0",
+    "langchain-huggingface>=1.0.0",
     "click>=8.1.0",
     "pydantic>=2.12.4",
     "pydantic-settings>=2.0.0",
@@ -116,6 +116,7 @@ langchain-openai = "^1.0.2"
 langchain-anthropic = "^1.0.2"
 langchain-google-genai = "^3.0.1"
 langchain-ollama = "^1.0.0"
+langchain-huggingface = "^1.0.1"
 click = "^8.3.0"
 pydantic = "^2.12.4"
 pydantic-settings = "^2.11.0"
@@ -270,6 +271,7 @@ module = [
     "langchain_anthropic.*",
     "langchain_google_genai.*",
     "langchain_ollama.*",
+    "langchain_huggingface.*",
     "pydantic.*",
     "pydantic_settings.*",
     "click.*",

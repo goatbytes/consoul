@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-16T08:03:43.866380",
-  "updated_at": "2025-11-16T16:15:53.074279Z",
+  "updated_at": "2025-11-16T09:07:53.733929",
   "id": "SOUL-124",
   "uuid": "1028f61d-47d3-4845-a837-f79c95475fe8",
   "title": "Add pyproject.toml dependencies for HuggingFace support",
   "description": "**As a** Consoul developer\n**I want** langchain-huggingface added to project dependencies\n**So that** HuggingFace provider support can be installed and used\n\n**Context:**\nThe langchain-huggingface package provides HuggingFace integration for LangChain. It's a separate package that needs to be added to pyproject.toml dependencies, similar to other provider packages.\n\nLatest version: langchain-huggingface 1.0.1+ (as of 2025)\n\nOptional dependencies for local model execution:\n- transformers: Local model loading\n- torch: PyTorch backend\n- accelerate: Model loading optimizations\n- bitsandbytes: 4-bit quantization support\n\n**Technical Notes:**\n- pyproject.toml - Add to dependencies list (around line 45-52)\n- Follow pattern of other langchain-* packages\n- Add to [tool.poetry.dependencies] section (line 111-117)\n- Add to mypy ignore list (line 265-272)\n- Consider making transformers/torch optional extras\n- Minimum version: ^1.0.0\n\n**Acceptance Criteria:**\n\nGiven I check pyproject.toml dependencies\nWhen I review the dependencies list\nThen langchain-huggingface>=1.0.0 is included\n\nGiven I check poetry.lock\nWhen I run poetry lock\nThen langchain-huggingface is resolved with correct version\n\nGiven I install the project\nWhen I run poetry install\nThen langchain-huggingface is installed successfully\n\nGiven I check mypy configuration\nWhen I review mypy overrides\nThen langchain_huggingface.* is added to ignore list\n\n**Testing Considerations:**\n- Run poetry lock to verify dependency resolution\n- Run poetry install to test installation\n- Verify no dependency conflicts\n- Test that mypy ignores langchain_huggingface imports\n- Check that pre-commit hooks work with new dependency\n\n**Implementation Hints:**\n```toml\n# In dependencies section (line ~45)\ndependencies = [\n    \"textual>=6.5.0\",\n    \"langchain>=1.0.0\",\n    \"langchain-openai>=1.0.0\",\n    \"langchain-anthropic>=1.0.0\",\n    \"langchain-google-genai>=2.0.0\",\n    \"langchain-ollama>=1.0.0\",\n    \"langchain-huggingface>=1.0.0\",  # Add this\n    # ... rest\n]\n\n# In [tool.poetry.dependencies] section (line ~111)\n[tool.poetry.dependencies]\npython = \"^3.10\"\ntextual = \"^6.5.0\"\nlangchain = \"^1.0.5\"\nlangchain-openai = \"^1.0.2\"\nlangchain-anthropic = \"^1.0.2\"\nlangchain-google-genai = \"^3.0.1\"\nlangchain-ollama = \"^1.0.0\"\nlangchain-huggingface = \"^1.0.1\"  # Add this\n\n# In mypy configuration (line ~265)\n[[tool.mypy.overrides]]\nmodule = [\n    \"textual.*\",\n    \"langchain.*\",\n    \"langchain_openai.*\",\n    \"langchain_anthropic.*\",\n    \"langchain_google_genai.*\",\n    \"langchain_ollama.*\",\n    \"langchain_huggingface.*\",  # Add this\n    # ... rest\n]\n\n# Optional: Add extra for local models\n[tool.poetry.extras]\nhuggingface-local = [\"transformers\", \"torch\", \"accelerate\"]\n```\n\nFiles to modify:\n- pyproject.toml (add dependency)\n- poetry.lock (regenerate with poetry lock)\n\nDependencies: SOUL-121",
-  "status": "todo",
+  "status": "done",
   "type": "task",
   "priority": "medium",
   "labels": [
@@ -16,10 +16,24 @@
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-16T09:07:53.733829",
+      "updated_at": "2025-11-16T09:07:53.733830",
+      "id": "20251116090753-2c09a8a0",
+      "ticket_id": "SOUL-124",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation completed successfully.\n\nChanges made:\n- Updated langchain-huggingface version in [project] dependencies from >=0.1.0 to >=1.0.0 (line 52)\n- Added langchain-huggingface = \"^1.0.1\" to [tool.poetry.dependencies] (line 119)\n- Added \"langchain_huggingface.*\" to mypy ignore list in [[tool.mypy.overrides]] (line 274)\n- Regenerated poetry.lock with poetry lock (successful resolution)\n\nVerification:\n✓ poetry show langchain-huggingface confirms version 1.0.1 installed\n✓ Dependencies: huggingface-hub >=0.33.4, langchain-core >=1.0.3, tokenizers >=0.19.1\n✓ Mypy verification: No langchain_huggingface import errors\n✓ No dependency conflicts detected\n\nHuggingFace provider support is now fully integrated into the project dependencies.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 1,
   "order": 0,
   "custom_fields": {}
