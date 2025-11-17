@@ -1,0 +1,21 @@
+{
+  "created_at": "2025-11-17T08:53:23.537765",
+  "updated_at": "2025-11-17T16:57:56.735455Z",
+  "id": "SOUL-134",
+  "uuid": "1686b235-93fa-4ffb-88fe-a6e3e904c342",
+  "title": "Consolidate local model providers into single 'Local' tab",
+  "description": "",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}
