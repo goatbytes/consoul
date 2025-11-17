@@ -247,7 +247,9 @@ class ContextualTopBar(Static):
         provider_display = (
             self.current_provider.title() if self.current_provider else "?"
         )
-        model_display = self.current_model or "default"
+        model_display = self._get_model_display_name(
+            self.current_model, self.current_provider
+        )
         model_text = f"🤖 {provider_display}: {model_display}"
         model_label = Label(
             model_text, classes="status-label action-button", id="model-label"
@@ -292,6 +294,38 @@ class ContextualTopBar(Static):
         """React to model changes."""
         self._update_model_label()
 
+    def _get_model_display_name(self, model: str, provider: str) -> str:
+        """Get a clean display name for the model.
+
+        Args:
+            model: The model identifier (may be a file path)
+            provider: The provider name
+
+        Returns:
+            A user-friendly display name
+        """
+        if not model:
+            return "default"
+
+        # For file paths (GGUF, MLX), extract just the filename or last directory
+        if "/" in model or "\\" in model:
+            from pathlib import Path
+
+            path = Path(model)
+
+            # For GGUF files, return just the filename
+            if path.suffix == ".gguf":
+                return path.name
+
+            # For MLX models (directories), return the last two parts (org/model)
+            parts = path.parts
+            if len(parts) >= 2:
+                # Return last two parts: e.g., "mlx-community/gemma-3-27b-it-qat-4bit"
+                return f"{parts[-2]}/{parts[-1]}"
+            return path.name
+
+        return model
+
     def _update_model_label(self) -> None:
         """Update the model label with provider:model format."""
         try:
@@ -299,7 +333,9 @@ class ContextualTopBar(Static):
             provider_display = (
                 self.current_provider.title() if self.current_provider else "?"
             )
-            model_display = self.current_model or "default"
+            model_display = self._get_model_display_name(
+                self.current_model, self.current_provider
+            )
             model_label.update(f"🤖 {provider_display}: {model_display}")
         except Exception as e:
             import logging
