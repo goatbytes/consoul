@@ -301,16 +301,22 @@ class ContextualTopBar(Static):
             )
             model_display = self.current_model or "default"
             model_label.update(f"🤖 {provider_display}: {model_display}")
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error updating model label: {e}", exc_info=True)
 
     def watch_current_profile(self, profile: str) -> None:
         """React to profile changes."""
         try:
             profile_label = self.query_one("#profile-label", Label)
             profile_label.update(f"Profile: {profile}")
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error updating profile label: {e}", exc_info=True)
 
     def watch_streaming(self, is_streaming: bool) -> None:
         """React to streaming state changes."""

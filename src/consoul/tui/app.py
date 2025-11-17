@@ -550,28 +550,35 @@ class ConsoulApp(App[None]):
 
     def _update_top_bar_state(self) -> None:
         """Update ContextualTopBar reactive properties from app state."""
-        if not hasattr(self, "top_bar"):
-            return
+        try:
+            if not hasattr(self, "top_bar"):
+                return
 
-        # Update provider and model (from config, not profile)
-        if self.consoul_config:
-            self.top_bar.current_provider = self.consoul_config.current_provider.value
-            self.top_bar.current_model = self.consoul_config.current_model
-        else:
-            self.top_bar.current_provider = ""
-            self.top_bar.current_model = self.current_model
+            # Update provider and model (from config, not profile)
+            if self.consoul_config:
+                self.top_bar.current_provider = (
+                    self.consoul_config.current_provider.value
+                )
+                self.top_bar.current_model = self.consoul_config.current_model
+            else:
+                self.top_bar.current_provider = ""
+                self.top_bar.current_model = self.current_model
 
-        # Update profile name
-        self.top_bar.current_profile = self.current_profile
+            # Update profile name
+            self.top_bar.current_profile = self.current_profile
 
-        # Update streaming status
-        self.top_bar.streaming = self.streaming
+            # Update streaming status
+            self.top_bar.streaming = self.streaming
 
-        # Update conversation count
-        if hasattr(self, "conversation_list") and self.conversation_list:
-            self.top_bar.conversation_count = self.conversation_list.conversation_count
-        else:
-            self.top_bar.conversation_count = 0
+            # Update conversation count
+            if hasattr(self, "conversation_list") and self.conversation_list:
+                self.top_bar.conversation_count = (
+                    self.conversation_list.conversation_count
+                )
+            else:
+                self.top_bar.conversation_count = 0
+        except Exception as e:
+            logger.error(f"Error updating top bar state: {e}", exc_info=True)
 
     def _idle_gc(self) -> None:
         """Periodic garbage collection when not streaming.
@@ -754,7 +761,14 @@ class ConsoulApp(App[None]):
             # Get trimmed messages for context window
             # This can be slow due to token counting, so run in executor
             model_config = self.consoul_config.get_current_model_config()  # type: ignore[union-attr]
-            reserve_tokens = model_config.max_tokens or 4096
+            # Reserve tokens for response - must be less than total context window
+            # Use max_tokens if specified, otherwise use a reasonable default
+            default_reserve = 4096
+            if hasattr(model_config, "n_ctx"):
+                # For llamacpp models, ensure reserve doesn't exceed context
+                context_size = model_config.n_ctx
+                default_reserve = min(default_reserve, context_size // 2)
+            reserve_tokens = model_config.max_tokens or default_reserve
 
             s2 = time.time()
             logger.info(f"[TIMING] Got model config: {(s2 - s1) * 1000:.1f}ms")
@@ -877,7 +891,13 @@ class ConsoulApp(App[None]):
                 except Exception as e:
                     # Store exception to send to main thread
                     exception_caught = e
+                    logger.error(
+                        f"[TOOL_FLOW] Exception in stream loop: {e}", exc_info=True
+                    )
                 finally:
+                    logger.debug(
+                        f"[TOOL_FLOW] Stream loop finished. Collected {len(collected_chunks)} chunks, exception={exception_caught}"
+                    )
                     # Send sentinel to signal completion
                     asyncio.run_coroutine_threadsafe(token_queue.put(None), event_loop)
 
@@ -995,10 +1015,10 @@ class ConsoulApp(App[None]):
                             logger.debug(
                                 "[TOOL_FLOW] About to send final_message to main thread"
                             )
-                        except Exception:
+                        except Exception as e:
                             # If message reconstruction fails, don't block completion
-                            logger.debug(
-                                "[TOOL_FLOW] Exception during message reconstruction",
+                            logger.error(
+                                f"[TOOL_FLOW] Exception during message reconstruction: {e}",
                                 exc_info=True,
                             )
                             final_message = None
@@ -1083,6 +1103,7 @@ class ConsoulApp(App[None]):
 
             # Check if background thread encountered an exception
             stream_exception = await exception_queue.get()
+            logger.debug(f"[TOOL_FLOW] Stream exception: {stream_exception}")
             if stream_exception:
                 # Check if this is a "model does not support tools" error from Ollama
                 error_msg = str(stream_exception).lower()
