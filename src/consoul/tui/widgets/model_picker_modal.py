@@ -400,7 +400,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         """
         # Initialize attributes before super().__init__ to avoid watcher issues
         self._table: DataTable[Any] | None = None
-        self._model_map: dict[str, dict[str, str]] = {}  # row_key -> model metadata
+        self._model_map: dict[str, dict[str, Any]] = {}  # row_key -> model metadata
 
         # Check if Ollama is available
         from consoul.ai.providers import is_ollama_running
@@ -413,10 +413,18 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         super().__init__(**kwargs)
         self.current_model = current_model
         self.current_provider = current_provider
-        self.active_provider = current_provider.value
+
+        # Map local providers to the "local" tab
+        local_providers = {"ollama", "llamacpp", "mlx"}
+        if current_provider.value in local_providers:
+            self.active_provider = "local"
+        else:
+            self.active_provider = current_provider.value
+
         log.info(
             f"ModelPickerModal: Initialized with current_model={current_model}, "
-            f"current_provider={current_provider}, ollama_available={self._ollama_available}, "
+            f"current_provider={current_provider}, active_provider={self.active_provider}, "
+            f"ollama_available={self._ollama_available}, "
             f"huggingface_available={self._huggingface_available}"
         )
 
@@ -426,20 +434,13 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             # Header
             yield Label("Select AI Model & Provider", classes="modal-header")
 
-            # Provider tabs (conditionally include Ollama, HuggingFace, and LlamaCpp)
+            # Provider tabs with consolidated "Local" tab
             with Horizontal(id="provider-tabs"):
                 providers = ["openai", "anthropic", "google"]
-                if self._ollama_available:
-                    providers.append("ollama")
                 if self._huggingface_available:
                     providers.append("huggingface")
-                # Always show LlamaCpp if there are any GGUF models
-                providers.append("llamacpp")
-                # Always show MLX on macOS
-                import platform
-
-                if platform.system() == "Darwin":
-                    providers.append("mlx")
+                # Add consolidated "Local" tab for Ollama, LlamaCpp, MLX
+                providers.append("local")
 
                 for provider in providers:
                     tab_classes = "provider-tab"
@@ -492,9 +493,8 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             "tab-openai",
             "tab-anthropic",
             "tab-google",
-            "tab-ollama",
             "tab-huggingface",
-            "tab-llamacpp",
+            "tab-local",
         ]:
             try:
                 tab = self.query_one(f"#{tab_id}", Label)
@@ -528,6 +528,13 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             for name, info in MODEL_INFO.items()
             if info["provider"] == provider_value
         }
+
+        # For Local tab, aggregate models from Ollama, LlamaCpp, and MLX
+        if provider_value == "local":
+            provider_models = {}
+            self._populate_local_models(provider_models, search_query)
+            self._add_local_models_to_table(provider_models, search_query)
+            return
 
         # For Ollama, fetch dynamic models from the service
         if provider_value == "ollama":
@@ -742,6 +749,256 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             f"for provider '{provider_value}'"
         )
 
+    def _populate_local_models(
+        self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
+    ) -> None:
+        """Populate models from local providers (Ollama, LlamaCpp/GGUF, MLX).
+
+        Args:
+            provider_models: Dictionary to populate with model information
+            search_query: Optional search query to filter models
+        """
+        # Section 1: Ollama models
+        if self._ollama_available:
+            from consoul.ai.providers import get_ollama_models, is_ollama_running
+
+            if is_ollama_running():
+                ollama_models = get_ollama_models(include_context=True)
+                for model_info in ollama_models:
+                    model_name = model_info.get("name", "")
+                    if model_name:
+                        context_length = model_info.get("context_length")
+                        if context_length:
+                            if context_length >= 1_000_000:
+                                context_str = f"{context_length // 1_000_000}M"
+                            elif context_length >= 1_000:
+                                context_str = f"{context_length // 1_000}K"
+                            else:
+                                context_str = str(context_length)
+                        else:
+                            context_str = "?"
+
+                        key = f"ollama:{model_name}"
+                        provider_models[key] = {
+                            "provider": "ollama",
+                            "section": "ollama",
+                            "context": context_str,
+                            "cost": "free",
+                            "description": "Ollama model",
+                            "display_name": model_name,
+                            "actual_model": model_name,
+                        }
+
+        # Section 2: GGUF/LlamaCpp models
+        if self._gguf_models_cache is not None:
+            gguf_models = self._gguf_models_cache
+        elif not self._gguf_loading:
+            # Start async load if not already started
+            self._gguf_loading = True
+            self.run_worker(self._load_gguf_models_async(), exclusive=True)
+            gguf_models = []
+        else:
+            gguf_models = []
+
+        for model_info in gguf_models:
+            file_name = model_info.get("name", "")
+            file_path = model_info.get("path", "")
+
+            if file_path:
+                size_gb = model_info.get("size_gb", 0)
+                if size_gb >= 1:
+                    size_str = f"{size_gb:.1f}GB"
+                else:
+                    size_str = f"{size_gb * 1024:.0f}MB"
+
+                quant = model_info.get("quant", "?")
+                key = f"llamacpp:{file_path}"
+                provider_models[key] = {
+                    "provider": "llamacpp",
+                    "section": "gguf",
+                    "context": "4K-128K",
+                    "cost": "free",
+                    "description": f"{quant}, {size_str}",
+                    "display_name": file_name,
+                    "actual_model": file_path,
+                }
+
+        # Section 3: MLX models (on macOS only)
+        import platform
+
+        if platform.system() == "Darwin":
+            mlx_models = {
+                "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit": {
+                    "context": "128K",
+                    "description": "Llama 3.1 8B, 4-bit quantized",
+                },
+                "mlx-community/Qwen2.5-7B-Instruct-4bit": {
+                    "context": "32K",
+                    "description": "Qwen 2.5 7B, 4-bit quantized",
+                },
+                "mlx-community/Mistral-7B-Instruct-v0.3-4bit": {
+                    "context": "32K",
+                    "description": "Mistral 7B v0.3, 4-bit quantized",
+                },
+                "mlx-community/gemma-2-9b-it-4bit": {
+                    "context": "8K",
+                    "description": "Gemma 2 9B, 4-bit quantized",
+                },
+                "mlx-community/Phi-3.5-mini-instruct-4bit": {
+                    "context": "128K",
+                    "description": "Phi 3.5 Mini, 4-bit quantized",
+                },
+            }
+
+            for model_id, info in mlx_models.items():
+                key = f"mlx:{model_id}"
+                provider_models[key] = {
+                    "provider": "mlx",
+                    "section": "mlx",
+                    "context": info["context"],
+                    "cost": "free",
+                    "description": info["description"],
+                    "display_name": model_id,
+                    "actual_model": model_id,
+                }
+
+    def _add_local_models_to_table(
+        self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
+    ) -> None:
+        """Add local models to table with section headers.
+
+        Args:
+            provider_models: Dictionary of model information
+            search_query: Optional search query to filter models
+        """
+        if not self._table:
+            return
+
+        # Apply search filter if provided
+        if search_query:
+            query_lower = search_query.lower()
+            provider_models = {
+                name: info
+                for name, info in provider_models.items()
+                if query_lower in info.get("display_name", "").lower()
+                or query_lower in info["description"].lower()
+            }
+
+        # Group models by section
+        sections: dict[str, list[tuple[str, dict[str, Any]]]] = {
+            "ollama": [],
+            "gguf": [],
+            "mlx": [],
+        }
+
+        for key, info in provider_models.items():
+            section = info.get("section", "ollama")
+            sections[section].append((key, info))
+
+        # Sort models within each section
+        for section in sections:
+            sections[section].sort(key=lambda x: x[1].get("display_name", ""))
+
+        # Add Ollama section
+        if sections["ollama"]:
+            # Add section header as a non-selectable row
+            header_key = "header:ollama"
+            self._table.add_row("═══ OLLAMA ═══", "", "", key=header_key)
+            self._model_map[header_key] = {"section_header": True}
+
+            for key, info in sections["ollama"]:
+                self._add_model_row(key, info)
+
+        # Add GGUF section
+        if sections["gguf"]:
+            if sections["ollama"]:
+                # Add spacing if previous section exists
+                spacer_key = "spacer:gguf"
+                self._table.add_row("", "", "", key=spacer_key)
+                self._model_map[spacer_key] = {"spacer": True}
+
+            header_key = "header:gguf"
+            self._table.add_row("═══ GGUF (LlamaCpp) ═══", "", "", key=header_key)
+            self._model_map[header_key] = {"section_header": True}
+
+            for key, info in sections["gguf"]:
+                self._add_model_row(key, info)
+
+        # Add MLX section
+        if sections["mlx"]:
+            if sections["ollama"] or sections["gguf"]:
+                spacer_key = "spacer:mlx"
+                self._table.add_row("", "", "", key=spacer_key)
+                self._model_map[spacer_key] = {"spacer": True}
+
+            header_key = "header:mlx"
+            self._table.add_row("═══ MLX (Apple Silicon) ═══", "", "", key=header_key)
+            self._model_map[header_key] = {"section_header": True}
+
+            for key, info in sections["mlx"]:
+                self._add_model_row(key, info)
+
+        # If loading GGUF models, show loading indicator
+        if self._gguf_loading and not sections["gguf"]:
+            if sections["ollama"]:
+                spacer_key = "spacer:loading"
+                self._table.add_row("", "", "", key=spacer_key)
+                self._model_map[spacer_key] = {"spacer": True}
+
+            loading_key = "loading:gguf"
+            self._table.add_row(
+                "⏳ Scanning GGUF cache directories...", "", "", key=loading_key
+            )
+            self._model_map[loading_key] = {"loading": True}
+
+        log.debug(
+            f"ModelPickerModal: Populated Local tab with "
+            f"{len(sections['ollama'])} Ollama, "
+            f"{len(sections['gguf'])} GGUF, "
+            f"{len(sections['mlx'])} MLX models"
+        )
+
+    def _add_model_row(self, key: str, info: dict[str, Any]) -> None:
+        """Add a single model row to the table.
+
+        Args:
+            key: Unique key for the row
+            info: Model information dictionary
+        """
+        if not self._table:
+            return
+
+        self._model_map[key] = info
+
+        # Check if this is the current model
+        current_provider_value = self.current_provider.value
+        actual_model = info.get("actual_model", "")
+        is_current = (
+            actual_model == self.current_model
+            and info["provider"] == current_provider_value
+        )
+
+        # Format display
+        display_name = info.get("display_name", key)
+        model_col = f"✓ {display_name}" if is_current else f"  {display_name}"
+        context_col = info["context"]
+        cost_col = info["cost"].title()
+
+        self._table.add_row(model_col, context_col, cost_col, key=key)
+
+        # Highlight current model row
+        if is_current:
+            try:
+                row_keys_list = list(self._table.rows.keys())
+                row_index = next(
+                    (i for i, k in enumerate(row_keys_list) if str(k) == key),
+                    None,
+                )
+                if row_index is not None:
+                    self._table.move_cursor(row=row_index)
+            except (ValueError, Exception):
+                pass
+
     async def _load_gguf_models_async(self) -> None:
         """Asynchronously load GGUF models from cache directories.
 
@@ -760,8 +1017,8 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             self._gguf_loading = False
 
             # Refresh the table to show the loaded models
-            # Only refresh if still on llamacpp tab
-            if self.active_provider == "llamacpp":
+            # Refresh if on local tab (which includes llamacpp)
+            if self.active_provider == "local":
                 self._populate_table()
 
             log.info(f"Loaded {len(result)} GGUF models from cache")
@@ -817,12 +1074,35 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection (Enter key or double-click)."""
         if event.row_key:
-            selected_model = str(event.row_key.value)
-            log.info(
-                f"ModelPickerModal: Selected provider='{self.active_provider}', "
-                f"model='{selected_model}'"
-            )
-            self.dismiss((self.active_provider, selected_model))
+            row_key = str(event.row_key.value)
+
+            # Skip section headers, spacers, and loading indicators
+            model_info = self._model_map.get(row_key, {})
+            if (
+                model_info.get("section_header")
+                or model_info.get("spacer")
+                or model_info.get("loading")
+            ):
+                return
+
+            # For local tab, extract actual provider and model from the key
+            if self.active_provider == "local":
+                if ":" in row_key:
+                    provider, selected_model = row_key.split(":", 1)
+                    log.info(
+                        f"ModelPickerModal: Selected from Local tab provider='{provider}', "
+                        f"model='{selected_model}'"
+                    )
+                    self.dismiss((provider, selected_model))
+                else:
+                    return
+            else:
+                selected_model = row_key
+                log.info(
+                    f"ModelPickerModal: Selected provider='{self.active_provider}', "
+                    f"model='{selected_model}'"
+                )
+                self.dismiss((self.active_provider, selected_model))
 
     def action_select(self) -> None:
         """Handle select action (Enter key)."""
@@ -836,13 +1116,35 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         # Get row key from cursor position
         row_keys = list(self._table.rows.keys())
         if 0 <= cursor_row < len(row_keys):
-            row_key = row_keys[cursor_row]
-            selected_model = str(row_key)
-            log.info(
-                f"ModelPickerModal: Selected provider='{self.active_provider}', "
-                f"model='{selected_model}'"
-            )
-            self.dismiss((self.active_provider, selected_model))
+            row_key = str(row_keys[cursor_row])
+
+            # Skip section headers, spacers, and loading indicators
+            model_info = self._model_map.get(row_key, {})
+            if (
+                model_info.get("section_header")
+                or model_info.get("spacer")
+                or model_info.get("loading")
+            ):
+                return
+
+            # For local tab, extract actual provider and model from the key
+            if self.active_provider == "local":
+                if ":" in row_key:
+                    provider, selected_model = row_key.split(":", 1)
+                    log.info(
+                        f"ModelPickerModal: Selected from Local tab provider='{provider}', "
+                        f"model='{selected_model}'"
+                    )
+                    self.dismiss((provider, selected_model))
+                else:
+                    return
+            else:
+                selected_model = row_key
+                log.info(
+                    f"ModelPickerModal: Selected provider='{self.active_provider}', "
+                    f"model='{selected_model}'"
+                )
+                self.dismiss((self.active_provider, selected_model))
 
     def action_cancel(self) -> None:
         """Handle cancel action (Escape key)."""
