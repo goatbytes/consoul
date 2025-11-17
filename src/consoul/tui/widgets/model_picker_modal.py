@@ -460,12 +460,8 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 id="search-input",
             )
 
-            # Container for model tables (will be populated dynamically)
-            with Vertical(id="tables-container"):
-                # Single DataTable for non-local providers (default)
-                yield DataTable(
-                    id="models-table", zebra_stripes=True, cursor_type="row"
-                )
+            # Container for model tables (will be populated dynamically in on_mount)
+            yield Vertical(id="tables-container")
 
             # Info label
             yield Label("Enter: select · Escape: cancel", classes="info-label")
@@ -477,17 +473,14 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
 
     async def on_mount(self) -> None:
         """Load models and populate table when mounted."""
-        log.info("ModelPickerModal: on_mount called, populating models")
+        log.info(
+            "ModelPickerModal: on_mount called, building tables and populating models"
+        )
 
-        # Initialize table
-        self._table = self.query_one("#models-table", DataTable)
-        self._table.add_column("Model", width=35)
-        self._table.add_column("Context", width=12)
-        self._table.add_column("Cost", width=12)
-        self._table.cursor_type = "row"
-        self._table.focus()
+        # Build the initial tables based on active provider
+        self._rebuild_tables_container()
 
-        # Populate table
+        # Populate table(s)
         self._populate_table()
 
     def watch_active_provider(self, provider: str) -> None:
@@ -509,8 +502,34 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             except Exception:
                 pass
 
-        # Rebuild tables container when switching to/from local tab
-        self._rebuild_tables_container()
+        # Only rebuild tables when switching between local and non-local tabs
+        # Check if we need to rebuild by seeing if the container has the right tables
+        needs_rebuild = False
+        try:
+            self.query_one("#tables-container", Vertical)  # Verify container exists
+            if provider == "local":
+                # For local tab, we should have local tables, not models-table
+                try:
+                    self.query_one("#models-table", DataTable)
+                    needs_rebuild = (
+                        True  # Has models-table but should have local tables
+                    )
+                except Exception:
+                    pass  # Correctly has local tables
+            else:
+                # For non-local tabs, we should have models-table
+                try:
+                    self.query_one("#models-table", DataTable)
+                    pass  # Correctly has models-table
+                except Exception:
+                    needs_rebuild = (
+                        True  # Has local tables but should have models-table
+                    )
+        except Exception:
+            needs_rebuild = True
+
+        if needs_rebuild:
+            self._rebuild_tables_container()
 
         # Refresh model table(s)
         self._populate_table()
