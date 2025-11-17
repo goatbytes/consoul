@@ -522,8 +522,9 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         except Exception:
             return
 
-        # Remove all existing widgets
-        container.remove_children()
+        # Remove all existing widgets explicitly
+        for child in list(container.children):
+            child.remove()
 
         # For local tab, create multiple DataTables with labels
         if self.active_provider == "local":
