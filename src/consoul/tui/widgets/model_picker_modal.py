@@ -370,7 +370,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         width: 100%;
         height: auto;
         layout: horizontal;
-        align: center middle;
+        align: left middle;
         margin: 0 0 1 0;
     }
 
