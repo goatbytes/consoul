@@ -1378,6 +1378,9 @@ class ConsoulConfig(BaseModel):
         elif self.current_provider == Provider.MLX:
             # MLX uses HuggingFace model IDs from mlx-community
             # Falls back to model_path if specified
+            # If model looks like a file path, set it as model_path
+            if "/" in self.current_model or "\\" in self.current_model:
+                model_params["model_path"] = self.current_model
             return MLXModelConfig(**model_params)
         else:  # OLLAMA
             # Note: api_base is retrieved from provider_config by get_chat_model(),
