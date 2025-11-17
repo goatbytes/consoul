@@ -1,0 +1,30 @@
+2025-11-17 10:15:50,464 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./log.txt
+2025-11-17 10:15:51,529 - consoul.tui.widgets.contextual_top_bar - ERROR - Error updating model label: No nodes match '#model-label' on ContextualTopBar(id='top-bar')
+Traceback (most recent call last):
+  File "/Users/jaredrummler/Development/github/goatbytes/consoul/src/consoul/tui/widgets/contextual_top_bar.py", line 298, in _update_model_label
+    model_label = self.query_one("#model-label", Label)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/textual/dom.py", line 1499, in query_one
+    raise NoMatches(f"No nodes match {query_selector!r} on {base_node!r}")
+textual.css.query.NoMatches: No nodes match '#model-label' on ContextualTopBar(id='top-bar')
+2025-11-17 10:15:51,530 - consoul.tui.widgets.contextual_top_bar - ERROR - Error updating model label: No nodes match '#model-label' on ContextualTopBar(id='top-bar')
+Traceback (most recent call last):
+  File "/Users/jaredrummler/Development/github/goatbytes/consoul/src/consoul/tui/widgets/contextual_top_bar.py", line 298, in _update_model_label
+    model_label = self.query_one("#model-label", Label)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/textual/dom.py", line 1499, in query_one
+    raise NoMatches(f"No nodes match {query_selector!r} on {base_node!r}")
+textual.css.query.NoMatches: No nodes match '#model-label' on ContextualTopBar(id='top-bar')
+2025-11-17 10:15:51,531 - consoul.tui.widgets.contextual_top_bar - ERROR - Error updating profile label: No nodes match '#profile-label' on ContextualTopBar(id='top-bar')
+Traceback (most recent call last):
+  File "/Users/jaredrummler/Development/github/goatbytes/consoul/src/consoul/tui/widgets/contextual_top_bar.py", line 313, in watch_current_profile
+    profile_label = self.query_one("#profile-label", Label)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/textual/dom.py", line 1499, in query_one
+    raise NoMatches(f"No nodes match {query_selector!r} on {base_node!r}")
+textual.css.query.NoMatches: No nodes match '#profile-label' on ContextualTopBar(id='top-bar')
+2025-11-17 10:15:53,864 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Initialized with current_model=cogito:32b, current_provider=Provider.OLLAMA, active_provider=local, ollama_available=True, huggingface_available=True
+2025-11-17 10:15:53,879 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: on_mount called, building tables and populating models
+2025-11-17 10:15:54,763 - consoul.tui.widgets.model_picker_modal - DEBUG - ModelPickerModal: Populated Local tab with 31 Ollama, 0 GGUF, 8 MLX models
+2025-11-17 10:15:55,637 - consoul.tui.widgets.model_picker_modal - DEBUG - ModelPickerModal: Populated Local tab with 31 Ollama, 2 GGUF, 8 MLX models
+2025-11-17 10:15:55,637 - consoul.tui.widgets.model_picker_modal - INFO - Loaded 2 GGUF models from cache

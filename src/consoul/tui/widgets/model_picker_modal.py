@@ -365,22 +365,37 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         background: $surface;
     }
 
-    ModelPickerModal .section-label {
+    /* Local provider sub-tabs */
+    ModelPickerModal #local-provider-tabs {
         width: 100%;
         height: auto;
-        color: $primary;
-        text-style: bold;
-        margin: 1 0 0 0;
-        padding: 0 1;
+        layout: horizontal;
+        align: center middle;
+        margin: 0 0 1 0;
+    }
+
+    ModelPickerModal .local-provider-tab {
+        margin: 0 1;
+        padding: 0 2;
         background: transparent;
+        color: $text-muted;
+    }
+
+    ModelPickerModal .local-provider-tab:hover {
+        background: $primary-lighten-1;
+        color: $text;
+    }
+
+    ModelPickerModal .local-provider-tab.-active {
+        background: $accent;
+        color: $text;
+        text-style: bold;
     }
 
     ModelPickerModal .local-table {
         width: 100%;
-        height: auto;
-        min-height: 5;
+        height: 1fr;
         background: $surface;
-        margin: 0 0 1 0;
     }
 
     ModelPickerModal .info-label {
@@ -405,6 +420,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
 
     # Reactive properties
     active_provider: reactive[str] = reactive("openai")
+    active_local_provider: reactive[str] = reactive("ollama")  # ollama, gguf, or mlx
 
     # Cache for GGUF models (lazy loaded)
     _gguf_models_cache: list[dict[str, Any]] | None = None
@@ -442,6 +458,11 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         local_providers = {"ollama", "llamacpp", "mlx"}
         if current_provider.value in local_providers:
             self.active_provider = "local"
+            # Set the active local provider sub-tab
+            if current_provider.value == "llamacpp":
+                self.active_local_provider = "gguf"
+            else:
+                self.active_local_provider = current_provider.value
         else:
             self.active_provider = current_provider.value
 
@@ -536,14 +557,12 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         try:
             self.query_one("#tables-container", Vertical)  # Verify container exists
             if provider == "local":
-                # For local tab, we should have local tables, not models-table
+                # For local tab, check if we have sub-tabs
                 try:
-                    self.query_one("#models-table", DataTable)
-                    needs_rebuild = (
-                        True  # Has models-table but should have local tables
-                    )
+                    self.query_one("#local-provider-tabs", Horizontal)
+                    pass  # Correctly has local provider tabs
                 except Exception:
-                    pass  # Correctly has local tables
+                    needs_rebuild = True  # Missing local provider tabs
             else:
                 # For non-local tabs, we should have models-table
                 try:
@@ -562,6 +581,26 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         # Refresh model table(s)
         self._populate_table()
 
+    def watch_active_local_provider(self, local_provider: str) -> None:
+        """React to local provider sub-tab changes."""
+        # Skip if not mounted or not on local tab
+        if not self.is_mounted or self.active_provider != "local":
+            return
+
+        # Update sub-tab styling
+        for subtab_id in ["local-tab-ollama", "local-tab-gguf", "local-tab-mlx"]:
+            try:
+                tab = self.query_one(f"#{subtab_id}", Label)
+                if subtab_id == f"local-tab-{local_provider}":
+                    tab.add_class("-active")
+                else:
+                    tab.remove_class("-active")
+            except Exception:
+                pass
+
+        # Refresh the table with models for the selected local provider
+        self._populate_table()
+
     def _rebuild_tables_container(self) -> None:
         """Rebuild the tables container based on active provider."""
         try:
@@ -573,56 +612,52 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         for child in list(container.children):
             child.remove()
 
-        # For local tab, create multiple DataTables with labels
+        # For local tab, create sub-tabs and a single table
         if self.active_provider == "local":
-            # Ollama section
-            if self._ollama_available:
-                container.mount(Label("OLLAMA", classes="section-label"))
-                ollama_table: DataTable[Any] = DataTable(
-                    id="ollama-table",
-                    zebra_stripes=True,
-                    cursor_type="row",
-                    classes="local-table",
-                )
-                ollama_table.add_column("Model", width=35)
-                ollama_table.add_column("Context", width=12)
-                ollama_table.add_column("Cost", width=12)
-                container.mount(ollama_table)
+            import platform
 
-            # GGUF section
-            container.mount(Label("GGUF (LlamaCpp)", classes="section-label"))
-            gguf_table: DataTable[Any] = DataTable(
-                id="gguf-table",
+            # Create sub-tabs container
+            subtabs_container = Horizontal(id="local-provider-tabs")
+            container.mount(subtabs_container)
+
+            # Ollama sub-tab (only if available)
+            if self._ollama_available:
+                ollama_tab = Label(
+                    "Ollama", classes="local-provider-tab", id="local-tab-ollama"
+                )
+                ollama_tab.can_focus = True
+                if self.active_local_provider == "ollama":
+                    ollama_tab.add_class("-active")
+                subtabs_container.mount(ollama_tab)
+
+            # GGUF sub-tab (always show)
+            gguf_tab = Label("GGUF", classes="local-provider-tab", id="local-tab-gguf")
+            gguf_tab.can_focus = True
+            if self.active_local_provider == "gguf":
+                gguf_tab.add_class("-active")
+            subtabs_container.mount(gguf_tab)
+
+            # MLX sub-tab (only on macOS)
+            if platform.system() == "Darwin":
+                mlx_tab = Label("MLX", classes="local-provider-tab", id="local-tab-mlx")
+                mlx_tab.can_focus = True
+                if self.active_local_provider == "mlx":
+                    mlx_tab.add_class("-active")
+                subtabs_container.mount(mlx_tab)
+
+            # Create single table for active local provider
+            table: DataTable[Any] = DataTable(
+                id="models-table",
                 zebra_stripes=True,
                 cursor_type="row",
                 classes="local-table",
             )
-            gguf_table.add_column("Model", width=35)
-            gguf_table.add_column("Context", width=12)
-            gguf_table.add_column("Cost", width=12)
-            container.mount(gguf_table)
-
-            # MLX section (macOS only)
-            import platform
-
-            if platform.system() == "Darwin":
-                container.mount(Label("MLX (Apple Silicon)", classes="section-label"))
-                mlx_table: DataTable[Any] = DataTable(
-                    id="mlx-table",
-                    zebra_stripes=True,
-                    cursor_type="row",
-                    classes="local-table",
-                )
-                mlx_table.add_column("Model", width=35)
-                mlx_table.add_column("Context", width=12)
-                mlx_table.add_column("Cost", width=12)
-                container.mount(mlx_table)
-
-            # Focus the first available table
-            if self._ollama_available:
-                ollama_table.focus()
-            else:
-                gguf_table.focus()
+            table.add_column("Model", width=35)
+            table.add_column("Context", width=12)
+            table.add_column("Cost", width=12)
+            container.mount(table)
+            table.focus()
+            self._table = table
         else:
             # Single DataTable for non-local providers
             self._table = DataTable(
@@ -640,11 +675,10 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         Args:
             search_query: Optional search query to filter models
         """
-        # For non-local providers, clear the main table
-        if self.active_provider != "local":
-            if not self._table:
-                return
-            self._table.clear()
+        # Clear the main table
+        if not self._table:
+            return
+        self._table.clear()
 
         # Clear model map
         self._model_map.clear()
@@ -657,11 +691,10 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             if info["provider"] == provider_value
         }
 
-        # For Local tab, aggregate models from Ollama, LlamaCpp, and MLX
+        # For Local tab, show models for the active local provider only
         if provider_value == "local":
             provider_models = {}
-            self._populate_local_models(provider_models, search_query)
-            self._add_local_models_to_table(provider_models, search_query)
+            self._populate_local_models_for_active_subtab(provider_models, search_query)
             return
 
         # For Ollama, fetch dynamic models from the service
@@ -878,6 +911,214 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             f"ModelPickerModal: Populated table with {len(provider_models)} models "
             f"for provider '{provider_value}'"
         )
+
+    def _populate_local_models_for_active_subtab(
+        self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
+    ) -> None:
+        """Populate models for the currently active local provider sub-tab.
+
+        Args:
+            provider_models: Dictionary to populate with model information
+            search_query: Optional search query to filter models
+        """
+        # Only populate models for the active local provider
+        if self.active_local_provider == "ollama":
+            self._populate_ollama_models(provider_models, search_query)
+        elif self.active_local_provider == "gguf":
+            self._populate_gguf_models(provider_models, search_query)
+        elif self.active_local_provider == "mlx":
+            self._populate_mlx_models(provider_models, search_query)
+
+        # Apply search filter
+        if search_query:
+            query_lower = search_query.lower()
+            provider_models_filtered = {
+                key: info
+                for key, info in provider_models.items()
+                if query_lower in info.get("display_name", "").lower()
+                or query_lower in info.get("description", "").lower()
+            }
+            provider_models.clear()
+            provider_models.update(provider_models_filtered)
+
+        # Add models to the table
+        if self._table:
+            for key in sorted(
+                provider_models.keys(),
+                key=lambda k: provider_models[k].get("display_name", ""),
+            ):
+                info = provider_models[key]
+                self._add_model_row_to_table(self._table, key, info)
+
+    def _populate_ollama_models(
+        self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
+    ) -> None:
+        """Populate Ollama models.
+
+        Args:
+            provider_models: Dictionary to populate with model information
+            search_query: Optional search query (unused, filtering happens after)
+        """
+        if not self._ollama_available:
+            return
+
+        from consoul.ai.providers import get_ollama_models, is_ollama_running
+
+        if not is_ollama_running():
+            return
+
+        ollama_models = get_ollama_models(include_context=True)
+        for model_info in ollama_models:
+            model_name = model_info.get("name", "")
+            if model_name:
+                context_length = model_info.get("context_length")
+                if context_length:
+                    if context_length >= 1_000_000:
+                        context_str = f"{context_length // 1_000_000}M"
+                    elif context_length >= 1_000:
+                        context_str = f"{context_length // 1_000}K"
+                    else:
+                        context_str = str(context_length)
+                else:
+                    context_str = "?"
+
+                key = f"ollama:{model_name}"
+                provider_models[key] = {
+                    "provider": "ollama",
+                    "context": context_str,
+                    "cost": "free",
+                    "description": "Ollama model",
+                    "display_name": model_name,
+                    "actual_model": model_name,
+                }
+
+    def _populate_gguf_models(
+        self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
+    ) -> None:
+        """Populate GGUF models.
+
+        Args:
+            provider_models: Dictionary to populate with model information
+            search_query: Optional search query (unused, filtering happens after)
+        """
+        # Check cache or start loading
+        if self._gguf_models_cache is not None:
+            gguf_models = self._gguf_models_cache
+        elif not self._gguf_loading:
+            # Start async load
+            self._gguf_loading = True
+            self.run_worker(self._load_gguf_models_async(), exclusive=True)
+            # Show loading indicator
+            loading_key = "loading:gguf"
+            provider_models[loading_key] = {
+                "provider": "llamacpp",
+                "context": "-",
+                "cost": "-",
+                "description": "Scanning cache directories...",
+                "display_name": "⏳ Loading GGUF models...",
+                "loading": True,
+            }
+            return
+        else:
+            return
+
+        for model_info in gguf_models:
+            file_name = model_info.get("name", "")
+            file_path = model_info.get("path", "")
+
+            if file_path:
+                size_gb = model_info.get("size_gb", 0)
+                if size_gb >= 1:
+                    size_str = f"{size_gb:.1f}GB"
+                else:
+                    size_str = f"{size_gb * 1024:.0f}MB"
+
+                quant = model_info.get("quant", "?")
+                key = f"llamacpp:{file_path}"
+                provider_models[key] = {
+                    "provider": "llamacpp",
+                    "context": "4K-128K",
+                    "cost": "free",
+                    "description": f"{quant}, {size_str}",
+                    "display_name": file_name,
+                    "actual_model": file_path,
+                }
+
+    def _populate_mlx_models(
+        self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
+    ) -> None:
+        """Populate MLX models.
+
+        Args:
+            provider_models: Dictionary to populate with model information
+            search_query: Optional search query (unused, filtering happens after)
+        """
+        import platform
+
+        if platform.system() != "Darwin":
+            return
+
+        from consoul.ai.providers import get_local_mlx_models
+
+        # Get locally downloaded MLX models
+        local_mlx = get_local_mlx_models()
+
+        for model_info in local_mlx:
+            model_name = model_info.get("name", "")
+            model_path = model_info.get("path", "")
+            size_gb = model_info.get("size_gb", 0)
+
+            if model_name and model_path:
+                if size_gb >= 1:
+                    size_str = f"{size_gb:.1f}GB"
+                else:
+                    size_str = f"{size_gb * 1024:.0f}MB"
+
+                key = f"mlx:{model_path}"
+                provider_models[key] = {
+                    "provider": "mlx",
+                    "context": "?",
+                    "cost": "free",
+                    "description": f"Local, {size_str}",
+                    "display_name": model_name,
+                    "actual_model": model_path,
+                }
+
+        # Also include popular MLX models from HuggingFace as suggestions
+        mlx_suggestions = {
+            "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit": {
+                "context": "128K",
+                "description": "Llama 3.1 8B, 4-bit quantized",
+            },
+            "mlx-community/Qwen2.5-7B-Instruct-4bit": {
+                "context": "32K",
+                "description": "Qwen 2.5 7B, 4-bit quantized",
+            },
+            "mlx-community/Mistral-7B-Instruct-v0.3-4bit": {
+                "context": "32K",
+                "description": "Mistral 7B v0.3, 4-bit quantized",
+            },
+            "mlx-community/gemma-2-9b-it-4bit": {
+                "context": "8K",
+                "description": "Gemma 2 9B, 4-bit quantized",
+            },
+            "mlx-community/Phi-3.5-mini-instruct-4bit": {
+                "context": "128K",
+                "description": "Phi 3.5 Mini, 4-bit quantized",
+            },
+        }
+
+        for model_id, info in mlx_suggestions.items():
+            key = f"mlx:{model_id}"
+            if key not in provider_models:
+                provider_models[key] = {
+                    "provider": "mlx",
+                    "context": info["context"],
+                    "cost": "free",
+                    "description": info["description"],
+                    "display_name": model_id,
+                    "actual_model": model_id,
+                }
 
     def _populate_local_models(
         self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
@@ -1231,6 +1472,15 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             ]:
                 self.active_provider = provider
                 log.info(f"ModelPickerModal: Switched to provider '{provider}'")
+
+        # Local provider sub-tab clicks
+        if target_id and target_id.startswith("local-tab-"):
+            local_provider = target_id.replace("local-tab-", "")
+            if local_provider in ["ollama", "gguf", "mlx"]:
+                self.active_local_provider = local_provider
+                log.info(
+                    f"ModelPickerModal: Switched to local provider '{local_provider}'"
+                )
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row selection (Enter key or double-click)."""

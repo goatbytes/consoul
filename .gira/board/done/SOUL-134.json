@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-17T08:53:23.537765",
-  "updated_at": "2025-11-17T16:57:56.735455Z",
+  "updated_at": "2025-11-17T10:15:59.509324",
   "id": "SOUL-134",
   "uuid": "1686b235-93fa-4ffb-88fe-a6e3e904c342",
   "title": "Consolidate local model providers into single 'Local' tab",
@@ -12,10 +12,50 @@
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-17T10:00:41.217964",
+      "updated_at": "2025-11-17T10:00:41.217965",
+      "id": "20251117100041-0cc2c7e2",
+      "ticket_id": "SOUL-134",
+      "author": "jared@goatbytes.io",
+      "content": "Completed local MLX model scanning:\n- Implemented get_local_mlx_models() to scan ~/.lmstudio/models\n- Scans for directories with config.json and .safetensors files\n- Displays local MLX models with size info\n- Shows alongside HuggingFace suggestions (no duplicates)\n- Users can now see their downloaded MLX models in the Local tab",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-17T10:12:58.411990",
+      "updated_at": "2025-11-17T10:12:58.411991",
+      "id": "20251117101258-613b1f39",
+      "ticket_id": "SOUL-134",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed missing CSS for local model tables:\n- Added CSS for #tables-container\n- Added CSS for .section-label (Ollama/GGUF/MLX headers)\n- Added CSS for .local-table (individual tables)\n- Tables should now display correctly with proper spacing\n\nUsers should now see all GGUF and MLX models in the Local tab.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-17T10:15:59.509233",
+      "updated_at": "2025-11-17T10:15:59.509235",
+      "id": "20251117101559-c9e93a27",
+      "ticket_id": "SOUL-134",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed table initialization timing issue:\n- Added is_mounted check in watch_active_provider to prevent premature population\n- The reactive watcher was being triggered during __init__ before compose() ran\n- This caused 'No nodes match #ollama-table/gguf-table/mlx-table' errors\n- Now on_mount properly handles initial table building and population\n\nGGUF and MLX tables should now appear correctly in the Local tab.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 3,
   "order": 0,
   "custom_fields": {}
 }
