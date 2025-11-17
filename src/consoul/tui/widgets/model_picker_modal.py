@@ -460,8 +460,12 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 id="search-input",
             )
 
-            # DataTable for models
-            yield DataTable(id="models-table", zebra_stripes=True, cursor_type="row")
+            # Container for model tables (will be populated dynamically)
+            with Vertical(id="tables-container"):
+                # Single DataTable for non-local providers (default)
+                yield DataTable(
+                    id="models-table", zebra_stripes=True, cursor_type="row"
+                )
 
             # Info label
             yield Label("Enter: select · Escape: cancel", classes="info-label")
@@ -505,8 +509,113 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             except Exception:
                 pass
 
-        # Refresh model table
+        # Rebuild tables container when switching to/from local tab
+        self._rebuild_tables_container()
+
+        # Refresh model table(s)
         self._populate_table()
+
+    def _rebuild_tables_container(self) -> None:
+        """Rebuild the tables container based on active provider."""
+        try:
+            container = self.query_one("#tables-container", Vertical)
+        except Exception:
+            return
+
+        # Remove all existing widgets
+        container.remove_children()
+
+        # For local tab, create multiple DataTables with labels
+        if self.active_provider == "local":
+            # Ollama section
+            if self._ollama_available:
+                container.mount(Label("OLLAMA", classes="section-label"))
+                container.mount(
+                    DataTable(
+                        id="ollama-table",
+                        zebra_stripes=True,
+                        cursor_type="row",
+                        classes="local-table",
+                    )
+                )
+
+            # GGUF section
+            container.mount(Label("GGUF (LlamaCpp)", classes="section-label"))
+            container.mount(
+                DataTable(
+                    id="gguf-table",
+                    zebra_stripes=True,
+                    cursor_type="row",
+                    classes="local-table",
+                )
+            )
+
+            # MLX section (macOS only)
+            import platform
+
+            if platform.system() == "Darwin":
+                container.mount(Label("MLX (Apple Silicon)", classes="section-label"))
+                container.mount(
+                    DataTable(
+                        id="mlx-table",
+                        zebra_stripes=True,
+                        cursor_type="row",
+                        classes="local-table",
+                    )
+                )
+
+            # Initialize all local tables
+            self._init_local_tables()
+        else:
+            # Single DataTable for non-local providers
+            container.mount(
+                DataTable(id="models-table", zebra_stripes=True, cursor_type="row")
+            )
+
+            # Initialize the table reference
+            try:
+                self._table = self.query_one("#models-table", DataTable)
+                if len(self._table.columns) == 0:
+                    self._table.add_column("Model", width=35)
+                    self._table.add_column("Context", width=12)
+                    self._table.add_column("Cost", width=12)
+                    self._table.cursor_type = "row"
+                    self._table.focus()
+            except Exception:
+                pass
+
+    def _init_local_tables(self) -> None:
+        """Initialize all local provider tables with columns."""
+        table_ids = []
+
+        if self._ollama_available:
+            table_ids.append("ollama-table")
+
+        table_ids.append("gguf-table")
+
+        import platform
+
+        if platform.system() == "Darwin":
+            table_ids.append("mlx-table")
+
+        for table_id in table_ids:
+            try:
+                table = self.query_one(f"#{table_id}", DataTable)
+                if len(table.columns) == 0:
+                    table.add_column("Model", width=35)
+                    table.add_column("Context", width=12)
+                    table.add_column("Cost", width=12)
+                    table.cursor_type = "row"
+            except Exception:
+                pass
+
+        # Focus the first available table
+        if table_ids:
+            try:
+                first_table = self.query_one(f"#{table_ids[0]}", DataTable)
+                first_table.focus()
+            except Exception:
+                pass
 
     def _populate_table(self, search_query: str = "") -> None:
         """Populate or refresh the table with models.
@@ -865,15 +974,12 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
     def _add_local_models_to_table(
         self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
     ) -> None:
-        """Add local models to table with section headers.
+        """Add local models to separate tables.
 
         Args:
             provider_models: Dictionary of model information
             search_query: Optional search query to filter models
         """
-        if not self._table:
-            return
-
         # Apply search filter if provided
         if search_query:
             query_lower = search_query.lower()
@@ -899,57 +1005,47 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         for section in sections:
             sections[section].sort(key=lambda x: x[1].get("display_name", ""))
 
-        # Add Ollama section
-        if sections["ollama"]:
-            # Add section header as a non-selectable row
-            header_key = "header:ollama"
-            self._table.add_row("═══ OLLAMA ═══", "", "", key=header_key)
-            self._model_map[header_key] = {"section_header": True}
+        # Populate Ollama table
+        if self._ollama_available:
+            try:
+                ollama_table = self.query_one("#ollama-table", DataTable)
+                ollama_table.clear()
 
-            for key, info in sections["ollama"]:
-                self._add_model_row(key, info)
+                for key, info in sections["ollama"]:
+                    self._add_model_row_to_table(ollama_table, key, info)
+            except Exception as e:
+                log.error(f"Error populating Ollama table: {e}")
 
-        # Add GGUF section
-        if sections["gguf"]:
-            if sections["ollama"]:
-                # Add spacing if previous section exists
-                spacer_key = "spacer:gguf"
-                self._table.add_row("", "", "", key=spacer_key)
-                self._model_map[spacer_key] = {"spacer": True}
+        # Populate GGUF table
+        try:
+            gguf_table = self.query_one("#gguf-table", DataTable)
+            gguf_table.clear()
 
-            header_key = "header:gguf"
-            self._table.add_row("═══ GGUF (LlamaCpp) ═══", "", "", key=header_key)
-            self._model_map[header_key] = {"section_header": True}
+            if self._gguf_loading and not sections["gguf"]:
+                # Show loading indicator
+                loading_key = "loading:gguf"
+                gguf_table.add_row(
+                    "⏳ Scanning GGUF cache directories...", "", "", key=loading_key
+                )
+                self._model_map[loading_key] = {"loading": True}
+            else:
+                for key, info in sections["gguf"]:
+                    self._add_model_row_to_table(gguf_table, key, info)
+        except Exception as e:
+            log.error(f"Error populating GGUF table: {e}")
 
-            for key, info in sections["gguf"]:
-                self._add_model_row(key, info)
+        # Populate MLX table (macOS only)
+        import platform
 
-        # Add MLX section
-        if sections["mlx"]:
-            if sections["ollama"] or sections["gguf"]:
-                spacer_key = "spacer:mlx"
-                self._table.add_row("", "", "", key=spacer_key)
-                self._model_map[spacer_key] = {"spacer": True}
+        if platform.system() == "Darwin":
+            try:
+                mlx_table = self.query_one("#mlx-table", DataTable)
+                mlx_table.clear()
 
-            header_key = "header:mlx"
-            self._table.add_row("═══ MLX (Apple Silicon) ═══", "", "", key=header_key)
-            self._model_map[header_key] = {"section_header": True}
-
-            for key, info in sections["mlx"]:
-                self._add_model_row(key, info)
-
-        # If loading GGUF models, show loading indicator
-        if self._gguf_loading and not sections["gguf"]:
-            if sections["ollama"]:
-                spacer_key = "spacer:loading"
-                self._table.add_row("", "", "", key=spacer_key)
-                self._model_map[spacer_key] = {"spacer": True}
-
-            loading_key = "loading:gguf"
-            self._table.add_row(
-                "⏳ Scanning GGUF cache directories...", "", "", key=loading_key
-            )
-            self._model_map[loading_key] = {"loading": True}
+                for key, info in sections["mlx"]:
+                    self._add_model_row_to_table(mlx_table, key, info)
+            except Exception as e:
+                log.error(f"Error populating MLX table: {e}")
 
         log.debug(
             f"ModelPickerModal: Populated Local tab with "
@@ -959,7 +1055,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         )
 
     def _add_model_row(self, key: str, info: dict[str, Any]) -> None:
-        """Add a single model row to the table.
+        """Add a single model row to the main table (for non-local providers).
 
         Args:
             key: Unique key for the row
@@ -968,6 +1064,18 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         if not self._table:
             return
 
+        self._add_model_row_to_table(self._table, key, info)
+
+    def _add_model_row_to_table(
+        self, table: DataTable[Any], key: str, info: dict[str, Any]
+    ) -> None:
+        """Add a single model row to a specific table.
+
+        Args:
+            table: The DataTable to add the row to
+            key: Unique key for the row
+            info: Model information dictionary
+        """
         self._model_map[key] = info
 
         # Check if this is the current model
@@ -984,18 +1092,19 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         context_col = info["context"]
         cost_col = info["cost"].title()
 
-        self._table.add_row(model_col, context_col, cost_col, key=key)
+        table.add_row(model_col, context_col, cost_col, key=key)
 
         # Highlight current model row
         if is_current:
             try:
-                row_keys_list = list(self._table.rows.keys())
+                row_keys_list = list(table.rows.keys())
                 row_index = next(
                     (i for i, k in enumerate(row_keys_list) if str(k) == key),
                     None,
                 )
                 if row_index is not None:
-                    self._table.move_cursor(row=row_index)
+                    table.move_cursor(row=row_index)
+                    table.focus()
             except (ValueError, Exception):
                 pass
 
@@ -1074,13 +1183,9 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         if event.row_key:
             row_key = str(event.row_key.value)
 
-            # Skip section headers, spacers, and loading indicators
+            # Skip loading indicators
             model_info = self._model_map.get(row_key, {})
-            if (
-                model_info.get("section_header")
-                or model_info.get("spacer")
-                or model_info.get("loading")
-            ):
+            if model_info.get("loading"):
                 return
 
             # For local tab, extract actual provider and model from the key
@@ -1104,25 +1209,38 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
 
     def action_select(self) -> None:
         """Handle select action (Enter key)."""
-        if not self._table:
+        # Get the currently focused table
+        focused_table = None
+
+        if self.active_provider == "local":
+            # Try to find which local table has focus
+            for table_id in ["ollama-table", "gguf-table", "mlx-table"]:
+                try:
+                    table = self.query_one(f"#{table_id}", DataTable)
+                    if table.has_focus:
+                        focused_table = table
+                        break
+                except Exception:
+                    pass
+        else:
+            # Use the main table for non-local providers
+            focused_table = self._table
+
+        if not focused_table:
             return
 
-        cursor_row = self._table.cursor_row
+        cursor_row = focused_table.cursor_row
         if cursor_row is None:
             return
 
         # Get row key from cursor position
-        row_keys = list(self._table.rows.keys())
+        row_keys = list(focused_table.rows.keys())
         if 0 <= cursor_row < len(row_keys):
             row_key = str(row_keys[cursor_row])
 
-            # Skip section headers, spacers, and loading indicators
+            # Skip loading indicators
             model_info = self._model_map.get(row_key, {})
-            if (
-                model_info.get("section_header")
-                or model_info.get("spacer")
-                or model_info.get("loading")
-            ):
+            if model_info.get("loading"):
                 return
 
             # For local tab, extract actual provider and model from the key
