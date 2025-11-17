@@ -349,6 +349,54 @@ def get_gguf_models_from_cache(force_refresh: bool = False) -> list[dict[str, An
     return models
 
 
+def get_local_mlx_models() -> list[dict[str, Any]]:
+    """Scan for locally downloaded MLX models.
+
+    Looks in ~/.lmstudio/models for directories containing MLX model files
+    (identified by config.json with model_type and .safetensors files).
+
+    Returns:
+        List of MLX model dicts with 'name', 'path', 'size_gb' keys.
+    """
+    from pathlib import Path
+
+    mlx_models: list[dict[str, Any]] = []
+    lmstudio_dir = Path.home() / ".lmstudio" / "models"
+
+    if not lmstudio_dir.exists():
+        return mlx_models
+
+    # Look for directories with safetensors files (MLX format)
+    for model_dir in lmstudio_dir.rglob("*/"):
+        # Check if this looks like an MLX model directory
+        has_config = (model_dir / "config.json").exists()
+        has_safetensors = any(model_dir.glob("*.safetensors"))
+
+        if has_config and has_safetensors:
+            # Get model name from path (e.g., "mlx-community/gemma-3-27b-it-qat-4bit")
+            relative_path = model_dir.relative_to(lmstudio_dir)
+            model_name = str(relative_path).replace("\\", "/")
+
+            # Calculate total size
+            total_size = sum(
+                f.stat().st_size for f in model_dir.rglob("*") if f.is_file()
+            )
+            size_gb = total_size / (1024**3)
+
+            mlx_models.append(
+                {
+                    "name": model_name,
+                    "path": str(model_dir),
+                    "size_gb": size_gb,
+                }
+            )
+
+    # Sort by name
+    mlx_models.sort(key=lambda m: m["name"])
+
+    return mlx_models
+
+
 def find_gguf_for_model(model_name: str) -> str | None:
     """Find a GGUF file in cache for a given model name.
 

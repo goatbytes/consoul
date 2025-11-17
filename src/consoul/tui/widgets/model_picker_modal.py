@@ -929,7 +929,38 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         import platform
 
         if platform.system() == "Darwin":
-            mlx_models = {
+            from consoul.ai.providers import get_local_mlx_models
+
+            # Get locally downloaded MLX models
+            local_mlx = get_local_mlx_models()
+
+            # Add local MLX models
+            for model_info in local_mlx:
+                model_name = model_info.get("name", "")
+                model_path = model_info.get("path", "")
+                size_gb = model_info.get("size_gb", 0)
+
+                if model_name and model_path:
+                    # Format size
+                    if size_gb >= 1:
+                        size_str = f"{size_gb:.1f}GB"
+                    else:
+                        size_str = f"{size_gb * 1024:.0f}MB"
+
+                    key = f"mlx:{model_path}"
+                    provider_models[key] = {
+                        "provider": "mlx",
+                        "section": "mlx",
+                        "context": "?",  # Could extract from config.json in future
+                        "cost": "free",
+                        "description": f"Local, {size_str}",
+                        "display_name": model_name,
+                        "actual_model": model_path,
+                    }
+
+            # Also include popular MLX models from HuggingFace as suggestions
+            # (only if not already in local models)
+            mlx_suggestions = {
                 "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit": {
                     "context": "128K",
                     "description": "Llama 3.1 8B, 4-bit quantized",
@@ -952,17 +983,19 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 },
             }
 
-            for model_id, info in mlx_models.items():
+            for model_id, info in mlx_suggestions.items():
                 key = f"mlx:{model_id}"
-                provider_models[key] = {
-                    "provider": "mlx",
-                    "section": "mlx",
-                    "context": info["context"],
-                    "cost": "free",
-                    "description": info["description"],
-                    "display_name": model_id,
-                    "actual_model": model_id,
-                }
+                # Only add suggestion if not already added as local model
+                if key not in provider_models:
+                    provider_models[key] = {
+                        "provider": "mlx",
+                        "section": "mlx",
+                        "context": info["context"],
+                        "cost": "free",
+                        "description": info["description"],
+                        "display_name": model_id,
+                        "actual_model": model_id,
+                    }
 
     def _add_local_models_to_table(
         self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
