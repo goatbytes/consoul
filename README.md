@@ -67,7 +67,7 @@ consoul --profile creative chat "Write a poem" # Use specific profile
 ## ✨ Features
 
 - 🎨 **Beautiful TUI** - Rich, interactive terminal interface powered by Textual
-- 🤖 **Multi-Provider Support** - OpenAI, Anthropic Claude, Google Gemini, Ollama
+- 🤖 **Multi-Provider Support** - OpenAI, Anthropic Claude, Google Gemini, Ollama, HuggingFace, LlamaCpp (GGUF)
 - 🛠️ **Tool Calling** - AI-powered command execution with security controls
 - ✏️ **File Editing** - AI-powered file manipulation with safety controls and progressive matching
 - 🔍 **Code Search** - AST-based semantic search across Python, TypeScript, Go, Rust, Java, C/C++
@@ -360,6 +360,13 @@ export GOOGLE_API_KEY=your-key-here
 
 # Ollama (no API key needed - runs locally)
 # Just install from https://ollama.com
+
+# LlamaCpp (no API key needed - runs GGUF models locally)
+# Install: pip install llama-cpp-python
+# macOS: CMAKE_ARGS="-DGGML_METAL=on" pip install llama-cpp-python
+
+# HuggingFace (optional - for API access)
+export HUGGINGFACEHUB_API_TOKEN=your-key-here
 ```
 
 ## ⚙️ Configuration
@@ -382,6 +389,17 @@ profiles:
     tools:
       enabled: true
       permission_policy: balanced
+
+  # Local GGUF model with LlamaCpp (recommended for macOS)
+  local:
+    model:
+      provider: llamacpp
+      model: DavidAU/OpenAi-GPT-oss-20b-abliterated-uncensored-NEO-Imatrix-gguf
+      # model_path: /path/to/specific/model.gguf  # Optional: specify exact file
+      n_ctx: 4096            # Context window size
+      n_gpu_layers: -1       # -1 = use all GPU layers (Metal on macOS)
+      temperature: 0.7
+      max_tokens: 512
 ```
 
 See [Configuration Guide](docs/user-guide/configuration.md) for all options.

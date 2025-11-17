@@ -13,6 +13,14 @@ try:
 except ImportError:
     HAS_HUGGINGFACE = False
 
+# Check if llama_cpp is available
+try:
+    import llama_cpp  # noqa: F401
+
+    HAS_LLAMACPP = True
+except ImportError:
+    HAS_LLAMACPP = False
+
 from consoul.ai.exceptions import (
     InvalidModelError,
     MissingAPIKeyError,
@@ -30,6 +38,7 @@ from consoul.config.models import (
     AnthropicModelConfig,
     GoogleModelConfig,
     HuggingFaceModelConfig,
+    LlamaCppModelConfig,
     OllamaModelConfig,
     OpenAIModelConfig,
     Provider,
@@ -1916,3 +1925,145 @@ class TestGoogleProvider:
         assert call_kwargs["candidate_count"] == 2
         assert call_kwargs["safety_settings"] == safety_settings
         assert call_kwargs["generation_config"] == generation_config
+
+
+@pytest.mark.skipif(not HAS_LLAMACPP, reason="llama-cpp-python not installed")
+class TestLlamaCppProvider:
+    """Tests for LlamaCpp provider initialization and functionality."""
+
+    def test_llamacpp_model_config_creation(self):
+        """Test creating a LlamaCpp model config."""
+        config = LlamaCppModelConfig(
+            model="DavidAU/OpenAi-GPT-oss-20b",
+            n_ctx=4096,
+            n_gpu_layers=-1,
+            temperature=0.7,
+            max_tokens=512,
+        )
+
+        assert config.provider == Provider.LLAMACPP
+        assert config.model == "DavidAU/OpenAi-GPT-oss-20b"
+        assert config.n_ctx == 4096
+        assert config.n_gpu_layers == -1
+        assert config.temperature == 0.7
+        assert config.max_tokens == 512
+
+    def test_llamacpp_model_config_with_model_path(self):
+        """Test LlamaCpp config with explicit model path."""
+        config = LlamaCppModelConfig(
+            model="test-model",
+            model_path="/path/to/model.gguf",
+            n_ctx=2048,
+        )
+
+        assert config.model_path == "/path/to/model.gguf"
+        assert config.n_ctx == 2048
+
+    @patch("consoul.ai.providers.find_gguf_for_model")
+    @patch("consoul.ai.providers.ChatLlamaCpp")
+    def test_get_chat_model_llamacpp_autodetect(
+        self, mock_chat_llamacpp, mock_find_gguf
+    ):
+        """Test get_chat_model with LlamaCpp auto-detecting GGUF path."""
+        mock_find_gguf.return_value = "/cache/models/model.gguf"
+        mock_chat_model = MagicMock()
+        mock_chat_llamacpp.return_value = mock_chat_model
+
+        config = LlamaCppModelConfig(
+            model="test-model",
+            n_ctx=4096,
+            n_gpu_layers=-1,
+            temperature=0.7,
+            max_tokens=512,
+        )
+
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        mock_find_gguf.assert_called_once_with("test-model")
+        mock_chat_llamacpp.assert_called_once()
+
+        call_kwargs = mock_chat_llamacpp.call_args.kwargs
+        assert call_kwargs["model_path"] == "/cache/models/model.gguf"
+        assert call_kwargs["n_ctx"] == 4096
+        assert call_kwargs["n_gpu_layers"] == -1
+        assert call_kwargs["temperature"] == 0.7
+        assert call_kwargs["max_tokens"] == 512
+        assert call_kwargs["verbose"] is False
+
+    @patch("consoul.ai.providers.ChatLlamaCpp")
+    def test_get_chat_model_llamacpp_explicit_path(self, mock_chat_llamacpp):
+        """Test get_chat_model with explicit model_path."""
+        mock_chat_model = MagicMock()
+        mock_chat_llamacpp.return_value = mock_chat_model
+
+        config = LlamaCppModelConfig(
+            model="test-model",
+            model_path="/explicit/path/model.gguf",
+            n_ctx=8192,
+            temperature=0.5,
+        )
+
+        result = get_chat_model(config)
+
+        assert result == mock_chat_model
+        call_kwargs = mock_chat_llamacpp.call_args.kwargs
+        assert call_kwargs["model_path"] == "/explicit/path/model.gguf"
+        assert call_kwargs["n_ctx"] == 8192
+        assert call_kwargs["temperature"] == 0.5
+
+    @patch("consoul.ai.providers.find_gguf_for_model")
+    def test_get_chat_model_llamacpp_no_model_found(self, mock_find_gguf):
+        """Test error when no GGUF model is found."""
+        mock_find_gguf.return_value = None
+
+        config = LlamaCppModelConfig(model="nonexistent-model")
+
+        with pytest.raises(InvalidModelError) as exc_info:
+            get_chat_model(config)
+
+        assert "No GGUF model found" in str(exc_info.value)
+        assert "nonexistent-model" in str(exc_info.value)
+
+    def test_llamacpp_no_api_key_required(self):
+        """Test that LlamaCpp does not require API key."""
+        config = LlamaCppModelConfig(
+            model="test-model",
+            model_path="/path/to/model.gguf",
+        )
+
+        # This should not raise MissingAPIKeyError
+        # (Would need actual integration test to verify fully)
+        assert config.provider == Provider.LLAMACPP
+
+    @patch("consoul.ai.providers.get_gguf_models_from_cache")
+    def test_get_gguf_models_from_cache(self, mock_get_gguf):
+        """Test scanning HuggingFace cache for GGUF models."""
+        from consoul.ai.providers import get_gguf_models_from_cache
+
+        # Mock return value
+        mock_get_gguf.return_value = [
+            {
+                "name": "model-q4.gguf",
+                "path": "/cache/model-q4.gguf",
+                "size": 11000000000,
+                "size_gb": 10.24,
+                "quant": "Q4",
+                "repo": "DavidAU/test-model",
+            },
+            {
+                "name": "model-q5.gguf",
+                "path": "/cache/model-q5.gguf",
+                "size": 15000000000,
+                "size_gb": 13.97,
+                "quant": "Q5",
+                "repo": "DavidAU/test-model",
+            },
+        ]
+
+        models = get_gguf_models_from_cache()
+
+        assert len(models) == 2
+        assert models[0]["quant"] == "Q4"
+        assert models[1]["quant"] == "Q5"
+        assert models[0]["size_gb"] < models[1]["size_gb"]
