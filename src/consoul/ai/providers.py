@@ -34,6 +34,8 @@ PROVIDER_PACKAGES = {
     Provider.GOOGLE: "langchain_google_genai",
     Provider.OLLAMA: "langchain_ollama",
     Provider.HUGGINGFACE: "langchain_huggingface",
+    Provider.LLAMACPP: "llama_cpp",  # llama-cpp-python
+    Provider.MLX: "mlx_lm",  # Apple's MLX framework
 }
 
 # Model name patterns for provider detection
@@ -61,6 +63,8 @@ PROVIDER_DOCS = {
     Provider.GOOGLE: "https://ai.google.dev/models/gemini",
     Provider.OLLAMA: "https://ollama.com/library",
     Provider.HUGGINGFACE: "https://huggingface.co/models",
+    Provider.LLAMACPP: "https://github.com/ggml-org/llama.cpp",
+    Provider.MLX: "https://huggingface.co/mlx-community",
 }
 
 # API key environment variable names
@@ -70,6 +74,8 @@ API_KEY_ENV_VARS = {
     Provider.GOOGLE: "GOOGLE_API_KEY",
     Provider.OLLAMA: None,  # Ollama doesn't require API key
     Provider.HUGGINGFACE: "HUGGINGFACEHUB_API_TOKEN",
+    Provider.LLAMACPP: None,  # Llama.cpp doesn't require API key
+    Provider.MLX: None,  # MLX doesn't require API key
 }
 
 
@@ -206,6 +212,206 @@ def get_huggingface_local_models() -> list[dict[str, Any]]:
         return []
 
 
+# Cache for GGUF model scan results (with TTL)
+_gguf_cache: dict[str, Any] = {"models": None, "timestamp": 0}
+_GGUF_CACHE_TTL = 300  # 5 minutes in seconds
+
+
+def _scan_gguf_models() -> list[dict[str, Any]]:
+    """Internal function to scan GGUF models from cache directories.
+
+    This is the actual scanning logic, separated for caching purposes.
+    """
+    from pathlib import Path
+
+    gguf_models: list[dict[str, Any]] = []
+
+    # Directories to scan for GGUF models
+    scan_dirs = [
+        Path.home() / ".cache" / "huggingface" / "hub",
+        Path.home() / ".lmstudio" / "models",
+    ]
+
+    for cache_dir in scan_dirs:
+        if not cache_dir.exists():
+            continue
+
+        # Search for .gguf files in all repo directories
+        for gguf_file in cache_dir.rglob("*.gguf"):
+            try:
+                # Get actual file size (resolve symlink if needed)
+                actual_file = gguf_file.resolve()
+                size_bytes = actual_file.stat().st_size
+                size_gb = size_bytes / (1024**3)
+
+                # Extract quantization type from filename
+                name = gguf_file.name
+                quant = "unknown"
+                for q in [
+                    "IQ4",
+                    "IQ3",
+                    "Q4",
+                    "Q5",
+                    "Q8",
+                    "Q2",
+                    "Q3",
+                    "Q6",
+                    "F16",
+                    "F32",
+                ]:
+                    if q.lower() in name.lower():
+                        quant = q
+                        break
+
+                # Get repo name from path
+                repo_dir = None
+                if cache_dir.name == "hub":
+                    # HuggingFace format: models--Org--ModelName
+                    for parent in gguf_file.parents:
+                        if parent.name.startswith("models--"):
+                            repo_dir = parent.name.replace("models--", "").replace(
+                                "--", "/"
+                            )
+                            break
+                elif cache_dir.name == "models":
+                    # LM Studio format: Org/ModelName/file.gguf
+                    # Get the two parent directories (Org/ModelName)
+                    parts = gguf_file.relative_to(cache_dir).parts
+                    if len(parts) >= 3:
+                        repo_dir = f"{parts[0]}/{parts[1]}"
+                    elif len(parts) == 2:
+                        repo_dir = parts[0]
+
+                model_info: dict[str, Any] = {
+                    "name": name,
+                    "path": str(gguf_file),
+                    "size": size_bytes,
+                    "size_gb": size_gb,
+                    "quant": quant,
+                    "repo": repo_dir or "unknown",
+                }
+                gguf_models.append(model_info)
+
+            except Exception:
+                # Skip files we can't read
+                continue
+
+    # Sort by size (smallest first for faster loading)
+    gguf_models.sort(key=lambda m: m["size"])
+
+    return gguf_models
+
+
+def get_gguf_models_from_cache(force_refresh: bool = False) -> list[dict[str, Any]]:
+    """Get list of GGUF models from HuggingFace cache and LM Studio.
+
+    Scans both the HuggingFace cache directory and LM Studio models directory
+    for .gguf files which can be used with llama.cpp for local model execution.
+
+    Results are cached for 5 minutes to avoid repeated expensive directory scans.
+
+    Args:
+        force_refresh: If True, bypass cache and force a fresh scan.
+
+    Returns:
+        List of GGUF model dicts with 'name', 'path', 'size_gb', 'quant' keys.
+        Sorted by size (smallest first). Returns empty list if no models found.
+
+    Example:
+        >>> models = get_gguf_models_from_cache()
+        >>> for model in models:
+        ...     print(f"{model['name']} ({model['size_gb']:.1f}GB) - {model['quant']}")
+        OpenAI-20B-Q4.gguf (11.0GB) - Q4
+        Llama-3.1-8B-Q8.gguf (8.5GB) - Q8
+    """
+    import time
+
+    # Check if cache is valid
+    current_time = time.time()
+    cache_age = current_time - _gguf_cache["timestamp"]
+
+    if (
+        not force_refresh
+        and _gguf_cache["models"] is not None
+        and cache_age < _GGUF_CACHE_TTL
+    ):
+        # Return cached results
+        cached_models: list[dict[str, Any]] = _gguf_cache["models"]
+        return cached_models
+
+    # Perform actual scan
+    models = _scan_gguf_models()
+
+    # Update cache
+    _gguf_cache["models"] = models
+    _gguf_cache["timestamp"] = current_time
+
+    return models
+
+
+def find_gguf_for_model(model_name: str) -> str | None:
+    """Find a GGUF file in cache for a given model name.
+
+    Args:
+        model_name: Model identifier. Can be:
+                   - Full file path: "/path/to/model.gguf" (from model picker)
+                   - Just repo: "DavidAU/OpenAi-GPT-oss-20b"
+                   - Repo + filename: "DavidAU/OpenAi-GPT-oss-20b/model.Q4.gguf"
+
+    Returns:
+        Path to GGUF file, or None if not found.
+        If only repo is given, prefers smaller quantized versions (Q4 > Q5 > Q8).
+    """
+    from pathlib import Path
+
+    # If model_name is already a valid file path, return it directly
+    if model_name.endswith(".gguf") and Path(model_name).exists():
+        return model_name
+
+    gguf_models = get_gguf_models_from_cache()
+
+    # Check if model_name includes filename (has .gguf in it or multiple slashes)
+    if "/" in model_name and model_name.count("/") > 1:
+        # Format is "repo/filename" - find exact match
+        parts = model_name.split("/")
+        # Reconstruct: everything before last slash is repo, last part is filename
+        repo = "/".join(parts[:-1])
+        filename = parts[-1]
+
+        for m in gguf_models:
+            if m["repo"] == repo and m["name"] == filename:
+                path: str = m["path"]
+                return path
+
+        # If exact match not found, fall back to repo-based search
+        model_name = repo
+
+    # Filter by model name/repo
+    candidates = [m for m in gguf_models if model_name.lower() in m["repo"].lower()]
+
+    if not candidates:
+        return None
+
+    # Sort by preference: Q4 > Q5 > Q8 > others
+    def quant_priority(model: dict[str, Any]) -> int:
+        quant = model["quant"].upper()
+        if "Q4" in quant or "IQ4" in quant:
+            return 0
+        elif "Q5" in quant:
+            return 1
+        elif "Q8" in quant:
+            return 2
+        elif "Q6" in quant:
+            return 3
+        else:
+            return 4
+
+    candidates.sort(key=quant_priority)
+
+    best_path: str = candidates[0]["path"]
+    return best_path
+
+
 def select_best_ollama_model(
     base_url: str = "http://localhost:11434",
 ) -> str | None:
@@ -272,6 +478,34 @@ def validate_provider_dependencies(provider: Provider) -> None:
     spec = importlib.util.find_spec(package_name)
     if spec is None:
         pip_package = package_name.replace("_", "-")
+
+        # Special message for LlamaCpp with Metal GPU support
+        if provider == Provider.LLAMACPP:
+            import platform
+
+            install_msg = (
+                f"Missing {pip_package} package.\n\n"
+                f"To use {provider.value} models, install:\n"
+            )
+
+            if platform.system() == "Darwin":
+                install_msg += (
+                    f"   # macOS with Metal GPU acceleration (recommended):\n"
+                    f'   CMAKE_ARGS="-DGGML_METAL=on" pip install {pip_package}\n\n'
+                    f"   # Or CPU-only:\n"
+                    f"   pip install {pip_package}\n\n"
+                    f"   # Or with Poetry:\n"
+                    f"   poetry install --extras llamacpp\n"
+                )
+            else:
+                install_msg += (
+                    f"   pip install {pip_package}\n\n"
+                    f"   # Or with Poetry:\n"
+                    f"   poetry install --extras llamacpp\n"
+                )
+
+            raise MissingDependencyError(install_msg)
+
         raise MissingDependencyError(
             f"Missing {pip_package} package.\n\n"
             f"To use {provider.value} models, install:\n"
@@ -587,6 +821,10 @@ def get_chat_model(
                 model_kwargs=model_kwargs,
             )
 
+    # Type narrowing: model_config is ModelConfigUnion (not str)
+    if isinstance(model_config, str):
+        raise ValueError(f"Invalid model_config type: {type(model_config)}")
+
     provider = model_config.provider
 
     # Validate dependencies
@@ -623,7 +861,11 @@ def get_chat_model(
     resolved_api_key: str | None = None
 
     # Check if API key is needed for this provider/model combination
-    api_key_required = provider != Provider.OLLAMA  # Ollama doesn't need API key
+    api_key_required = (
+        provider != Provider.OLLAMA  # Ollama doesn't need API key
+        and provider != Provider.LLAMACPP  # LlamaCpp doesn't need API key
+        and provider != Provider.MLX  # MLX doesn't need API key
+    )
 
     # HuggingFace local models don't need API key
     if (
@@ -702,6 +944,129 @@ def get_chat_model(
     # Merge with any additional kwargs
     params.update(kwargs)
 
+    # Special handling for LlamaCpp - local GGUF execution
+    if provider == Provider.LLAMACPP:
+        from langchain_community.chat_models import ChatLlamaCpp
+
+        # Get model path from config or auto-detect
+        model_path = getattr(model_config, "model_path", None)
+        if not model_path:
+            # Auto-detect GGUF in cache
+            model_path = find_gguf_for_model(model_config.model)
+
+        if not model_path:
+            raise InvalidModelError(
+                f"No GGUF model found for '{model_config.model}'.\n\n"
+                f"LlamaCpp requires GGUF format models.\n\n"
+                f"Options:\n"
+                f"1. Download a GGUF model from HuggingFace Hub\n"
+                f"2. Convert existing safetensors model to GGUF\n"
+                f"3. Specify model_path explicitly in config\n\n"
+                f"See LLAMACPP_SOLUTION.md for conversion instructions."
+            )
+
+        # Get thread count
+        import multiprocessing
+
+        n_threads = getattr(model_config, "n_threads", None)
+        if n_threads is None:
+            n_threads = multiprocessing.cpu_count() - 1
+
+        # Build ChatLlamaCpp params
+        llama_params = {
+            "model_path": model_path,
+            "n_ctx": getattr(model_config, "n_ctx", 4096),
+            "n_gpu_layers": getattr(model_config, "n_gpu_layers", -1),
+            "n_batch": getattr(model_config, "n_batch", 512),
+            "n_threads": n_threads,
+            "temperature": params.get("temperature", 0.7),
+            "max_tokens": params.get("max_tokens", 512),
+            "verbose": False,
+        }
+
+        # Add optional parameters if present
+        if "top_p" in params:
+            llama_params["top_p"] = params["top_p"]
+        if "top_k" in params:
+            llama_params["top_k"] = params["top_k"]
+        if "stop" in params:
+            llama_params["stop"] = params["stop"]
+
+        try:
+            return ChatLlamaCpp(**llama_params)  # type: ignore[no-any-return]
+        except ImportError as e:
+            raise MissingDependencyError(
+                f"Failed to import llama-cpp-python: {e}\n\n"
+                f"Install with:\n"
+                f"  # CPU only:\n"
+                f"  pip install llama-cpp-python\n\n"
+                f"  # macOS with Metal GPU acceleration (recommended):\n"
+                f'  CMAKE_ARGS="-DGGML_METAL=on" pip install llama-cpp-python\n\n'
+                f"Or with Poetry:\n"
+                f"  poetry install --extras llamacpp"
+            ) from e
+        except Exception as e:
+            raise InvalidModelError(
+                f"Failed to load GGUF model from '{model_path}'.\n\n"
+                f"Error: {e}\n\n"
+                f"Verify:\n"
+                f"1. File exists and is a valid GGUF model\n"
+                f"2. You have enough RAM (model size + ~2GB overhead)\n"
+                f"3. Model is not corrupted\n\n"
+                f"See LLAMACPP_SOLUTION.md for troubleshooting."
+            ) from e
+
+    # Special handling for MLX - Apple Silicon optimized local execution
+    if provider == Provider.MLX:
+        from langchain_community.chat_models.mlx import ChatMLX
+        from langchain_community.llms.mlx_pipeline import MLXPipeline
+
+        # Get model path/ID from config
+        model_id = getattr(model_config, "model_path", None) or model_config.model
+
+        # Build MLXPipeline params
+        pipeline_kwargs = {
+            "max_tokens": getattr(
+                model_config, "max_tokens", params.get("max_tokens", 2048)
+            ),
+            "temp": getattr(model_config, "temp", params.get("temperature", 0.7)),
+        }
+
+        # Add optional parameters
+        if hasattr(model_config, "top_p"):
+            pipeline_kwargs["top_p"] = model_config.top_p
+        if hasattr(model_config, "repetition_penalty"):
+            pipeline_kwargs["repetition_penalty"] = model_config.repetition_penalty
+
+        try:
+            # Create MLX pipeline
+            llm = MLXPipeline.from_model_id(
+                model_id=model_id,
+                pipeline_kwargs=pipeline_kwargs,
+            )
+
+            # Wrap in ChatMLX for LangChain compatibility
+            return ChatMLX(llm=llm)  # type: ignore[no-any-return]
+        except ImportError as e:
+            raise MissingDependencyError(
+                f"Failed to import MLX: {e}\n\n"
+                f"Install with:\n"
+                f"  pip install mlx-lm\n\n"
+                f"Or with Poetry:\n"
+                f"  poetry install --extras mlx\n\n"
+                f"Note: MLX requires macOS 15.0+ and Apple Silicon (M-series chips)"
+            ) from e
+        except Exception as e:
+            raise InvalidModelError(
+                f"Failed to load MLX model '{model_id}'.\n\n"
+                f"Error: {e}\n\n"
+                f"Verify:\n"
+                f"1. Model exists on HuggingFace (mlx-community) or locally\n"
+                f"2. You have enough RAM for the model\n"
+                f"3. Running on Apple Silicon Mac with macOS 15.0+\n\n"
+                f"Browse available models: https://huggingface.co/mlx-community"
+            ) from e
+
     # Special handling for HuggingFace - supports both API and local execution
     if provider == Provider.HUGGINGFACE:
         from langchain_huggingface import ChatHuggingFace
@@ -738,20 +1103,62 @@ def get_chat_model(
                     f"Or: pip install 'consoul[huggingface-local]'"
                 )
 
-            # Warn about macOS issues
+            # Apply macOS-specific fixes BEFORE importing torch/transformers
             import platform
 
             if platform.system() == "Darwin":
-                import warnings
-
-                warnings.warn(
-                    "Local HuggingFace execution on macOS may experience segmentation faults "
-                    "due to PyTorch/Transformers compatibility issues. "
-                    "Consider using API mode (local=False) or Ollama for local execution. "
-                    "See HUGGINGFACE_LOCAL_ISSUES.md for details.",
-                    RuntimeWarning,
-                    stacklevel=2,
+                # Apply environment variable fixes for OpenMP conflicts
+                # This MUST happen before importing torch/transformers
+                from consoul.ai.macos_fixes import (
+                    apply_macos_pytorch_fixes,
+                    check_pytorch_compatibility,
                 )
+
+                applied_fixes = apply_macos_pytorch_fixes()
+                if applied_fixes:
+                    import logging
+
+                    logger = logging.getLogger(__name__)
+                    logger.info(
+                        f"Applied macOS PyTorch fixes: {', '.join(applied_fixes.keys())}"
+                    )
+
+                # Check PyTorch compatibility and warn if issues detected
+                compat_info = check_pytorch_compatibility()
+                if "warning" in compat_info:
+                    import sys
+                    import warnings
+
+                    severity = compat_info.get("severity", "high")
+
+                    # For critical issues, print to stderr before attempting to use model
+                    if severity == "critical":
+                        print("\n" + "=" * 70, file=sys.stderr)
+                        print(
+                            "CRITICAL: PyTorch Version Incompatibility", file=sys.stderr
+                        )
+                        print("=" * 70, file=sys.stderr)
+                        print(compat_info["warning"], file=sys.stderr)
+                        print("\nAlternatives:", file=sys.stderr)
+                        print(
+                            "  1. Use LlamaCpp models (working, no PyTorch needed)",
+                            file=sys.stderr,
+                        )
+                        print(
+                            "  2. Use cloud providers (OpenAI, Anthropic, Google)",
+                            file=sys.stderr,
+                        )
+                        print("  3. Use Ollama for local inference", file=sys.stderr)
+                        print("=" * 70 + "\n", file=sys.stderr)
+
+                    warnings.warn(
+                        f"{compat_info['warning']}\n\n"
+                        "Local HuggingFace execution on macOS may experience segmentation faults. "
+                        "Environment variable fixes have been applied. "
+                        "See HUGGINGFACE_LOCAL_ISSUES.md for details.",
+                        RuntimeWarning,
+                        stacklevel=2,
+                    )
 
             # Build pipeline params
             pipeline_params = {
@@ -980,6 +1387,17 @@ def supports_tool_calling(model: BaseChatModel) -> bool:
         don't support tools will return 400 errors). Use try/except
         when actually invoking tools for robust error handling.
     """
+    # LlamaCpp models don't support tool calling properly
+    # The Jinja2 templates used by llama.cpp expect tool schemas in a format
+    # that isn't compatible with LangChain's bind_tools mechanism
+    try:
+        from langchain_community.chat_models import ChatLlamaCpp
+
+        if isinstance(model, ChatLlamaCpp):
+            return False
+    except ImportError:
+        pass  # llama-cpp-python not installed, skip this check
+
     # Check if model has bind_tools method
     if not hasattr(model, "bind_tools"):
         return False

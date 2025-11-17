@@ -54,6 +54,8 @@ class Provider(str, Enum):
     GOOGLE = "google"
     OLLAMA = "ollama"
     HUGGINGFACE = "huggingface"
+    LLAMACPP = "llamacpp"
+    MLX = "mlx"
 
 
 class ProviderConfig(BaseModel):
@@ -305,13 +307,92 @@ class HuggingFaceModelConfig(BaseModelConfig):
     )
 
 
+class LlamaCppModelConfig(BaseModelConfig):
+    """Llama.cpp-specific model configuration.
+
+    Uses llama-cpp-python for local GGUF model execution. Recommended for
+    macOS as it provides reliable local execution with Metal GPU acceleration.
+    """
+
+    provider: Literal[Provider.LLAMACPP] = Provider.LLAMACPP
+    model_path: str | None = Field(
+        default=None,
+        description="Path to GGUF model file (auto-detected if None)",
+    )
+    n_ctx: int = Field(
+        default=4096,
+        gt=0,
+        le=131072,
+        description="Context window size (tokens)",
+    )
+    n_gpu_layers: int = Field(
+        default=-1,
+        description="Number of layers to offload to GPU (-1 = all, 0 = CPU only)",
+    )
+    n_batch: int = Field(
+        default=512,
+        gt=0,
+        description="Batch size for prompt processing",
+    )
+    n_threads: int | None = Field(
+        default=None,
+        description="Number of CPU threads (auto-detected if None)",
+    )
+    use_mlock: bool = Field(
+        default=False,
+        description="Keep model in RAM (prevents swapping)",
+    )
+    use_mmap: bool = Field(
+        default=True,
+        description="Use memory-mapped file for model (faster loading)",
+    )
+
+
+class MLXModelConfig(BaseModelConfig):
+    """MLX-specific model configuration.
+
+    Uses Apple's MLX framework for local model execution on Apple Silicon.
+    Provides optimal performance on M-series Macs without PyTorch dependencies.
+    """
+
+    provider: Literal[Provider.MLX] = Provider.MLX
+    model_path: str | None = Field(
+        default=None,
+        description="HuggingFace model ID or local path (e.g., mlx-community/quantized-gemma-2b-it)",
+    )
+    max_tokens: int = Field(
+        default=2048,
+        gt=0,
+        description="Maximum tokens to generate",
+    )
+    temp: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=2.0,
+        description="Sampling temperature",
+    )
+    top_p: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Nucleus sampling probability",
+    )
+    repetition_penalty: float = Field(
+        default=1.0,
+        ge=0.0,
+        description="Repetition penalty (1.0 = no penalty)",
+    )
+
+
 # Type alias for discriminated union of all model configs
 ModelConfigUnion = Annotated[
     OpenAIModelConfig
     | AnthropicModelConfig
     | GoogleModelConfig
     | OllamaModelConfig
-    | HuggingFaceModelConfig,
+    | HuggingFaceModelConfig
+    | LlamaCppModelConfig
+    | MLXModelConfig,
     Field(discriminator="provider"),
 ]
 
@@ -1275,12 +1356,29 @@ class ConsoulConfig(BaseModel):
         elif self.current_provider == Provider.GOOGLE:
             return GoogleModelConfig(**model_params)
         elif self.current_provider == Provider.HUGGINGFACE:
-            # Don't check if model is local on startup (slow cache scan)
-            # Default to API mode (local=False) for better startup performance
-            # The TUI model picker will set local=True when selecting cached models
-            model_params["local"] = False
+            # Check if model is available locally in cache
+            # This allows using cached models without an API key
+            is_local = False
+            try:
+                from consoul.ai.providers import get_huggingface_local_models
+
+                local_models = get_huggingface_local_models()
+                is_local = any(m["name"] == self.current_model for m in local_models)
+            except Exception:
+                # If check fails, default to False (requires API key)
+                pass
+
+            model_params["local"] = is_local
 
             return HuggingFaceModelConfig(**model_params)
+        elif self.current_provider == Provider.LLAMACPP:
+            # Llama.cpp uses GGUF files
+            # Model path will be auto-detected from cache if not specified
+            return LlamaCppModelConfig(**model_params)
+        elif self.current_provider == Provider.MLX:
+            # MLX uses HuggingFace model IDs from mlx-community
+            # Falls back to model_path if specified
+            return MLXModelConfig(**model_params)
         else:  # OLLAMA
             # Note: api_base is retrieved from provider_config by get_chat_model(),
             # not stored in OllamaModelConfig

@@ -1,13 +1,16 @@
 """ModelPickerModal - Modal for selecting AI models and providers.
 
 This modal provides a unified interface for switching between AI providers
-(OpenAI, Anthropic, Google, Ollama) and selecting specific models within each provider.
+(OpenAI, Anthropic, Google, Ollama, HuggingFace, LlamaCpp) and selecting specific models within each provider.
 """
 
 from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
@@ -274,7 +277,7 @@ MODEL_INFO = {
         "cost": "free",
         "description": "TII's Falcon 7B instruction model",
     },
-    # Note: Ollama and HuggingFace local models are fetched dynamically
+    # Note: Ollama, HuggingFace, and LlamaCpp local models are fetched dynamically
 }
 
 
@@ -282,7 +285,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
     """Modal for selecting AI provider and model.
 
     Features:
-    - Provider tabs (OpenAI, Anthropic, Google, Ollama)
+    - Provider tabs (OpenAI, Anthropic, Google, Ollama, HuggingFace, LlamaCpp)
     - DataTable showing models for selected provider
     - Live search/filter by model name
     - Shows model metadata (context window, cost, rating)
@@ -301,7 +304,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
     }
 
     ModelPickerModal #modal-wrapper {
-        width: 80;
+        width: 120;
         height: 75%;
         background: $surface;
         border: thick $primary;
@@ -379,6 +382,10 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
     # Reactive properties
     active_provider: reactive[str] = reactive("openai")
 
+    # Cache for GGUF models (lazy loaded)
+    _gguf_models_cache: list[dict[str, Any]] | None = None
+    _gguf_loading: bool = False
+
     def __init__(
         self,
         current_model: str,
@@ -419,13 +426,20 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             # Header
             yield Label("Select AI Model & Provider", classes="modal-header")
 
-            # Provider tabs (conditionally include Ollama and HuggingFace)
+            # Provider tabs (conditionally include Ollama, HuggingFace, and LlamaCpp)
             with Horizontal(id="provider-tabs"):
                 providers = ["openai", "anthropic", "google"]
                 if self._ollama_available:
                     providers.append("ollama")
                 if self._huggingface_available:
                     providers.append("huggingface")
+                # Always show LlamaCpp if there are any GGUF models
+                providers.append("llamacpp")
+                # Always show MLX on macOS
+                import platform
+
+                if platform.system() == "Darwin":
+                    providers.append("mlx")
 
                 for provider in providers:
                     tab_classes = "provider-tab"
@@ -480,6 +494,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             "tab-google",
             "tab-ollama",
             "tab-huggingface",
+            "tab-llamacpp",
         ]:
             try:
                 tab = self.query_one(f"#{tab_id}", Label)
@@ -568,6 +583,99 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                         "description": f"Local model ({size_str})",
                     }
 
+        # For LlamaCpp, fetch GGUF models from cache (lazy loaded with caching)
+        elif provider_value == "llamacpp":
+            # Use cached results if available, otherwise load asynchronously
+            if self._gguf_models_cache is not None:
+                gguf_models = self._gguf_models_cache
+            elif self._gguf_loading:
+                # Still loading, show placeholder
+                provider_models["_loading"] = {
+                    "provider": "llamacpp",
+                    "context": "-",
+                    "cost": "-",
+                    "description": "Loading GGUF models...",
+                    "display_name": "⏳ Scanning cache directories...",
+                }
+                gguf_models = []
+            else:
+                # Start async load if not already started
+                self._gguf_loading = True
+                self.run_worker(self._load_gguf_models_async(), exclusive=True)
+                # Show placeholder while loading
+                provider_models["_loading"] = {
+                    "provider": "llamacpp",
+                    "context": "-",
+                    "cost": "-",
+                    "description": "Loading GGUF models...",
+                    "display_name": "⏳ Scanning cache directories...",
+                }
+                gguf_models = []
+
+            # Use filename as display name, path as unique key
+            for model_info in gguf_models:
+                file_name = model_info.get("name", "")
+                file_path = model_info.get("path", "")
+
+                # Use the full file path as the unique key to avoid duplicates
+                # This ensures each GGUF file appears exactly once
+                model_name = file_path
+
+                if model_name and model_name not in provider_models:
+                    # Format size
+                    size_gb = model_info.get("size_gb", 0)
+                    if size_gb >= 1:
+                        size_str = f"{size_gb:.1f}GB"
+                    else:
+                        size_str = f"{size_gb * 1024:.0f}MB"
+
+                    # Get quantization type
+                    quant = model_info.get("quant", "?")
+
+                    # Add GGUF model with just filename as display
+                    # Store display_name separately so table shows clean filename
+                    provider_models[model_name] = {
+                        "provider": "llamacpp",
+                        "context": "4K-128K",
+                        "cost": "free",
+                        "description": f"{quant}, {size_str}",
+                        "display_name": file_name,  # Just the filename for display
+                    }
+
+        # For MLX, fetch popular models from mlx-community
+        elif provider_value == "mlx":
+            # Popular MLX models from HuggingFace mlx-community
+            mlx_models = {
+                "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit": {
+                    "context": "128K",
+                    "description": "Llama 3.1 8B, 4-bit quantized",
+                },
+                "mlx-community/Qwen2.5-7B-Instruct-4bit": {
+                    "context": "32K",
+                    "description": "Qwen 2.5 7B, 4-bit quantized",
+                },
+                "mlx-community/Mistral-7B-Instruct-v0.3-4bit": {
+                    "context": "32K",
+                    "description": "Mistral 7B v0.3, 4-bit quantized",
+                },
+                "mlx-community/gemma-2-9b-it-4bit": {
+                    "context": "8K",
+                    "description": "Gemma 2 9B, 4-bit quantized",
+                },
+                "mlx-community/Phi-3.5-mini-instruct-4bit": {
+                    "context": "128K",
+                    "description": "Phi 3.5 Mini, 4-bit quantized",
+                },
+            }
+
+            for model_id, info in mlx_models.items():
+                provider_models[model_id] = {
+                    "provider": "mlx",
+                    "context": info["context"],
+                    "cost": "free",
+                    "description": info["description"],
+                }
+
         # Apply search filter if provided
         if search_query:
             query_lower = search_query.lower()
@@ -603,7 +711,9 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             is_current = (
                 name == self.current_model and provider_value == current_provider_value
             )
-            model_col = f"✓ {name}" if is_current else f"  {name}"
+            # Use display_name if available (for LlamaCpp models), otherwise use name
+            display_name = info.get("display_name", name)
+            model_col = f"✓ {display_name}" if is_current else f"  {display_name}"
             context_col = info["context"]
             cost_col = info["cost"].title()
 
@@ -632,6 +742,48 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             f"for provider '{provider_value}'"
         )
 
+    async def _load_gguf_models_async(self) -> None:
+        """Asynchronously load GGUF models from cache directories.
+
+        This runs in a worker thread to avoid blocking the UI during
+        the potentially slow directory scan (rglob on large caches).
+        """
+        try:
+            from consoul.ai.providers import get_gguf_models_from_cache
+
+            # Run the scan (this may take seconds with large caches)
+            # The function itself has caching, so subsequent calls are fast
+            result = await self.run_in_executor(get_gguf_models_from_cache)
+
+            # Cache the results in the modal
+            self._gguf_models_cache = result
+            self._gguf_loading = False
+
+            # Refresh the table to show the loaded models
+            # Only refresh if still on llamacpp tab
+            if self.active_provider == "llamacpp":
+                self._populate_table()
+
+            log.info(f"Loaded {len(result)} GGUF models from cache")
+
+        except Exception as e:
+            log.error(f"Error loading GGUF models: {e}", exc_info=True)
+            self._gguf_models_cache = []
+            self._gguf_loading = False
+
+            # Refresh to remove loading indicator
+            if self.active_provider == "llamacpp":
+                self._populate_table()
+
+    async def run_in_executor(self, func: Callable[..., Any], *args: object) -> Any:
+        """Run a blocking function in an executor to avoid blocking the event loop."""
+        import asyncio
+        import concurrent.futures
+
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            return await loop.run_in_executor(pool, func, *args)
+
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle search input changes."""
         if event.input.id == "search-input":
@@ -650,7 +802,15 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         # Provider tab clicks
         if target_id and target_id.startswith("tab-"):
             provider = target_id.replace("tab-", "")
-            if provider in ["openai", "anthropic", "google", "ollama", "huggingface"]:
+            if provider in [
+                "openai",
+                "anthropic",
+                "google",
+                "ollama",
+                "huggingface",
+                "llamacpp",
+                "mlx",
+            ]:
                 self.active_provider = provider
                 log.info(f"ModelPickerModal: Switched to provider '{provider}'")
 

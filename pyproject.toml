@@ -43,32 +43,55 @@ classifiers = [
 ]
 
 dependencies = [
-    "textual>=6.5.0",
-    "langchain>=1.0.0",
-    "langchain-openai>=1.0.0",
-    "langchain-anthropic>=1.0.0",
-    "langchain-google-genai>=2.0.0",
+    "textual>=6.6.0",
+    "langchain>=1.0.7",
+    "langchain-openai>=1.0.3",
+    "langchain-anthropic>=1.0.4",
+    "langchain-google-genai>=3.0.3",
     "langchain-ollama>=1.0.0",
-    "langchain-huggingface>=1.0.0",
-    "click>=8.1.0",
+    "langchain-huggingface>=1.0.1",
+    "click>=8.3.1",
     "pydantic>=2.12.4",
-    "pydantic-settings>=2.0.0",
-    "python-dotenv>=1.0.0",
+    "pydantic-settings>=2.12.0",
+    "python-dotenv>=1.2.1",
     "pyyaml (>=6.0.3,<7.0.0)",
-    "requests>=2.25.0",
-    "tiktoken>=0.5.0",
-    "pyperclip>=1.8.0",
+    "requests>=2.32.5",
+    "tiktoken>=0.12.0",
+    "pyperclip>=1.11.0",
     "grep-ast>=0.9.0",
-    "tree-sitter>=0.25.0",
+    "tree-sitter>=0.25.2",
     "tree-sitter-language-pack>=0.11.0",
-    "diskcache>=5.6.0",
-    "duckduckgo-search>=7.0.0",
+    "diskcache>=5.6.3",
+    "duckduckgo-search>=8.1.1",
 ]
+
+# https://pypi.org/project/textual
+# https://pypi.org/project/langchain
+# https://pypi.org/project/langchain-openai
+# https://pypi.org/project/langchain-anthropic
+# https://pypi.org/project/langchain-google-genai
+# https://pypi.org/project/langchain-ollama
+# https://pypi.org/project/langchain-huggingface
+# https://pypi.org/project/click
+# https://pypi.org/project/pydantic
+# https://pypi.org/project/pydantic-settings
+# https://pypi.org/project/python-dotenv
+# https://pypi.org/project/pyyaml (
+# https://pypi.org/project/requests
+# https://pypi.org/project/tiktoken
+# https://pypi.org/project/pyperclip
+# https://pypi.org/project/grep-ast
+# https://pypi.org/project/tree-sitter
+# https://pypi.org/project/tree-sitter-language-pack
+# https://pypi.org/project/diskcache
+# https://pypi.org/project/duckduckgo-search
 
 [project.optional-dependencies]
 pdf = ["pypdf>=6.2.0"]
 huggingface-local = ["transformers>=4.45.0", "torch>=2.4.0,<2.5.0", "accelerate>=1.2.0"]
 huggingface-quantization = ["transformers>=4.45.0", "torch>=2.4.0,<2.5.0", "accelerate>=1.2.0", "bitsandbytes>=0.45.0"]
+llamacpp = ["llama-cpp-python>=0.3.0"]
+mlx = ["mlx-lm>=0.28.0"]
 
 
 [project.urls]
@@ -112,18 +135,21 @@ packages = [{include = "consoul", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-textual = "^6.5.0"
-langchain = "^1.0.5"
-langchain-openai = "^1.0.2"
-langchain-anthropic = "^1.0.2"
-langchain-google-genai = "^3.0.1"
+textual = "^6.6.0"
+langchain = "^1.0.7"
+langchain-openai = "^1.0.3"
+langchain-anthropic = "^1.0.4"
+langchain-google-genai = "^3.0.3"
 langchain-ollama = "^1.0.0"
 langchain-huggingface = "^1.0.1"
-click = "^8.3.0"
+click = "^8.3.1"
 pydantic = "^2.12.4"
-pydantic-settings = "^2.11.0"
+pydantic-settings = "^2.12.0"
 python-dotenv = "^1.2.1"
+pyyaml = ">=6.0.3,<7.0.0"
 requests = "^2.32.5"
+tiktoken = "^0.12.0"
+pyperclip = "^1.11.0"
 pypdf = {version = "^6.2.0", optional = true}
 
 # HuggingFace local execution dependencies
@@ -132,19 +158,27 @@ torch = {version = "~2.4.0", optional = true}  # 2.5+ has segfault issues on mac
 accelerate = {version = "^1.2.0", optional = true}
 bitsandbytes = {version = "^0.45.0", optional = true}
 
+# Llama.cpp local execution (recommended for macOS)
+llama-cpp-python = {version = "^0.3.0", optional = true}
+
+# MLX local execution (Apple Silicon optimized, no PyTorch needed)
+mlx-lm = {version = "^0.28.0", optional = true}
+
 # Code search dependencies (AST parsing and caching)
 grep-ast = "^0.9.0"                    # AST parsing and tag extraction (used by Aider)
-tree-sitter = "^0.25.0"                # Tree-sitter parser core
+tree-sitter = "^0.25.2"                # Tree-sitter parser core
 tree-sitter-language-pack = "^0.11.0"  # Multi-language parser bundle (100+ languages)
-diskcache = "^5.6.0"                   # SQLite-backed disk caching
+diskcache = "^5.6.3"                   # SQLite-backed disk caching
 
 # Web search dependencies
-duckduckgo-search = "^7.0.0"           # Free web search via DuckDuckGo (zero setup)
+duckduckgo-search = "^8.1.1"           # Free web search via DuckDuckGo (zero setup)
 
 [tool.poetry.extras]
 pdf = ["pypdf"]
 huggingface-local = ["transformers", "torch", "accelerate"]  # torch pinned to 2.4.x due to macOS segfaults in 2.5+
 huggingface-quantization = ["transformers", "torch", "accelerate", "bitsandbytes"]
+llamacpp = ["llama-cpp-python"]  # Recommended for local execution on macOS
+mlx = ["mlx-lm"]  # Apple Silicon optimized, best for M-series Macs
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.2"
@@ -293,6 +327,7 @@ module = [
     "torch.*",
     "accelerate.*",
     "bitsandbytes.*",
+    "llama_cpp.*",
 ]
 ignore_missing_imports = true
 
