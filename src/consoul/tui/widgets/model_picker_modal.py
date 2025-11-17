@@ -509,6 +509,10 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
 
     def watch_active_provider(self, provider: str) -> None:
         """React to provider tab changes."""
+        # Skip if not mounted yet - on_mount will handle initial setup
+        if not self.is_mounted:
+            return
+
         # Update tab styling
         for tab_id in [
             "tab-openai",
