@@ -550,92 +550,61 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             # Ollama section
             if self._ollama_available:
                 container.mount(Label("OLLAMA", classes="section-label"))
-                container.mount(
-                    DataTable(
-                        id="ollama-table",
-                        zebra_stripes=True,
-                        cursor_type="row",
-                        classes="local-table",
-                    )
-                )
-
-            # GGUF section
-            container.mount(Label("GGUF (LlamaCpp)", classes="section-label"))
-            container.mount(
-                DataTable(
-                    id="gguf-table",
+                ollama_table: DataTable[Any] = DataTable(
+                    id="ollama-table",
                     zebra_stripes=True,
                     cursor_type="row",
                     classes="local-table",
                 )
+                ollama_table.add_column("Model", width=35)
+                ollama_table.add_column("Context", width=12)
+                ollama_table.add_column("Cost", width=12)
+                container.mount(ollama_table)
+
+            # GGUF section
+            container.mount(Label("GGUF (LlamaCpp)", classes="section-label"))
+            gguf_table: DataTable[Any] = DataTable(
+                id="gguf-table",
+                zebra_stripes=True,
+                cursor_type="row",
+                classes="local-table",
             )
+            gguf_table.add_column("Model", width=35)
+            gguf_table.add_column("Context", width=12)
+            gguf_table.add_column("Cost", width=12)
+            container.mount(gguf_table)
 
             # MLX section (macOS only)
             import platform
 
             if platform.system() == "Darwin":
                 container.mount(Label("MLX (Apple Silicon)", classes="section-label"))
-                container.mount(
-                    DataTable(
-                        id="mlx-table",
-                        zebra_stripes=True,
-                        cursor_type="row",
-                        classes="local-table",
-                    )
+                mlx_table: DataTable[Any] = DataTable(
+                    id="mlx-table",
+                    zebra_stripes=True,
+                    cursor_type="row",
+                    classes="local-table",
                 )
+                mlx_table.add_column("Model", width=35)
+                mlx_table.add_column("Context", width=12)
+                mlx_table.add_column("Cost", width=12)
+                container.mount(mlx_table)
 
-            # Initialize all local tables
-            self._init_local_tables()
+            # Focus the first available table
+            if self._ollama_available:
+                ollama_table.focus()
+            else:
+                gguf_table.focus()
         else:
             # Single DataTable for non-local providers
-            container.mount(
-                DataTable(id="models-table", zebra_stripes=True, cursor_type="row")
+            self._table = DataTable(
+                id="models-table", zebra_stripes=True, cursor_type="row"
             )
-
-            # Initialize the table reference
-            try:
-                self._table = self.query_one("#models-table", DataTable)
-                if len(self._table.columns) == 0:
-                    self._table.add_column("Model", width=35)
-                    self._table.add_column("Context", width=12)
-                    self._table.add_column("Cost", width=12)
-                    self._table.cursor_type = "row"
-                    self._table.focus()
-            except Exception:
-                pass
-
-    def _init_local_tables(self) -> None:
-        """Initialize all local provider tables with columns."""
-        table_ids = []
-
-        if self._ollama_available:
-            table_ids.append("ollama-table")
-
-        table_ids.append("gguf-table")
-
-        import platform
-
-        if platform.system() == "Darwin":
-            table_ids.append("mlx-table")
-
-        for table_id in table_ids:
-            try:
-                table = self.query_one(f"#{table_id}", DataTable)
-                if len(table.columns) == 0:
-                    table.add_column("Model", width=35)
-                    table.add_column("Context", width=12)
-                    table.add_column("Cost", width=12)
-                    table.cursor_type = "row"
-            except Exception:
-                pass
-
-        # Focus the first available table
-        if table_ids:
-            try:
-                first_table = self.query_one(f"#{table_ids[0]}", DataTable)
-                first_table.focus()
-            except Exception:
-                pass
+            self._table.add_column("Model", width=35)
+            self._table.add_column("Context", width=12)
+            self._table.add_column("Cost", width=12)
+            container.mount(self._table)
+            self._table.focus()
 
     def _populate_table(self, search_query: str = "") -> None:
         """Populate or refresh the table with models.
@@ -643,11 +612,13 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         Args:
             search_query: Optional search query to filter models
         """
-        if not self._table:
-            return
+        # For non-local providers, clear the main table
+        if self.active_provider != "local":
+            if not self._table:
+                return
+            self._table.clear()
 
-        # Clear existing rows
-        self._table.clear()
+        # Clear model map
         self._model_map.clear()
 
         # Filter models by active provider
@@ -836,42 +807,44 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 "description": "Custom model",
             }
 
-        # Add rows, sorting by name
-        for name in sorted(provider_models.keys()):
-            info = provider_models[name]
-            row_key = name
+        # Add rows, sorting by name (only for non-local providers)
+        if self._table:
+            for name in sorted(provider_models.keys()):
+                info = provider_models[name]
+                row_key = name
 
-            self._model_map[row_key] = info
+                self._model_map[row_key] = info
 
-            # Format columns
-            is_current = (
-                name == self.current_model and provider_value == current_provider_value
-            )
-            # Use display_name if available (for LlamaCpp models), otherwise use name
-            display_name = info.get("display_name", name)
-            model_col = f"✓ {display_name}" if is_current else f"  {display_name}"
-            context_col = info["context"]
-            cost_col = info["cost"].title()
+                # Format columns
+                is_current = (
+                    name == self.current_model
+                    and provider_value == current_provider_value
+                )
+                # Use display_name if available (for LlamaCpp models), otherwise use name
+                display_name = info.get("display_name", name)
+                model_col = f"✓ {display_name}" if is_current else f"  {display_name}"
+                context_col = info["context"]
+                cost_col = info["cost"].title()
 
-            self._table.add_row(model_col, context_col, cost_col, key=row_key)
+                self._table.add_row(model_col, context_col, cost_col, key=row_key)
 
-            # Highlight current model row
-            if is_current:
-                # Move cursor to current model
-                try:
-                    row_keys_list = list(self._table.rows.keys())
-                    row_index = next(
-                        (
-                            i
-                            for i, key in enumerate(row_keys_list)
-                            if str(key) == row_key
-                        ),
-                        None,
-                    )
-                    if row_index is not None:
-                        self._table.move_cursor(row=row_index)
-                except (ValueError, Exception):
-                    pass
+                # Highlight current model row
+                if is_current:
+                    # Move cursor to current model
+                    try:
+                        row_keys_list = list(self._table.rows.keys())
+                        row_index = next(
+                            (
+                                i
+                                for i, key in enumerate(row_keys_list)
+                                if str(key) == row_key
+                            ),
+                            None,
+                        )
+                        if row_index is not None:
+                            self._table.move_cursor(row=row_index)
+                    except (ValueError, Exception):
+                        pass
 
         log.debug(
             f"ModelPickerModal: Populated table with {len(provider_models)} models "
