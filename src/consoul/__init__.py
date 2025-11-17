@@ -11,6 +11,18 @@ Quick Start:
     'Hi! How can I help you?'
 """
 
+# ruff: noqa: E402
+# Apply macOS PyTorch fixes BEFORE any other imports
+# This prevents segfaults when using HuggingFace models locally
+import platform as _platform
+
+if _platform.system() == "Darwin":
+    from consoul.ai.macos_fixes import apply_macos_pytorch_fixes as _apply_fixes
+
+    _apply_fixes()
+    del _apply_fixes
+del _platform
+
 __version__ = "0.1.0"
 __author__ = "GoatBytes.IO"
 __license__ = "Apache-2.0"

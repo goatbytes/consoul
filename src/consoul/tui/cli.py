@@ -37,6 +37,15 @@ def tui(
         $ consoul tui --theme dracula
         $ consoul --model gpt-4o tui
     """
+    # Apply macOS PyTorch fixes BEFORE any imports that might trigger torch/transformers
+    # This must happen at the very start to prevent segfaults
+    import platform
+
+    if platform.system() == "Darwin":
+        from consoul.ai.macos_fixes import apply_macos_pytorch_fixes
+
+        apply_macos_pytorch_fixes()
+
     from consoul.config import load_config
 
     # Load Consoul config first to get TUI settings
