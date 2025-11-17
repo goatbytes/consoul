@@ -353,10 +353,34 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         margin: 0 0 1 0;
     }
 
+    ModelPickerModal #tables-container {
+        width: 100%;
+        height: 1fr;
+        background: $surface;
+    }
+
     ModelPickerModal #models-table {
         width: 100%;
         height: 1fr;
         background: $surface;
+    }
+
+    ModelPickerModal .section-label {
+        width: 100%;
+        height: auto;
+        color: $primary;
+        text-style: bold;
+        margin: 1 0 0 0;
+        padding: 0 1;
+        background: transparent;
+    }
+
+    ModelPickerModal .local-table {
+        width: 100%;
+        height: auto;
+        min-height: 5;
+        background: $surface;
+        margin: 0 0 1 0;
     }
 
     ModelPickerModal .info-label {
