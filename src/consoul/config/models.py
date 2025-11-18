@@ -1345,8 +1345,11 @@ class ConsoulConfig(BaseModel):
         model_params: dict[str, Any] = {
             "model": self.current_model,
             "temperature": provider_config.default_temperature,
-            "max_tokens": provider_config.default_max_tokens,
         }
+
+        # Only include max_tokens if it's set (some providers default to None)
+        if provider_config.default_max_tokens is not None:
+            model_params["max_tokens"] = provider_config.default_max_tokens
 
         # Return appropriate ModelConfig subclass based on provider
         if self.current_provider == Provider.OPENAI:

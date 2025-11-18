@@ -38,6 +38,16 @@ PROVIDER_PACKAGES = {
     Provider.MLX: "mlx_lm",  # Apple's MLX framework
 }
 
+# LangChain model_provider names (for init_chat_model)
+# Maps our Provider enum to LangChain's expected model_provider parameter
+LANGCHAIN_PROVIDER_NAMES = {
+    Provider.OPENAI: "openai",
+    Provider.ANTHROPIC: "anthropic",
+    Provider.GOOGLE: "google_genai",  # LangChain expects "google_genai" not "google"
+    Provider.OLLAMA: "ollama",
+    Provider.HUGGINGFACE: "huggingface",
+}
+
 # Model name patterns for provider detection
 # Note: Order matters! HuggingFace patterns (with slashes) must be checked before Ollama
 # to prevent "mistralai/" from matching Ollama's "mistral" pattern
@@ -1066,35 +1076,45 @@ def get_chat_model(
 
     # Special handling for MLX - Apple Silicon optimized local execution
     if provider == Provider.MLX:
-        from langchain_community.chat_models.mlx import ChatMLX
-        from langchain_community.llms.mlx_pipeline import MLXPipeline
+        import logging
+
+        logger = logging.getLogger(__name__)
 
         # Get model path/ID from config
         model_id = getattr(model_config, "model_path", None) or model_config.model
+        logger.info(f"MLX: Loading model from model_id={model_id}")
 
-        # Build MLXPipeline params
-        pipeline_kwargs = {
+        # Build MLXChatWrapper params
+        mlx_params = {
+            "model_id": model_id,
             "max_tokens": getattr(
                 model_config, "max_tokens", params.get("max_tokens", 2048)
             ),
-            "temp": getattr(model_config, "temp", params.get("temperature", 0.7)),
+            "temperature": getattr(
+                model_config, "temp", params.get("temperature", 0.7)
+            ),
         }
 
         # Add optional parameters
         if hasattr(model_config, "top_p"):
-            pipeline_kwargs["top_p"] = model_config.top_p
+            mlx_params["top_p"] = model_config.top_p
         if hasattr(model_config, "repetition_penalty"):
-            pipeline_kwargs["repetition_penalty"] = model_config.repetition_penalty
+            mlx_params["repetition_penalty"] = model_config.repetition_penalty
+        if hasattr(model_config, "repetition_context_size"):
+            mlx_params["repetition_context_size"] = model_config.repetition_context_size
+
+        logger.info(f"MLX: mlx_params={mlx_params}")
 
         try:
-            # Create MLX pipeline
-            llm = MLXPipeline.from_model_id(
-                model_id=model_id,
-                pipeline_kwargs=pipeline_kwargs,
-            )
+            # Load MLX model directly without MLXPipeline (avoids fds_to_keep subprocess errors)
+            from consoul.ai.mlx_chat_wrapper import MLXChatWrapper
 
-            # Wrap in ChatMLX for LangChain compatibility
-            return ChatMLX(llm=llm)  # type: ignore[no-any-return]
+            logger.info("MLX: Creating MLXChatWrapper with direct mlx_lm.load()...")
+            wrapper = MLXChatWrapper(**mlx_params)
+            logger.info(
+                f"MLX: MLXChatWrapper created successfully, type={type(wrapper)}"
+            )
+            return wrapper
         except ImportError as e:
             raise MissingDependencyError(
                 f"Failed to import MLX: {e}\n\n"
@@ -1104,10 +1124,26 @@ def get_chat_model(
                 f"  poetry install --extras mlx\n\n"
                 f"Note: MLX requires macOS 15.0+ and Apple Silicon (M-series chips)"
             ) from e
+        except RuntimeError as e:
+            # Re-raise RuntimeError with clear message (from MLXChatWrapper)
+            raise InvalidModelError(str(e)) from e
         except Exception as e:
+            error_msg = str(e)
+
+            # Check for common issues
+            if "fds_to_keep" in error_msg or "multiprocessing" in error_msg.lower():
+                raise InvalidModelError(
+                    f"Failed to load MLX model '{model_id}' due to multiprocessing conflict.\n\n"
+                    f"This happens when downloading models from HuggingFace in the TUI.\n\n"
+                    f"Workaround - Pre-download the model first:\n"
+                    f"  python -c \"from mlx_lm import load; load('{model_id}')\"\n\n"
+                    f"Or select a locally cached model from ~/.cache/huggingface/hub/\n"
+                    f"Or use a local MLX model from ~/.lmstudio/models/"
+                ) from e
+
             raise InvalidModelError(
                 f"Failed to load MLX model '{model_id}'.\n\n"
-                f"Error: {e}\n\n"
+                f"Error: {error_msg}\n\n"
                 f"Verify:\n"
                 f"1. Model exists on HuggingFace (mlx-community) or locally\n"
                 f"2. You have enough RAM for the model\n"
@@ -1350,9 +1386,12 @@ def get_chat_model(
                     ) from e
 
     # Initialize the model using init_chat_model for other providers
+    # Use LANGCHAIN_PROVIDER_NAMES mapping to get correct provider name
+    # (e.g., "google" -> "google_genai")
+    langchain_provider = LANGCHAIN_PROVIDER_NAMES.get(provider, provider.value)
     try:
         return init_chat_model(  # type: ignore[no-any-return]
-            model_provider=provider.value,
+            model_provider=langchain_provider,
             **params,
         )
     except ImportError as e:

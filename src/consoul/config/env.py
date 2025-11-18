@@ -38,6 +38,8 @@ class EnvSettings(BaseSettings):
     anthropic_api_key: SecretStr | None = None
     openai_api_key: SecretStr | None = None
     google_api_key: SecretStr | None = None
+    huggingface_api_key: SecretStr | None = None
+    hf_token: SecretStr | None = None  # Alternative name for HuggingFace token
     ollama_api_base: str = "http://localhost:11434"
 
     # Configuration overrides (SOUL-19 spec)
@@ -82,6 +84,9 @@ def get_api_key(
         return env_settings.openai_api_key
     if provider == Provider.GOOGLE:
         return env_settings.google_api_key
+    if provider == Provider.HUGGINGFACE:
+        # Try both common HuggingFace env var names
+        return env_settings.hf_token or env_settings.huggingface_api_key
     if provider == Provider.OLLAMA:
         # Ollama uses api_base, not api_key
         return None

@@ -49,50 +49,51 @@ MODEL_INFO = {
         "provider": "openai",
         "context": "1M",
         "cost": "cheap",
-        "description": "Fastest, most affordable reasoning",
+        "description": "Fastest, most affordable",
     },
+    "gpt-5-pro": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "expensive",
+        "description": "Pro-tier flagship model",
+    },
+    "gpt-5.1": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "expensive",
+        "description": "Latest GPT-5 series iteration",
+    },
+    # OpenAI Codex Models (Specialized Coding)
     "gpt-5-codex": {
         "provider": "openai",
         "context": "1M",
         "cost": "expensive",
-        "description": "Optimized for agentic coding",
+        "description": "Agentic coding optimized",
     },
-    "gpt-5-chat-latest": {
+    "gpt-5.1-codex": {
+        "provider": "openai",
+        "context": "1M",
+        "cost": "expensive",
+        "description": "Latest codex iteration",
+    },
+    "gpt-5.1-codex-mini": {
         "provider": "openai",
         "context": "1M",
         "cost": "moderate",
-        "description": "Non-reasoning chat model",
+        "description": "Efficient coding assistant",
     },
-    # OpenAI o-Series (Deep Reasoning)
-    "o3": {
-        "provider": "openai",
-        "context": "128K",
-        "cost": "expensive",
-        "description": "Advanced reasoning & problem-solving",
-    },
-    "o4-mini": {
-        "provider": "openai",
-        "context": "128K",
-        "cost": "moderate",
-        "description": "Fast reasoning with vision",
-    },
-    "o4-mini-high": {
-        "provider": "openai",
-        "context": "128K",
-        "cost": "moderate",
-        "description": "Budget STEM/tech reasoning",
-    },
-    "o3-mini": {
+    "codex-mini-latest": {
         "provider": "openai",
         "context": "128K",
         "cost": "cheap",
-        "description": "Enhanced reasoning abilities",
+        "description": "Latest mini codex",
     },
-    "o3-deep-research": {
+    # OpenAI Search API
+    "gpt-5-search-api": {
         "provider": "openai",
         "context": "128K",
-        "cost": "expensive",
-        "description": "Multi-step research with citations",
+        "cost": "moderate",
+        "description": "Web search integration",
     },
     # OpenAI GPT-4.1 Series (1M context)
     "gpt-4.1": {
@@ -105,7 +106,7 @@ MODEL_INFO = {
         "provider": "openai",
         "context": "1M",
         "cost": "moderate",
-        "description": "GPT-4o performance, lower latency",
+        "description": "Fast with 1M context",
     },
     "gpt-4.1-nano": {
         "provider": "openai",
@@ -126,63 +127,169 @@ MODEL_INFO = {
         "cost": "cheap",
         "description": "Cost-efficient multimodal",
     },
+    "chatgpt-4o-latest": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "moderate",
+        "description": "ChatGPT 4o latest snapshot",
+    },
+    "gpt-4o-search-preview": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "moderate",
+        "description": "Search preview (latest)",
+    },
+    "gpt-4o-search-preview-2025-03-11": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "moderate",
+        "description": "Search preview (dated)",
+    },
+    # OpenAI GPT-4 Series (Legacy)
+    "gpt-4": {
+        "provider": "openai",
+        "context": "8K",
+        "cost": "expensive",
+        "description": "Original GPT-4",
+    },
+    "gpt-4-turbo": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "expensive",
+        "description": "GPT-4 with 128K context",
+    },
+    # OpenAI GPT-3.5 Series (Legacy)
+    "gpt-3.5-turbo": {
+        "provider": "openai",
+        "context": "16K",
+        "cost": "cheap",
+        "description": "Legacy fast model",
+    },
+    "gpt-3.5-turbo-instruct": {
+        "provider": "openai",
+        "context": "4K",
+        "cost": "cheap",
+        "description": "Completion model (not chat)",
+    },
+    # OpenAI o-Series (Deep Reasoning)
+    "o1": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "expensive",
+        "description": "Reasoning model series 1",
+    },
+    "o1-pro": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "expensive",
+        "description": "Pro-tier reasoning",
+    },
+    "o3": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "expensive",
+        "description": "Advanced reasoning",
+    },
+    "o3-mini": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "cheap",
+        "description": "Efficient reasoning",
+    },
+    "o4-mini": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "moderate",
+        "description": "Fast reasoning with vision",
+    },
+    "o4-mini-deep-research": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "expensive",
+        "description": "Multi-step research",
+    },
+    # OpenAI Realtime Models (Audio/Voice)
+    "gpt-realtime-mini": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "moderate",
+        "description": "Real-time voice (mini)",
+    },
+    "gpt-realtime": {
+        "provider": "openai",
+        "context": "128K",
+        "cost": "expensive",
+        "description": "Real-time voice (full)",
+    },
     # Anthropic Claude 4.5 Models (Latest - Sep/Oct 2025)
-    "claude-sonnet-4-5": {
+    "claude-sonnet-4-5-20250929": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "moderate",
-        "description": "Best coding model in world (Sep 2025)",
+        "description": "Best coding model in world",
     },
-    "claude-haiku-4-5": {
+    "claude-haiku-4-5-20251001": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "cheap",
-        "description": "Fastest, low latency (Oct 2025)",
+        "description": "Fastest, low latency",
     },
     # Anthropic Claude 4 Models (May-Aug 2025)
-    "claude-opus-4-1": {
+    "claude-opus-4-1-20250805": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "expensive",
-        "description": "Agentic tasks & reasoning (Aug 2025)",
+        "description": "Agentic tasks & reasoning",
     },
-    "claude-sonnet-4": {
-        "provider": "anthropic",
-        "context": "200K",
-        "cost": "moderate",
-        "description": "Claude Sonnet 4 (May 2025)",
-    },
-    "claude-opus-4": {
+    "claude-opus-4-20250514": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "expensive",
-        "description": "Claude Opus 4 (May 2025)",
+        "description": "Claude Opus 4",
     },
-    # Legacy Claude 3.x Models (for backward compatibility)
-    "claude-3-5-sonnet-20241022": {
+    "claude-sonnet-4-20250514": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "moderate",
-        "description": "Legacy Claude 3.5 Sonnet",
+        "description": "Claude Sonnet 4",
+    },
+    # Anthropic Claude 3.x Models (Legacy)
+    "claude-3-7-sonnet-20250219": {
+        "provider": "anthropic",
+        "context": "200K",
+        "cost": "moderate",
+        "description": "Claude Sonnet 3.7",
+    },
+    "claude-3-5-haiku-20241022": {
+        "provider": "anthropic",
+        "context": "200K",
+        "cost": "cheap",
+        "description": "Claude Haiku 3.5",
+    },
+    "claude-3-haiku-20240307": {
+        "provider": "anthropic",
+        "context": "200K",
+        "cost": "cheap",
+        "description": "Claude Haiku 3",
     },
     "claude-3-opus-20240229": {
         "provider": "anthropic",
         "context": "200K",
         "cost": "expensive",
-        "description": "Legacy Claude 3 Opus",
+        "description": "Claude Opus 3",
     },
-    # Google Gemini 2.5 Models (Latest)
+    # Google Gemini 2.5 Models (Latest - Stable)
     "gemini-2.5-pro": {
         "provider": "google",
         "context": "1M",
         "cost": "expensive",
-        "description": "Most powerful with adaptive thinking",
+        "description": "Most powerful with thinking",
     },
     "gemini-2.5-flash": {
         "provider": "google",
         "context": "1M",
         "cost": "moderate",
-        "description": "Stable 2.5 flash model",
+        "description": "Fast multimodal",
     },
     "gemini-2.5-flash-lite": {
         "provider": "google",
@@ -190,43 +297,25 @@ MODEL_INFO = {
         "cost": "cheap",
         "description": "Speed & cost optimized",
     },
-    "gemini-2.5-computer-use": {
+    "gemini-2.5-flash-image": {
         "provider": "google",
-        "context": "1M",
-        "cost": "expensive",
-        "description": "Powers UI interaction agents",
-    },
-    "gemini-2.5-image": {
-        "provider": "google",
-        "context": "1M",
+        "context": "64K",
         "cost": "moderate",
         "description": "Native image generation",
     },
     # Google Gemini 2.0 Models
-    "gemini-2.0-pro": {
-        "provider": "google",
-        "context": "1M",
-        "cost": "expensive",
-        "description": "Released Feb 2025",
-    },
     "gemini-2.0-flash": {
         "provider": "google",
         "context": "1M",
         "cost": "moderate",
-        "description": "Default model (Jan 2025)",
+        "description": "Latest stable flash",
     },
-    "gemini-2.0-flash-thinking": {
-        "provider": "google",
-        "context": "1M",
-        "cost": "moderate",
-        "description": "Details thinking process",
-    },
-    # Google Gemini 1.5 (Legacy, still available)
+    # Google Gemini 1.5 Models (Legacy)
     "gemini-1.5-pro": {
         "provider": "google",
         "context": "2M",
         "cost": "expensive",
-        "description": "Legacy with 2M context",
+        "description": "Legacy 2M context",
     },
     "gemini-1.5-flash": {
         "provider": "google",
@@ -608,9 +697,12 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         except Exception:
             return
 
-        # Remove all existing widgets explicitly
-        for child in list(container.children):
-            child.remove()
+        # Remove ALL children from container to avoid ID conflicts
+        # This is more reliable than trying to remove specific widgets
+        # which can fail due to async removal timing
+        while len(container._nodes) > 0:
+            child = container._nodes[0]
+            container._nodes._remove(child)
 
         # For local tab, create sub-tabs and a single table
         if self.active_provider == "local":
@@ -645,9 +737,9 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                     mlx_tab.add_class("-active")
                 subtabs_container.mount(mlx_tab)
 
-            # Create single table for active local provider
+            # Create single table for active local provider with unique ID
             table: DataTable[Any] = DataTable(
-                id="models-table",
+                id="local-models-table",
                 zebra_stripes=True,
                 cursor_type="row",
                 classes="local-table",
@@ -659,9 +751,9 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             table.focus()
             self._table = table
         else:
-            # Single DataTable for non-local providers
+            # Single DataTable for non-local providers with unique ID
             self._table = DataTable(
-                id="models-table", zebra_stripes=True, cursor_type="row"
+                id="provider-models-table", zebra_stripes=True, cursor_type="row"
             )
             self._table.add_column("Model", width=35)
             self._table.add_column("Context", width=12)
@@ -683,12 +775,22 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         # Clear model map
         self._model_map.clear()
 
+        # Check if user has HuggingFace API key for online model suggestions
+        # Check both config/env files and environment variables
+        from consoul.config.env import get_api_key
+        from consoul.config.models import Provider
+
+        hf_api_key = get_api_key(Provider.HUGGINGFACE)
+        has_hf_key = hf_api_key is not None
+
         # Filter models by active provider
+        # Skip HuggingFace online models if no API key
         provider_value = self.active_provider
         provider_models = {
             name: info
             for name, info in MODEL_INFO.items()
             if info["provider"] == provider_value
+            and not (provider_value == "huggingface" and not has_hf_key)
         }
 
         # For Local tab, show models for the active local provider only
@@ -810,39 +912,12 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                         "display_name": file_name,  # Just the filename for display
                     }
 
-        # For MLX, fetch popular models from mlx-community
+        # For MLX in Local tab, only show locally downloaded models (no HF repo IDs)
+        # HF repo IDs fail in TUI due to multiprocessing conflicts (fds_to_keep errors)
         elif provider_value == "mlx":
-            # Popular MLX models from HuggingFace mlx-community
-            mlx_models = {
-                "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit": {
-                    "context": "128K",
-                    "description": "Llama 3.1 8B, 4-bit quantized",
-                },
-                "mlx-community/Qwen2.5-7B-Instruct-4bit": {
-                    "context": "32K",
-                    "description": "Qwen 2.5 7B, 4-bit quantized",
-                },
-                "mlx-community/Mistral-7B-Instruct-v0.3-4bit": {
-                    "context": "32K",
-                    "description": "Mistral 7B v0.3, 4-bit quantized",
-                },
-                "mlx-community/gemma-2-9b-it-4bit": {
-                    "context": "8K",
-                    "description": "Gemma 2 9B, 4-bit quantized",
-                },
-                "mlx-community/Phi-3.5-mini-instruct-4bit": {
-                    "context": "128K",
-                    "description": "Phi 3.5 Mini, 4-bit quantized",
-                },
-            }
-
-            for model_id, info in mlx_models.items():
-                provider_models[model_id] = {
-                    "provider": "mlx",
-                    "context": info["context"],
-                    "cost": "free",
-                    "description": info["description"],
-                }
+            # Local MLX models are already added via get_local_mlx_models() above
+            # Do NOT add HuggingFace repo IDs - they will fail to load in TUI
+            pass
 
         # Apply search filter if provided
         if search_query:
@@ -1084,41 +1159,9 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                     "actual_model": model_path,
                 }
 
-        # Also include popular MLX models from HuggingFace as suggestions
-        mlx_suggestions = {
-            "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit": {
-                "context": "128K",
-                "description": "Llama 3.1 8B, 4-bit quantized",
-            },
-            "mlx-community/Qwen2.5-7B-Instruct-4bit": {
-                "context": "32K",
-                "description": "Qwen 2.5 7B, 4-bit quantized",
-            },
-            "mlx-community/Mistral-7B-Instruct-v0.3-4bit": {
-                "context": "32K",
-                "description": "Mistral 7B v0.3, 4-bit quantized",
-            },
-            "mlx-community/gemma-2-9b-it-4bit": {
-                "context": "8K",
-                "description": "Gemma 2 9B, 4-bit quantized",
-            },
-            "mlx-community/Phi-3.5-mini-instruct-4bit": {
-                "context": "128K",
-                "description": "Phi 3.5 Mini, 4-bit quantized",
-            },
-        }
-
-        for model_id, info in mlx_suggestions.items():
-            key = f"mlx:{model_id}"
-            if key not in provider_models:
-                provider_models[key] = {
-                    "provider": "mlx",
-                    "context": info["context"],
-                    "cost": "free",
-                    "description": info["description"],
-                    "display_name": model_id,
-                    "actual_model": model_id,
-                }
+        # NOTE: Do NOT add HuggingFace repo ID suggestions here
+        # They will fail to load in TUI due to multiprocessing conflicts (fds_to_keep errors)
+        # Only local file-path models work in the TUI environment
 
     def _populate_local_models(
         self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
