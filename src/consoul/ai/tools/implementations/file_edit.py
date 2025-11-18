@@ -502,6 +502,26 @@ def edit_file_lines(
     warnings: list[str] = []
 
     try:
+        # Validate that line_edits is actually a dict with string keys and values
+        if not isinstance(line_edits, dict):
+            return FileEditResult(
+                status="validation_failed",
+                error=f"line_edits must be a dictionary, got {type(line_edits).__name__}",
+            ).to_json()
+
+        # Validate all keys and values are strings
+        for key, value in line_edits.items():
+            if not isinstance(key, str):
+                return FileEditResult(
+                    status="validation_failed",
+                    error=f"line_edits keys must be strings, got {type(key).__name__} for key {key!r}",
+                ).to_json()
+            if not isinstance(value, str):
+                return FileEditResult(
+                    status="validation_failed",
+                    error=f"line_edits values must be strings, got {type(value).__name__} for key {key!r}",
+                ).to_json()
+
         # 1. Validate file path (security checks, extension filtering)
         try:
             path = _validate_file_path(file_path, config, must_exist=True)
