@@ -761,14 +761,26 @@ class ConsoulApp(App[None]):
             # Get trimmed messages for context window
             # This can be slow due to token counting, so run in executor
             model_config = self.consoul_config.get_current_model_config()  # type: ignore[union-attr]
+
+            # Get the model's actual context window size from conversation history
+            # (which uses get_model_token_limit() to query the model)
+            context_size = self.conversation.max_tokens  # type: ignore[union-attr]
+
             # Reserve tokens for response - must be less than total context window
-            # Use max_tokens if specified, otherwise use a reasonable default
+            # Use max_tokens from config if specified, otherwise use a reasonable default
             default_reserve = 4096
-            if hasattr(model_config, "n_ctx"):
-                # For llamacpp models, ensure reserve doesn't exceed context
-                context_size = model_config.n_ctx
-                default_reserve = min(default_reserve, context_size // 2)
-            reserve_tokens = model_config.max_tokens or default_reserve
+
+            # Reserve tokens should be a portion of context window for the response
+            # Use model_config.max_tokens as desired response length if set,
+            # but ensure it doesn't exceed half the context window
+            if model_config.max_tokens:
+                reserve_tokens = min(model_config.max_tokens, context_size // 2)
+            else:
+                reserve_tokens = min(default_reserve, context_size // 2)
+
+            # Final safety check: ensure reserve_tokens leaves room for input
+            # Reserve at most (context - 512) to guarantee at least 512 tokens for conversation
+            reserve_tokens = min(reserve_tokens, context_size - 512)
 
             s2 = time.time()
             logger.info(f"[TIMING] Got model config: {(s2 - s1) * 1000:.1f}ms")
@@ -1318,7 +1330,9 @@ class ConsoulApp(App[None]):
             # Hide typing indicator on error
             await self.chat_view.hide_typing_indicator()
 
-            await stream_widget.remove()
+            # Only remove stream_widget if it was created
+            if "stream_widget" in locals():
+                await stream_widget.remove()
 
             error_bubble = MessageBubble(
                 f"**Unexpected error:** {e}\n\nPlease check the logs for more details.",
