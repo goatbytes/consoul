@@ -288,11 +288,13 @@ class ContextualTopBar(Static):
 
     def watch_current_provider(self, provider: str) -> None:
         """React to provider changes."""
-        self._update_model_label()
+        if self.is_mounted:
+            self._update_model_label()
 
     def watch_current_model(self, model: str) -> None:
         """React to model changes."""
-        self._update_model_label()
+        if self.is_mounted:
+            self._update_model_label()
 
     def _get_model_display_name(self, model: str, provider: str) -> str:
         """Get a clean display name for the model.
@@ -345,6 +347,9 @@ class ContextualTopBar(Static):
 
     def watch_current_profile(self, profile: str) -> None:
         """React to profile changes."""
+        if not self.is_mounted:
+            return
+
         try:
             profile_label = self.query_one("#profile-label", Label)
             profile_label.update(f"Profile: {profile}")
