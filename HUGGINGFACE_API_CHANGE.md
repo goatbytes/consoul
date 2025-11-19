@@ -112,8 +112,15 @@ client = InferenceClient(model="model", token="...")
 
 ✅ **Serverless Inference**
 - Rate limit: ~few hundred requests per hour
-- Access to hundreds of models
+- Access to models deployed by Inference Providers (see below)
 - Automatic model loading (may take ~20 seconds first time)
+
+⚠️ **Important Model Availability Note**:
+- NOT ALL models are available on the free Serverless Inference API
+- Models must be "deployed by an Inference Provider" (Novita, Groq, Fal-ai, etc.)
+- Popular models like `google/flan-t5-base` may NOT work (no provider deployment)
+- Check model page on HuggingFace to see if it shows "Inference Providers"
+- Examples that work: `meta-llama/Llama-3.1-8B-Instruct` (Novita), `openai/gpt-oss-20b` (Groq)
 
 ✅ **Model Downloads**
 - Download any public model for local use

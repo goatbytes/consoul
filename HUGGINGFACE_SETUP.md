@@ -64,8 +64,10 @@ poetry install --sync
 
 **That's it!** Free tier gives you:
 - Few hundred requests per hour
-- Access to all serverless models
+- Access to models deployed by Inference Providers
 - No payment required
+
+⚠️ **Model Availability**: Not all models work with free serverless inference. Models must be deployed by an Inference Provider (Novita, Groq, Fal-ai, etc.). Check the model page on HuggingFace to verify availability before using.
 
 ### Option 2: HuggingFace PRO ($9/month)
 
@@ -154,6 +156,24 @@ export HUGGINGFACEHUB_API_TOKEN='hf_your_token_here'
 2. Upgrade to PRO ($9/month) for 20× more credits
 3. Use Ollama locally (unlimited)
 4. Use Groq (different rate limits)
+
+### Error: StopIteration or "Model not available"
+
+**Cause**: Model is not deployed by an Inference Provider
+
+**Explanation**:
+The HuggingFace Serverless Inference API only works with models that are deployed by third-party Inference Providers (Novita, Groq, Fal-ai, etc.). Many popular models like `google/flan-t5-base` are NOT available.
+
+**Solutions**:
+1. Check model page on HuggingFace for "Inference Providers" section
+2. Use models known to work:
+   - `meta-llama/Llama-3.1-8B-Instruct` (Novita)
+   - `openai/gpt-oss-20b` (Groq)
+   - Check: https://huggingface.co/models?other=serverless
+3. Use alternative providers:
+   - Groq (has Llama 3.1, Mixtral, Gemma)
+   - Ollama (download any model locally)
+   - MLX (Apple Silicon)
 
 ## Pricing Comparison
 
