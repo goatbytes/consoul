@@ -57,7 +57,7 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "Provide assistance with defensive security tasks only."
             ),
             "conversation": {
-                "persist": False,  # Disabled by default (opt-in)
+                "persist": True,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
                 "auto_resume": False,
                 "retention_days": 0,
@@ -81,7 +81,7 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "and maintainability. Provide specific, actionable feedback."
             ),
             "conversation": {
-                "persist": False,
+                "persist": True,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
                 "auto_resume": False,
                 "retention_days": 0,
@@ -105,7 +105,7 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "and encourage creative thinking."
             ),
             "conversation": {
-                "persist": False,
+                "persist": True,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
                 "auto_resume": False,
                 "retention_days": 0,
@@ -125,7 +125,7 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
             "description": "Fast profile optimized for quick responses with lower context",
             "system_prompt": "You are a helpful AI assistant. Be concise and to the point.",
             "conversation": {
-                "persist": False,
+                "persist": True,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
                 "auto_resume": False,
                 "retention_days": 0,
