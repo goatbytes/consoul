@@ -2467,12 +2467,34 @@ class ConsoulApp(App[None]):
             return
 
         try:
+            # Get old database path before switching
+            old_db_path = (
+                self.active_profile.conversation.db_path
+                if self.active_profile
+                else None
+            )
+
             # Update active profile in config
             self.consoul_config.active_profile = profile_name
             self.active_profile = self.consoul_config.get_active_profile()
             self.current_profile = profile_name
 
             # NOTE: Model/provider remain unchanged - profiles are separate from models
+
+            # Check if database path changed
+            new_db_path = self.active_profile.conversation.db_path
+            if old_db_path != new_db_path:
+                # Database path changed - update conversation list database
+                from consoul.ai.database import ConversationDatabase
+
+                self.conversation_list.db = ConversationDatabase(new_db_path)
+                # Reload conversations from new database
+                self.run_worker(
+                    self.conversation_list.reload_conversations(), exclusive=True
+                )
+                self.log.info(
+                    f"Switched to profile '{profile_name}' with database: {new_db_path}"
+                )
 
             # Update conversation with new system prompt if needed
             if self.conversation and self.active_profile.system_prompt:
