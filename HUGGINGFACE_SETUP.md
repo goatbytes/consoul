@@ -1,64 +1,110 @@
 # HuggingFace Setup Guide for Consoul
 
-## ⚠️ Important Update (2024)
+## ✅ Good News: HuggingFace Inference is Still FREE!
 
-**HuggingFace has changed their API structure significantly:**
+**TL;DR**: HuggingFace Serverless Inference API is FREE with rate limits. If you're seeing errors, you likely need to update packages.
 
-1. **Old Free Inference API** (`api-inference.huggingface.co`) → **DEPRECATED** (returns 410)
-2. **New Inference Endpoints** (`router.huggingface.co/hf-inference`) → **PAID ONLY**
-3. **Free Options** → Use dedicated providers or local models
+## Current Status (2025)
 
-## Current HuggingFace Options
+### What Works for FREE
 
-### Option 1: Paid Inference Endpoints (Recommended for Production)
+✅ **Serverless Inference API** - FREE tier available!
+- Endpoint: `https://router.huggingface.co` (new)
+- Rate limits: ~few hundred requests/hour for free users
+- Access to hundreds of models
+- No payment required!
 
-- **Cost**: Pay-per-use pricing
-- **Endpoint**: `https://router.huggingface.co/hf-inference`
-- **Models**: Access to all HuggingFace models
-- **Setup**:
-  1. Create account at https://huggingface.co
-  2. Add payment method at https://huggingface.co/settings/billing
-  3. Create API token at https://huggingface.co/settings/tokens
-  4. Set environment variable: `export HUGGINGFACE_API_KEY='hf_...'`
+✅ **PRO Tier** - $9/month (optional)
+- 20× more inference credits
+- Higher rate limits
+- Priority queue
+- Still uses same free API, just more quota
 
-**Pricing**: ~$0.001-$0.01 per 1K tokens (varies by model)
+## What Changed in 2024?
 
-### Option 2: Free Third-Party Providers (Current Workaround)
+### Old Endpoint Deprecated ❌
 
-HuggingFace models are available through other providers for FREE:
+- **Old URL**: `https://api-inference.huggingface.co`
+- **Status**: Returns 410 "Gone" errors
+- **Old Client**: `InferenceApi` class deprecated
 
-#### A. **Groq** (Recommended - Fast & Free)
-- **Models**: Llama 3.1, Mixtral, Gemma
-- **Speed**: Very fast inference
-- **Setup**:
-  ```bash
-  # Get free API key: https://console.groq.com
-  export GROQ_API_KEY='gsk_...'
-  ```
-- **In Consoul**: Select "Groq" provider, choose model
+### New Endpoint Active ✅
 
-#### B. **Together AI** (Free Tier Available)
-- **Models**: Llama, Mistral, Qwen, etc.
-- **Free Tier**: $25 free credits
-- **Setup**:
-  ```bash
-  # Get key: https://api.together.xyz/settings/api-keys
-  export TOGETHER_API_KEY='...'
-  ```
+- **New URL**: `https://router.huggingface.co`
+- **New Client**: `InferenceClient` (use this!)
+- **Status**: FREE tier + paid options
+- **Compatibility**: Automatically used by updated packages
 
-#### C. **Replicate** (Pay-per-use)
-- **Models**: Many HuggingFace models
-- **Setup**:
-  ```bash
-  # Get key: https://replicate.com/account/api-tokens
-  export REPLICATE_API_TOKEN='r8_...'
-  ```
+## Setup Guide
 
-### Option 3: Local Models (Completely Free)
+### Option 1: HuggingFace Serverless (FREE!)
 
-Run models locally using **Ollama** or **MLX** (for Apple Silicon):
+**Step 1: Get API Token**
+```bash
+# Visit https://huggingface.co/settings/tokens
+# Create a new token (read access is enough)
+export HUGGINGFACEHUB_API_TOKEN='hf_...'
+```
 
-#### A. **Ollama** (Easiest for local)
+**Step 2: Update Packages** (Important!)
+```bash
+# Make sure you have latest versions
+pip install --upgrade langchain-huggingface huggingface-hub
+
+# Or with poetry:
+poetry install --sync
+```
+
+**Step 3: Use in Consoul**
+```bash
+# Press Ctrl+M in Consoul
+# Select "HuggingFace" provider
+# Choose model (e.g., meta-llama/Llama-3.1-8B-Instruct)
+```
+
+**That's it!** Free tier gives you:
+- Few hundred requests per hour
+- Access to all serverless models
+- No payment required
+
+### Option 2: HuggingFace PRO ($9/month)
+
+Get 20× more credits:
+1. Subscribe at https://huggingface.co/pricing
+2. Same setup as free tier
+3. Higher rate limits automatically
+
+### Option 3: Local HuggingFace Models (FREE!)
+
+Run models locally without API:
+
+```bash
+# Install dependencies
+pip install 'consoul[huggingface-local]'
+
+# In Consoul config, set local=True for HuggingFace models
+# This downloads and runs models on your machine
+```
+
+**Pros**: No rate limits, fully private
+**Cons**: Requires GPU/RAM, slower on CPU
+
+## Alternative FREE Options
+
+If HuggingFace doesn't work or you want alternatives:
+
+### Groq (Recommended - Fastest)
+
+```bash
+# Get free API key: https://console.groq.com
+export GROQ_API_KEY='gsk_...'
+
+# In Consoul: Press Ctrl+M → Select "Groq"
+# Models: Llama 3.1, Mixtral, Gemma (all free!)
+```
+
+### Ollama (Best for Privacy)
+
 ```bash
 # Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
@@ -66,127 +112,142 @@ curl -fsSL https://ollama.com/install.sh | sh
 # Pull a model
 ollama pull llama3.1:8b
 
-# In Consoul: Select "Ollama" provider
+# In Consoul: Press Ctrl+M → Select "Ollama"
 ```
 
-**Pros**: Free, private, no API limits
-**Cons**: Requires local compute, slower on non-GPU machines
+### MLX (Apple Silicon Only)
 
-#### B. **MLX** (Apple Silicon only)
 ```bash
 # Already integrated in Consoul
-# Select "MLX" provider in Consoul
+# Press Ctrl+M → Select "MLX"
 # Choose from mlx-community models
 ```
 
-**Pros**: Fast on M-series Macs, free
-**Cons**: Apple Silicon only
+## Troubleshooting
 
-## Why Did HuggingFace Change?
+### Error: "410 Gone" or "no longer supported"
 
-1. **Free Inference API** was expensive to operate at scale
-2. **Serverless** model allows HF to monetize infrastructure
-3. **Third-party providers** now fill the free tier gap
+**Cause**: Using outdated `langchain-huggingface` package
 
-## What Works with Free HuggingFace Token?
+**Fix**:
+```bash
+pip install --upgrade langchain-huggingface huggingface-hub
+# Or: poetry install --sync
+```
 
-Your free HuggingFace token **STILL WORKS** for:
+### Error: "Authentication failed"
 
-✅ **Model Downloads** - Download models to run locally
-✅ **Dataset Access** - Access HuggingFace datasets
-✅ **Gated Models** - Request access to restricted models (Llama, etc.)
-✅ **Spaces** - Deploy and run Gradio/Streamlit apps
+**Cause**: Missing or invalid API token
 
-❌ **Inference API** - NO LONGER FREE (requires payment)
+**Fix**:
+```bash
+# Get token from: https://huggingface.co/settings/tokens
+export HUGGINGFACEHUB_API_TOKEN='hf_your_token_here'
+```
 
-## Recommended Setup for Consoul
+### Error: "Rate limit exceeded"
 
-**For Free Usage:**
-1. Use **Groq** for fast inference (free)
-2. Use **Ollama** for local/private models (free)
-3. Use **MLX** if you have Apple Silicon (free)
+**Cause**: Hit free tier limits
 
-**For Production/Scale:**
-1. Use **Anthropic** (Claude) - Best quality
-2. Use **OpenAI** (GPT-4) - Good balance
-3. Use **HuggingFace Inference** - If you need specific HF models
+**Solutions**:
+1. Wait an hour for quota reset
+2. Upgrade to PRO ($9/month) for 20× more credits
+3. Use Ollama locally (unlimited)
+4. Use Groq (different rate limits)
+
+## Pricing Comparison
+
+| Service | Cost | Rate Limits | Speed |
+|---------|------|-------------|-------|
+| **HuggingFace Free** | FREE | ~few hundred/hour | Medium |
+| **HuggingFace PRO** | $9/month | 20× more | Medium |
+| **Groq** | FREE | Generous | Very Fast |
+| **Ollama** | FREE | Unlimited | Medium (local) |
+| **MLX** | FREE | Unlimited | Fast (M-series) |
+| **OpenAI GPT-4** | ~$10/million tokens | High | Fast |
+| **Anthropic Claude** | ~$3/million tokens | High | Fast |
+
+## What Your HuggingFace Token Gets You
+
+### Always FREE:
+✅ Model downloads (for local use)
+✅ Dataset access
+✅ Gated model access (Llama, etc. after approval)
+✅ Serverless inference (with rate limits)
+✅ Spaces (host apps)
+
+### Paid Only:
+💰 Inference Endpoints (dedicated servers, starts $0.033/hour)
+💰 Higher rate limits (PRO subscription $9/month)
 
 ## Testing Your Setup
 
-Run the test script:
+Run our diagnostic script:
+
 ```bash
 poetry run python test_huggingface.py
 ```
 
-This will tell you:
-- If your HF token is valid
-- Which providers are working
-- What options you have
+This checks:
+- ✓ HuggingFace token validity
+- ✓ Package versions
+- ✓ Groq availability
+- ✓ Ollama installation
+- ✓ MLX support
 
-## Getting Started
+## Best Practices
 
-### Quick Start (Free):
+### For Free Usage:
+1. **Use HuggingFace Free Tier** - Good for experimentation
+2. **Add Groq as backup** - Fast and generous free tier
+3. **Install Ollama for heavy use** - No limits, runs locally
 
-1. **Install Ollama**:
-   ```bash
-   curl -fsSL https://ollama.com/install.sh | sh
-   ollama pull llama3.1:8b
-   ```
-
-2. **Configure Consoul**:
-   - Press `Ctrl+M` in Consoul
-   - Select "Ollama"
-   - Choose "llama3.1:8b"
-
-3. **Start chatting!**
-
-### Alternative (Groq - Free API):
-
-1. **Get Groq API Key**:
-   - Visit https://console.groq.com
-   - Create free account
-   - Copy API key
-
-2. **Set Environment Variable**:
-   ```bash
-   export GROQ_API_KEY='gsk_your_key_here'
-   ```
-
-3. **Configure Consoul**:
-   - Press `Ctrl+M`
-   - Select "Groq"
-   - Choose a model (llama-3.1-8b-instant recommended)
+### For Production:
+1. **HuggingFace PRO** - $9/month, good value
+2. **Groq** - Still free, very fast
+3. **Anthropic/OpenAI** - Best quality, paid per use
 
 ## FAQ
 
+### Q: Is HuggingFace Inference still free?
+**A**: YES! Free tier with rate limits. The API endpoint changed but it's still free.
+
 ### Q: Do I need to pay for HuggingFace?
-**A**: No! Use Groq, Ollama, or MLX instead. They're free and work great.
+**A**: NO for basic use. Free tier is sufficient for most personal projects.
 
-### Q: What happened to the free Inference API?
-**A**: HuggingFace deprecated it in 2024. It now returns 410 errors.
+### Q: What's the difference between free and PRO?
+**A**: PRO ($9/month) gives 20× more inference credits and higher priority.
 
-### Q: Can I still use Llama models for free?
-**A**: Yes! Via Groq (API) or Ollama (local).
-
-### Q: Is the new HuggingFace API expensive?
-**A**: Moderate - around $0.001-$0.01 per 1K tokens, cheaper than OpenAI.
+### Q: Why am I getting 410 errors?
+**A**: Your `langchain-huggingface` package is outdated. Update it!
 
 ### Q: What's the best free option?
-**A**: **Groq** for speed, **Ollama** for privacy, **MLX** for M-series Macs.
+**A**:
+- **Groq** - If you want cloud API (fast)
+- **Ollama** - If you want local/private (unlimited)
+- **HuggingFace** - If you want variety of models (good middle ground)
 
-## Support
-
-If you're still having issues:
-
-1. Check token: https://huggingface.co/settings/tokens
-2. Run test: `poetry run python test_huggingface.py`
-3. Try Groq instead: https://console.groq.com
-4. Open issue: https://github.com/goatbytes/consoul/issues
+### Q: Can I use Llama models for free?
+**A**: YES! Via:
+- HuggingFace Serverless (free tier)
+- Groq (free API)
+- Ollama (local, unlimited)
 
 ## Resources
 
-- **HuggingFace Pricing**: https://huggingface.co/pricing
-- **Groq (Free)**: https://console.groq.com
-- **Ollama (Local)**: https://ollama.com
-- **Together AI**: https://www.together.ai
-- **Replicate**: https://replicate.com
+- **HuggingFace Docs**: https://huggingface.co/docs/api-inference
+- **Groq Console**: https://console.groq.com
+- **Ollama**: https://ollama.com
+- **Pricing**: https://huggingface.co/pricing
+- **Test Script**: `poetry run python test_huggingface.py`
+
+## Need Help?
+
+1. Run diagnostic: `poetry run python test_huggingface.py`
+2. Check package versions: `pip list | grep huggingface`
+3. Update packages: `pip install --upgrade langchain-huggingface huggingface-hub`
+4. Open issue: https://github.com/goatbytes/consoul/issues
+
+---
+
+**Bottom Line**: HuggingFace Serverless Inference is FREE! Just update your packages if you're seeing errors.

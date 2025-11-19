@@ -1374,21 +1374,23 @@ def get_chat_model(
                     ) from e
                 elif "410" in error_msg or "no longer supported" in error_msg:
                     raise ProviderInitializationError(
-                        "HuggingFace Inference API has been deprecated.\n\n"
-                        "The free Inference API (api-inference.huggingface.co) is no longer available.\n\n"
-                        "FREE Alternatives:\n"
-                        "  1. Groq - Fast, free API for Llama/Mixtral models\n"
-                        "     Get key: https://console.groq.com\n"
-                        "     Set: GROQ_API_KEY='your-key'\n\n"
-                        "  2. Ollama - Run models locally (completely free)\n"
-                        "     Install: curl -fsSL https://ollama.com/install.sh | sh\n"
-                        "     Run: ollama pull llama3.1:8b\n\n"
-                        "  3. MLX - Apple Silicon optimized (M-series Macs)\n"
-                        "     Select MLX provider in Consoul\n\n"
-                        "PAID Option:\n"
-                        "  HuggingFace Inference Endpoints (paid service)\n"
-                        "  Pricing: https://huggingface.co/pricing\n\n"
-                        "See HUGGINGFACE_SETUP.md for complete guide."
+                        "HuggingFace Inference API endpoint has changed.\n\n"
+                        "The old endpoint (api-inference.huggingface.co) is deprecated.\n"
+                        "The new endpoint (router.huggingface.co) should be used automatically.\n\n"
+                        "This error suggests you may have an outdated package version.\n\n"
+                        "Fix:\n"
+                        "  1. Update langchain-huggingface:\n"
+                        "     pip install --upgrade langchain-huggingface huggingface-hub\n\n"
+                        "  2. Or use latest Consoul:\n"
+                        "     poetry install --sync\n\n"
+                        "Note: HuggingFace Serverless Inference is STILL FREE!\n"
+                        "  - Free tier with rate limits (~few hundred requests/hour)\n"
+                        "  - PRO ($9/month) gives 20x more credits\n"
+                        "  - See: https://huggingface.co/docs/api-inference\n\n"
+                        "Alternative free options:\n"
+                        "  - Groq (fast API): https://console.groq.com\n"
+                        "  - Ollama (local): https://ollama.com\n"
+                        "  - MLX (Apple Silicon): Select MLX provider"
                     ) from e
                 elif "not found" in error_msg or "404" in error_msg:
                     raise InvalidModelError(

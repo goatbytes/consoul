@@ -1,115 +1,250 @@
-# HuggingFace API Change Notice
+# HuggingFace API Endpoint Change (2024)
 
-## ⚠️ Important: Free Inference API Deprecated (2024)
+## ✅ IMPORTANT: HuggingFace Inference is STILL FREE!
 
-**TL;DR**: The free HuggingFace Inference API no longer works. Use free alternatives (Groq, Ollama, MLX) or pay for HuggingFace Inference Endpoints.
+**TL;DR**: The API endpoint changed but the free tier still exists. Update your packages to fix 410 errors.
 
-## What Happened?
+## What Actually Happened
 
-In 2024, HuggingFace deprecated their free Inference API:
+### Endpoint Migration ✅
 
-- **Old Endpoint**: `https://api-inference.huggingface.co` → ❌ Returns 410 "Gone"
-- **New Endpoint**: `https://router.huggingface.co/hf-inference` → 💰 Paid only
+**Old Endpoint (Deprecated)**:
+- URL: `https://api-inference.huggingface.co`
+- Status: Returns 410 "Gone" errors
+- Client: `InferenceApi` class (deprecated)
+
+**New Endpoint (Active)**:
+- URL: `https://router.huggingface.co`
+- Status: **STILL FREE!** (with rate limits)
+- Client: `InferenceClient` (current)
+
+### What's Free vs Paid?
+
+| Feature | Cost | Details |
+|---------|------|---------|
+| **Serverless Inference** | FREE | ~few hundred requests/hour |
+| **PRO Tier** | $9/month | 20× more credits, higher priority |
+| **Inference Endpoints** | $0.033+/hour | Dedicated servers (optional) |
 
 ## Impact on Consoul
 
-If you try to use HuggingFace models in Consoul, you'll see:
+### If You're Seeing 410 Errors:
 
+**Cause**: Outdated `langchain-huggingface` package using old endpoint
+
+**Fix**:
+```bash
+# Update packages
+pip install --upgrade langchain-huggingface huggingface-hub
+
+# Or with poetry
+poetry install --sync
 ```
-HuggingFace Inference API has been deprecated.
-The free Inference API is no longer available.
+
+### After Updating:
+
+✅ HuggingFace models work with **FREE tier**
+✅ Same rate limits as before (~few hundred/hour)
+✅ No payment required
+✅ Optional PRO upgrade for more quota
+
+## Migration Guide
+
+### Step 1: Update Packages
+
+```bash
+# Check current versions
+pip list | grep huggingface
+
+# Update to latest
+pip install --upgrade langchain-huggingface huggingface-hub
+
+# Verify (should be 0.1.0+ for langchain-huggingface)
+pip list | grep huggingface
 ```
 
-## Solutions
+### Step 2: Test Connection
 
-### ✅ Recommended: Use Free Alternatives
+```bash
+# Run diagnostic script
+poetry run python test_huggingface.py
 
-**1. Groq (Easiest)**
-- Fast, free API for Llama 3.1, Mixtral, Gemma models
-- Get free key: https://console.groq.com
-- Set environment: `export GROQ_API_KEY='gsk_...'`
-- In Consoul: Press `Ctrl+M` → Select "Groq" provider
+# Or test manually in Python
+python -c "from huggingface_hub import InferenceClient; print('✓ Working!')"
+```
 
-**2. Ollama (Most Private)**
-- Run models completely locally (no internet, no API keys)
-- Install: `curl -fsSL https://ollama.com/install.sh | sh`
-- Pull model: `ollama pull llama3.1:8b`
-- In Consoul: Press `Ctrl+M` → Select "Ollama" provider
+### Step 3: Use in Consoul
 
-**3. MLX (Apple Silicon)**
-- Optimized for M-series Macs
-- Already integrated in Consoul
-- In Consoul: Press `Ctrl+M` → Select "MLX" provider
+```bash
+# Set your token (if not already set)
+export HUGGINGFACEHUB_API_TOKEN='hf_...'
 
-### 💰 Paid Option: HuggingFace Inference Endpoints
+# Launch Consoul and select HuggingFace provider
+# Press Ctrl+M → Select "HuggingFace"
+```
 
-If you specifically need HuggingFace models via API:
+## What Changed in the Code?
 
-1. Add payment method at https://huggingface.co/settings/billing
-2. Create API token at https://huggingface.co/settings/tokens
-3. Set environment: `export HUGGINGFACEHUB_API_TOKEN='hf_...'`
-4. In Consoul: Use HuggingFace provider as normal
+### Python Package Changes
 
-**Pricing**: ~$0.001-$0.01 per 1K tokens (cheaper than OpenAI, but not free)
+**Old Way (Deprecated)**:
+```python
+from huggingface_hub import InferenceApi
+client = InferenceApi(repo_id="model", token="...")
+```
 
-## What Still Works for Free?
+**New Way (Current)**:
+```python
+from huggingface_hub import InferenceClient
+client = InferenceClient(model="model", token="...")
+```
 
-Your HuggingFace token **still works** for:
+### LangChain Integration
 
-✅ **Model Downloads** - Download models to run locally
-✅ **Dataset Access** - Access HuggingFace datasets
-✅ **Gated Models** - Request access to Llama, etc.
-✅ **Spaces** - Deploy Gradio/Streamlit apps
+**Consoul uses** `langchain_huggingface.HuggingFaceEndpoint` which:
+- Automatically uses new endpoint (if package is updated)
+- Falls back gracefully with helpful error messages
+- Works with free tier out of the box
 
-❌ **Inference API** - NO LONGER FREE
+## Free Tier Details
+
+### What You Get FREE:
+
+✅ **Serverless Inference**
+- Rate limit: ~few hundred requests per hour
+- Access to hundreds of models
+- Automatic model loading (may take ~20 seconds first time)
+
+✅ **Model Downloads**
+- Download any public model for local use
+- No rate limits on downloads
+
+✅ **Gated Models**
+- Request access to Llama, Mistral, etc.
+- Free after approval
+
+### What Requires Payment:
+
+💰 **PRO Subscription** ($9/month)
+- 20× more inference credits
+- Higher priority in queue
+- Faster model loading
+
+💰 **Inference Endpoints** (Dedicated)
+- Starts at $0.033/hour
+- Dedicated hardware (CPU/GPU)
+- No cold starts
+- Production-grade SLA
+
+## Alternative Free Options
+
+If you want more free quota or different models:
+
+### 1. Groq (FREE - Fastest)
+```bash
+# Get key: https://console.groq.com
+export GROQ_API_KEY='gsk_...'
+# Models: Llama 3.1, Mixtral, Gemma
+```
+
+### 2. Ollama (FREE - Unlimited)
+```bash
+# Install: https://ollama.com
+ollama pull llama3.1:8b
+# Run locally, no internet needed
+```
+
+### 3. MLX (FREE - Apple Silicon)
+```bash
+# Already in Consoul
+# Press Ctrl+M → Select "MLX"
+# Fast on M-series Macs
+```
+
+## FAQ
+
+### Q: Do I need to pay now?
+**A**: NO! Free tier still exists with same limits as before.
+
+### Q: Why the 410 error?
+**A**: Your `langchain-huggingface` package is using the old deprecated endpoint. Update it!
+
+### Q: Will my existing code break?
+**A**: Only if packages are outdated. Update and it works the same.
+
+### Q: Is the new endpoint faster/slower?
+**A**: Similar performance. May have better routing to available servers.
+
+### Q: Can I still use gated models like Llama?
+**A**: YES! Request access on HuggingFace, then use for free via API.
+
+### Q: What if I hit rate limits?
+**A**: Options:
+1. Wait ~1 hour for quota reset (free)
+2. Upgrade to PRO $9/month (20× more)
+3. Use Ollama locally (unlimited)
+4. Use Groq (different free tier)
 
 ## Testing Your Setup
 
-Run the test script to see what's working:
+Run the diagnostic script:
 
 ```bash
 poetry run python test_huggingface.py
 ```
 
-This will check:
-- HuggingFace token status
-- Groq API availability
-- Ollama installation & models
-- MLX support (Apple Silicon)
+Expected output:
+```
+✓ HuggingFace token found
+✓ Serverless Inference API: FREE tier available
+✓ Package versions up to date
+```
 
-## For Consoul Users Who Want HuggingFace to Work
+## For Consoul Developers
 
-**Consoul code is already compatible** with both old and new HuggingFace APIs! The code uses `langchain_huggingface.HuggingFaceEndpoint` which works with paid inference.
+### What Changed in Consoul:
 
-You just need to decide:
+1. **Better Error Messages**
+   - Detects 410 errors
+   - Suggests package update
+   - Explains free tier still works
 
-- **Free**: Switch to Groq/Ollama/MLX (recommended)
-- **Paid**: Add payment method to your HuggingFace account
+2. **Documentation**
+   - Updated HUGGINGFACE_SETUP.md
+   - Created this change notice
+   - Added diagnostic script
 
-The app will detect the 410 error and show helpful alternatives.
+3. **Code Compatibility**
+   - Works with old and new endpoints
+   - Graceful degradation
+   - No breaking changes for users
 
-## Documentation
+### Files Modified:
 
-See these files for complete guides:
+- `src/consoul/ai/providers.py` - Enhanced error handling
+- `HUGGINGFACE_SETUP.md` - Complete setup guide
+- `HUGGINGFACE_API_CHANGE.md` - This file
+- `test_huggingface.py` - Diagnostic script
 
-- **HUGGINGFACE_SETUP.md** - Complete setup guide with all options
-- **test_huggingface.py** - Diagnostic script for all providers
-- **HUGGINGFACE_LOCAL_ISSUES.md** - Local model execution guide
+## Summary
 
-## Summary for Developers
+**The Bottom Line**:
 
-**What changed in Consoul:**
+1. ✅ HuggingFace Serverless Inference is **STILL FREE**
+2. ✅ Just need to update `langchain-huggingface` package
+3. ✅ Same functionality, new endpoint
+4. ✅ No payment required for basic use
 
-1. Added better error detection for 410 errors in `src/consoul/ai/providers.py` (lines 1375-1392)
-2. Error message now recommends free alternatives (Groq, Ollama, MLX)
-3. Created comprehensive setup guide (HUGGINGFACE_SETUP.md)
-4. Created diagnostic test script (test_huggingface.py)
+**Update command**:
+```bash
+pip install --upgrade langchain-huggingface huggingface-hub
+```
 
-**No code changes required for users who want to pay** - it already works with the new paid API!
+That's it! Your HuggingFace models will work again with the free tier.
 
-## Need Help?
+## Resources
 
-1. Run diagnostic: `poetry run python test_huggingface.py`
-2. Read setup guide: `HUGGINGFACE_SETUP.md`
-3. Try Groq (easiest free alternative): https://console.groq.com
-4. Open issue: https://github.com/goatbytes/consoul/issues
+- **HuggingFace Docs**: https://huggingface.co/docs/api-inference
+- **Migration Guide**: https://huggingface.co/docs/huggingface_hub/main/en/guides/inference
+- **Pricing**: https://huggingface.co/pricing (note the FREE tier!)
+- **Test Script**: `poetry run python test_huggingface.py`
