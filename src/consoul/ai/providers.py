@@ -1312,6 +1312,21 @@ def get_chat_model(
             try:
                 llm = HuggingFacePipeline.from_model_id(**pipeline_params)
                 return ChatHuggingFace(llm=llm, **params)  # type: ignore[no-any-return]
+            except ImportError as e:
+                # Missing dependency for this specific model
+                error_msg = str(e)
+                if "pip install" in error_msg:
+                    # Error message already includes install instruction
+                    raise InvalidModelError(
+                        f"Failed to load local HuggingFace model '{pipeline_params['model_id']}'.\n\n"
+                        f"{error_msg}"
+                    ) from e
+                else:
+                    raise InvalidModelError(
+                        f"Failed to load local HuggingFace model '{pipeline_params['model_id']}'.\n\n"
+                        f"Missing dependency: {e}\n\n"
+                        f"Install with: pip install <missing-package>"
+                    ) from e
             except Exception as e:
                 raise InvalidModelError(
                     f"Failed to load local HuggingFace model '{pipeline_params['model_id']}'.\n\n"
