@@ -62,6 +62,12 @@ PROVIDER_PATTERNS: dict[Provider, list[str]] = {
         "openai-community/",
         "microsoft/",
         "facebook/",
+        "moonshotai/",
+        "Qwen/",
+        "tiiuae/",  # Falcon models
+        "EleutherAI/",
+        "bigscience/",
+        "stabilityai/",
     ],
     Provider.OLLAMA: ["llama", "mistral", "phi", "qwen", "codellama"],
 }
