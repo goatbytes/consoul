@@ -323,50 +323,33 @@ MODEL_INFO = {
         "cost": "moderate",
         "description": "Legacy flash model",
     },
-    # HuggingFace Models (popular models, local models fetched dynamically)
+    # HuggingFace Models (Serverless Inference via Inference Providers)
+    # NOTE: Only models deployed by Inference Providers work with free serverless API
+    # Check model page on HuggingFace for "Inference Providers" section
     "meta-llama/Llama-3.1-8B-Instruct": {
         "provider": "huggingface",
         "context": "128K",
         "cost": "free",
-        "description": "Meta's Llama 3.1 8B instruction model",
+        "description": "Llama 3.1 8B (via Novita provider)",
     },
     "meta-llama/Llama-3.2-3B-Instruct": {
         "provider": "huggingface",
         "context": "128K",
         "cost": "free",
-        "description": "Smaller Llama 3.2 model",
+        "description": "Llama 3.2 3B (check provider availability)",
     },
     "mistralai/Mistral-7B-Instruct-v0.3": {
         "provider": "huggingface",
         "context": "32K",
         "cost": "free",
-        "description": "Mistral AI's 7B instruction model",
+        "description": "Mistral 7B (check provider availability)",
     },
-    "google/flan-t5-xxl": {
-        "provider": "huggingface",
-        "context": "2K",
-        "cost": "free",
-        "description": "Google's FLAN-T5 XXL (11B params)",
-    },
-    "google/flan-t5-base": {
-        "provider": "huggingface",
-        "context": "512",
-        "cost": "free",
-        "description": "Smaller FLAN-T5 base (250M params)",
-    },
-    "microsoft/Phi-3-mini-4k-instruct": {
-        "provider": "huggingface",
-        "context": "4K",
-        "cost": "free",
-        "description": "Microsoft's Phi-3 Mini (3.8B params)",
-    },
-    "tiiuae/falcon-7b-instruct": {
-        "provider": "huggingface",
-        "context": "2K",
-        "cost": "free",
-        "description": "TII's Falcon 7B instruction model",
-    },
-    # Note: Ollama, HuggingFace, and LlamaCpp local models are fetched dynamically
+    # NOTE: Models below may NOT work with serverless API - they lack Inference Providers
+    # Removed: google/flan-t5-* (no Inference Provider deployment)
+    # Removed: microsoft/Phi-3-* (no Inference Provider deployment)
+    # Removed: tiiuae/falcon-* (no Inference Provider deployment)
+    # For these models, use Ollama or download locally instead
+    # Note: Ollama, HuggingFace local, and LlamaCpp models are fetched dynamically
 }
 
 
