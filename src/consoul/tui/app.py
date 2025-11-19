@@ -187,13 +187,14 @@ class ConsoulApp(App[None]):
 
                 # Note: Tools will be bound after registry is initialized (below)
 
-                # Initialize conversation history
+                # Initialize conversation history with profile settings
                 from consoul.ai import ConversationHistory
 
+                conv_kwargs = self._get_conversation_config()
                 self.conversation = ConversationHistory(
                     model_name=consoul_config.current_model,
                     model=self.chat_model,
-                    persist=True,  # Enable SQLite persistence
+                    **conv_kwargs,
                 )
 
                 # Add system prompt if configured
@@ -212,6 +213,64 @@ class ConsoulApp(App[None]):
                     f"Initialized AI model: {consoul_config.current_model}, "
                     f"session: {self.conversation_id}"
                 )
+
+                # Handle auto_resume if enabled in profile
+                if (
+                    self.active_profile
+                    and hasattr(self.active_profile, "conversation")
+                    and self.active_profile.conversation.auto_resume
+                    and self.active_profile.conversation.persist
+                ):
+                    try:
+                        from consoul.ai.database import ConversationDatabase
+
+                        db = ConversationDatabase(
+                            self.active_profile.conversation.db_path
+                        )
+                        recent_conversations = db.list_conversations(limit=1)
+
+                        if recent_conversations:
+                            latest_session_id = recent_conversations[0]["session_id"]
+                            # Only resume if it's not the session we just created
+                            if latest_session_id != self.conversation_id:
+                                self.log.info(
+                                    f"Auto-resuming last conversation: {latest_session_id}"
+                                )
+                                # Reload conversation with the latest session
+                                conv_kwargs = self._get_conversation_config()
+                                conv_kwargs["session_id"] = latest_session_id
+                                self.conversation = ConversationHistory(
+                                    model_name=consoul_config.current_model,
+                                    model=self.chat_model,
+                                    **conv_kwargs,
+                                )
+                                self.conversation_id = latest_session_id
+                    except Exception as e:
+                        self.log.warning(f"Failed to auto-resume conversation: {e}")
+
+                # Handle retention_days cleanup if configured
+                if (
+                    self.active_profile
+                    and hasattr(self.active_profile, "conversation")
+                    and self.active_profile.conversation.retention_days > 0
+                    and self.active_profile.conversation.persist
+                ):
+                    try:
+                        from consoul.ai.database import ConversationDatabase
+
+                        db = ConversationDatabase(
+                            self.active_profile.conversation.db_path
+                        )
+                        deleted_count = db.delete_conversations_older_than(
+                            self.active_profile.conversation.retention_days
+                        )
+                        if deleted_count > 0:
+                            self.log.info(
+                                f"Retention cleanup: deleted {deleted_count} conversations "
+                                f"older than {self.active_profile.conversation.retention_days} days"
+                            )
+                    except Exception as e:
+                        self.log.warning(f"Failed to cleanup old conversations: {e}")
 
                 # Initialize tool registry (approval handled via _request_tool_approval)
                 if consoul_config.tools and consoul_config.tools.enabled:
@@ -529,10 +588,26 @@ class ConsoulApp(App[None]):
         # Main content area with optional sidebar
         with Horizontal(classes="main-container"):
             # Conversation list sidebar (conditional)
-            if self.config.show_sidebar and self.consoul_config:
+            # Only show sidebar if persistence is enabled in profile
+            persist_enabled = True
+            if self.active_profile and hasattr(self.active_profile, "conversation"):
+                persist_enabled = self.active_profile.conversation.persist
+
+            if self.config.show_sidebar and self.consoul_config and persist_enabled:
                 from consoul.ai.database import ConversationDatabase
 
-                db = ConversationDatabase()
+                # Use db_path from active profile if available
+                db_path = None
+                if (
+                    self.active_profile
+                    and hasattr(self.active_profile, "conversation")
+                    and self.active_profile.conversation.db_path
+                ):
+                    db_path = self.active_profile.conversation.db_path
+
+                db = (
+                    ConversationDatabase(db_path) if db_path else ConversationDatabase()
+                )
                 self.conversation_list = ConversationList(db=db)
                 yield self.conversation_list
 
@@ -547,6 +622,62 @@ class ConsoulApp(App[None]):
                 yield self.input_area
 
         yield Footer()
+
+    def _get_conversation_config(self) -> dict[str, Any]:
+        """Get ConversationHistory kwargs from active profile configuration.
+
+        Extracts all conversation settings from the profile and prepares them
+        for passing to ConversationHistory constructor. Handles summary_model
+        initialization if specified.
+
+        Returns:
+            Dictionary of kwargs for ConversationHistory constructor with keys:
+            persist, db_path, summarize, summarize_threshold, keep_recent, summary_model
+
+        Note:
+            session_id should be added separately when resuming conversations.
+        """
+        from consoul.ai import get_chat_model
+
+        kwargs: dict[str, Any] = {}
+
+        if self.active_profile and hasattr(self.active_profile, "conversation"):
+            conv_config = self.active_profile.conversation
+
+            # Basic persistence settings
+            kwargs["persist"] = conv_config.persist
+            if conv_config.db_path:
+                kwargs["db_path"] = conv_config.db_path
+
+            # Summarization settings
+            kwargs["summarize"] = conv_config.summarize
+            kwargs["summarize_threshold"] = conv_config.summarize_threshold
+            kwargs["keep_recent"] = conv_config.keep_recent
+
+            # Summary model (needs to be initialized as ChatModel instance)
+            if conv_config.summary_model and self.consoul_config:
+                try:
+                    kwargs["summary_model"] = get_chat_model(
+                        conv_config.summary_model, config=self.consoul_config
+                    )
+                except Exception as e:
+                    self.log.warning(
+                        f"Failed to initialize summary_model '{conv_config.summary_model}': {e}"
+                    )
+                    kwargs["summary_model"] = None
+            else:
+                kwargs["summary_model"] = None
+        else:
+            # Fallback to defaults if profile not available
+            kwargs = {
+                "persist": True,
+                "summarize": False,
+                "summarize_threshold": 20,
+                "keep_recent": 10,
+                "summary_model": None,
+            }
+
+        return kwargs
 
     def _update_top_bar_state(self) -> None:
         """Update ContextualTopBar reactive properties from app state."""
@@ -1931,13 +2062,14 @@ class ConsoulApp(App[None]):
             # Clear chat view
             await self.chat_view.clear_messages()
 
-            # Create new conversation with same model
+            # Create new conversation with same model and profile settings
             from consoul.ai import ConversationHistory
 
+            conv_kwargs = self._get_conversation_config()
             self.conversation = ConversationHistory(
                 model_name=self.consoul_config.current_model,
                 model=self.chat_model,
-                persist=True,  # New session ID will be created
+                **conv_kwargs,
             )
 
             # Re-add system prompt if configured
@@ -2178,14 +2310,17 @@ class ConsoulApp(App[None]):
 
                 # Update the conversation object if we have one
                 if self.conversation and self.consoul_config:
-                    # Reload conversation history into current conversation object
+                    # Reload conversation history into current conversation object with profile settings
                     from consoul.ai import ConversationHistory
 
+                    conv_kwargs = self._get_conversation_config()
+                    conv_kwargs["session_id"] = (
+                        conversation_id  # Resume this specific session
+                    )
                     self.conversation = ConversationHistory(
                         model_name=self.consoul_config.current_model,
                         model=self.chat_model,
-                        persist=True,
-                        session_id=conversation_id,
+                        **conv_kwargs,
                     )
 
                 self.notify(

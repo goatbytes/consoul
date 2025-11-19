@@ -795,6 +795,40 @@ class ConversationDatabase:
         except Exception as e:
             raise DatabaseError(f"Failed to delete conversation: {e}") from e
 
+    def delete_conversations_older_than(self, days: int) -> int:
+        """Delete conversations older than specified number of days.
+
+        Args:
+            days: Delete conversations with updated_at older than this many days
+
+        Returns:
+            Number of conversations deleted
+
+        Raises:
+            DatabaseError: If delete operation fails
+
+        Example:
+            >>> db = ConversationDatabase()
+            >>> # Delete conversations older than 30 days
+            >>> deleted_count = db.delete_conversations_older_than(30)
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Enable foreign keys for CASCADE delete
+                conn.execute("PRAGMA foreign_keys=ON")
+                cursor = conn.execute(
+                    """
+                    DELETE FROM conversations
+                    WHERE updated_at < datetime('now', '-' || ? || ' days')
+                    """,
+                    (days,),
+                )
+                return cursor.rowcount
+        except Exception as e:
+            raise DatabaseError(
+                f"Failed to delete conversations older than {days} days: {e}"
+            ) from e
+
     def clear_all_conversations(self) -> int:
         """Delete all conversations and messages.
 

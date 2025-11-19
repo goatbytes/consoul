@@ -829,3 +829,91 @@ class TestFullTextSearch:
         session_ids = {r["session_id"] for r in results}
         assert session1 in session_ids
         assert session2 in session_ids
+
+
+class TestRetentionCleanup:
+    """Tests for conversation retention and cleanup functionality."""
+
+    def test_delete_conversations_older_than(self, tmp_path):
+        """Test deleting conversations older than specified days."""
+        import sqlite3
+        from datetime import datetime, timedelta
+
+        db = ConversationDatabase(tmp_path / "test.db")
+
+        # Create conversations with different ages
+        session_recent = db.create_conversation("gpt-4o")
+        session_old = db.create_conversation("gpt-4o")
+
+        # Add messages to both
+        db.save_message(session_recent, "user", "Recent message", 5)
+        db.save_message(session_old, "user", "Old message", 5)
+
+        # Manually update the old conversation's timestamp to 31 days ago
+        # (must be done after save_message since it updates updated_at)
+        old_timestamp = (datetime.utcnow() - timedelta(days=31)).isoformat()
+        with sqlite3.connect(db.db_path) as conn:
+            conn.execute(
+                "UPDATE conversations SET updated_at = ? WHERE session_id = ?",
+                (old_timestamp, session_old),
+            )
+
+        # Delete conversations older than 30 days
+        deleted_count = db.delete_conversations_older_than(30)
+
+        assert deleted_count == 1
+
+        # Recent conversation should still exist
+        conversations = db.list_conversations()
+        assert len(conversations) == 1
+        assert conversations[0]["session_id"] == session_recent
+
+    def test_delete_conversations_older_than_no_matches(self, tmp_path):
+        """Test deletion when no conversations match the age criteria."""
+        db = ConversationDatabase(tmp_path / "test.db")
+
+        # Create recent conversations
+        db.create_conversation("gpt-4o")
+        db.create_conversation("claude-3-5-sonnet")
+
+        # Try to delete conversations older than 30 days (none exist)
+        deleted_count = db.delete_conversations_older_than(30)
+
+        assert deleted_count == 0
+
+        # Both conversations should still exist
+        conversations = db.list_conversations()
+        assert len(conversations) == 2
+
+    def test_delete_conversations_older_than_cascades(self, tmp_path):
+        """Test that deleting old conversations also deletes their messages."""
+        import sqlite3
+        from datetime import datetime, timedelta
+
+        db = ConversationDatabase(tmp_path / "test.db")
+
+        # Create old conversation
+        session_old = db.create_conversation("gpt-4o")
+        db.save_message(session_old, "user", "Old message 1", 5)
+        db.save_message(session_old, "assistant", "Old message 2", 5)
+
+        # Make it old (must be done after save_message since it updates updated_at)
+        old_timestamp = (datetime.utcnow() - timedelta(days=31)).isoformat()
+        with sqlite3.connect(db.db_path) as conn:
+            conn.execute(
+                "UPDATE conversations SET updated_at = ? WHERE session_id = ?",
+                (old_timestamp, session_old),
+            )
+
+        # Delete old conversations
+        deleted_count = db.delete_conversations_older_than(30)
+        assert deleted_count == 1
+
+        # Messages should also be deleted (CASCADE)
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT COUNT(*) FROM messages WHERE conversation_id = ?",
+                (session_old,),
+            )
+            message_count = cursor.fetchone()[0]
+            assert message_count == 0
