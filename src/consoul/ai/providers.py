@@ -1276,6 +1276,12 @@ def get_chat_model(
             # Add model_kwargs if provided (for model initialization, not generation)
             if "model_kwargs" in params:
                 pipeline_params["model_kwargs"] = params.pop("model_kwargs")
+            else:
+                pipeline_params["model_kwargs"] = {}
+
+            # Enable trust_remote_code for models with custom code
+            # This is needed for many modern models (Qwen, Kimi, Phi, etc.)
+            pipeline_params["model_kwargs"]["trust_remote_code"] = True
 
             # Add device configuration
             if device:
@@ -1299,8 +1305,6 @@ def get_chat_model(
                     quant_config = None
 
                 if quant_config:
-                    if "model_kwargs" not in pipeline_params:
-                        pipeline_params["model_kwargs"] = {}
                     pipeline_params["model_kwargs"]["quantization_config"] = (
                         quant_config
                     )
