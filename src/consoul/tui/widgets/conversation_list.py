@@ -133,6 +133,10 @@ class ConversationList(Container):
         )
 
         # Add rows to table
+        # Safety check: ensure table exists (should be created in compose())
+        if not hasattr(self, "table") or self.table is None:
+            return
+
         for conv in conversations:
             # Get title from first user message or use "Untitled"
             title = self._get_conversation_title(conv)
