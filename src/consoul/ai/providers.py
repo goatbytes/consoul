@@ -1372,6 +1372,24 @@ def get_chat_model(
                         "Set local=True in HuggingFaceModelConfig and install:\n"
                         "pip install 'consoul[huggingface-local]'"
                     ) from e
+                elif "410" in error_msg or "no longer supported" in error_msg:
+                    raise ProviderInitializationError(
+                        "HuggingFace Inference API has been deprecated.\n\n"
+                        "The free Inference API (api-inference.huggingface.co) is no longer available.\n\n"
+                        "FREE Alternatives:\n"
+                        "  1. Groq - Fast, free API for Llama/Mixtral models\n"
+                        "     Get key: https://console.groq.com\n"
+                        "     Set: GROQ_API_KEY='your-key'\n\n"
+                        "  2. Ollama - Run models locally (completely free)\n"
+                        "     Install: curl -fsSL https://ollama.com/install.sh | sh\n"
+                        "     Run: ollama pull llama3.1:8b\n\n"
+                        "  3. MLX - Apple Silicon optimized (M-series Macs)\n"
+                        "     Select MLX provider in Consoul\n\n"
+                        "PAID Option:\n"
+                        "  HuggingFace Inference Endpoints (paid service)\n"
+                        "  Pricing: https://huggingface.co/pricing\n\n"
+                        "See HUGGINGFACE_SETUP.md for complete guide."
+                    ) from e
                 elif "not found" in error_msg or "404" in error_msg:
                     raise InvalidModelError(
                         f"Model '{model_config.model}' not found on HuggingFace Hub.\n\n"
