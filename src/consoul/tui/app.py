@@ -2282,10 +2282,8 @@ class ConsoulApp(App[None]):
         # Load conversation from database
         if self.consoul_config:
             try:
-                from consoul.ai.database import ConversationDatabase
-
-                db = ConversationDatabase()
-                messages = db.load_conversation(conversation_id)
+                # Use the database instance from conversation_list (respects profile db_path)
+                messages = self.conversation_list.db.load_conversation(conversation_id)
 
                 # Display messages in chat view
                 from consoul.tui.widgets import MessageBubble
