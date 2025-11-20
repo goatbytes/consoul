@@ -1414,11 +1414,23 @@ class ConsoulApp(App[None]):
                 # Don't create bubble for initial tool call responses (empty content)
                 # The final response after tool execution will have content and tool data
                 if full_response.strip():
+                    # Calculate actual token count from the response content
+                    # (collected_tokens is chunks, not tokens - could be just 1 chunk)
+                    try:
+                        from langchain_core.messages import AIMessage
+
+                        token_count = self.conversation._token_counter(  # type: ignore[union-attr]
+                            [AIMessage(content=full_response)]
+                        )
+                    except Exception:
+                        # Fallback to character approximation if token counting fails
+                        token_count = len(full_response) // 4
+
                     assistant_bubble = MessageBubble(
                         full_response,
                         role="assistant",
                         show_metadata=True,
-                        token_count=len(collected_tokens),
+                        token_count=token_count,
                         tool_calls=tool_calls_list,
                     )
                     await self.chat_view.add_message(assistant_bubble)
