@@ -15,6 +15,7 @@ from consoul.tui.widgets.help_modal import HelpModal
 from consoul.tui.widgets.import_modal import ImportModal
 from consoul.tui.widgets.input_area import InputArea
 from consoul.tui.widgets.message_bubble import MessageBubble
+from consoul.tui.widgets.mlx_conversion_modal import MLXConversionModal
 from consoul.tui.widgets.model_picker_modal import ModelPickerModal
 from consoul.tui.widgets.permission_manager_screen import PermissionManagerScreen
 from consoul.tui.widgets.profile_editor_modal import ProfileEditorModal
@@ -36,6 +37,7 @@ __all__ = [
     "HelpModal",
     "ImportModal",
     "InputArea",
+    "MLXConversionModal",
     "MessageBubble",
     "ModelPickerModal",
     "PermissionManagerScreen",
