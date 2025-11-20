@@ -749,7 +749,7 @@ class ConsoulApp(App[None]):
         if not self.tool_registry or not self.consoul_config:
             return
 
-        from consoul.ai.tools import RiskLevel
+        from consoul.ai.tools.base import RiskLevel
         from consoul.ai.tools.exceptions import ToolNotFoundError
         from consoul.ai.tools.implementations.analyze_images import analyze_images
 
