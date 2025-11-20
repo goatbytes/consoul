@@ -1,0 +1,16 @@
+2025-11-19 17:49:13,745 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./log.txt
+2025-11-19 17:49:23,489 - consoul.tui.app - INFO - [TIMING] Message submit handler started
+2025-11-19 17:49:23,489 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.1ms
+2025-11-19 17:49:23,489 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.0ms
+2025-11-19 17:49:23,503 - consoul.tui.app - INFO - [TIMING] Added message bubble: 13.5ms
+2025-11-19 17:49:23,506 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 2.9ms
+2025-11-19 17:49:23,506 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.0ms
+2025-11-19 17:49:23,506 - consoul.tui.app - INFO - [TIMING] Worker started: 16.7ms from submit
+2025-11-19 17:49:23,506 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 16.8ms
+2025-11-19 17:49:23,519 - consoul.tui.app - INFO - Created conversation session: 99e69782-7939-412a-969f-c1c52ed8262a
+2025-11-19 17:49:23,906 - consoul.tui.app - INFO - [TIMING] DB persist complete: 399.7ms
+2025-11-19 17:49:23,906 - consoul.tui.app - INFO - [TIMING] About to call _stream_ai_response
+2025-11-19 17:49:23,906 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-19 17:49:23,906 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
+2025-11-19 17:49:23,906 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.3ms
+2025-11-19 17:49:23,906 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms
