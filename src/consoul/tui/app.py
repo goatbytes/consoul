@@ -1247,6 +1247,40 @@ class ConsoulApp(App[None]):
                 None, lambda: [to_dict_message(msg) for msg in messages]
             )
 
+            # Debug: Log message structure for multimodal messages
+            if has_multimodal_content:
+                logger.info(
+                    f"[IMAGE_DETECTION] Sending {len(messages_dict)} messages to model"
+                )
+                for i, msg_dict in enumerate(messages_dict):
+                    msg_type = msg_dict.get("type", "unknown")
+                    content = msg_dict.get("content", "")
+                    if isinstance(content, list):
+                        logger.info(
+                            f"[IMAGE_DETECTION] Message {i} ({msg_type}): {len(content)} content blocks"
+                        )
+                        for j, block in enumerate(content):
+                            if isinstance(block, dict):
+                                block_type = block.get("type", "unknown")
+                                if block_type == "image":
+                                    data_len = (
+                                        len(block.get("data", ""))
+                                        if "data" in block
+                                        else 0
+                                    )
+                                    logger.info(
+                                        f"[IMAGE_DETECTION]   Block {j}: type=image, data_length={data_len}, keys={list(block.keys())}"
+                                    )
+                                else:
+                                    logger.info(
+                                        f"[IMAGE_DETECTION]   Block {j}: type={block_type}"
+                                    )
+                    else:
+                        content_preview = str(content)[:100] if content else "(empty)"
+                        logger.info(
+                            f"[IMAGE_DETECTION] Message {i} ({msg_type}): {content_preview}"
+                        )
+
             s4 = time.time()
             logger.info(
                 f"[TIMING] Converted to dict: {(s4 - s3) * 1000:.1f}ms, total prep: {(s4 - s0) * 1000:.1f}ms"
