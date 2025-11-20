@@ -969,15 +969,13 @@ class ConsoulApp(App[None]):
         _original_message, image_paths = extract_image_paths(user_message)
 
         # Debug logging
-        self.log.info(
+        logger.info(
             f"[IMAGE_DETECTION] Extracted {len(image_paths)} image(s) from message"
         )
         if image_paths:
-            self.log.info(f"[IMAGE_DETECTION] Image paths: {image_paths}")
+            logger.info(f"[IMAGE_DETECTION] Image paths: {image_paths}")
         model_supports_vision = self._model_supports_vision()
-        self.log.info(
-            f"[IMAGE_DETECTION] Model supports vision: {model_supports_vision}"
-        )
+        logger.info(f"[IMAGE_DETECTION] Model supports vision: {model_supports_vision}")
 
         # Create multimodal message if images found and model supports vision
         if image_paths and model_supports_vision:
