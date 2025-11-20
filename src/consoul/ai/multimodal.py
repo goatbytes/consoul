@@ -185,9 +185,10 @@ def format_google_vision(query: str, images: list[dict[str, Any]]) -> HumanMessa
 
 
 def format_ollama_vision(query: str, images: list[dict[str, Any]]) -> HumanMessage:
-    """Format vision message for Ollama vision models (qwen3-vl, llava, bakllava).
+    """Format vision message for Ollama vision models (qwen2-vl, llava, bakllava).
 
-    Ollama uses data URIs similar to OpenAI but with a different content structure.
+    Ollama uses inline base64 data. LangChain ChatOllama expects either
+    source_type="base64" with data key or base64 key directly.
 
     Args:
         query: Natural language question or instruction about the images
@@ -206,18 +207,18 @@ def format_ollama_vision(query: str, images: list[dict[str, Any]]) -> HumanMessa
         >>> message.content[1]
         {
             "type": "image",
-            "url": "data:image/png;base64,iVBORw0..."
+            "source_type": "base64",
+            "data": "iVBORw0..."
         }
 
     Note:
-        This format works with qwen3-vl, llava, bakllava, and other Ollama vision models.
+        This format works with qwen2-vl, llava, bakllava, and other Ollama vision models.
     """
     content: list[str | dict[str, Any]] = [{"type": "text", "text": query}]
 
     for img in images:
-        mime_type = _detect_mime_type(img["path"], img.get("mime_type"))
-        data_uri = f"data:{mime_type};base64,{img['data']}"
-        content.append({"type": "image", "url": data_uri})
+        # LangChain Ollama expects source_type="base64" with data key
+        content.append({"type": "image", "source_type": "base64", "data": img["data"]})
 
     return HumanMessage(content=content)
 

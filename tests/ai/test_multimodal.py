@@ -229,10 +229,10 @@ class TestFormatGoogleVision:
 
 
 class TestFormatOllamaVision:
-    """Tests for Ollama vision models (qwen3-vl, llava, bakllava)."""
+    """Tests for Ollama vision models (qwen2-vl, llava, bakllava)."""
 
-    def test_qwen3vl_single_image(self, sample_png_image):
-        """Test formatting for Ollama qwen3-vl model."""
+    def test_qwen2vl_single_image(self, sample_png_image):
+        """Test formatting for Ollama qwen2-vl model."""
         message = format_ollama_vision("Describe this screenshot", [sample_png_image])
 
         assert len(message.content) == 2
@@ -241,8 +241,8 @@ class TestFormatOllamaVision:
             "text": "Describe this screenshot",
         }
         assert message.content[1]["type"] == "image"
-        assert "url" in message.content[1]
-        assert message.content[1]["url"].startswith("data:image/png;base64,")
+        assert message.content[1]["source_type"] == "base64"
+        assert message.content[1]["data"] == sample_png_image["data"]
 
     def test_multiple_images_for_llava(self, sample_png_image, sample_jpeg_image):
         """Test formatting multiple images for llava model."""
@@ -251,21 +251,25 @@ class TestFormatOllamaVision:
         )
 
         assert len(message.content) == 3
-        assert message.content[1]["url"].startswith("data:image/png;base64,")
-        assert message.content[2]["url"].startswith("data:image/jpeg;base64,")
+        assert message.content[1]["source_type"] == "base64"
+        assert message.content[1]["data"] == sample_png_image["data"]
+        assert message.content[2]["source_type"] == "base64"
+        assert message.content[2]["data"] == sample_jpeg_image["data"]
 
-    def test_data_uri_contains_base64_data(self, sample_webp_image):
-        """Test that data URI contains the actual base64 data."""
+    def test_base64_data_inline(self, sample_webp_image):
+        """Test that base64 data is inline, not in data URI."""
         message = format_ollama_vision("Analyze", [sample_webp_image])
 
-        data_uri = message.content[1]["url"]
-        assert sample_webp_image["data"] in data_uri
+        assert message.content[1]["source_type"] == "base64"
+        assert message.content[1]["data"] == sample_webp_image["data"]
 
     def test_webp_support(self, sample_webp_image):
         """Test WebP image support for Ollama."""
         message = format_ollama_vision("Test WebP", [sample_webp_image])
 
-        assert message.content[1]["url"].startswith("data:image/webp;base64,")
+        assert message.content[1]["type"] == "image"
+        assert message.content[1]["source_type"] == "base64"
+        assert message.content[1]["data"] == sample_webp_image["data"]
 
 
 class TestFormatVisionMessage:
@@ -308,8 +312,8 @@ class TestFormatVisionMessage:
         # Should return HumanMessage with Ollama-specific structure
         assert isinstance(message, HumanMessage)
         assert message.content[1]["type"] == "image"
-        assert "url" in message.content[1]
-        assert message.content[1]["url"].startswith("data:")
+        assert message.content[1]["source_type"] == "base64"
+        assert message.content[1]["data"] == sample_png_image["data"]
 
     def test_all_providers_return_humanmessage(self, sample_png_image):
         """Test that all providers return HumanMessage objects."""
@@ -378,21 +382,21 @@ class TestIntegration:
             "data:image/webp;base64,"
         )
 
-    def test_analyze_images_output_to_ollama_qwen3vl(
+    def test_analyze_images_output_to_ollama_qwen2vl(
         self, sample_png_image, sample_jpeg_image, sample_webp_image
     ):
-        """Test converting analyze_images output to Ollama qwen3-vl format."""
+        """Test converting analyze_images output to Ollama qwen2-vl format."""
         images = [sample_png_image, sample_jpeg_image, sample_webp_image]
         query = "Analyze all three images and summarize the content"
 
         message = format_vision_message(Provider.OLLAMA, query, images)
 
-        # Verify qwen3-vl compatible format
+        # Verify qwen2-vl compatible format
         assert len(message.content) == 4  # 1 text + 3 images
         for i in range(1, 4):
             assert message.content[i]["type"] == "image"
-            assert "url" in message.content[i]
-            assert message.content[i]["url"].startswith("data:")
+            assert message.content[i]["source_type"] == "base64"
+            assert "data" in message.content[i]
 
     def test_empty_images_list(self):
         """Test handling empty images list."""
