@@ -1260,7 +1260,7 @@ class ConsoulConfig(BaseModel):
         description="Currently active AI provider",
     )
     current_model: str = Field(
-        default="claude-3-5-sonnet-20241022",
+        default="claude-3-opus-20240229",
         description="Currently active model name",
     )
     provider_configs: dict[Provider, ProviderConfig] = Field(
