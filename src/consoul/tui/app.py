@@ -430,8 +430,11 @@ class ConsoulApp(App[None]):
                         enabled=True,
                     )
 
-                    # Register image analysis tool based on current model capabilities
-                    self._sync_vision_tool_registration()
+                    # NOTE: analyze_images tool registration disabled for SOUL-116
+                    # The tool is meant for LLM-initiated image analysis, but for SOUL-116
+                    # we handle image references directly by creating multimodal messages.
+                    # Re-enable this when implementing SOUL-115 use case.
+                    # self._sync_vision_tool_registration()
 
                     # Get tool metadata list
                     tool_metadata_list = self.tool_registry.list_tools(
@@ -3023,10 +3026,9 @@ class ConsoulApp(App[None]):
             model_config = self.consoul_config.get_current_model_config()
             self.chat_model = get_chat_model(model_config, config=self.consoul_config)
 
-            # Sync vision tool registration with new model capabilities
-            # This must happen BEFORE re-binding tools to ensure the registry reflects
-            # the actual capabilities of the new model
-            self._sync_vision_tool_registration()
+            # NOTE: analyze_images tool registration disabled for SOUL-116
+            # See line 433-437 for explanation
+            # self._sync_vision_tool_registration()
 
             # Re-bind tools to the new model
             if self.tool_registry:
