@@ -1146,15 +1146,43 @@ class ConsoulApp(App[None]):
             s2 = time.time()
             logger.info(f"[TIMING] Got model config: {(s2 - s1) * 1000:.1f}ms")
 
+            # Check if last message is multimodal BEFORE token counting
+            # Token counting with large base64 images can hang
+            last_msg = (
+                self.conversation.messages[-1]
+                if self.conversation and self.conversation.messages
+                else None
+            )
+            has_multimodal_in_last = False
+            if (
+                last_msg
+                and hasattr(last_msg, "content")
+                and isinstance(last_msg.content, list)
+            ):
+                has_multimodal_in_last = any(
+                    isinstance(block, dict)
+                    and block.get("type") in ["image", "image_url"]
+                    for block in last_msg.content
+                )
+
             # Run token counting and message trimming in executor to avoid blocking
             import asyncio
 
             loop = asyncio.get_event_loop()
-            messages = await loop.run_in_executor(
-                None,
-                self.conversation.get_trimmed_messages,  # type: ignore[union-attr]
-                reserve_tokens,
-            )
+
+            # For multimodal messages, skip expensive token counting and just use recent messages
+            if has_multimodal_in_last:
+                logger.info(
+                    "[IMAGE_DETECTION] Skipping token counting for multimodal message, using recent history"
+                )
+                # Just take the last few messages to keep context manageable
+                messages = list(self.conversation.messages[-10:])  # type: ignore
+            else:
+                messages = await loop.run_in_executor(
+                    None,
+                    self.conversation.get_trimmed_messages,  # type: ignore[union-attr]
+                    reserve_tokens,
+                )
 
             s3 = time.time()
             logger.info(f"[TIMING] Got trimmed messages: {(s3 - s2) * 1000:.1f}ms")
