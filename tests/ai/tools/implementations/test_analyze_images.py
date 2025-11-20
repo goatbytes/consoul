@@ -127,6 +127,31 @@ class TestValidatePath:
         path = _validate_path(str(test_file), default_config)
         assert path.is_absolute()
 
+    def test_similarly_named_dirs_not_blocked(self, tmp_path, default_config):
+        """Test that dirs with similar names to blocked paths are not rejected."""
+        # Create directories with names that START with blocked path tokens
+        # but are not actually under those blocked paths
+        etcetera_dir = tmp_path / "etcetera" / "screenshots"
+        devotion_dir = tmp_path / "devotion" / "assets"
+
+        etcetera_dir.mkdir(parents=True)
+        devotion_dir.mkdir(parents=True)
+
+        # Create test images in these directories
+        etcetera_img = etcetera_dir / "ui.png"
+        devotion_img = devotion_dir / "img.png"
+
+        etcetera_img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
+        devotion_img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
+
+        # These should NOT be blocked (old startswith() logic would block them)
+        # New is_relative_to() logic should allow them
+        path1 = _validate_path(str(etcetera_img), default_config)
+        path2 = _validate_path(str(devotion_img), default_config)
+
+        assert path1.exists()
+        assert path2.exists()
+
 
 class TestValidateExtension:
     """Tests for extension validation."""

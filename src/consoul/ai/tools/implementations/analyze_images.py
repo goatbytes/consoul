@@ -99,11 +99,19 @@ def _validate_path(file_path: str, config: ImageAnalysisToolConfig) -> Path:
 
     # Check blocked paths BEFORE checking existence
     # This prevents probing for file existence in blocked locations
-    path_str = str(path)
     for blocked in config.blocked_paths:
-        # Resolve blocked path too for comparison (expand ~)
-        blocked_resolved = str(Path(blocked).expanduser().resolve())
-        if path_str.startswith(blocked) or path_str.startswith(blocked_resolved):
+        # Resolve blocked path for proper comparison (expand ~)
+        blocked_resolved = Path(blocked).expanduser().resolve()
+        # Use is_relative_to() to avoid false positives with similarly-named dirs
+        # e.g., /etcetera/file.png won't match /etc, /devotion/file.png won't match /dev
+        try:
+            is_blocked = path.is_relative_to(blocked_resolved)
+        except ValueError:
+            # is_relative_to() raises ValueError on Windows for different drives
+            # In that case, the path is definitely not under the blocked path
+            is_blocked = False
+
+        if is_blocked:
             raise ValueError(
                 f"Reading from {blocked} is not allowed for security reasons"
             )
@@ -153,13 +161,16 @@ def _validate_file_type(path: Path) -> None:
 
     Raises:
         ValueError: If file is not a valid image
+        ImportError: If Pillow is not installed (should never happen with proper dependencies)
     """
     try:
         from PIL import Image
-    except ImportError:
-        # PIL not available - skip magic byte validation
-        # This is acceptable since we still have extension validation
-        return
+    except ImportError as e:
+        # Pillow is required for magic byte validation (security control)
+        # This should never happen if dependencies are correctly installed
+        raise ImportError(
+            "Pillow is required for image validation. Install with: pip install pillow"
+        ) from e
 
     try:
         with Image.open(path) as img:
