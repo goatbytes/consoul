@@ -1234,12 +1234,12 @@ class ConsoulApp(App[None]):
                 from langchain_core.messages import SystemMessage
 
                 vision_system_msg = SystemMessage(
-                    content="You have been provided with an image to analyze. Use your vision capabilities to directly describe and analyze the visual content of the image. Do not suggest bash commands or external tools - provide your analysis based on what you see in the image."
+                    content="You have vision capabilities. When provided with an image, analyze and describe what you see in the image directly. Do not suggest using external tools or bash commands."
                 )
-                # Insert system message before the last message (which contains the image)
-                messages.insert(-1, vision_system_msg)
+                # Insert system message at the beginning of the conversation
+                messages.insert(0, vision_system_msg)
                 logger.info(
-                    "[IMAGE_DETECTION] Added system message to guide vision analysis"
+                    "[IMAGE_DETECTION] Added system message at beginning to guide vision analysis"
                 )
 
             # Convert to dict format for LangChain (also can be slow with many messages)
