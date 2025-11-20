@@ -180,3 +180,36 @@
 2025-11-20 01:51:22,527 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_requested called for bash_execute
 2025-11-20 01:51:22,547 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking if approval needed for bash_execute
 2025-11-20 01:51:22,547 - consoul.tui.app - DEBUG - [TOOL_FLOW] Approval check result: needs_approval=True
+2025-11-20 01:52:53,036 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_result: tool=bash_execute, approved=True, call_id=9d8bdb5f-e114-41a9-97e9-382017b05455
+2025-11-20 01:52:53,059 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool completion status: 1/1 tools completed
+2025-11-20 01:52:53,059 - consoul.tui.app - DEBUG - [TOOL_FLOW] All 1 tools completed, continuing with tool results
+2025-11-20 01:52:53,060 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-20 01:52:53,060 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 5/5
+2025-11-20 01:52:53,060 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.4ms
+2025-11-20 01:52:53,060 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms
+2025-11-20 01:52:53,061 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 0.4ms
+2025-11-20 01:52:53,061 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.4ms, total prep: 1.3ms
+2025-11-20 01:53:28,310 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 1934 chunks, exception=None
+2025-11-20 01:53:28,311 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
+2025-11-20 01:53:28,311 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'bash_execute', 'args': {'command': 'sips -g pixelWidth -g pixelHeight .art/logo/1x/consoul-logo.png'}, 'id': 'a7b2c4c2-3a19-4a6b-ac9c-da737b6d9864', 'type': 'tool_call'}]
+2025-11-20 01:53:28,312 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
+2025-11-20 01:53:28,312 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
+2025-11-20 01:53:28,312 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=True, value=None
+2025-11-20 01:53:28,312 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
+2025-11-20 01:53:28,317 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
+2025-11-20 01:53:28,324 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
+2025-11-20 01:53:28,324 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=, has_tool_calls_in_message=[{'name': 'bash_execute', 'args': {'command': 'sips -g pixelWidth -g pixelHeight .art/logo/1x/consoul-logo.png'}, 'id': 'a7b2c4c2-3a19-4a6b-ac9c-da737b6d9864', 'type': 'tool_call'}], full_response_len=0, cancelled=False
+2025-11-20 01:53:28,326 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
+2025-11-20 01:53:28,326 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-20 01:53:28,326 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool calls detected in model response: 1 call(s), content_length=0
+2025-11-20 01:53:28,326 - consoul.tui.app - DEBUG - [TOOL_FLOW] Replacing empty stream widget with tool execution message
+2025-11-20 01:53:28,337 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling _handle_tool_calls with 1 calls
+2025-11-20 01:53:28,337 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call iteration 6 with 1 tool(s)
+2025-11-20 01:53:28,337 - consoul.tui.app - DEBUG - [TOOL_FLOW] Reset tool results for new batch of 1 tools
+2025-11-20 01:53:28,337 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call detected: bash_execute with args: {'command': 'sips -g pixelWidth -g pixelHeight .art/logo/1x/consoul-logo.png'}
+2025-11-20 01:53:28,337 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posting ToolApprovalRequested for bash_execute
+2025-11-20 01:53:28,337 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posted ToolApprovalRequested for bash_execute
+2025-11-20 01:53:28,337 - consoul.tui.app - DEBUG - [TOOL_FLOW] _handle_tool_calls completed
+2025-11-20 01:53:28,357 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_requested called for bash_execute
+2025-11-20 01:53:28,364 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking if approval needed for bash_execute
+2025-11-20 01:53:28,364 - consoul.tui.app - DEBUG - [TOOL_FLOW] Approval check result: needs_approval=True

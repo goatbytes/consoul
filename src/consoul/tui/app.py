@@ -813,6 +813,7 @@ class ConsoulApp(App[None]):
         Raises:
             Exception: If image loading, encoding, or formatting fails
         """
+        logger.info("[IMAGE_DETECTION] _create_multimodal_message called")
         import base64
         import mimetypes
         from pathlib import Path
@@ -821,6 +822,7 @@ class ConsoulApp(App[None]):
 
         # Load and encode images
         encoded_images = []
+        logger.info(f"[IMAGE_DETECTION] Loading {len(image_paths)} image(s)")
         for path_str in image_paths:
             path = Path(path_str)
 
@@ -843,9 +845,15 @@ class ConsoulApp(App[None]):
 
         model_config = self.consoul_config.get_current_model_config()
         provider = model_config.provider
+        logger.info(f"[IMAGE_DETECTION] Using provider: {provider}")
 
         # Format message for the provider
-        return format_vision_message(provider, user_message, encoded_images)
+        logger.info(
+            f"[IMAGE_DETECTION] Calling format_vision_message with {len(encoded_images)} image(s)"
+        )
+        result = format_vision_message(provider, user_message, encoded_images)
+        logger.info(f"[IMAGE_DETECTION] format_vision_message returned: {type(result)}")
+        return result
 
     def _update_top_bar_state(self) -> None:
         """Update ContextualTopBar reactive properties from app state."""
@@ -978,8 +986,17 @@ class ConsoulApp(App[None]):
         logger.info(f"[IMAGE_DETECTION] Model supports vision: {model_supports_vision}")
 
         # Create multimodal message if images found and model supports vision
+        logger.info(
+            f"[IMAGE_DETECTION] Condition check: image_paths={bool(image_paths)}, "
+            f"model_supports_vision={model_supports_vision}, "
+            f"combined={bool(image_paths and model_supports_vision)}"
+        )
         if image_paths and model_supports_vision:
+            logger.info("[IMAGE_DETECTION] ENTERING multimodal message creation block")
             try:
+                logger.info(
+                    f"[IMAGE_DETECTION] About to call _create_multimodal_message with {len(image_paths)} image(s)"
+                )
                 message = self._create_multimodal_message(user_message, image_paths)
                 logger.info(
                     f"[IMAGE_DETECTION] Created multimodal message with {len(image_paths)} image(s)"
