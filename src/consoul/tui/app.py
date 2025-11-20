@@ -276,7 +276,6 @@ class ConsoulApp(App[None]):
                 if consoul_config.tools and consoul_config.tools.enabled:
                     from consoul.ai.tools import RiskLevel, ToolRegistry
                     from consoul.ai.tools.implementations import (
-                        analyze_images,
                         append_to_file,
                         bash_execute,
                         code_search,
@@ -431,27 +430,8 @@ class ConsoulApp(App[None]):
                         enabled=True,
                     )
 
-                    # Register image analysis tool (CAUTION: reads files, sends to API)
-                    # Only register if enabled and model supports vision
-                    if (
-                        consoul_config.tools.image_analysis.enabled
-                        and self._model_supports_vision()
-                    ):
-                        self.tool_registry.register(
-                            analyze_images,
-                            risk_level=RiskLevel.CAUTION,
-                            tags=["multimodal", "vision", "filesystem", "external_api"],
-                            enabled=True,
-                        )
-                        self.log.info(
-                            "Registered analyze_images tool (vision-capable model)"
-                        )
-                    else:
-                        self.log.debug(
-                            f"Skipping analyze_images tool: "
-                            f"enabled={consoul_config.tools.image_analysis.enabled}, "
-                            f"vision_support={self._model_supports_vision()}"
-                        )
+                    # Register image analysis tool based on current model capabilities
+                    self._sync_vision_tool_registration()
 
                     # Get tool metadata list
                     tool_metadata_list = self.tool_registry.list_tools(
@@ -749,6 +729,68 @@ class ConsoulApp(App[None]):
         ]
 
         return any(pattern in model_name for pattern in vision_patterns)
+
+    def _sync_vision_tool_registration(self) -> None:
+        """Synchronize analyze_images tool registration with current model capabilities.
+
+        This method dynamically registers or unregisters the analyze_images tool based on:
+        1. Whether image_analysis is enabled in config
+        2. Whether the current model supports vision
+
+        Called during:
+        - Initial app startup (after tool registry creation)
+        - Model/provider switching (to reflect new model capabilities)
+
+        This ensures the tool registry always matches the actual model capabilities,
+        preventing scenarios where:
+        - Vision-capable models don't have access to analyze_images
+        - Text-only models incorrectly have analyze_images registered
+        """
+        if not self.tool_registry or not self.consoul_config:
+            return
+
+        from consoul.ai.tools import RiskLevel
+        from consoul.ai.tools.exceptions import ToolNotFoundError
+        from consoul.ai.tools.implementations.analyze_images import analyze_images
+
+        tool_name = "analyze_images"
+        is_enabled = self.consoul_config.tools.image_analysis.enabled
+        supports_vision = self._model_supports_vision()
+        should_register = is_enabled and supports_vision
+
+        # Check current registration status
+        try:
+            self.tool_registry.get_tool(tool_name)
+            is_registered = True
+        except ToolNotFoundError:
+            is_registered = False
+
+        # Sync registration state with model capabilities
+        if should_register and not is_registered:
+            # Register the tool (vision-capable model)
+            self.tool_registry.register(
+                analyze_images,
+                risk_level=RiskLevel.CAUTION,
+                tags=["multimodal", "vision", "filesystem", "external_api"],
+                enabled=True,
+            )
+            self.log.info(
+                f"Registered analyze_images tool for vision-capable model: {self.current_model}"
+            )
+        elif not should_register and is_registered:
+            # Unregister the tool (text-only model or disabled)
+            self.tool_registry.unregister(tool_name)
+            self.log.info(
+                f"Unregistered analyze_images tool: "
+                f"enabled={is_enabled}, vision_support={supports_vision}, "
+                f"model={self.current_model}"
+            )
+        else:
+            # State already correct
+            self.log.debug(
+                f"Vision tool registration unchanged: "
+                f"registered={is_registered}, should_register={should_register}"
+            )
 
     def _update_top_bar_state(self) -> None:
         """Update ContextualTopBar reactive properties from app state."""
@@ -1729,10 +1771,22 @@ class ConsoulApp(App[None]):
 
         # Detect infinite loops by checking for repeated identical tool calls
         # Create signature of current tool call batch
+        def _make_hashable(obj: Any) -> Any:
+            """Convert an object to a hashable representation for signature tracking."""
+            if isinstance(obj, dict):
+                return frozenset((k, _make_hashable(v)) for k, v in obj.items())
+            elif isinstance(obj, list):
+                return tuple(_make_hashable(item) for item in obj)
+            elif isinstance(obj, set):
+                return frozenset(_make_hashable(item) for item in obj)
+            else:
+                # Primitive types (str, int, bool, None) are already hashable
+                return obj
+
         call_signature = tuple(
             (
                 call.name,
-                frozenset(call.arguments.items())
+                _make_hashable(call.arguments)
                 if isinstance(call.arguments, dict)
                 else str(call.arguments),
             )
@@ -2890,6 +2944,11 @@ class ConsoulApp(App[None]):
 
             model_config = self.consoul_config.get_current_model_config()
             self.chat_model = get_chat_model(model_config, config=self.consoul_config)
+
+            # Sync vision tool registration with new model capabilities
+            # This must happen BEFORE re-binding tools to ensure the registry reflects
+            # the actual capabilities of the new model
+            self._sync_vision_tool_registration()
 
             # Re-bind tools to the new model
             if self.tool_registry:
