@@ -276,6 +276,7 @@ class ConsoulApp(App[None]):
                 if consoul_config.tools and consoul_config.tools.enabled:
                     from consoul.ai.tools import RiskLevel, ToolRegistry
                     from consoul.ai.tools.implementations import (
+                        analyze_images,
                         append_to_file,
                         bash_execute,
                         code_search,
@@ -287,6 +288,7 @@ class ConsoulApp(App[None]):
                         grep_search,
                         read_file,
                         read_url,
+                        set_analyze_images_config,
                         set_bash_config,
                         set_code_search_config,
                         set_file_edit_config,
@@ -330,6 +332,10 @@ class ConsoulApp(App[None]):
                     # Configure file_edit tool with profile settings
                     if consoul_config.tools.file_edit:
                         set_file_edit_config(consoul_config.tools.file_edit)
+
+                    # Configure image_analysis tool with profile settings
+                    if consoul_config.tools.image_analysis:
+                        set_analyze_images_config(consoul_config.tools.image_analysis)
 
                     # Create registry with CLI provider (we override approval in _request_tool_approval)
                     # The provider is required by registry but we don't use it - we show our own modal
@@ -424,6 +430,28 @@ class ConsoulApp(App[None]):
                         tags=["filesystem", "delete"],
                         enabled=True,
                     )
+
+                    # Register image analysis tool (CAUTION: reads files, sends to API)
+                    # Only register if enabled and model supports vision
+                    if (
+                        consoul_config.tools.image_analysis.enabled
+                        and self._model_supports_vision()
+                    ):
+                        self.tool_registry.register(
+                            analyze_images,
+                            risk_level=RiskLevel.CAUTION,
+                            tags=["multimodal", "vision", "filesystem", "external_api"],
+                            enabled=True,
+                        )
+                        self.log.info(
+                            "Registered analyze_images tool (vision-capable model)"
+                        )
+                    else:
+                        self.log.debug(
+                            f"Skipping analyze_images tool: "
+                            f"enabled={consoul_config.tools.image_analysis.enabled}, "
+                            f"vision_support={self._model_supports_vision()}"
+                        )
 
                     # Get tool metadata list
                     tool_metadata_list = self.tool_registry.list_tools(
@@ -686,6 +714,41 @@ class ConsoulApp(App[None]):
             }
 
         return kwargs
+
+    def _model_supports_vision(self) -> bool:
+        """Check if current model supports vision/multimodal input.
+
+        Detects vision capabilities based on model name patterns for:
+        - Anthropic Claude 3+
+        - OpenAI GPT-4/5 (excludes GPT-3.5)
+        - Google Gemini
+        - Ollama vision models (qwen2-vl, qwen3-vl, llava, bakllava)
+
+        Returns:
+            True if model supports vision, False otherwise
+
+        Example:
+            >>> app._model_supports_vision()  # claude-3-5-sonnet → True
+            >>> app._model_supports_vision()  # gpt-3.5-turbo → False
+        """
+        if not self.consoul_config or not self.consoul_config.current_model:
+            return False
+
+        model_name = self.consoul_config.current_model.lower()
+
+        vision_patterns = [
+            "claude-3",
+            "claude-4",  # Anthropic Claude 3+
+            "gpt-4",
+            "gpt-5",  # OpenAI GPT-4V/5 (excludes gpt-3.5)
+            "gemini",  # Google Gemini (all versions)
+            "qwen2-vl",
+            "qwen3-vl",  # Ollama qwen vision
+            "llava",
+            "bakllava",  # Ollama llava models
+        ]
+
+        return any(pattern in model_name for pattern in vision_patterns)
 
     def _update_top_bar_state(self) -> None:
         """Update ContextualTopBar reactive properties from app state."""

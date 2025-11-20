@@ -684,3 +684,149 @@ class TestWhitelistIntegration:
             "bash_execute", {"command": "  git   status  "}
         )
         assert not registry.needs_approval("bash_execute", {"command": "git  status"})
+
+
+# Test analyze_images tool registration
+
+
+class TestAnalyzeImagesRegistration:
+    """Tests for analyze_images tool registration with vision model detection."""
+
+    @pytest.fixture
+    def vision_config(self):
+        """Create ToolConfig with image_analysis enabled."""
+        from consoul.config.models import ImageAnalysisToolConfig
+
+        return ToolConfig(
+            enabled=True,
+            image_analysis=ImageAnalysisToolConfig(enabled=True),
+        )
+
+    @pytest.fixture
+    def disabled_vision_config(self):
+        """Create ToolConfig with image_analysis disabled."""
+        from consoul.config.models import ImageAnalysisToolConfig
+
+        return ToolConfig(
+            enabled=True,
+            image_analysis=ImageAnalysisToolConfig(enabled=False),
+        )
+
+    def test_register_analyze_images_tool(self, vision_config):
+        """Test registering analyze_images tool."""
+        from consoul.ai.tools.implementations import (
+            analyze_images,
+            set_analyze_images_config,
+        )
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        # Set config and register
+        set_analyze_images_config(vision_config.image_analysis)
+        registry = ToolRegistry(vision_config, approval_provider=MockApproveProvider())
+        registry.register(
+            analyze_images,
+            risk_level=RiskLevel.CAUTION,
+            tags=["multimodal", "vision", "filesystem", "external_api"],
+        )
+
+        # Verify registration
+        assert "analyze_images" in registry
+        metadata = registry.get_tool("analyze_images")
+        assert metadata.name == "analyze_images"
+        assert metadata.risk_level == RiskLevel.CAUTION
+        assert "multimodal" in metadata.tags
+        assert "vision" in metadata.tags
+        assert "filesystem" in metadata.tags
+        assert "external_api" in metadata.tags
+
+    def test_analyze_images_not_registered_when_disabled(self, disabled_vision_config):
+        """Test analyze_images NOT registered when config.enabled=False."""
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        registry = ToolRegistry(
+            disabled_vision_config, approval_provider=MockApproveProvider()
+        )
+
+        # Should NOT be registered
+        assert "analyze_images" not in registry
+
+    def test_analyze_images_requires_approval_caution_level(self, vision_config):
+        """Test analyze_images requires approval (CAUTION risk level)."""
+        from consoul.ai.tools.implementations import (
+            analyze_images,
+            set_analyze_images_config,
+        )
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        set_analyze_images_config(vision_config.image_analysis)
+        registry = ToolRegistry(vision_config, approval_provider=MockApproveProvider())
+        registry.register(
+            analyze_images,
+            risk_level=RiskLevel.CAUTION,
+            tags=["multimodal", "vision", "filesystem", "external_api"],
+        )
+
+        # CAUTION tools require approval with BALANCED policy (default)
+        from consoul.config.models import ToolConfig
+
+        config_with_policy = ToolConfig(
+            enabled=True,
+            permission_policy=PermissionPolicy.BALANCED,
+            image_analysis=vision_config.image_analysis,
+        )
+        registry_with_policy = ToolRegistry(
+            config_with_policy, approval_provider=MockApproveProvider()
+        )
+        registry_with_policy.register(
+            analyze_images,
+            risk_level=RiskLevel.CAUTION,
+            tags=["multimodal", "vision", "filesystem", "external_api"],
+        )
+
+        # Should require approval
+        assert registry_with_policy.needs_approval("analyze_images")
+
+    def test_analyze_images_config_injection(self, vision_config):
+        """Test config injection via set_analyze_images_config()."""
+        from consoul.ai.tools.implementations import (
+            get_analyze_images_config,
+            set_analyze_images_config,
+        )
+
+        # Inject custom config
+        from consoul.config.models import ImageAnalysisToolConfig
+
+        custom_config = ImageAnalysisToolConfig(
+            enabled=True, max_image_size_mb=10, max_images_per_query=3
+        )
+        set_analyze_images_config(custom_config)
+
+        # Verify config is injected
+        retrieved_config = get_analyze_images_config()
+        assert retrieved_config.max_image_size_mb == 10
+        assert retrieved_config.max_images_per_query == 3
+
+    def test_analyze_images_tool_schema(self, vision_config):
+        """Test analyze_images has proper LangChain tool schema."""
+        from consoul.ai.tools.implementations import (
+            analyze_images,
+            set_analyze_images_config,
+        )
+        from tests.ai.tools.test_approval import MockApproveProvider
+
+        set_analyze_images_config(vision_config.image_analysis)
+        registry = ToolRegistry(vision_config, approval_provider=MockApproveProvider())
+        registry.register(
+            analyze_images,
+            risk_level=RiskLevel.CAUTION,
+            tags=["multimodal", "vision", "filesystem", "external_api"],
+        )
+
+        metadata = registry.get_tool("analyze_images")
+        tool = metadata.tool
+
+        # Verify tool has proper schema
+        assert hasattr(tool, "name")
+        assert hasattr(tool, "description")
+        assert hasattr(tool, "args_schema")
+        assert tool.name == "analyze_images"
