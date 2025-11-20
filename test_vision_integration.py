@@ -221,7 +221,7 @@ def test_langchain_integration(messages):
                 print("      Start with: ollama serve")
                 return
 
-            chat = ChatOllama(model="qwen3-vl:latest", num_predict=100)
+            chat = ChatOllama(model="qwen3-vl:8b", num_predict=100)
             response = chat.invoke([messages[Provider.OLLAMA]])
             print(f"  ✅ SUCCESS! Response: {response.content[:100]}...")
         except Exception as e:

@@ -1166,6 +1166,51 @@ class ConsoulApp(App[None]):
                 f"trimmed_messages={len(messages)}"
             )
 
+            # Check if the last user message is multimodal (contains images)
+            has_multimodal_content = False
+            if messages and len(messages) > 0:
+                last_msg = messages[-1]
+                if hasattr(last_msg, "content") and isinstance(last_msg.content, list):
+                    # Check if any content block is an image
+                    has_multimodal_content = any(
+                        isinstance(block, dict)
+                        and block.get("type") in ["image", "image_url"]
+                        for block in last_msg.content
+                    )
+
+            logger.info(
+                f"[IMAGE_DETECTION] Last message has multimodal content: {has_multimodal_content}"
+            )
+
+            # Use model without tools for multimodal messages to force direct vision analysis
+            # Tools cause the model to use bash/analyze_images instead of vision capabilities
+            model_to_use = self.chat_model
+            if has_multimodal_content:
+                logger.info(
+                    "[IMAGE_DETECTION] Using model WITHOUT tools for multimodal message"
+                )
+                # Get the base model without tool bindings
+                # LangChain models have a 'model' attribute that points to the underlying model
+                if hasattr(self.chat_model, "model"):
+                    # For Ollama/OpenAI/etc that wrap the model
+                    base_model = self.chat_model
+                    # Create fresh instance without tools
+                    model_class = type(base_model)
+                    model_kwargs = {}
+                    for attr in [
+                        "model",
+                        "model_name",
+                        "temperature",
+                        "max_tokens",
+                        "num_predict",
+                    ]:
+                        if hasattr(base_model, attr):
+                            model_kwargs[attr] = getattr(base_model, attr)
+                    model_to_use = model_class(**model_kwargs)  # type: ignore
+                    logger.info(
+                        f"[IMAGE_DETECTION] Created fresh model instance: {model_class.__name__}"
+                    )
+
             # Convert to dict format for LangChain (also can be slow with many messages)
             messages_dict = await loop.run_in_executor(
                 None, lambda: [to_dict_message(msg) for msg in messages]
@@ -1241,7 +1286,7 @@ class ConsoulApp(App[None]):
                 collected_chunks: list[AIMessage] = []
                 exception_caught: Exception | None = None
                 try:
-                    for chunk in self.chat_model.stream(messages_dict):  # type: ignore[union-attr]
+                    for chunk in model_to_use.stream(messages_dict):  # type: ignore[union-attr]
                         # Check for cancellation
                         if self._stream_cancelled:
                             break
