@@ -981,12 +981,17 @@ class ConsoulApp(App[None]):
         if image_paths and model_supports_vision:
             try:
                 message = self._create_multimodal_message(user_message, image_paths)
-                self.log.info(
-                    f"Created multimodal message with {len(image_paths)} image(s)"
+                logger.info(
+                    f"[IMAGE_DETECTION] Created multimodal message with {len(image_paths)} image(s)"
                 )
             except Exception as e:
                 # Fall back to text-only message and show error
-                self.log.error(f"Failed to create multimodal message: {e}")
+                import traceback
+
+                logger.error(
+                    f"[IMAGE_DETECTION] Failed to create multimodal message: {e}"
+                )
+                logger.error(f"[IMAGE_DETECTION] Traceback: {traceback.format_exc()}")
                 error_bubble = MessageBubble(
                     f"❌ Failed to process image(s): {e}\n\n"
                     "Continuing with text-only message.",

@@ -1,294 +1,182 @@
-2025-11-20 00:20:59,501 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./log.txt
-2025-11-20 00:21:04,789 - consoul.tui.app - INFO - [TIMING] Message submit handler started
-2025-11-20 00:21:04,790 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.3ms
-2025-11-20 00:21:04,790 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.1ms
-2025-11-20 00:21:04,810 - consoul.tui.app - INFO - [TIMING] Added message bubble: 20.2ms
-2025-11-20 00:21:04,814 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 3.8ms
-2025-11-20 00:21:04,814 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.1ms
-2025-11-20 00:21:04,817 - consoul.tui.app - INFO - [TIMING] Worker started: 27.7ms from submit
-2025-11-20 00:21:04,817 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 27.7ms
-2025-11-20 00:21:04,828 - consoul.tui.app - INFO - Created conversation session: bff749cc-e0f7-4014-a995-ae315a27b5dc
-2025-11-20 00:21:04,837 - consoul.tui.app - INFO - [TIMING] DB persist complete: 20.3ms
-2025-11-20 00:21:04,837 - consoul.tui.app - INFO - [TIMING] About to call _stream_ai_response
-2025-11-20 00:21:04,837 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
-2025-11-20 00:21:04,837 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
-2025-11-20 00:21:04,838 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.3ms
-2025-11-20 00:21:04,838 - consoul.tui.app - INFO - [TIMING] Got model config: 0.0ms
-2025-11-20 00:21:04,840 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 2.6ms
-2025-11-20 00:21:04,841 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.5ms, total prep: 3.5ms
-2025-11-20 00:21:19,201 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 227 chunks, exception=None
-2025-11-20 00:21:19,202 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
-2025-11-20 00:21:19,202 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'bash_execute', 'args': {'command': 'ls -l .art/logo/1x/consoul-logo.png'}, 'id': 'b90e9010-e8a2-416e-b9e2-10c4428d9c40', 'type': 'tool_call'}]
-2025-11-20 00:21:19,202 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
-2025-11-20 00:21:19,202 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
-2025-11-20 00:21:19,202 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
-2025-11-20 00:21:19,202 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=True, value=None
-2025-11-20 00:21:19,204 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
-2025-11-20 00:21:19,204 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
-2025-11-20 00:21:19,204 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=, has_tool_calls_in_message=[{'name': 'bash_execute', 'args': {'command': 'ls -l .art/logo/1x/consoul-logo.png'}, 'id': 'b90e9010-e8a2-416e-b9e2-10c4428d9c40', 'type': 'tool_call'}], full_response_len=0, cancelled=False
-2025-11-20 00:21:19,210 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
-2025-11-20 00:21:19,210 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
-2025-11-20 00:21:19,210 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool calls detected in model response: 1 call(s), content_length=0
-2025-11-20 00:21:19,210 - consoul.tui.app - DEBUG - [TOOL_FLOW] Replacing empty stream widget with tool execution message
-2025-11-20 00:21:19,215 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling _handle_tool_calls with 1 calls
-2025-11-20 00:21:19,215 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call iteration 1 with 1 tool(s)
-2025-11-20 00:21:19,215 - consoul.tui.app - DEBUG - [TOOL_FLOW] Reset tool results for new batch of 1 tools
-2025-11-20 00:21:19,215 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call detected: bash_execute with args: {'command': 'ls -l .art/logo/1x/consoul-logo.png'}
-2025-11-20 00:21:19,215 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posting ToolApprovalRequested for bash_execute
-2025-11-20 00:21:19,215 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posted ToolApprovalRequested for bash_execute
-2025-11-20 00:21:19,215 - consoul.tui.app - DEBUG - [TOOL_FLOW] _handle_tool_calls completed
-2025-11-20 00:21:19,220 - consoul.tui.app - INFO - [TIMING] Worker complete: 14403.2ms, total: 14430.9ms
-2025-11-20 00:21:19,221 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_requested called for bash_execute
-2025-11-20 00:21:19,226 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking if approval needed for bash_execute
-2025-11-20 00:21:19,226 - consoul.tui.app - DEBUG - [TOOL_FLOW] Approval check result: needs_approval=False
-2025-11-20 00:21:19,226 - consoul.tui.app - DEBUG - [TOOL_FLOW] Auto-approving bash_execute
-2025-11-20 00:21:19,232 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_result: tool=bash_execute, approved=True, call_id=b90e9010-e8a2-416e-b9e2-10c4428d9c40
-2025-11-20 00:21:19,250 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool completion status: 1/1 tools completed
-2025-11-20 00:21:19,250 - consoul.tui.app - DEBUG - [TOOL_FLOW] All 1 tools completed, continuing with tool results
-2025-11-20 00:21:19,265 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
-2025-11-20 00:21:19,265 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 1/5
-2025-11-20 00:21:19,265 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.3ms
-2025-11-20 00:21:19,265 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms
-2025-11-20 00:21:19,265 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 0.4ms
-2025-11-20 00:21:19,266 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.4ms, total prep: 1.1ms
-2025-11-20 00:22:01,467 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 438 chunks, exception=None
-2025-11-20 00:22:01,468 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
-2025-11-20 00:22:01,469 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=True, value=None
-2025-11-20 00:22:01,469 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'bash_execute', 'args': {'command': 'file .art/logo/1x/consoul-logo.png'}, 'id': '98725bd2-e78b-46f5-8e13-08d1d5e94216', 'type': 'tool_call'}]
-2025-11-20 00:22:01,471 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
-2025-11-20 00:22:01,472 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
-2025-11-20 00:22:01,472 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
-2025-11-20 00:22:01,475 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
-2025-11-20 00:22:01,475 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
-2025-11-20 00:22:01,476 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=, has_tool_calls_in_message=[{'name': 'bash_execute', 'args': {'command': 'file .art/logo/1x/consoul-logo.png'}, 'id': '98725bd2-e78b-46f5-8e13-08d1d5e94216', 'type': 'tool_call'}], full_response_len=0, cancelled=False
-2025-11-20 00:22:01,478 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
-2025-11-20 00:22:01,478 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
-2025-11-20 00:22:01,478 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool calls detected in model response: 1 call(s), content_length=0
-2025-11-20 00:22:01,478 - consoul.tui.app - DEBUG - [TOOL_FLOW] Replacing empty stream widget with tool execution message
-2025-11-20 00:22:01,485 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling _handle_tool_calls with 1 calls
-2025-11-20 00:22:01,485 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call iteration 2 with 1 tool(s)
-2025-11-20 00:22:01,485 - consoul.tui.app - DEBUG - [TOOL_FLOW] Reset tool results for new batch of 1 tools
-2025-11-20 00:22:01,485 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call detected: bash_execute with args: {'command': 'file .art/logo/1x/consoul-logo.png'}
-2025-11-20 00:22:01,485 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posting ToolApprovalRequested for bash_execute
-2025-11-20 00:22:01,485 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posted ToolApprovalRequested for bash_execute
-2025-11-20 00:22:01,485 - consoul.tui.app - DEBUG - [TOOL_FLOW] _handle_tool_calls completed
-2025-11-20 00:22:01,536 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_requested called for bash_execute
-2025-11-20 00:22:01,546 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking if approval needed for bash_execute
-2025-11-20 00:22:01,546 - consoul.tui.app - DEBUG - [TOOL_FLOW] Approval check result: needs_approval=False
-2025-11-20 00:22:01,546 - consoul.tui.app - DEBUG - [TOOL_FLOW] Auto-approving bash_execute
-2025-11-20 00:22:01,551 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_result: tool=bash_execute, approved=True, call_id=98725bd2-e78b-46f5-8e13-08d1d5e94216
-2025-11-20 00:22:01,563 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool completion status: 1/1 tools completed
-2025-11-20 00:22:01,563 - consoul.tui.app - DEBUG - [TOOL_FLOW] All 1 tools completed, continuing with tool results
-2025-11-20 00:22:01,564 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
-2025-11-20 00:22:01,564 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 2/5
-2025-11-20 00:22:01,564 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.1ms
-2025-11-20 00:22:01,564 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms
-2025-11-20 00:22:01,564 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 0.3ms
-2025-11-20 00:22:01,565 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.4ms, total prep: 0.9ms
-2025-11-20 00:22:22,207 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=False, value=The
-2025-11-20 00:22:22,208 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=1763626942209ms, total_len=3
-2025-11-20 00:22:22,208 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 3 chars
-2025-11-20 00:22:22,263 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=55ms, total_len=8
-2025-11-20 00:22:22,322 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=113ms, total_len=11
-2025-11-20 00:22:22,378 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=170ms, total_len=14
-2025-11-20 00:22:22,378 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 14 chars
-2025-11-20 00:22:22,435 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=57ms, total_len=19
-2025-11-20 00:22:22,492 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=114ms, total_len=20
-2025-11-20 00:22:22,550 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=172ms, total_len=21
-2025-11-20 00:22:22,550 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 21 chars
-2025-11-20 00:22:22,607 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=57ms, total_len=22
-2025-11-20 00:22:22,664 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=114ms, total_len=23
-2025-11-20 00:22:22,721 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=171ms, total_len=27
-2025-11-20 00:22:22,721 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 27 chars
-2025-11-20 00:22:22,778 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=57ms, total_len=30
-2025-11-20 00:22:22,835 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=114ms, total_len=35
-2025-11-20 00:22:22,891 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=170ms, total_len=39
-2025-11-20 00:22:22,892 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 39 chars
-2025-11-20 00:22:22,948 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=57ms, total_len=40
-2025-11-20 00:22:23,005 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=114ms, total_len=43
-2025-11-20 00:22:23,061 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=170ms, total_len=45
-2025-11-20 00:22:23,062 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 45 chars
-2025-11-20 00:22:23,119 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=58ms, total_len=51
-2025-11-20 00:22:23,176 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=115ms, total_len=55
-2025-11-20 00:22:23,232 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=170ms, total_len=61
-2025-11-20 00:22:23,232 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 61 chars
-2025-11-20 00:22:23,288 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=57ms, total_len=66
-2025-11-20 00:22:23,346 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=114ms, total_len=70
-2025-11-20 00:22:23,402 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=170ms, total_len=80
-2025-11-20 00:22:23,402 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 80 chars
-2025-11-20 00:22:23,459 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=57ms, total_len=91
-2025-11-20 00:22:23,516 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=114ms, total_len=92
-2025-11-20 00:22:23,573 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=171ms, total_len=94
-2025-11-20 00:22:23,573 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 94 chars
-2025-11-20 00:22:23,630 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=57ms, total_len=97
-2025-11-20 00:22:23,687 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=114ms, total_len=101
-2025-11-20 00:22:23,744 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=171ms, total_len=104
-2025-11-20 00:22:23,744 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 104 chars
-2025-11-20 00:22:23,857 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=113ms, total_len=106
-2025-11-20 00:22:23,914 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=170ms, total_len=107
-2025-11-20 00:22:23,914 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 107 chars
-2025-11-20 00:22:23,974 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=61ms, total_len=108
-2025-11-20 00:22:24,034 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=120ms, total_len=109
-2025-11-20 00:22:24,092 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=178ms, total_len=110
-2025-11-20 00:22:24,092 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 110 chars
-2025-11-20 00:22:24,149 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=57ms, total_len=111
-2025-11-20 00:22:24,205 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=113ms, total_len=117
-2025-11-20 00:22:24,321 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=229ms, total_len=119
-2025-11-20 00:22:24,321 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 119 chars
-2025-11-20 00:22:24,380 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=59ms, total_len=122
-2025-11-20 00:22:24,439 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=118ms, total_len=132
-2025-11-20 00:22:24,498 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=177ms, total_len=135
-2025-11-20 00:22:24,498 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 135 chars
-2025-11-20 00:22:24,618 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=120ms, total_len=137
-2025-11-20 00:22:24,678 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=180ms, total_len=138
-2025-11-20 00:22:24,678 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 138 chars
-2025-11-20 00:22:24,738 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=60ms, total_len=139
-2025-11-20 00:22:24,798 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=120ms, total_len=141
-2025-11-20 00:22:24,916 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=239ms, total_len=143
-2025-11-20 00:22:24,917 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 143 chars
-2025-11-20 00:22:24,975 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=59ms, total_len=144
-2025-11-20 00:22:25,033 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=116ms, total_len=145
-2025-11-20 00:22:25,091 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=174ms, total_len=152
-2025-11-20 00:22:25,091 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 152 chars
-2025-11-20 00:22:25,203 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=112ms, total_len=154
-2025-11-20 00:22:25,260 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=169ms, total_len=157
-2025-11-20 00:22:25,260 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 157 chars
-2025-11-20 00:22:25,317 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=57ms, total_len=162
-2025-11-20 00:22:25,373 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=113ms, total_len=168
-2025-11-20 00:22:25,432 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=172ms, total_len=171
-2025-11-20 00:22:25,432 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 171 chars
-2025-11-20 00:22:25,547 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=116ms, total_len=173
-2025-11-20 00:22:25,605 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=174ms, total_len=177
-2025-11-20 00:22:25,606 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 177 chars
-2025-11-20 00:22:25,663 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=57ms, total_len=182
-2025-11-20 00:22:25,721 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=116ms, total_len=184
-2025-11-20 00:22:25,781 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=175ms, total_len=187
-2025-11-20 00:22:25,781 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 187 chars
-2025-11-20 00:22:25,841 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=60ms, total_len=193
-2025-11-20 00:22:25,899 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=119ms, total_len=194
-2025-11-20 00:22:25,959 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=178ms, total_len=198
-2025-11-20 00:22:25,959 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 198 chars
-2025-11-20 00:22:26,018 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=59ms, total_len=199
-2025-11-20 00:22:26,078 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=119ms, total_len=201
-2025-11-20 00:22:26,138 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=179ms, total_len=204
-2025-11-20 00:22:26,138 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 204 chars
-2025-11-20 00:22:26,198 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=60ms, total_len=215
-2025-11-20 00:22:26,255 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=117ms, total_len=218
-2025-11-20 00:22:26,315 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=177ms, total_len=221
-2025-11-20 00:22:26,315 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 221 chars
-2025-11-20 00:22:26,375 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=60ms, total_len=223
-2025-11-20 00:22:26,434 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=119ms, total_len=225
-2025-11-20 00:22:26,493 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=178ms, total_len=227
-2025-11-20 00:22:26,493 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 227 chars
-2025-11-20 00:22:26,552 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=59ms, total_len=228
-2025-11-20 00:22:26,611 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=118ms, total_len=230
-2025-11-20 00:22:26,669 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=177ms, total_len=231
-2025-11-20 00:22:26,669 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 231 chars
-2025-11-20 00:22:26,727 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=58ms, total_len=232
-2025-11-20 00:22:26,784 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=114ms, total_len=234
-2025-11-20 00:22:26,841 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=171ms, total_len=238
-2025-11-20 00:22:26,841 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 238 chars
-2025-11-20 00:22:26,897 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=56ms, total_len=242
-2025-11-20 00:22:26,953 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=112ms, total_len=245
-2025-11-20 00:22:27,009 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=168ms, total_len=249
-2025-11-20 00:22:27,009 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 249 chars
-2025-11-20 00:22:27,065 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=56ms, total_len=255
-2025-11-20 00:22:27,121 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=113ms, total_len=256
-2025-11-20 00:22:27,176 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=168ms, total_len=260
-2025-11-20 00:22:27,176 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 260 chars
-2025-11-20 00:22:27,231 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=55ms, total_len=268
-2025-11-20 00:22:27,287 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=111ms, total_len=277
-2025-11-20 00:22:27,344 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=167ms, total_len=280
-2025-11-20 00:22:27,344 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 280 chars
-2025-11-20 00:22:27,400 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=56ms, total_len=289
-2025-11-20 00:22:27,456 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=113ms, total_len=294
-2025-11-20 00:22:27,514 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=24, time_since=170ms, total_len=304
-2025-11-20 00:22:27,514 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 304 chars
-2025-11-20 00:22:27,569 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=55ms, total_len=310
-2025-11-20 00:22:27,625 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=112ms, total_len=312
-2025-11-20 00:22:27,682 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=168ms, total_len=317
-2025-11-20 00:22:27,682 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 317 chars
-2025-11-20 00:22:27,737 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=56ms, total_len=328
-2025-11-20 00:22:27,793 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=112ms, total_len=332
-2025-11-20 00:22:27,849 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=25, time_since=167ms, total_len=342
-2025-11-20 00:22:27,849 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 342 chars
-2025-11-20 00:22:27,906 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=57ms, total_len=345
-2025-11-20 00:22:27,963 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=114ms, total_len=350
-2025-11-20 00:22:28,019 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=170ms, total_len=362
-2025-11-20 00:22:28,019 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 362 chars
-2025-11-20 00:22:28,077 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=58ms, total_len=364
-2025-11-20 00:22:28,134 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=115ms, total_len=370
-2025-11-20 00:22:28,191 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=172ms, total_len=374
-2025-11-20 00:22:28,191 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 374 chars
-2025-11-20 00:22:28,248 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=57ms, total_len=379
-2025-11-20 00:22:28,307 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=116ms, total_len=382
-2025-11-20 00:22:28,366 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=175ms, total_len=383
-2025-11-20 00:22:28,366 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 383 chars
-2025-11-20 00:22:28,422 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=57ms, total_len=385
-2025-11-20 00:22:28,481 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=115ms, total_len=386
-2025-11-20 00:22:28,540 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=174ms, total_len=393
-2025-11-20 00:22:28,540 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 393 chars
-2025-11-20 00:22:28,599 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=59ms, total_len=398
-2025-11-20 00:22:28,659 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=118ms, total_len=406
-2025-11-20 00:22:28,718 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=178ms, total_len=416
-2025-11-20 00:22:28,718 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 416 chars
-2025-11-20 00:22:28,777 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=59ms, total_len=418
-2025-11-20 00:22:28,837 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=119ms, total_len=419
-2025-11-20 00:22:28,897 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=179ms, total_len=421
-2025-11-20 00:22:28,897 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 421 chars
-2025-11-20 00:22:28,956 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=59ms, total_len=423
-2025-11-20 00:22:29,014 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=117ms, total_len=432
-2025-11-20 00:22:29,074 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=176ms, total_len=433
-2025-11-20 00:22:29,074 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 433 chars
-2025-11-20 00:22:29,132 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=58ms, total_len=435
-2025-11-20 00:22:29,188 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=115ms, total_len=436
-2025-11-20 00:22:29,246 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=172ms, total_len=442
-2025-11-20 00:22:29,246 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 442 chars
-2025-11-20 00:22:29,302 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=56ms, total_len=446
-2025-11-20 00:22:29,358 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=113ms, total_len=459
-2025-11-20 00:22:29,414 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=169ms, total_len=461
-2025-11-20 00:22:29,415 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 461 chars
-2025-11-20 00:22:29,471 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=56ms, total_len=462
-2025-11-20 00:22:29,527 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=113ms, total_len=464
-2025-11-20 00:22:29,583 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=169ms, total_len=466
-2025-11-20 00:22:29,584 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 466 chars
-2025-11-20 00:22:29,639 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=56ms, total_len=469
-2025-11-20 00:22:29,695 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=112ms, total_len=475
-2025-11-20 00:22:29,751 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=168ms, total_len=483
-2025-11-20 00:22:29,751 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 483 chars
-2025-11-20 00:22:29,807 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=55ms, total_len=484
-2025-11-20 00:22:29,863 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=112ms, total_len=486
-2025-11-20 00:22:29,919 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=168ms, total_len=487
-2025-11-20 00:22:29,919 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 487 chars
-2025-11-20 00:22:29,975 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=56ms, total_len=493
-2025-11-20 00:22:30,031 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=112ms, total_len=495
-2025-11-20 00:22:30,089 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=170ms, total_len=503
-2025-11-20 00:22:30,089 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 503 chars
-2025-11-20 00:22:30,146 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=57ms, total_len=509
-2025-11-20 00:22:30,201 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=112ms, total_len=512
-2025-11-20 00:22:30,257 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=168ms, total_len=516
-2025-11-20 00:22:30,257 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 516 chars
-2025-11-20 00:22:30,314 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=57ms, total_len=521
-2025-11-20 00:22:30,370 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=113ms, total_len=531
-2025-11-20 00:22:30,426 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=169ms, total_len=532
-2025-11-20 00:22:30,427 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 532 chars
-2025-11-20 00:22:30,483 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 486 chunks, exception=None
-2025-11-20 00:22:30,483 - consoul.tui.app - DEBUG - Found 0 tool_calls after merging chunks
-2025-11-20 00:22:30,484 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
-2025-11-20 00:22:30,484 - consoul.tui.app - DEBUG - Final tool_calls: []
-2025-11-20 00:22:30,486 - consoul.tui.app - DEBUG - Final message has 0 tool_calls
-2025-11-20 00:22:30,488 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
-2025-11-20 00:22:30,489 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
-2025-11-20 00:22:30,490 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
-2025-11-20 00:22:30,490 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=The file `.art/logo/1x/consoul-logo.png` is a valid PNG image with the following properties:
-- **Size**: 52,242 bytes
-- **Dimensions**: 512 x 512 pixels
-- **Color depth**: 8-bit RGBA (non-interlaced)
-- **Permissions**: `-rw-r--r--@` (readable by all users)
-
-No further analysis is possible with available tools (image processing not supported in this environment). Would you like to:
-1. Verify file content integrity (e.g., checksum)
-2. Check for dependencies (e.g., in build scripts)
-3. Analyze related files in the same directory?, has_tool_calls_in_message=[], full_response_len=532, cancelled=False
-2025-11-20 00:22:30,492 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
-2025-11-20 00:22:30,492 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-20 01:44:23,348 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./log.txt
+2025-11-20 01:44:29,877 - consoul.tui.app - INFO - [TIMING] Message submit handler started
+2025-11-20 01:44:29,877 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.1ms
+2025-11-20 01:44:29,877 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.0ms
+2025-11-20 01:44:29,888 - consoul.tui.app - INFO - [TIMING] Added message bubble: 11.1ms
+2025-11-20 01:44:29,891 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 2.5ms
+2025-11-20 01:44:29,891 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.0ms
+2025-11-20 01:44:29,891 - consoul.tui.app - INFO - [IMAGE_DETECTION] Extracted 1 image(s) from message
+2025-11-20 01:44:29,891 - consoul.tui.app - INFO - [IMAGE_DETECTION] Image paths: ['/Users/jaredrummler/Development/github/goatbytes/consoul/.art/logo/1x/consoul-logo.png']
+2025-11-20 01:44:29,891 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model supports vision: True
+2025-11-20 01:44:29,893 - consoul.tui.app - INFO - [TIMING] Worker started: 15.5ms from submit
+2025-11-20 01:44:29,893 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 15.5ms
+2025-11-20 01:44:29,898 - consoul.tui.app - INFO - Created conversation session: 3bf8e732-a01c-4520-a978-80d6da28fc2d
+2025-11-20 01:44:29,915 - consoul.tui.app - INFO - [TIMING] DB persist complete: 23.0ms
+2025-11-20 01:44:29,916 - consoul.tui.app - INFO - [TIMING] About to call _stream_ai_response
+2025-11-20 01:44:29,916 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-20 01:44:29,916 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
+2025-11-20 01:44:29,916 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.3ms
+2025-11-20 01:44:29,916 - consoul.tui.app - INFO - [TIMING] Got model config: 0.0ms
+2025-11-20 01:44:29,918 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 2.2ms
+2025-11-20 01:44:29,919 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.4ms, total prep: 3.0ms
+2025-11-20 01:44:51,600 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 634 chunks, exception=None
+2025-11-20 01:44:51,601 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
+2025-11-20 01:44:51,601 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=True, value=None
+2025-11-20 01:44:51,601 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'bash_execute', 'args': {'command': 'ls -l .art/logo/1x/consoul-logo.png'}, 'id': '3cc786dd-ef8f-4fee-a957-8f2b718e8d35', 'type': 'tool_call'}]
+2025-11-20 01:44:51,602 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
+2025-11-20 01:44:51,602 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
+2025-11-20 01:44:51,602 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
+2025-11-20 01:44:51,609 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
+2025-11-20 01:44:51,610 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
+2025-11-20 01:44:51,610 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=, has_tool_calls_in_message=[{'name': 'bash_execute', 'args': {'command': 'ls -l .art/logo/1x/consoul-logo.png'}, 'id': '3cc786dd-ef8f-4fee-a957-8f2b718e8d35', 'type': 'tool_call'}], full_response_len=0, cancelled=False
+2025-11-20 01:44:51,627 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
+2025-11-20 01:44:51,627 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-20 01:44:51,627 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool calls detected in model response: 1 call(s), content_length=0
+2025-11-20 01:44:51,627 - consoul.tui.app - DEBUG - [TOOL_FLOW] Replacing empty stream widget with tool execution message
+2025-11-20 01:44:51,635 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling _handle_tool_calls with 1 calls
+2025-11-20 01:44:51,635 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call iteration 1 with 1 tool(s)
+2025-11-20 01:44:51,635 - consoul.tui.app - DEBUG - [TOOL_FLOW] Reset tool results for new batch of 1 tools
+2025-11-20 01:44:51,635 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call detected: bash_execute with args: {'command': 'ls -l .art/logo/1x/consoul-logo.png'}
+2025-11-20 01:44:51,636 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posting ToolApprovalRequested for bash_execute
+2025-11-20 01:44:51,636 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posted ToolApprovalRequested for bash_execute
+2025-11-20 01:44:51,636 - consoul.tui.app - DEBUG - [TOOL_FLOW] _handle_tool_calls completed
+2025-11-20 01:44:51,640 - consoul.tui.app - INFO - [TIMING] Worker complete: 21747.7ms, total: 21763.2ms
+2025-11-20 01:44:51,642 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_requested called for bash_execute
+2025-11-20 01:44:51,648 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking if approval needed for bash_execute
+2025-11-20 01:44:51,648 - consoul.tui.app - DEBUG - [TOOL_FLOW] Approval check result: needs_approval=False
+2025-11-20 01:44:51,648 - consoul.tui.app - DEBUG - [TOOL_FLOW] Auto-approving bash_execute
+2025-11-20 01:44:51,656 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_result: tool=bash_execute, approved=True, call_id=3cc786dd-ef8f-4fee-a957-8f2b718e8d35
+2025-11-20 01:44:51,686 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool completion status: 1/1 tools completed
+2025-11-20 01:44:51,686 - consoul.tui.app - DEBUG - [TOOL_FLOW] All 1 tools completed, continuing with tool results
+2025-11-20 01:44:51,687 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-20 01:44:51,687 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 1/5
+2025-11-20 01:44:51,687 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.3ms
+2025-11-20 01:44:51,687 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms
+2025-11-20 01:44:51,687 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 0.3ms
+2025-11-20 01:44:51,688 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.4ms, total prep: 1.0ms
+2025-11-20 01:45:30,847 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 1272 chunks, exception=None
+2025-11-20 01:45:30,847 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
+2025-11-20 01:45:30,847 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'bash_execute', 'args': {'command': 'identify -format "%w x %h\\n" .art/logo/1x/consoul-logo.png'}, 'id': '5ad5c854-c2a0-48ad-9bbb-18e373b7f4f1', 'type': 'tool_call'}]
+2025-11-20 01:45:30,847 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=True, value=None
+2025-11-20 01:45:30,847 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
+2025-11-20 01:45:30,848 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
+2025-11-20 01:45:30,848 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
+2025-11-20 01:45:30,848 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
+2025-11-20 01:45:30,850 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
+2025-11-20 01:45:30,850 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=, has_tool_calls_in_message=[{'name': 'bash_execute', 'args': {'command': 'identify -format "%w x %h\\n" .art/logo/1x/consoul-logo.png'}, 'id': '5ad5c854-c2a0-48ad-9bbb-18e373b7f4f1', 'type': 'tool_call'}], full_response_len=0, cancelled=False
+2025-11-20 01:45:30,851 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
+2025-11-20 01:45:30,851 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-20 01:45:30,851 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool calls detected in model response: 1 call(s), content_length=0
+2025-11-20 01:45:30,851 - consoul.tui.app - DEBUG - [TOOL_FLOW] Replacing empty stream widget with tool execution message
+2025-11-20 01:45:30,856 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling _handle_tool_calls with 1 calls
+2025-11-20 01:45:30,856 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call iteration 2 with 1 tool(s)
+2025-11-20 01:45:30,856 - consoul.tui.app - DEBUG - [TOOL_FLOW] Reset tool results for new batch of 1 tools
+2025-11-20 01:45:30,856 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call detected: bash_execute with args: {'command': 'identify -format "%w x %h\\n" .art/logo/1x/consoul-logo.png'}
+2025-11-20 01:45:30,856 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posting ToolApprovalRequested for bash_execute
+2025-11-20 01:45:30,856 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posted ToolApprovalRequested for bash_execute
+2025-11-20 01:45:30,856 - consoul.tui.app - DEBUG - [TOOL_FLOW] _handle_tool_calls completed
+2025-11-20 01:45:30,858 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_requested called for bash_execute
+2025-11-20 01:45:30,862 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking if approval needed for bash_execute
+2025-11-20 01:45:30,863 - consoul.tui.app - DEBUG - [TOOL_FLOW] Approval check result: needs_approval=True
+2025-11-20 01:48:38,364 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_result: tool=bash_execute, approved=True, call_id=5ad5c854-c2a0-48ad-9bbb-18e373b7f4f1
+2025-11-20 01:48:38,373 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool completion status: 1/1 tools completed
+2025-11-20 01:48:38,373 - consoul.tui.app - DEBUG - [TOOL_FLOW] All 1 tools completed, continuing with tool results
+2025-11-20 01:48:38,374 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-20 01:48:38,374 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 2/5
+2025-11-20 01:48:38,374 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.3ms
+2025-11-20 01:48:38,374 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms
+2025-11-20 01:48:38,375 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 0.5ms
+2025-11-20 01:48:38,375 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.5ms, total prep: 1.3ms
+2025-11-20 01:48:59,543 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 1162 chunks, exception=None
+2025-11-20 01:48:59,545 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
+2025-11-20 01:48:59,545 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=True, value=None
+2025-11-20 01:48:59,545 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'web_search', 'args': {'query': 'how to get image dimensions in terminal without ImageMagick'}, 'id': '21b48af5-73a7-42dd-801b-870927fabd06', 'type': 'tool_call'}]
+2025-11-20 01:48:59,550 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
+2025-11-20 01:48:59,551 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
+2025-11-20 01:48:59,551 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
+2025-11-20 01:48:59,554 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
+2025-11-20 01:48:59,555 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
+2025-11-20 01:48:59,556 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=, has_tool_calls_in_message=[{'name': 'web_search', 'args': {'query': 'how to get image dimensions in terminal without ImageMagick'}, 'id': '21b48af5-73a7-42dd-801b-870927fabd06', 'type': 'tool_call'}], full_response_len=0, cancelled=False
+2025-11-20 01:48:59,557 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
+2025-11-20 01:48:59,557 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-20 01:48:59,557 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool calls detected in model response: 1 call(s), content_length=0
+2025-11-20 01:48:59,557 - consoul.tui.app - DEBUG - [TOOL_FLOW] Replacing empty stream widget with tool execution message
+2025-11-20 01:48:59,565 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling _handle_tool_calls with 1 calls
+2025-11-20 01:48:59,566 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call iteration 3 with 1 tool(s)
+2025-11-20 01:48:59,566 - consoul.tui.app - DEBUG - [TOOL_FLOW] Reset tool results for new batch of 1 tools
+2025-11-20 01:48:59,566 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call detected: web_search with args: {'query': 'how to get image dimensions in terminal without ImageMagick'}
+2025-11-20 01:48:59,566 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posting ToolApprovalRequested for web_search
+2025-11-20 01:48:59,566 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posted ToolApprovalRequested for web_search
+2025-11-20 01:48:59,566 - consoul.tui.app - DEBUG - [TOOL_FLOW] _handle_tool_calls completed
+2025-11-20 01:48:59,610 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_requested called for web_search
+2025-11-20 01:48:59,617 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking if approval needed for web_search
+2025-11-20 01:48:59,617 - consoul.tui.app - DEBUG - [TOOL_FLOW] Approval check result: needs_approval=False
+2025-11-20 01:48:59,617 - consoul.tui.app - DEBUG - [TOOL_FLOW] Auto-approving web_search
+2025-11-20 01:48:59,624 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_result: tool=web_search, approved=True, call_id=21b48af5-73a7-42dd-801b-870927fabd06
+2025-11-20 01:48:59,626 - consoul.ai.tools.implementations.web_search - INFO - Using Jina Search for query: how to get image dimensions in terminal without ImageMagick
+2025-11-20 01:49:25,498 - consoul.ai.tools.implementations.web_search - INFO - Jina Search returned 5 results
+2025-11-20 01:49:25,501 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool completion status: 1/1 tools completed
+2025-11-20 01:49:25,501 - consoul.tui.app - DEBUG - [TOOL_FLOW] All 1 tools completed, continuing with tool results
+2025-11-20 01:49:25,503 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-20 01:49:25,505 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 3/5
+2025-11-20 01:49:25,506 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 2.9ms
+2025-11-20 01:49:25,507 - consoul.tui.app - INFO - [TIMING] Got model config: 0.2ms
+2025-11-20 01:49:25,508 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 1.4ms
+2025-11-20 01:49:25,509 - consoul.tui.app - INFO - [TIMING] Converted to dict: 1.4ms, total prep: 5.9ms
+2025-11-20 01:49:54,308 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 1548 chunks, exception=None
+2025-11-20 01:49:54,309 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
+2025-11-20 01:49:54,309 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'bash_execute', 'args': {'command': 'sips -g pixelsWidth -g pixelsHeight .art/logo/1x/consoul-logo.png'}, 'id': '21ccb4f4-b8df-434d-9d55-fd667192f5db', 'type': 'tool_call'}]
+2025-11-20 01:49:54,309 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
+2025-11-20 01:49:54,310 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=True, value=None
+2025-11-20 01:49:54,310 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
+2025-11-20 01:49:54,313 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
+2025-11-20 01:49:54,313 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
+2025-11-20 01:49:54,317 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
+2025-11-20 01:49:54,318 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=, has_tool_calls_in_message=[{'name': 'bash_execute', 'args': {'command': 'sips -g pixelsWidth -g pixelsHeight .art/logo/1x/consoul-logo.png'}, 'id': '21ccb4f4-b8df-434d-9d55-fd667192f5db', 'type': 'tool_call'}], full_response_len=0, cancelled=False
+2025-11-20 01:49:54,319 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
+2025-11-20 01:49:54,319 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-20 01:49:54,319 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool calls detected in model response: 1 call(s), content_length=0
+2025-11-20 01:49:54,319 - consoul.tui.app - DEBUG - [TOOL_FLOW] Replacing empty stream widget with tool execution message
+2025-11-20 01:49:54,329 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling _handle_tool_calls with 1 calls
+2025-11-20 01:49:54,329 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call iteration 4 with 1 tool(s)
+2025-11-20 01:49:54,329 - consoul.tui.app - DEBUG - [TOOL_FLOW] Reset tool results for new batch of 1 tools
+2025-11-20 01:49:54,329 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call detected: bash_execute with args: {'command': 'sips -g pixelsWidth -g pixelsHeight .art/logo/1x/consoul-logo.png'}
+2025-11-20 01:49:54,329 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posting ToolApprovalRequested for bash_execute
+2025-11-20 01:49:54,329 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posted ToolApprovalRequested for bash_execute
+2025-11-20 01:49:54,330 - consoul.tui.app - DEBUG - [TOOL_FLOW] _handle_tool_calls completed
+2025-11-20 01:49:54,363 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_requested called for bash_execute
+2025-11-20 01:49:54,370 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking if approval needed for bash_execute
+2025-11-20 01:49:54,370 - consoul.tui.app - DEBUG - [TOOL_FLOW] Approval check result: needs_approval=True
+2025-11-20 01:50:14,206 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_result: tool=bash_execute, approved=True, call_id=21ccb4f4-b8df-434d-9d55-fd667192f5db
+2025-11-20 01:50:14,227 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool completion status: 1/1 tools completed
+2025-11-20 01:50:14,227 - consoul.tui.app - DEBUG - [TOOL_FLOW] All 1 tools completed, continuing with tool results
+2025-11-20 01:50:14,228 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-20 01:50:14,228 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 4/5
+2025-11-20 01:50:14,228 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.3ms
+2025-11-20 01:50:14,228 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms
+2025-11-20 01:50:14,228 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 0.4ms
+2025-11-20 01:50:14,229 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.4ms, total prep: 1.1ms
+2025-11-20 01:51:22,459 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 3388 chunks, exception=None
+2025-11-20 01:51:22,461 - consoul.tui.app - DEBUG - Found 1 tool_calls after merging chunks
+2025-11-20 01:51:22,462 - consoul.tui.app - DEBUG - Final tool_calls: [{'name': 'bash_execute', 'args': {'command': 'sips -g size .art/logo/1x/consoul-logo.png'}, 'id': '9d8bdb5f-e114-41a9-97e9-382017b05455', 'type': 'tool_call'}]
+2025-11-20 01:51:22,462 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=True, value=None
+2025-11-20 01:51:22,463 - consoul.tui.app - DEBUG - Final message has 1 tool_calls
+2025-11-20 01:51:22,467 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
+2025-11-20 01:51:22,467 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
+2025-11-20 01:51:22,470 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
+2025-11-20 01:51:22,473 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
+2025-11-20 01:51:22,473 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=, has_tool_calls_in_message=[{'name': 'bash_execute', 'args': {'command': 'sips -g size .art/logo/1x/consoul-logo.png'}, 'id': '9d8bdb5f-e114-41a9-97e9-382017b05455', 'type': 'tool_call'}], full_response_len=0, cancelled=False
+2025-11-20 01:51:22,475 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
+2025-11-20 01:51:22,475 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-20 01:51:22,475 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool calls detected in model response: 1 call(s), content_length=0
+2025-11-20 01:51:22,475 - consoul.tui.app - DEBUG - [TOOL_FLOW] Replacing empty stream widget with tool execution message
+2025-11-20 01:51:22,482 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling _handle_tool_calls with 1 calls
+2025-11-20 01:51:22,483 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call iteration 5 with 1 tool(s)
+2025-11-20 01:51:22,483 - consoul.tui.app - DEBUG - [TOOL_FLOW] Reset tool results for new batch of 1 tools
+2025-11-20 01:51:22,483 - consoul.tui.app - DEBUG - [TOOL_FLOW] Tool call detected: bash_execute with args: {'command': 'sips -g size .art/logo/1x/consoul-logo.png'}
+2025-11-20 01:51:22,483 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posting ToolApprovalRequested for bash_execute
+2025-11-20 01:51:22,483 - consoul.tui.app - DEBUG - [TOOL_FLOW] Posted ToolApprovalRequested for bash_execute
+2025-11-20 01:51:22,483 - consoul.tui.app - DEBUG - [TOOL_FLOW] _handle_tool_calls completed
+2025-11-20 01:51:22,527 - consoul.tui.app - DEBUG - [TOOL_FLOW] on_tool_approval_requested called for bash_execute
+2025-11-20 01:51:22,547 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking if approval needed for bash_execute
+2025-11-20 01:51:22,547 - consoul.tui.app - DEBUG - [TOOL_FLOW] Approval check result: needs_approval=True
