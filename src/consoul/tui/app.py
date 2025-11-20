@@ -1203,6 +1203,18 @@ class ConsoulApp(App[None]):
                         "[IMAGE_DETECTION] Model has no tool bindings, using directly"
                     )
 
+                # Add system message to guide the model to use vision directly
+                from langchain_core.messages import SystemMessage
+
+                vision_system_msg = SystemMessage(
+                    content="You have been provided with an image to analyze. Use your vision capabilities to directly describe and analyze the visual content of the image. Do not suggest bash commands or external tools - provide your analysis based on what you see in the image."
+                )
+                # Insert system message before the last message (which contains the image)
+                messages.insert(-1, vision_system_msg)
+                logger.info(
+                    "[IMAGE_DETECTION] Added system message to guide vision analysis"
+                )
+
             # Convert to dict format for LangChain (also can be slow with many messages)
             messages_dict = await loop.run_in_executor(
                 None, lambda: [to_dict_message(msg) for msg in messages]
