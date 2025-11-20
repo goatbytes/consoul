@@ -1189,26 +1189,18 @@ class ConsoulApp(App[None]):
                 logger.info(
                     "[IMAGE_DETECTION] Using model WITHOUT tools for multimodal message"
                 )
-                # Get the base model without tool bindings
-                # LangChain models have a 'model' attribute that points to the underlying model
-                if hasattr(self.chat_model, "model"):
-                    # For Ollama/OpenAI/etc that wrap the model
-                    base_model = self.chat_model
-                    # Create fresh instance without tools
-                    model_class = type(base_model)
-                    model_kwargs = {}
-                    for attr in [
-                        "model",
-                        "model_name",
-                        "temperature",
-                        "max_tokens",
-                        "num_predict",
-                    ]:
-                        if hasattr(base_model, attr):
-                            model_kwargs[attr] = getattr(base_model, attr)
-                    model_to_use = model_class(**model_kwargs)  # type: ignore
+                # Check if model has tools bound via RunnableBinding
+                # bind_tools() creates a RunnableBinding with 'bound' attribute pointing to base model
+                if hasattr(self.chat_model, "bound"):
+                    # This is a RunnableBinding from bind_tools() - get the wrapped model
+                    model_to_use = self.chat_model.bound  # type: ignore
                     logger.info(
-                        f"[IMAGE_DETECTION] Created fresh model instance: {model_class.__name__}"
+                        "[IMAGE_DETECTION] Unwrapped model from RunnableBinding"
+                    )
+                else:
+                    # Model doesn't have tools bound, use as-is
+                    logger.info(
+                        "[IMAGE_DETECTION] Model has no tool bindings, using directly"
                     )
 
             # Convert to dict format for LangChain (also can be slow with many messages)
