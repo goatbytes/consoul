@@ -6,6 +6,11 @@ with the ToolRegistry and called by AI models.
 
 from __future__ import annotations
 
+from consoul.ai.tools.implementations.analyze_images import (
+    analyze_images,
+    get_analyze_images_config,
+    set_analyze_images_config,
+)
 from consoul.ai.tools.implementations.bash import (
     bash_execute,
     get_bash_config,
@@ -52,6 +57,7 @@ from consoul.ai.tools.implementations.web_search import (
 )
 
 __all__ = [
+    "analyze_images",
     "append_to_file",
     "bash_execute",
     "code_search",
@@ -60,6 +66,7 @@ __all__ = [
     "edit_file_lines",
     "edit_file_search_replace",
     "find_references",
+    "get_analyze_images_config",
     "get_bash_config",
     "get_code_search_config",
     "get_file_edit_config",
@@ -71,6 +78,7 @@ __all__ = [
     "grep_search",
     "read_file",
     "read_url",
+    "set_analyze_images_config",
     "set_bash_config",
     "set_code_search_config",
     "set_file_edit_config",

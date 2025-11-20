@@ -932,6 +932,74 @@ class ReadToolConfig(BaseModel):
     )
 
 
+class ImageAnalysisToolConfig(BaseModel):
+    """Configuration for image analysis tool.
+
+    Controls image analysis behavior, security, and limits for multimodal AI
+    vision capabilities. Supports analyzing screenshots, diagrams, UI mockups,
+    and other visual content using vision-capable LLM providers.
+
+    Security features:
+    - File size limits prevent large uploads
+    - Extension filtering ensures only image files
+    - Path blocking prevents access to sensitive directories
+    - Magic byte validation prevents extension spoofing
+
+    Example:
+        >>> config = ImageAnalysisToolConfig(
+        ...     enabled=True,
+        ...     max_image_size_mb=5,
+        ...     max_images_per_query=5,
+        ...     allowed_extensions=[".png", ".jpg", ".jpeg", ".gif", ".webp"]
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    enabled: bool = Field(
+        default=True,
+        description="Enable image analysis tool (requires vision-capable model)",
+    )
+    max_image_size_mb: int = Field(
+        default=5,
+        gt=0,
+        le=20,
+        description="Maximum image file size in megabytes",
+    )
+    max_images_per_query: int = Field(
+        default=5,
+        gt=0,
+        le=10,
+        description="Maximum number of images per analysis request",
+    )
+    allowed_extensions: list[str] = Field(
+        default_factory=lambda: [
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".webp",
+            ".bmp",
+        ],
+        description="Allowed image file extensions",
+    )
+    blocked_paths: list[str] = Field(
+        default_factory=lambda: [
+            "/etc",
+            "/proc",
+            "/dev",
+            "/sys",
+            "~/.ssh",
+            "~/.aws",
+            "~/.config",
+        ],
+        description="File paths/prefixes that cannot be read (security)",
+    )
+
+
 class FileEditToolConfig(BaseModel):
     """Configuration for file editing tools.
 
@@ -1131,6 +1199,10 @@ class ToolConfig(BaseModel):
     file_edit: FileEditToolConfig = Field(
         default_factory=FileEditToolConfig,
         description="File editing tools configuration",
+    )
+    image_analysis: ImageAnalysisToolConfig = Field(
+        default_factory=ImageAnalysisToolConfig,
+        description="Image analysis tool configuration (multimodal vision)",
     )
     audit_logging: bool = Field(
         default=True,
