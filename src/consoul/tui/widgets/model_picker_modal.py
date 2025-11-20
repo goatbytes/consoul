@@ -1105,7 +1105,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
     def _populate_mlx_models(
         self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
     ) -> None:
-        """Populate MLX models.
+        """Populate MLX models and convertible HuggingFace models.
 
         Args:
             provider_models: Dictionary to populate with model information
@@ -1116,7 +1116,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         if platform.system() != "Darwin":
             return
 
-        from consoul.ai.providers import get_local_mlx_models
+        from consoul.ai.providers import get_convertible_hf_models, get_local_mlx_models
 
         # Get locally downloaded MLX models
         local_mlx = get_local_mlx_models()
@@ -1137,14 +1137,39 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                     "provider": "mlx",
                     "context": "?",
                     "cost": "free",
-                    "description": f"Local, {size_str}",
+                    "description": f"✓ MLX, {size_str}",
                     "display_name": model_name,
                     "actual_model": model_path,
+                    "is_mlx": True,
                 }
 
-        # NOTE: Do NOT add HuggingFace repo ID suggestions here
-        # They will fail to load in TUI due to multiprocessing conflicts (fds_to_keep errors)
-        # Only local file-path models work in the TUI environment
+        # Get convertible HuggingFace models
+        convertible = get_convertible_hf_models()
+
+        for model_info in convertible:
+            model_name = model_info.get("name", "")
+            size_gb = model_info.get("size_gb", 0)
+            is_converted = model_info.get("converted", False)
+
+            if model_name and not is_converted:
+                # Only show models that haven't been converted yet
+                if size_gb >= 1:
+                    size_str = f"{size_gb:.1f}GB"
+                else:
+                    size_str = f"{size_gb * 1024:.0f}MB"
+
+                key = f"hf-to-mlx:{model_name}"
+                provider_models[key] = {
+                    "provider": "mlx",
+                    "context": "?",
+                    "cost": "free",
+                    "description": f"🔄 Convert ({size_str})",
+                    "display_name": model_name,
+                    "actual_model": model_name,
+                    "is_mlx": False,
+                    "convertible": True,
+                    "hf_model_size_gb": size_gb,
+                }
 
     def _populate_local_models(
         self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
@@ -1518,6 +1543,12 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             if model_info.get("loading"):
                 return
 
+            # Check if this is a convertible HuggingFace model (needs MLX conversion)
+            if model_info.get("convertible"):
+                # Show conversion modal instead of selecting
+                self._show_mlx_conversion_modal(model_info)
+                return
+
             # For local tab, extract actual provider and model from the key
             if self.active_provider == "local":
                 if ":" in row_key:
@@ -1536,6 +1567,106 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                     f"model='{selected_model}'"
                 )
                 self.dismiss((self.active_provider, selected_model))
+
+    def _show_mlx_conversion_modal(self, model_info: dict[str, Any]) -> None:
+        """Show MLX conversion modal for a convertible HuggingFace model.
+
+        Args:
+            model_info: Model information dict with 'display_name' and 'hf_model_size_gb'
+        """
+        model_name = model_info.get("display_name", "")
+        size_gb = model_info.get("hf_model_size_gb", 0)
+
+        if not model_name:
+            return
+
+        from consoul.tui.widgets.mlx_conversion_modal import MLXConversionModal
+
+        def handle_conversion_result(
+            result: dict[str, str | int | bool] | None,
+        ) -> None:
+            """Handle conversion modal result.
+
+            Args:
+                result: Conversion parameters or None if cancelled
+            """
+            if result is None:
+                # User cancelled
+                return
+
+            # Start conversion in background
+            self._start_mlx_conversion(result)
+
+        modal = MLXConversionModal(model_name, size_gb)
+        self.app.push_screen(modal, handle_conversion_result)
+
+    def _start_mlx_conversion(self, params: dict[str, str | int | bool]) -> None:
+        """Start MLX conversion in background.
+
+        Args:
+            params: Conversion parameters from MLXConversionModal
+        """
+        model_name = str(params.get("model_name", ""))
+        quantize = bool(params.get("quantize", True))
+        q_bits = int(params.get("q_bits", 4))
+
+        # Run conversion in worker thread to avoid blocking UI
+        async def run_conversion() -> None:
+            """Run conversion task asynchronously."""
+            from consoul.ai.providers import convert_hf_to_mlx
+
+            # Show notification
+            if hasattr(self.app, "notify"):
+                self.app.notify(
+                    f"Starting MLX conversion for {model_name}...\n"
+                    f"This may take 5-30 minutes.",
+                    severity="information",
+                    timeout=10,
+                )
+
+            # Run conversion
+            try:
+                result = convert_hf_to_mlx(
+                    hf_model_name=model_name,
+                    quantize=quantize,
+                    q_bits=q_bits,
+                )
+
+                # Show result
+                if hasattr(self.app, "notify"):
+                    if result.get("success"):
+                        if result.get("skipped"):
+                            self.app.notify(
+                                f"Model {model_name} already converted",
+                                severity="information",
+                            )
+                        else:
+                            self.app.notify(
+                                f"✓ Successfully converted {model_name} to MLX!\n"
+                                f"Output: {result.get('output_path', 'unknown')}",
+                                severity="information",
+                                timeout=10,
+                            )
+                        # Refresh model list
+                        self._populate_table()
+                    else:
+                        error = result.get("error", "Unknown error")
+                        details = result.get("details", "")
+                        self.app.notify(
+                            f"✗ Conversion failed: {error}\n{details}",
+                            severity="error",
+                            timeout=15,
+                        )
+            except Exception as e:
+                if hasattr(self.app, "notify"):
+                    self.app.notify(
+                        f"✗ Conversion error: {type(e).__name__}: {e}",
+                        severity="error",
+                        timeout=10,
+                    )
+
+        # Start the conversion worker
+        self.run_worker(run_conversion(), exclusive=False)
 
     def action_select(self) -> None:
         """Handle select action (Enter key)."""
