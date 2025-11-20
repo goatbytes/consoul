@@ -792,6 +792,58 @@ class ConsoulApp(App[None]):
                 f"registered={is_registered}, should_register={should_register}"
             )
 
+    def _create_multimodal_message(
+        self, user_message: str, image_paths: list[str]
+    ) -> Any:
+        """Create a multimodal HumanMessage with text and images.
+
+        Loads and encodes images, then formats them according to the current
+        provider's requirements (Anthropic, OpenAI, Google, Ollama).
+
+        Args:
+            user_message: The user's text message
+            image_paths: List of valid image file paths to include
+
+        Returns:
+            HumanMessage with multimodal content (text + images)
+
+        Raises:
+            Exception: If image loading, encoding, or formatting fails
+        """
+        import base64
+        import mimetypes
+        from pathlib import Path
+
+        from consoul.ai.multimodal import format_vision_message
+
+        # Load and encode images
+        encoded_images = []
+        for path_str in image_paths:
+            path = Path(path_str)
+
+            # Detect MIME type
+            mime_type, _ = mimetypes.guess_type(str(path))
+            if not mime_type or not mime_type.startswith("image/"):
+                raise ValueError(f"Invalid MIME type for {path.name}: {mime_type}")
+
+            # Read and encode image
+            with open(path, "rb") as f:
+                image_data = base64.b64encode(f.read()).decode("utf-8")
+
+            encoded_images.append(
+                {"path": str(path), "data": image_data, "mime_type": mime_type}
+            )
+
+        # Get current provider from model config
+        if not self.consoul_config:
+            raise ValueError("Config not available for multimodal message creation")
+
+        model_config = self.consoul_config.get_current_model_config()
+        provider = model_config.provider
+
+        # Format message for the provider
+        return format_vision_message(provider, user_message, encoded_images)
+
     def _update_top_bar_state(self) -> None:
         """Update ContextualTopBar reactive properties from app state."""
         try:
@@ -908,7 +960,33 @@ class ConsoulApp(App[None]):
         # Add user message to conversation history immediately (in-memory)
         from langchain_core.messages import HumanMessage
 
-        message = HumanMessage(content=user_message)
+        # Check for image references in the user message
+        from consoul.tui.utils.image_parser import extract_image_paths
+
+        _original_message, image_paths = extract_image_paths(user_message)
+
+        # Create multimodal message if images found and model supports vision
+        if image_paths and self._model_supports_vision():
+            try:
+                message = self._create_multimodal_message(user_message, image_paths)
+                self.log.info(
+                    f"Created multimodal message with {len(image_paths)} image(s)"
+                )
+            except Exception as e:
+                # Fall back to text-only message and show error
+                self.log.error(f"Failed to create multimodal message: {e}")
+                error_bubble = MessageBubble(
+                    f"❌ Failed to process image(s): {e}\n\n"
+                    "Continuing with text-only message.",
+                    role="error",
+                    show_metadata=False,
+                )
+                await self.chat_view.add_message(error_bubble)
+                message = HumanMessage(content=user_message)
+        else:
+            # Regular text message
+            message = HumanMessage(content=user_message)
+
         self.conversation.messages.append(message)
 
         # Move EVERYTHING to a background worker to keep UI responsive
