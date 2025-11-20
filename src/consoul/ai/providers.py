@@ -555,7 +555,8 @@ def convert_hf_to_mlx(
     cmd = [
         "python",
         "-m",
-        "mlx_lm.convert",
+        "mlx_lm",
+        "convert",
         "--hf-path",
         hf_model_name,
         "--mlx-path",
