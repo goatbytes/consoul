@@ -1146,34 +1146,33 @@ class ConsoulApp(App[None]):
             s2 = time.time()
             logger.info(f"[TIMING] Got model config: {(s2 - s1) * 1000:.1f}ms")
 
-            # Check if last message is multimodal BEFORE token counting
+            # Check if ANY message in conversation is multimodal BEFORE token counting
             # Token counting with large base64 images can hang
-            last_msg = (
-                self.conversation.messages[-1]
-                if self.conversation and self.conversation.messages
-                else None
-            )
-            has_multimodal_in_last = False
-            if (
-                last_msg
-                and hasattr(last_msg, "content")
-                and isinstance(last_msg.content, list)
-            ):
-                has_multimodal_in_last = any(
-                    isinstance(block, dict)
-                    and block.get("type") in ["image", "image_url"]
-                    for block in last_msg.content
-                )
+            has_multimodal_in_history = False
+            if self.conversation and self.conversation.messages:
+                # Check last 10 messages for multimodal content (checking all could be slow)
+                for msg in list(self.conversation.messages[-10:]):
+                    if (
+                        hasattr(msg, "content")
+                        and isinstance(msg.content, list)
+                        and any(
+                            isinstance(block, dict)
+                            and block.get("type") in ["image", "image_url"]
+                            for block in msg.content
+                        )
+                    ):
+                        has_multimodal_in_history = True
+                        break
 
             # Run token counting and message trimming in executor to avoid blocking
             import asyncio
 
             loop = asyncio.get_event_loop()
 
-            # For multimodal messages, skip expensive token counting and just use recent messages
-            if has_multimodal_in_last:
+            # For conversations with multimodal content, skip expensive token counting
+            if has_multimodal_in_history:
                 logger.info(
-                    "[IMAGE_DETECTION] Skipping token counting for multimodal message, using recent history"
+                    "[IMAGE_DETECTION] Conversation contains multimodal content, skipping token counting"
                 )
                 # Just take the last few messages to keep context manageable
                 messages = list(self.conversation.messages[-10:])  # type: ignore
