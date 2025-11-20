@@ -464,9 +464,9 @@ class ContextConfig(BaseModel):
     )
 
     max_context_tokens: int = Field(
-        default=4096,
-        gt=0,
-        description="Maximum number of tokens for context",
+        default=0,
+        ge=0,
+        description="Maximum number of tokens for context (0 = auto-size to 75% of model capacity)",
     )
     include_system_info: bool = Field(
         default=True,
