@@ -1256,11 +1256,11 @@ class ConsoulConfig(BaseModel):
         description="Currently active profile name",
     )
     current_provider: Provider = Field(
-        default=Provider.ANTHROPIC,
+        default=Provider.OLLAMA,
         description="Currently active AI provider",
     )
     current_model: str = Field(
-        default="claude-3-5-sonnet-20241022",
+        default="llama3.2:3b",
         description="Currently active model name",
     )
     provider_configs: dict[Provider, ProviderConfig] = Field(
