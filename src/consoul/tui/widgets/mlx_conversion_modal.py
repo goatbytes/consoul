@@ -38,10 +38,15 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
     MLXConversionModal > Container {
         width: 70;
         height: auto;
-        max-height: 90vh;
+        max-height: 80vh;
         background: $panel;
         border: thick $primary;
-        padding: 1 2;
+        padding: 1;
+    }
+
+    MLXConversionModal Vertical {
+        height: auto;
+        max-height: 60vh;
         overflow-y: auto;
     }
 
@@ -50,18 +55,18 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
         content-align: center middle;
         text-style: bold;
         color: $accent;
-        padding: 0 0 1 0;
+        padding: 0;
     }
 
     MLXConversionModal .model-info {
         width: 100%;
-        padding: 1 0;
+        padding: 0 0 1 0;
         color: $text-muted;
     }
 
     MLXConversionModal RadioSet {
         width: 100%;
-        padding: 1 0;
+        padding: 0;
     }
 
     MLXConversionModal RadioButton {
@@ -70,28 +75,28 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
 
     MLXConversionModal .size-estimate {
         width: 100%;
-        padding: 1 0;
+        padding: 0;
         color: $success;
         text-style: italic;
     }
 
     MLXConversionModal .warning {
         width: 100%;
-        padding: 1 0;
+        padding: 0;
         color: $warning;
         text-style: italic;
     }
 
     MLXConversionModal ProgressBar {
         width: 100%;
-        margin: 1 0;
+        margin: 0;
     }
 
     MLXConversionModal .progress-label {
         width: 100%;
         content-align: center middle;
         color: $text-muted;
-        padding: 0 0 1 0;
+        padding: 0;
     }
 
     MLXConversionModal .modal-actions {
@@ -99,7 +104,8 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
         height: auto;
         layout: horizontal;
         align: center middle;
-        padding: 1 0 0 0;
+        padding: 0;
+        margin-top: 1;
     }
 
     MLXConversionModal Button {
@@ -140,16 +146,16 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
 
             with RadioSet(id="quantization-options"):
                 yield RadioButton(
-                    "4-bit (Recommended - ~4x smaller, good quality)",
+                    "4-bit (~4x smaller) - Recommended",
                     value=True,
                     id="quant-4bit",
                 )
                 yield RadioButton(
-                    "8-bit (Better quality, ~2x smaller)",
+                    "8-bit (~2x smaller)",
                     id="quant-8bit",
                 )
                 yield RadioButton(
-                    "None (Full precision, same size)",
+                    "None (full precision)",
                     id="quant-none",
                 )
 
@@ -161,7 +167,7 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
             yield self.size_label
 
             yield Label(
-                "⚠️  Conversion may take 5-30 minutes depending on model size",
+                "⚠️  May take 5-30 min",
                 classes="warning",
             )
 
