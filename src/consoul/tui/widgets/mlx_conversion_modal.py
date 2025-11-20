@@ -38,9 +38,11 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
     MLXConversionModal > Container {
         width: 70;
         height: auto;
+        max-height: 90vh;
         background: $panel;
         border: thick $primary;
         padding: 1 2;
+        overflow-y: auto;
     }
 
     MLXConversionModal .modal-title {

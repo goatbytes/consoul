@@ -815,7 +815,11 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
 
         # For HuggingFace, fetch local cached models
         elif provider_value == "huggingface":
+            import platform
+
             from consoul.ai.providers import get_huggingface_local_models
+
+            is_macos = platform.system() == "Darwin"
 
             hf_models = get_huggingface_local_models()
             for model_info in hf_models:
@@ -828,13 +832,27 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                     else:
                         size_str = f"{size_gb * 1024:.0f}MB"
 
-                    # Add local HuggingFace model
-                    provider_models[model_name] = {
-                        "provider": "huggingface",
-                        "context": "?",  # Context length not easily determined
-                        "cost": "free",
-                        "description": f"Local model ({size_str})",
-                    }
+                    # On macOS, local PyTorch models need MLX conversion
+                    # Show them with a conversion indicator
+                    if is_macos:
+                        model_entry: dict[str, Any] = {
+                            "provider": "huggingface",
+                            "context": "?",
+                            "cost": "free",
+                            "description": f"🔄 Convert to MLX ({size_str})",
+                            "convertible": True,
+                            "display_name": model_name,
+                            "hf_model_size_gb": size_gb,
+                        }
+                        provider_models[model_name] = model_entry
+                    else:
+                        # On Linux/Windows, can use PyTorch directly
+                        provider_models[model_name] = {
+                            "provider": "huggingface",
+                            "context": "?",
+                            "cost": "free",
+                            "description": f"Local model ({size_str})",
+                        }
 
         # For LlamaCpp, fetch GGUF models from cache (lazy loaded with caching)
         elif provider_value == "llamacpp":
