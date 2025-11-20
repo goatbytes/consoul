@@ -23,6 +23,8 @@ from consoul.ai.exceptions import (
 from consoul.config.models import Provider
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from langchain_core.language_models.chat_models import BaseChatModel
 
     from consoul.config.models import ModelConfig
@@ -368,8 +370,8 @@ def get_gguf_models_from_cache(force_refresh: bool = False) -> list[dict[str, An
 def get_local_mlx_models() -> list[dict[str, Any]]:
     """Scan for locally downloaded MLX models.
 
-    Looks in ~/.lmstudio/models for directories containing MLX model files
-    (identified by config.json with model_type and .safetensors files).
+    Looks in both ~/.lmstudio/models and ~/.cache/mlx for directories
+    containing MLX model files (identified by config.json and .safetensors).
 
     Returns:
         List of MLX model dicts with 'name', 'path', 'size_gb' keys.
@@ -377,40 +379,235 @@ def get_local_mlx_models() -> list[dict[str, Any]]:
     from pathlib import Path
 
     mlx_models: list[dict[str, Any]] = []
-    lmstudio_dir = Path.home() / ".lmstudio" / "models"
 
-    if not lmstudio_dir.exists():
-        return mlx_models
+    # Directories to scan for MLX models
+    scan_dirs = [
+        Path.home() / ".lmstudio" / "models",
+        Path.home() / ".cache" / "mlx",
+    ]
 
-    # Look for directories with safetensors files (MLX format)
-    for model_dir in lmstudio_dir.rglob("*/"):
-        # Check if this looks like an MLX model directory
-        has_config = (model_dir / "config.json").exists()
-        has_safetensors = any(model_dir.glob("*.safetensors"))
+    for base_dir in scan_dirs:
+        if not base_dir.exists():
+            continue
 
-        if has_config and has_safetensors:
-            # Get model name from path (e.g., "mlx-community/gemma-3-27b-it-qat-4bit")
-            relative_path = model_dir.relative_to(lmstudio_dir)
-            model_name = str(relative_path).replace("\\", "/")
+        # Look for directories with safetensors files (MLX format)
+        for model_dir in base_dir.rglob("*/"):
+            # Check if this looks like an MLX model directory
+            has_config = (model_dir / "config.json").exists()
+            has_safetensors = any(model_dir.glob("*.safetensors"))
 
-            # Calculate total size
-            total_size = sum(
-                f.stat().st_size for f in model_dir.rglob("*") if f.is_file()
-            )
-            size_gb = total_size / (1024**3)
+            if has_config and has_safetensors:
+                # Get model name from path
+                relative_path = model_dir.relative_to(base_dir)
+                # For ~/.cache/mlx, convert Org--ModelName back to Org/ModelName
+                model_name = str(relative_path).replace("\\", "/").replace("--", "/")
 
-            mlx_models.append(
-                {
-                    "name": model_name,
-                    "path": str(model_dir),
-                    "size_gb": size_gb,
-                }
-            )
+                # Calculate total size
+                total_size = sum(
+                    f.stat().st_size for f in model_dir.rglob("*") if f.is_file()
+                )
+                size_gb = total_size / (1024**3)
+
+                mlx_models.append(
+                    {
+                        "name": model_name,
+                        "path": str(model_dir),
+                        "size_gb": size_gb,
+                    }
+                )
 
     # Sort by name
     mlx_models.sort(key=lambda m: m["name"])
 
     return mlx_models
+
+
+def get_mlx_cache_dir() -> Path:
+    """Get the MLX cache directory for converted models.
+
+    Returns:
+        Path to MLX cache directory (~/.cache/mlx by default)
+    """
+    from pathlib import Path
+
+    # TODO: Make this configurable via MLXConfig
+    cache_dir = Path.home() / ".cache" / "mlx"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir
+
+
+def get_convertible_hf_models() -> list[dict[str, Any]]:
+    """Get list of local HuggingFace models that can be converted to MLX.
+
+    Scans the HuggingFace cache and returns models that:
+    1. Are not already converted to MLX
+    2. Have supported architectures for MLX
+
+    Returns:
+        List of dicts with 'name', 'size_gb', 'path', 'converted' keys
+    """
+    hf_models = get_huggingface_local_models()
+    mlx_cache = get_mlx_cache_dir()
+
+    convertible = []
+    for model in hf_models:
+        model_name = model.get("name", "")
+        if not model_name:
+            continue
+
+        # Check if already converted (exists in MLX cache)
+        # MLX models are stored as: ~/.cache/mlx/{org}/{model_name}
+        mlx_path = mlx_cache / model_name.replace("/", "--")
+        is_converted = mlx_path.exists() and (mlx_path / "config.json").exists()
+
+        convertible.append(
+            {
+                "name": model_name,
+                "size_gb": model.get("size_gb", 0),
+                "size": model.get("size", 0),
+                "converted": is_converted,
+                "mlx_path": str(mlx_path) if is_converted else None,
+            }
+        )
+
+    return convertible
+
+
+def convert_hf_to_mlx(
+    hf_model_name: str,
+    output_dir: str | None = None,
+    quantize: bool = True,
+    q_bits: int = 4,
+    progress_callback: Any = None,
+) -> dict[str, Any]:
+    """Convert a local HuggingFace model to MLX format.
+
+    Uses mlx_lm.convert to convert PyTorch models to MLX format with
+    optional quantization for reduced size and faster inference.
+
+    Args:
+        hf_model_name: HuggingFace model identifier (e.g., "Qwen/Qwen3-8B")
+        output_dir: Output directory (default: ~/.cache/mlx/{model_name})
+        quantize: Whether to apply quantization (default: True for 4-bit)
+        q_bits: Quantization bits - 4 or 8 (default: 4)
+        progress_callback: Optional callback(line: str) for progress updates
+
+    Returns:
+        Dict with 'success', 'output_path', 'error' keys
+
+    Raises:
+        MissingDependencyError: If mlx-lm is not installed
+        ValueError: If invalid parameters or insufficient disk space
+    """
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    # Validate mlx-lm is installed
+    try:
+        import mlx_lm  # noqa: F401
+    except ImportError as e:
+        raise MissingDependencyError(
+            "mlx-lm is required for model conversion.\n\n"
+            "Install with: pip install mlx-lm\n"
+            "Or with Consoul: pip install 'consoul[mlx]'"
+        ) from e
+
+    # Validate quantization bits
+    if q_bits not in (4, 8):
+        raise ValueError(f"Quantization bits must be 4 or 8, got: {q_bits}")
+
+    # Determine output directory
+    if output_dir is None:
+        mlx_cache = get_mlx_cache_dir()
+        # Store as: ~/.cache/mlx/Org--ModelName
+        safe_name = hf_model_name.replace("/", "--")
+        output_path = mlx_cache / safe_name
+    else:
+        output_path = Path(output_dir)
+
+    # Check if already exists
+    if output_path.exists() and (output_path / "config.json").exists():
+        return {
+            "success": True,
+            "output_path": str(output_path),
+            "message": "Model already converted",
+            "skipped": True,
+        }
+
+    # Check disk space (estimate: need 1.5x model size for conversion workspace)
+    hf_models = {m["name"]: m for m in get_huggingface_local_models()}
+    model_info = hf_models.get(hf_model_name)
+    if model_info:
+        model_size_bytes = model_info.get("size", 0)
+        required_space = model_size_bytes * 1.5  # Safety margin
+        stat = shutil.disk_usage(output_path.parent)
+        if stat.free < required_space:
+            required_gb = required_space / (1024**3)
+            available_gb = stat.free / (1024**3)
+            raise ValueError(
+                f"Insufficient disk space for conversion.\n"
+                f"Required: ~{required_gb:.1f}GB\n"
+                f"Available: {available_gb:.1f}GB"
+            )
+
+    # Build conversion command
+    cmd = [
+        "python",
+        "-m",
+        "mlx_lm.convert",
+        "--hf-path",
+        hf_model_name,
+        "--mlx-path",
+        str(output_path),
+    ]
+
+    if quantize:
+        cmd.extend(["-q", "--q-bits", str(q_bits)])
+
+    # Run conversion
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+
+        # Stream output for progress
+        output_lines = []
+        if process.stdout:
+            for line in process.stdout:
+                line = line.strip()
+                output_lines.append(line)
+                if progress_callback:
+                    progress_callback(line)
+
+        returncode = process.wait()
+
+        if returncode == 0:
+            return {
+                "success": True,
+                "output_path": str(output_path),
+                "message": "Conversion completed successfully",
+                "quantized": quantize,
+                "q_bits": q_bits if quantize else None,
+            }
+        else:
+            error_msg = "\n".join(output_lines[-10:])  # Last 10 lines
+            return {
+                "success": False,
+                "error": f"Conversion failed with code {returncode}",
+                "details": error_msg,
+            }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Conversion error: {type(e).__name__}",
+            "details": str(e),
+        }
 
 
 def find_gguf_for_model(model_name: str) -> str | None:
