@@ -218,7 +218,16 @@ def format_ollama_vision(query: str, images: list[dict[str, Any]]) -> HumanMessa
 
     for img in images:
         # LangChain Ollama expects source_type="base64" with data key
-        content.append({"type": "image", "source_type": "base64", "data": img["data"]})
+        # Also needs mime_type for tracing layer
+        mime_type = _detect_mime_type(img["path"], img.get("mime_type"))
+        content.append(
+            {
+                "type": "image",
+                "source_type": "base64",
+                "data": img["data"],
+                "mime_type": mime_type,
+            }
+        )
 
     return HumanMessage(content=content)
 

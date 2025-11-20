@@ -243,6 +243,7 @@ class TestFormatOllamaVision:
         assert message.content[1]["type"] == "image"
         assert message.content[1]["source_type"] == "base64"
         assert message.content[1]["data"] == sample_png_image["data"]
+        assert message.content[1]["mime_type"] == "image/png"
 
     def test_multiple_images_for_llava(self, sample_png_image, sample_jpeg_image):
         """Test formatting multiple images for llava model."""
@@ -253,8 +254,10 @@ class TestFormatOllamaVision:
         assert len(message.content) == 3
         assert message.content[1]["source_type"] == "base64"
         assert message.content[1]["data"] == sample_png_image["data"]
+        assert message.content[1]["mime_type"] == "image/png"
         assert message.content[2]["source_type"] == "base64"
         assert message.content[2]["data"] == sample_jpeg_image["data"]
+        assert message.content[2]["mime_type"] == "image/jpeg"
 
     def test_base64_data_inline(self, sample_webp_image):
         """Test that base64 data is inline, not in data URI."""
@@ -262,6 +265,7 @@ class TestFormatOllamaVision:
 
         assert message.content[1]["source_type"] == "base64"
         assert message.content[1]["data"] == sample_webp_image["data"]
+        assert message.content[1]["mime_type"] == "image/webp"
 
     def test_webp_support(self, sample_webp_image):
         """Test WebP image support for Ollama."""
@@ -270,6 +274,7 @@ class TestFormatOllamaVision:
         assert message.content[1]["type"] == "image"
         assert message.content[1]["source_type"] == "base64"
         assert message.content[1]["data"] == sample_webp_image["data"]
+        assert message.content[1]["mime_type"] == "image/webp"
 
 
 class TestFormatVisionMessage:
@@ -314,6 +319,7 @@ class TestFormatVisionMessage:
         assert message.content[1]["type"] == "image"
         assert message.content[1]["source_type"] == "base64"
         assert message.content[1]["data"] == sample_png_image["data"]
+        assert message.content[1]["mime_type"] == "image/png"
 
     def test_all_providers_return_humanmessage(self, sample_png_image):
         """Test that all providers return HumanMessage objects."""
