@@ -1,4 +1,168 @@
-2025-11-19 18:03:13,280 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./log.txt
-2025-11-19 18:03:16,751 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Initialized with current_model=granite4:3b, current_provider=Provider.OLLAMA, active_provider=local, ollama_available=True, huggingface_available=True
-2025-11-19 18:03:16,766 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: on_mount called, building tables and populating models
-2025-11-19 18:03:24,291 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Switched to local provider 'mlx'
+2025-11-19 18:08:18,568 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./log.txt
+2025-11-19 18:08:21,449 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Initialized with current_model=granite4:3b, current_provider=Provider.OLLAMA, active_provider=local, ollama_available=True, huggingface_available=True
+2025-11-19 18:08:21,459 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: on_mount called, building tables and populating models
+2025-11-19 18:08:24,901 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Switched to local provider 'gguf'
+2025-11-19 18:08:24,907 - consoul.tui.widgets.model_picker_modal - INFO - Loaded 4 GGUF models from cache
+2025-11-19 18:08:26,319 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Switched to local provider 'mlx'
+2025-11-19 18:08:37,448 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Switched to local provider 'gguf'
+2025-11-19 18:08:40,454 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Switched to local provider 'ollama'
+2025-11-19 18:08:44,485 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Switched to local provider 'mlx'
+2025-11-19 18:08:53,277 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Selected from Local tab provider='mlx', model='/Users/jaredrummler/.lmstudio/models/lmstudio-community/LFM2-1.2B-MLX-8bit'
+2025-11-19 18:08:53,292 - consoul.ai.providers - INFO - MLX: Loading model from model_id=/Users/jaredrummler/.lmstudio/models/lmstudio-community/LFM2-1.2B-MLX-8bit
+2025-11-19 18:08:53,292 - consoul.ai.providers - INFO - MLX: mlx_params={'model_id': '/Users/jaredrummler/.lmstudio/models/lmstudio-community/LFM2-1.2B-MLX-8bit', 'max_tokens': 2048, 'temperature': 0.7, 'top_p': 1.0, 'repetition_penalty': 1.0}
+2025-11-19 18:08:53,295 - consoul.ai.providers - INFO - MLX: Creating MLXChatWrapper with direct mlx_lm.load()...
+2025-11-19 18:08:53,295 - consoul.ai.mlx_chat_wrapper - INFO - MLXChatWrapper.__init__ called with model_id=/Users/jaredrummler/.lmstudio/models/lmstudio-community/LFM2-1.2B-MLX-8bit
+2025-11-19 18:08:53,902 - consoul.ai.mlx_chat_wrapper - INFO - MLX: Loading model directly with mlx_lm.load('/Users/jaredrummler/.lmstudio/models/lmstudio-community/LFM2-1.2B-MLX-8bit')...
+2025-11-19 18:08:53,902 - consoul.ai.mlx_chat_wrapper - INFO - MLX: Progress bars disabled to avoid TUI multiprocessing issues
+2025-11-19 18:08:54,021 - consoul.ai.mlx_chat_wrapper - INFO - MLX: Model loaded successfully
+2025-11-19 18:08:54,021 - consoul.ai.providers - INFO - MLX: MLXChatWrapper created successfully, type=<class 'consoul.ai.mlx_chat_wrapper.MLXChatWrapper'>
+2025-11-19 18:09:02,145 - consoul.tui.app - INFO - [TIMING] Message submit handler started
+2025-11-19 18:09:02,146 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.3ms
+2025-11-19 18:09:02,146 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.1ms
+2025-11-19 18:09:02,163 - consoul.tui.app - INFO - [TIMING] Added message bubble: 17.0ms
+2025-11-19 18:09:02,167 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 4.0ms
+2025-11-19 18:09:02,167 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.1ms
+2025-11-19 18:09:02,167 - consoul.tui.app - INFO - [TIMING] Worker started: 21.5ms from submit
+2025-11-19 18:09:02,167 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 21.5ms
+2025-11-19 18:09:02,180 - consoul.tui.app - INFO - Created conversation session: d6b6b06f-55a0-4cbf-a972-e185f4373fc1
+2025-11-19 18:09:02,187 - consoul.tui.app - INFO - [TIMING] DB persist complete: 20.2ms
+2025-11-19 18:09:02,187 - consoul.tui.app - INFO - [TIMING] About to call _stream_ai_response
+2025-11-19 18:09:02,187 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-19 18:09:02,187 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
+2025-11-19 18:09:02,187 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.3ms
+2025-11-19 18:09:02,187 - consoul.tui.app - INFO - [TIMING] Got model config: 0.0ms
+2025-11-19 18:09:02,190 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 2.4ms
+2025-11-19 18:09:02,190 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.5ms, total prep: 3.3ms
+2025-11-19 18:09:03,146 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 1 chunks, exception=None
+2025-11-19 18:09:03,147 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=False, value=In the quiet dawn, where shadows softly creep,
+A b
+2025-11-19 18:09:03,147 - consoul.tui.app - DEBUG - Found 0 tool_calls after merging chunks
+2025-11-19 18:09:03,147 - consoul.tui.app - DEBUG - Final tool_calls: []
+2025-11-19 18:09:03,147 - consoul.tui.app - DEBUG - Final message has 0 tool_calls
+2025-11-19 18:09:03,147 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
+2025-11-19 18:09:03,147 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
+2025-11-19 18:09:03,149 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=815, time_since=1763604543149ms, total_len=815
+2025-11-19 18:09:03,149 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 815 chars
+2025-11-19 18:09:03,150 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
+2025-11-19 18:09:03,150 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
+2025-11-19 18:09:03,150 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=In the quiet dawn, where shadows softly creep,
+A bowl of magic awaits with its warm, sunny key.
+Round and chewy, a delight to the taste buds,
+Cereal, the breakfast hero, making our mornings buds.
+
+From oats to corn, and barley, its grains so fine,
+A symphony of flavors, a breakfast divine.
+Crunchy edges to tender centers, a taste that's divine,
+With honey or nut, it dances, a sweet, crunchy line.
+
+In a jar or a bag, it’s always ready to serve,
+A morning ritual, a comforting, hearty cheer.
+Breakfast for the young and old, a staple we all know,
+Cereal, the simple joy, in every day.
+
+So here’s to the morning, to the start of a new day,
+To cereal's gentle promises, where dreams come to play.
+With every little bite, let’s raise a cup to this brainy treat,
+Cereal, the breakfast that brings us all back to beat., has_tool_calls_in_message=[], full_response_len=815, cancelled=False
+2025-11-19 18:09:03,155 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
+2025-11-19 18:09:03,155 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-19 18:09:03,163 - consoul.tui.app - INFO - [TIMING] Worker complete: 995.9ms, total: 1017.3ms
+2025-11-19 18:09:10,956 - consoul.tui.app - INFO - [TIMING] Message submit handler started
+2025-11-19 18:09:10,956 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.3ms
+2025-11-19 18:09:10,956 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.1ms
+2025-11-19 18:09:10,967 - consoul.tui.app - INFO - [TIMING] Added message bubble: 10.9ms
+2025-11-19 18:09:10,970 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 3.6ms
+2025-11-19 18:09:10,970 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.1ms
+2025-11-19 18:09:10,971 - consoul.tui.app - INFO - [TIMING] Worker started: 15.0ms from submit
+2025-11-19 18:09:10,971 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 15.1ms
+2025-11-19 18:09:10,974 - consoul.tui.app - INFO - [TIMING] DB persist complete: 3.5ms
+2025-11-19 18:09:10,974 - consoul.tui.app - INFO - [TIMING] About to call _stream_ai_response
+2025-11-19 18:09:10,974 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-19 18:09:10,974 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
+2025-11-19 18:09:10,975 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.4ms
+2025-11-19 18:09:10,975 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms
+2025-11-19 18:09:10,975 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 0.6ms
+2025-11-19 18:09:10,976 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.7ms, total prep: 1.7ms
+2025-11-19 18:09:11,608 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 1 chunks, exception=None
+2025-11-19 18:09:11,609 - consoul.tui.app - DEBUG - Found 0 tool_calls after merging chunks
+2025-11-19 18:09:11,609 - consoul.tui.app - DEBUG - Final tool_calls: []
+2025-11-19 18:09:11,609 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=False, value=```bash
+find. -type f
+```
+
+This command will list
+2025-11-19 18:09:11,609 - consoul.tui.app - DEBUG - Final message has 0 tool_calls
+2025-11-19 18:09:11,609 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
+2025-11-19 18:09:11,609 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
+2025-11-19 18:09:11,612 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=603, time_since=1763604551612ms, total_len=603
+2025-11-19 18:09:11,612 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 603 chars
+2025-11-19 18:09:11,612 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
+2025-11-19 18:09:11,612 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
+2025-11-19 18:09:11,613 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=```bash
+find. -type f
+```
+
+This command will list all files in the current directory and its subdirectories. Replace `.` with the path to the directory you want to list if it's different.
+
+For example, if you want to list files in the `./Documents` directory, use:
+
+```bash
+find./Documents -type f
+```
+
+Note: On Unix-like operating systems, the `./` is often used to specify the directory from which to start the search, but you can simply use `..` to refer to the parent directory if needed. However, for clarity and simplicity, `find.` is commonly used for listing all files in the current directory., has_tool_calls_in_message=[], full_response_len=603, cancelled=False
+2025-11-19 18:09:11,621 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
+2025-11-19 18:09:11,621 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-19 18:09:11,628 - consoul.tui.app - INFO - [TIMING] Worker complete: 657.5ms, total: 672.5ms
+2025-11-19 18:09:20,494 - consoul.tui.app - INFO - [TIMING] Message submit handler started
+2025-11-19 18:09:20,494 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.1ms
+2025-11-19 18:09:20,494 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.0ms
+2025-11-19 18:09:20,503 - consoul.tui.app - INFO - [TIMING] Added message bubble: 9.4ms
+2025-11-19 18:09:20,506 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 2.8ms
+2025-11-19 18:09:20,506 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.1ms
+2025-11-19 18:09:20,506 - consoul.tui.app - INFO - [TIMING] Worker started: 12.5ms from submit
+2025-11-19 18:09:20,506 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 12.6ms
+2025-11-19 18:09:20,512 - consoul.tui.app - INFO - [TIMING] DB persist complete: 5.3ms
+2025-11-19 18:09:20,512 - consoul.tui.app - INFO - [TIMING] About to call _stream_ai_response
+2025-11-19 18:09:20,512 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-19 18:09:20,512 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
+2025-11-19 18:09:20,513 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.9ms
+2025-11-19 18:09:20,513 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms
+2025-11-19 18:09:20,513 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 0.4ms
+2025-11-19 18:09:20,514 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.5ms, total prep: 1.8ms
+2025-11-19 18:09:20,929 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 1 chunks, exception=None
+2025-11-19 18:09:20,929 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=False, value=Here's a command using the `find` tool to list all
+2025-11-19 18:09:20,929 - consoul.tui.app - DEBUG - Found 0 tool_calls after merging chunks
+2025-11-19 18:09:20,930 - consoul.tui.app - DEBUG - Final tool_calls: []
+2025-11-19 18:09:20,930 - consoul.tui.app - DEBUG - Final message has 0 tool_calls
+2025-11-19 18:09:20,930 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
+2025-11-19 18:09:20,930 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
+2025-11-19 18:09:20,931 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=311, time_since=1763604560932ms, total_len=311
+2025-11-19 18:09:20,931 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 311 chars
+2025-11-19 18:09:20,932 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
+2025-11-19 18:09:20,932 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
+2025-11-19 18:09:20,932 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=Here's a command using the `find` tool to list all files in the current directory:
+
+```bash
+find. -type f
+```
+
+This command will search starting from the current directory (`.`) and list all files (`-type f`). You can replace `.` with any directory path if you want to search a subdirectory or another location., has_tool_calls_in_message=[], full_response_len=311, cancelled=False
+2025-11-19 18:09:20,940 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
+2025-11-19 18:09:20,940 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-19 18:09:20,945 - consoul.tui.app - INFO - [TIMING] Worker complete: 438.8ms, total: 451.3ms
+2025-11-19 18:09:32,967 - consoul.tui.app - INFO - [TIMING] Message submit handler started
+2025-11-19 18:09:32,967 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.2ms
+2025-11-19 18:09:32,967 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.1ms
+2025-11-19 18:09:32,979 - consoul.tui.app - INFO - [TIMING] Added message bubble: 11.8ms
+2025-11-19 18:09:32,983 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 3.8ms
+2025-11-19 18:09:32,983 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.1ms
+2025-11-19 18:09:32,983 - consoul.tui.app - INFO - [TIMING] Worker started: 16.2ms from submit
+2025-11-19 18:09:32,983 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 16.3ms
+2025-11-19 18:09:32,997 - consoul.tui.app - INFO - Created conversation session: ecdfcdc5-a40a-4611-8ba1-407658c6b203
+2025-11-19 18:09:33,433 - consoul.tui.app - INFO - [TIMING] DB persist complete: 449.7ms
+2025-11-19 18:09:33,433 - consoul.tui.app - INFO - [TIMING] About to call _stream_ai_response
+2025-11-19 18:09:33,433 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-19 18:09:33,433 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
+2025-11-19 18:09:33,434 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 1.1ms
+2025-11-19 18:09:33,434 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms

@@ -334,11 +334,16 @@ def create_token_counter(
     if _is_openai_model(model_name):
         return _create_tiktoken_counter(model_name)
 
-    # For local models (LlamaCpp, Ollama), avoid using model's token counter as it can
-    # cause blocking/hanging when loading GGUF models. Use approximation instead.
+    # For local models (LlamaCpp, Ollama, MLX), avoid using model's token counter as it can
+    # cause blocking/hanging when loading models. Use approximation instead.
     if model is not None:
         model_class_name = model.__class__.__name__
-        if model_class_name in ("ChatLlamaCpp", "LlamaCpp", "ChatOllama"):
+        if model_class_name in (
+            "ChatLlamaCpp",
+            "LlamaCpp",
+            "ChatOllama",
+            "MLXChatWrapper",
+        ):
             return _create_approximate_counter()
         return _create_langchain_counter(model)
 
