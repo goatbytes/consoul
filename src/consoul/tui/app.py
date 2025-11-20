@@ -632,7 +632,8 @@ class ConsoulApp(App[None]):
 
         Returns:
             Dictionary of kwargs for ConversationHistory constructor with keys:
-            persist, db_path, summarize, summarize_threshold, keep_recent, summary_model
+            persist, db_path, summarize, summarize_threshold, keep_recent,
+            summary_model, max_tokens
 
         Note:
             session_id should be added separately when resuming conversations.
@@ -667,6 +668,12 @@ class ConsoulApp(App[None]):
                     kwargs["summary_model"] = None
             else:
                 kwargs["summary_model"] = None
+
+            # Context settings - pass max_context_tokens from profile
+            # Note: 0 or None in ConversationHistory means auto-size to 75% of model capacity
+            if hasattr(self.active_profile, "context"):
+                context_config = self.active_profile.context
+                kwargs["max_tokens"] = context_config.max_context_tokens
         else:
             # Fallback to defaults if profile not available
             kwargs = {
@@ -675,6 +682,7 @@ class ConsoulApp(App[None]):
                 "summarize_threshold": 20,
                 "keep_recent": 10,
                 "summary_model": None,
+                "max_tokens": None,  # Auto-size
             }
 
         return kwargs

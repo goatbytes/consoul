@@ -198,7 +198,10 @@ class ConversationHistory:
 
         Args:
             model_name: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet")
-            max_tokens: Optional override for context limit (uses model default if None)
+            max_tokens: Context limit override. Special values:
+                       - None: Auto-size to 75% of model's context window
+                       - 0: Auto-size to 75% of model's context window
+                       - > 0: Use explicit limit (capped at model maximum)
             model: Optional LangChain model instance for provider-specific token counting
             persist: Enable SQLite persistence (default: True)
             session_id: Optional session ID to resume existing conversation
@@ -209,8 +212,11 @@ class ConversationHistory:
             summary_model: Optional cheaper model for generating summaries (default: use main model)
 
         Example:
-            >>> # In-memory (default)
+            >>> # In-memory with auto-sizing (75% of model capacity)
             >>> history = ConversationHistory("gpt-4o")
+
+            >>> # With explicit context limit
+            >>> history = ConversationHistory("gpt-4o", max_tokens=50000)
 
             >>> # With persistence - new session
             >>> history = ConversationHistory("gpt-4o", persist=True)
@@ -228,7 +234,16 @@ class ConversationHistory:
             ... )
         """
         self.model_name = model_name
-        self.max_tokens = max_tokens or get_model_token_limit(model_name)
+
+        # Calculate context window size
+        model_limit = get_model_token_limit(model_name)
+
+        if max_tokens is None or max_tokens == 0:
+            # Auto-size: use 75% of model's context window
+            self.max_tokens = int(model_limit * 0.75)
+        else:
+            # Use explicit limit, but cap at model maximum
+            self.max_tokens = min(max_tokens, model_limit)
         self.messages: list[BaseMessage] = []
         self._token_counter = create_token_counter(model_name, model)
         self._model = model

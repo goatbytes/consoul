@@ -66,7 +66,7 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "keep_recent": 10,
             },
             "context": {
-                "max_context_tokens": 4096,
+                "max_context_tokens": 0,  # Auto-size: 75% of model's context window
                 "include_system_info": True,
                 "include_git_info": True,
                 "custom_context_files": [],
@@ -90,7 +90,7 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "keep_recent": 10,
             },
             "context": {
-                "max_context_tokens": 8192,
+                "max_context_tokens": 0,  # Auto-size: 75% of model's context window
                 "include_system_info": True,
                 "include_git_info": True,
                 "custom_context_files": [],
@@ -114,7 +114,7 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "keep_recent": 10,
             },
             "context": {
-                "max_context_tokens": 4096,
+                "max_context_tokens": 0,  # Auto-size: 75% of model's context window
                 "include_system_info": False,
                 "include_git_info": False,
                 "custom_context_files": [],
@@ -134,7 +134,7 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "keep_recent": 10,
             },
             "context": {
-                "max_context_tokens": 2048,
+                "max_context_tokens": 4096,  # Explicit cap for speed
                 "include_system_info": True,
                 "include_git_info": True,
                 "custom_context_files": [],
