@@ -718,6 +718,9 @@ class ConsoulApp(App[None]):
             return False
 
         model_name = self.consoul_config.current_model.lower()
+        logger.info(
+            f"[IMAGE_DETECTION] Checking vision support for model: {model_name}"
+        )
 
         vision_patterns = [
             "claude-3",
@@ -731,7 +734,9 @@ class ConsoulApp(App[None]):
             "bakllava",  # Ollama llava models
         ]
 
-        return any(pattern in model_name for pattern in vision_patterns)
+        has_vision = any(pattern in model_name for pattern in vision_patterns)
+        logger.info(f"[IMAGE_DETECTION] Model '{model_name}' has vision: {has_vision}")
+        return has_vision
 
     def _sync_vision_tool_registration(self) -> None:
         """Synchronize analyze_images tool registration with current model capabilities.
