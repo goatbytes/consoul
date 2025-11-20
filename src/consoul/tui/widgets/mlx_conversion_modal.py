@@ -46,7 +46,7 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
 
     MLXConversionModal Vertical {
         height: auto;
-        max-height: 60vh;
+        max-height: 80vh;
         overflow-y: auto;
     }
 
@@ -60,7 +60,7 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
 
     MLXConversionModal .model-info {
         width: 100%;
-        padding: 0 0 1 0;
+        padding: 2 0 1 0;
         color: $text-muted;
     }
 
@@ -75,13 +75,14 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
 
     MLXConversionModal .size-estimate {
         width: 100%;
-        padding: 0;
+        padding: 1 0 0 0;
         color: $success;
         text-style: italic;
     }
 
     MLXConversionModal .warning {
         width: 100%;
+        margin-top: 1;
         padding: 0;
         color: $warning;
         text-style: italic;
@@ -102,6 +103,7 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
     MLXConversionModal .modal-actions {
         width: 100%;
         height: auto;
+        min-height: 9vh;
         layout: horizontal;
         align: center middle;
         padding: 0;
@@ -109,6 +111,7 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
     }
 
     MLXConversionModal Button {
+        height: auto;
         margin: 0 1;
     }
     """
@@ -167,12 +170,12 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
             yield self.size_label
 
             yield Label(
-                "⚠️  May take 5-30 min",
+                "⚠ May take 5-30 min",
                 classes="warning",
             )
 
             # Progress section (hidden initially)
-            with Vertical(id="progress-section"):
+            with Vertical(id="progress-section") as progress_section:
                 self.progress_label = Label(
                     "Starting conversion...",
                     classes="progress-label",
@@ -185,8 +188,11 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
                     show_eta=False,
                     id="conversion-progress",
                 )
-                self.progress_bar.display = False  # Hidden until conversion starts
                 yield self.progress_bar
+
+            # Hide entire progress section initially
+            progress_section.display = False
+            self.progress_section = progress_section
 
             with Horizontal(classes="modal-actions"):
                 yield Button("Start Conversion", variant="primary", id="start-button")
@@ -268,7 +274,7 @@ class MLXConversionModal(ModalScreen[dict[str, str | int | bool] | None]):
         """
         if not self.converting:
             self.converting = True
-            self.progress_bar.display = True
+            self.progress_section.display = True
 
         self.progress_bar.update(progress=progress)
         if message:
