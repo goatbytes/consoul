@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-16T23:46:04.839527",
-  "updated_at": "2025-11-17T07:53:52.061463Z",
+  "updated_at": "2025-11-20T04:23:22.879643Z",
   "id": "SOUL-129",
   "uuid": "29ad2c89-5836-4b68-9081-26cb81276196",
   "title": "Add MLX provider support for Apple Silicon",
@@ -13,6 +13,7 @@
     "ai",
     "providers"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
@@ -22,5 +23,10 @@
   "comment_count": 0,
   "story_points": 8,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-19T20:23:41.481373",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

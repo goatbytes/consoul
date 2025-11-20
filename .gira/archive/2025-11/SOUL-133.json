@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-16T23:46:43.046354",
-  "updated_at": "2025-11-17T07:53:21.232668Z",
+  "updated_at": "2025-11-20T04:23:22.877765Z",
   "id": "SOUL-133",
   "uuid": "54ba134f-0982-4635-a3b4-ecef0731e355",
   "title": "Remove traceback.print_exc from TUI error handlers",
@@ -13,6 +13,7 @@
     "bug",
     "logging"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
@@ -22,5 +23,10 @@
   "comment_count": 0,
   "story_points": 1,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-19T20:23:42.030051",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

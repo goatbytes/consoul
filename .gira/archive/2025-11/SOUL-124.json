@@ -23,7 +23,7 @@
       "id": "20251116090753-2c09a8a0",
       "ticket_id": "SOUL-124",
       "author": "jared@goatbytes.io",
-      "content": "Implementation completed successfully.\n\nChanges made:\n- Updated langchain-huggingface version in [project] dependencies from >=0.1.0 to >=1.0.0 (line 52)\n- Added langchain-huggingface = \"^1.0.1\" to [tool.poetry.dependencies] (line 119)\n- Added \"langchain_huggingface.*\" to mypy ignore list in [[tool.mypy.overrides]] (line 274)\n- Regenerated poetry.lock with poetry lock (successful resolution)\n\nVerification:\n✓ poetry show langchain-huggingface confirms version 1.0.1 installed\n✓ Dependencies: huggingface-hub >=0.33.4, langchain-core >=1.0.3, tokenizers >=0.19.1\n✓ Mypy verification: No langchain_huggingface import errors\n✓ No dependency conflicts detected\n\nHuggingFace provider support is now fully integrated into the project dependencies.",
+      "content": "Implementation completed successfully.\n\nChanges made:\n- Updated langchain-huggingface version in [project] dependencies from >=0.1.0 to >=1.0.0 (line 52)\n- Added langchain-huggingface = \"^1.0.1\" to [tool.poetry.dependencies] (line 119)\n- Added \"langchain_huggingface.*\" to mypy ignore list in [[tool.mypy.overrides]] (line 274)\n- Regenerated poetry.lock with poetry lock (successful resolution)\n\nVerification:\n\u2713 poetry show langchain-huggingface confirms version 1.0.1 installed\n\u2713 Dependencies: huggingface-hub >=0.33.4, langchain-core >=1.0.3, tokenizers >=0.19.1\n\u2713 Mypy verification: No langchain_huggingface import errors\n\u2713 No dependency conflicts detected\n\nHuggingFace provider support is now fully integrated into the project dependencies.",
       "edited": false,
       "edit_count": 0,
       "is_ai_generated": false,
@@ -36,5 +36,10 @@
   "comment_count": 1,
   "story_points": 1,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-19T20:23:42.128883",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

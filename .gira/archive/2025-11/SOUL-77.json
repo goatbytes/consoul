@@ -24,7 +24,7 @@
       "id": "20251118211309-c65b2c9e",
       "ticket_id": "SOUL-77",
       "author": "jared@goatbytes.io",
-      "content": "Implementation complete. All ConversationConfig settings now supported in TUI:\n\n✅ Added delete_conversations_older_than() to ConversationDatabase\n✅ Created _get_conversation_config() helper in TUI app  \n✅ Updated all 3 ConversationHistory creation points to use profile settings\n✅ Implemented auto_resume on startup\n✅ Implemented retention_days cleanup on startup\n✅ Added comprehensive tests for retention cleanup\n\nFiles modified:\n- src/consoul/ai/database.py: Added retention cleanup method\n- src/consoul/tui/app.py: Integrated all ConversationConfig settings\n- tests/ai/test_database.py: Added retention cleanup tests\n\nAll acceptance criteria met. Ready for testing in TUI.",
+      "content": "Implementation complete. All ConversationConfig settings now supported in TUI:\n\n\u2705 Added delete_conversations_older_than() to ConversationDatabase\n\u2705 Created _get_conversation_config() helper in TUI app  \n\u2705 Updated all 3 ConversationHistory creation points to use profile settings\n\u2705 Implemented auto_resume on startup\n\u2705 Implemented retention_days cleanup on startup\n\u2705 Added comprehensive tests for retention cleanup\n\nFiles modified:\n- src/consoul/ai/database.py: Added retention cleanup method\n- src/consoul/tui/app.py: Integrated all ConversationConfig settings\n- tests/ai/test_database.py: Added retention cleanup tests\n\nAll acceptance criteria met. Ready for testing in TUI.",
       "edited": false,
       "edit_count": 0,
       "is_ai_generated": false,
@@ -37,7 +37,7 @@
       "id": "20251118213126-cebede19",
       "ticket_id": "SOUL-77",
       "author": "jared@goatbytes.io",
-      "content": "Additional fixes applied based on code review:\n\n🐛 Fixed critical bug: ConversationList sidebar now uses profile.conversation.db_path\n  - Previously used default path, causing UI to show incorrect/empty history\n  - Now properly reads from the same database as conversations\n  - Location: src/consoul/tui/app.py:590-600\n\n📝 Fixed documentation: Removed stray footnote markers from example-prompts.md\n  - Lines 65 and 75 had .1 and .2 markers without definitions\n  - Cleaned up for proper rendering\n\nAll issues resolved. Implementation complete and tested.",
+      "content": "Additional fixes applied based on code review:\n\n\ud83d\udc1b Fixed critical bug: ConversationList sidebar now uses profile.conversation.db_path\n  - Previously used default path, causing UI to show incorrect/empty history\n  - Now properly reads from the same database as conversations\n  - Location: src/consoul/tui/app.py:590-600\n\n\ud83d\udcdd Fixed documentation: Removed stray footnote markers from example-prompts.md\n  - Lines 65 and 75 had .1 and .2 markers without definitions\n  - Cleaned up for proper rendering\n\nAll issues resolved. Implementation complete and tested.",
       "edited": false,
       "edit_count": 0,
       "is_ai_generated": false,
@@ -50,7 +50,7 @@
       "id": "20251118222107-314afe4a",
       "ticket_id": "SOUL-77",
       "author": "jared@goatbytes.io",
-      "content": "Final fix applied - honors persist=false setting:\n\n🔒 Sidebar now respects profile.conversation.persist setting\n  - When persist=false, sidebar is completely skipped\n  - Prevents hitting SQLite DB when persistence is disabled\n  - Matches new config semantics throughout TUI\n  - Location: src/consoul/tui/app.py:587-609\n\n✅ Verified footnote markers fully removed from docs/example-prompts.md\n  - Lines 65 and 75 confirmed clean\n  - No remaining .1 or .2 markers\n\nAll code review issues resolved. Implementation is complete and respects all ConversationConfig settings consistently.",
+      "content": "Final fix applied - honors persist=false setting:\n\n\ud83d\udd12 Sidebar now respects profile.conversation.persist setting\n  - When persist=false, sidebar is completely skipped\n  - Prevents hitting SQLite DB when persistence is disabled\n  - Matches new config semantics throughout TUI\n  - Location: src/consoul/tui/app.py:587-609\n\n\u2705 Verified footnote markers fully removed from docs/example-prompts.md\n  - Lines 65 and 75 confirmed clean\n  - No remaining .1 or .2 markers\n\nAll code review issues resolved. Implementation is complete and respects all ConversationConfig settings consistently.",
       "edited": false,
       "edit_count": 0,
       "is_ai_generated": false,
@@ -63,5 +63,10 @@
   "comment_count": 3,
   "story_points": 5,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-19T20:23:41.430887",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

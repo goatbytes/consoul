@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-18T23:43:17.280642",
-  "updated_at": "2025-11-19T18:55:30.905107Z",
+  "updated_at": "2025-11-20T04:23:22.883066Z",
   "id": "SOUL-136",
   "uuid": "49b122ab-de28-4f05-8d91-0d03288b93eb",
   "title": "Add profile creation and editing UI in TUI",
@@ -14,6 +14,7 @@
     "enhancement",
     "ux-improvement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
@@ -23,5 +24,10 @@
   "comment_count": 0,
   "story_points": 8,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-19T20:23:41.692341",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }
