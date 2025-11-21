@@ -2904,8 +2904,9 @@ class ConsoulApp(App[None]):
                     tool_calls = msg.get("tool_calls", [])
                     attachments = msg.get("attachments", [])
 
-                    # Skip system messages in display
-                    if role == "system":
+                    # Skip system and tool messages in display
+                    # Tool results are shown via the 🛠 button modal
+                    if role in ("system", "tool"):
                         continue
 
                     # Handle multimodal content (deserialize JSON if needed)
