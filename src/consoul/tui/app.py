@@ -2621,6 +2621,46 @@ class ConsoulApp(App[None]):
 
         return content
 
+    async def _display_reconstructed_tool_calls(
+        self,
+        tool_calls: list[dict[str, Any]],
+    ) -> None:
+        """Display tool calls from a loaded conversation using ToolCallWidget.
+
+        Args:
+            tool_calls: List of tool call dicts from database
+        """
+        if not tool_calls:
+            return
+
+        from consoul.ai.tools.status import ToolStatus
+        from consoul.tui.widgets.tool_call_widget import ToolCallWidget
+
+        for tool_call in tool_calls:
+            tool_name = tool_call.get("tool_name", "unknown")
+            arguments = tool_call.get("arguments", {})
+            status_str = tool_call.get("status", "pending").upper()
+            result = tool_call.get("result")
+
+            # Map status string to ToolStatus enum
+            try:
+                status = ToolStatus[status_str]
+            except KeyError:
+                status = ToolStatus.PENDING
+
+            # Create widget with historical data
+            widget = ToolCallWidget(
+                tool_name=tool_name,
+                arguments=arguments,
+                status=status,
+            )
+
+            # Set result if available
+            if result:
+                widget.result = result
+
+            await self.chat_view.add_message(widget)
+
     async def _display_reconstructed_attachments(
         self,
         attachments: list[dict[str, Any]],
@@ -2903,18 +2943,24 @@ class ConsoulApp(App[None]):
                     # Handle multimodal content (deserialize JSON if needed)
                     display_content = self._extract_display_content(content)
 
-                    # Create message bubble with tool call metadata for reconstruction
-                    bubble = MessageBubble(
-                        display_content,
-                        role=role,
-                        show_metadata=True,
-                        tool_calls=tool_calls if tool_calls else None,
-                    )
-                    await self.chat_view.add_message(bubble)
+                    # Create message bubble
+                    # Only pass tool_calls if content exists (don't show empty assistant bubbles)
+                    if display_content or not tool_calls:
+                        bubble = MessageBubble(
+                            display_content,
+                            role=role,
+                            show_metadata=True,
+                            tool_calls=tool_calls if tool_calls else None,
+                        )
+                        await self.chat_view.add_message(bubble)
 
                     # Display attachments for user messages
                     if attachments and role == "user":
                         await self._display_reconstructed_attachments(attachments)
+
+                    # Reconstruct tool call widgets for assistant messages
+                    if tool_calls and role == "assistant":
+                        await self._display_reconstructed_tool_calls(tool_calls)
 
                 # Update conversation ID to resume this conversation
                 self.conversation_id = conversation_id
