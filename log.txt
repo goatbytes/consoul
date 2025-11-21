@@ -10,3 +10,23 @@
 2025-11-21 12:20:52,833 - consoul.ai.history - INFO - Loaded 1 messages from session 4f2573e9-365f-4f1e-9d1d-391a3109deee
 2025-11-21 12:20:54,178 - consoul.ai.history - INFO - Loaded 1 messages from session 4f2573e9-365f-4f1e-9d1d-391a3109deee
 2025-11-21 12:20:55,459 - consoul.ai.history - INFO - Loaded 4 messages from session a4868e06-cfea-4249-90f1-3a69be1e5a8e
+2025-11-21 12:28:16,279 - consoul.tui.app - INFO - [TIMING] Message submit handler started
+2025-11-21 12:28:16,279 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.2ms
+2025-11-21 12:28:16,279 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.1ms
+2025-11-21 12:28:16,287 - consoul.tui.app - INFO - [TIMING] Added message bubble: 8.6ms
+2025-11-21 12:28:16,292 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 4.2ms
+2025-11-21 12:28:16,292 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.1ms
+2025-11-21 12:28:16,293 - consoul.tui.app - INFO - [IMAGE_DETECTION] Auto-detect enabled: True, Attached images: 0, Auto-detected: 0, Total (deduplicated): 0
+2025-11-21 12:28:16,293 - consoul.tui.app - INFO - [IMAGE_DETECTION] Checking vision support for model: granite4:3b
+2025-11-21 12:28:16,293 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model 'granite4:3b' has vision: False
+2025-11-21 12:28:16,293 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model supports vision: False
+2025-11-21 12:28:16,293 - consoul.tui.app - INFO - [IMAGE_DETECTION] Condition check: image_paths=False, model_supports_vision=False, combined=False
+2025-11-21 12:28:16,293 - consoul.tui.app - INFO - [TIMING] Worker started: 14.3ms from submit
+2025-11-21 12:28:16,293 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 14.4ms
+2025-11-21 12:28:16,297 - consoul.tui.app - INFO - Created conversation session: 9e80390c-0295-4d79-bc57-142a19797cd2
+2025-11-21 12:28:16,699 - consoul.tui.app - INFO - [TIMING] DB persist complete: 406.4ms
+2025-11-21 12:28:16,699 - consoul.tui.app - INFO - [TIMING] About to call _stream_ai_response
+2025-11-21 12:28:16,699 - consoul.tui.app - INFO - [TIMING] _stream_ai_response ENTRY
+2025-11-21 12:28:16,699 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
+2025-11-21 12:28:16,700 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.4ms
+2025-11-21 12:28:16,700 - consoul.tui.app - INFO - [TIMING] Got model config: 0.1ms

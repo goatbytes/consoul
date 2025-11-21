@@ -1122,10 +1122,18 @@ class ConsoulApp(App[None]):
 
             # Persist message to DB and save attachments
             if self.conversation is not None and self.conversation.persist:
-                user_message_id = await self.conversation._persist_message(message)
-                # Save attachments linked to this user message
-                if user_message_id and attached_files:
-                    await self._persist_attachments(user_message_id, attached_files)
+                try:
+                    user_message_id = await self.conversation._persist_message(message)
+                    logger.debug(f"Persisted user message with ID: {user_message_id}")
+                    # Save attachments linked to this user message
+                    if user_message_id and attached_files:
+                        logger.debug(f"Persisting {len(attached_files)} attachments")
+                        await self._persist_attachments(user_message_id, attached_files)
+                        logger.debug("Attachments persisted successfully")
+                except Exception as e:
+                    logger.error(
+                        f"Failed to persist message or attachments: {e}", exc_info=True
+                    )
 
             # Reload conversation list if first message
             if is_first_message and hasattr(self, "conversation_list"):
