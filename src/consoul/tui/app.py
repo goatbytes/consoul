@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
 from consoul.tui.config import TuiConfig
 from consoul.tui.css.themes import load_theme
-from consoul.tui.widgets import MessageBubble
+from consoul.tui.widgets import InputArea, MessageBubble
 
 __all__ = ["ConsoulApp"]
 
@@ -976,35 +976,90 @@ class ConsoulApp(App[None]):
         # Add user message to conversation history immediately (in-memory)
         from langchain_core.messages import HumanMessage
 
+        # Get attached files from InputArea
+        input_area = self.query_one(InputArea)
+        attached_files = input_area.attached_files.copy()
+
+        # Separate images from text files
+        attached_images = [f.path for f in attached_files if f.type == "image"]
+        attached_text_files = [
+            f for f in attached_files if f.type in {"code", "document", "data"}
+        ]
+
         # Check for image references in the user message
         from consoul.tui.utils.image_parser import extract_image_paths
 
-        _original_message, image_paths = extract_image_paths(user_message)
+        # Get image analysis config to check if auto-detection is enabled
+        auto_detect_enabled = False
+        if self.consoul_config and self.consoul_config.tools:
+            image_tool_config = self.consoul_config.tools.image_analysis
+            auto_detect_enabled = getattr(
+                image_tool_config, "auto_detect_in_messages", False
+            )
+
+        _original_message, auto_detected_paths = extract_image_paths(user_message)
+
+        # Combine attached images with auto-detected paths and deduplicate
+        all_image_paths = list(set(attached_images + auto_detected_paths))
 
         # Debug logging
         logger.info(
-            f"[IMAGE_DETECTION] Extracted {len(image_paths)} image(s) from message"
+            f"[IMAGE_DETECTION] Auto-detect enabled: {auto_detect_enabled}, "
+            f"Attached images: {len(attached_images)}, Auto-detected: {len(auto_detected_paths)}, "
+            f"Total (deduplicated): {len(all_image_paths)}"
         )
-        if image_paths:
-            logger.info(f"[IMAGE_DETECTION] Image paths: {image_paths}")
+        if all_image_paths:
+            logger.info(f"[IMAGE_DETECTION] Image paths: {all_image_paths}")
         model_supports_vision = self._model_supports_vision()
         logger.info(f"[IMAGE_DETECTION] Model supports vision: {model_supports_vision}")
 
-        # Create multimodal message if images found and model supports vision
+        # Handle text file attachments - prepend to message
+        final_message = user_message
+        if attached_text_files:
+            text_content_parts = []
+            for file in attached_text_files:
+                try:
+                    from pathlib import Path
+
+                    path_obj = Path(file.path)
+                    # Limit to 10KB per file
+                    if path_obj.stat().st_size > 10 * 1024:
+                        logger.warning(
+                            f"Skipping large file {path_obj.name} ({path_obj.stat().st_size} bytes)"
+                        )
+                        continue
+
+                    content = path_obj.read_text(encoding="utf-8")
+                    text_content_parts.append(
+                        f"--- {path_obj.name} ---\n{content}\n--- End of {path_obj.name} ---"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to read file {file.path}: {e}")
+                    continue
+
+            # Prepend file contents to message
+            if text_content_parts:
+                final_message = "\n\n".join(text_content_parts) + "\n\n" + user_message
+
+        # Create multimodal message if:
+        # 1. Images found (attached or auto-detected)
+        # 2. Model supports vision
         logger.info(
-            f"[IMAGE_DETECTION] Condition check: image_paths={bool(image_paths)}, "
-            f"model_supports_vision={model_supports_vision}, "
-            f"combined={bool(image_paths and model_supports_vision)}"
+            f"[IMAGE_DETECTION] Condition check: "
+            f"image_paths={bool(all_image_paths)}, model_supports_vision={model_supports_vision}, "
+            f"combined={bool(all_image_paths) and model_supports_vision}"
         )
-        if image_paths and model_supports_vision:
+        if all_image_paths and model_supports_vision:
             logger.info("[IMAGE_DETECTION] ENTERING multimodal message creation block")
             try:
                 logger.info(
-                    f"[IMAGE_DETECTION] About to call _create_multimodal_message with {len(image_paths)} image(s)"
+                    f"[IMAGE_DETECTION] About to call _create_multimodal_message with {len(all_image_paths)} image(s)"
                 )
-                message = self._create_multimodal_message(user_message, image_paths)
+                message = self._create_multimodal_message(
+                    final_message, all_image_paths
+                )
                 logger.info(
-                    f"[IMAGE_DETECTION] Created multimodal message with {len(image_paths)} image(s)"
+                    f"[IMAGE_DETECTION] Created multimodal message with {len(all_image_paths)} image(s)"
                 )
             except Exception as e:
                 # Fall back to text-only message and show error
@@ -1021,10 +1076,14 @@ class ConsoulApp(App[None]):
                     show_metadata=False,
                 )
                 await self.chat_view.add_message(error_bubble)
-                message = HumanMessage(content=user_message)
+                message = HumanMessage(content=final_message)
         else:
             # Regular text message
-            message = HumanMessage(content=user_message)
+            message = HumanMessage(content=final_message)
+
+        # Clear attached files after processing
+        input_area.attached_files.clear()
+        input_area._update_file_chips()
 
         self.conversation.messages.append(message)
 
@@ -1242,19 +1301,17 @@ class ConsoulApp(App[None]):
                     "[IMAGE_DETECTION] Added system message at beginning to guide vision analysis"
                 )
 
-            # Convert to dict format for LangChain (also can be slow with many messages)
-            messages_dict = await loop.run_in_executor(
-                None, lambda: [to_dict_message(msg) for msg in messages]
-            )
-
-            # Debug: Log message structure for multimodal messages
+            # For multimodal messages, pass LangChain messages directly
+            # For text-only messages, convert to dict format
             if has_multimodal_content:
+                messages_to_send = messages
                 logger.info(
-                    f"[IMAGE_DETECTION] Sending {len(messages_dict)} messages to model"
+                    f"[IMAGE_DETECTION] Sending {len(messages_to_send)} LangChain messages directly to model"
                 )
-                for i, msg_dict in enumerate(messages_dict):
-                    msg_type = msg_dict.get("type", "unknown")
-                    content = msg_dict.get("content", "")
+                # Debug: Log message structure
+                for i, msg in enumerate(messages_to_send):
+                    msg_type = msg.type
+                    content = msg.content
                     if isinstance(content, list):
                         logger.info(
                             f"[IMAGE_DETECTION] Message {i} ({msg_type}): {len(content)} content blocks"
@@ -1280,6 +1337,11 @@ class ConsoulApp(App[None]):
                         logger.info(
                             f"[IMAGE_DETECTION] Message {i} ({msg_type}): {content_preview}"
                         )
+            else:
+                # Convert to dict format for LangChain (also can be slow with many messages)
+                messages_to_send = await loop.run_in_executor(
+                    None, lambda: [to_dict_message(msg) for msg in messages]
+                )
 
             s4 = time.time()
             logger.info(
@@ -1351,7 +1413,7 @@ class ConsoulApp(App[None]):
                 collected_chunks: list[AIMessage] = []
                 exception_caught: Exception | None = None
                 try:
-                    for chunk in model_to_use.stream(messages_dict):  # type: ignore[union-attr]
+                    for chunk in model_to_use.stream(messages_to_send):  # type: ignore[union-attr]
                         # Check for cancellation
                         if self._stream_cancelled:
                             break
