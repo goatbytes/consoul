@@ -2580,6 +2580,47 @@ class ConsoulApp(App[None]):
         except Exception as e:
             logger.warning(f"Failed to persist attachments: {e}")
 
+    def _extract_display_content(self, content: str) -> str:
+        """Extract displayable text from message content.
+
+        Handles multimodal content that was JSON-serialized, extracting text
+        and replacing image data with placeholders.
+
+        Args:
+            content: Message content (string or JSON-serialized list)
+
+        Returns:
+            Clean display text without base64 image data
+        """
+        # Try to parse as JSON (multimodal content)
+        if isinstance(content, str) and content.startswith("["):
+            try:
+                import json
+
+                content_list = json.loads(content)
+                if isinstance(content_list, list):
+                    # Extract text parts and replace images with placeholders
+                    text_parts = []
+                    image_count = 0
+
+                    for item in content_list:
+                        if isinstance(item, dict):
+                            if item.get("type") == "text":
+                                text_parts.append(item.get("text", ""))
+                            elif item.get("type") == "image_url":
+                                image_count += 1
+                                # Add image placeholder instead of base64 data
+                                text_parts.append(f"[Image {image_count}]")
+                        elif isinstance(item, str):
+                            text_parts.append(item)
+
+                    return "\n".join(text_parts) if text_parts else content
+            except (json.JSONDecodeError, ValueError):
+                # Not JSON or invalid - return as-is
+                pass
+
+        return content
+
     async def _display_reconstructed_attachments(
         self,
         attachments: list[dict[str, Any]],
@@ -2859,9 +2900,12 @@ class ConsoulApp(App[None]):
                     if role == "system":
                         continue
 
+                    # Handle multimodal content (deserialize JSON if needed)
+                    display_content = self._extract_display_content(content)
+
                     # Create message bubble with tool call metadata for reconstruction
                     bubble = MessageBubble(
-                        content,
+                        display_content,
                         role=role,
                         show_metadata=True,
                         tool_calls=tool_calls if tool_calls else None,
