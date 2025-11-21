@@ -327,6 +327,7 @@ class ImportModal(ModalScreen[bool]):
                             role=msg["role"],
                             content=msg["content"],
                             tokens=msg.get("tokens"),
+                            message_type=msg.get("message_type", msg["role"]),
                         )
 
                     imported_count += 1
@@ -367,6 +368,7 @@ class ImportModal(ModalScreen[bool]):
                         role=msg["role"],
                         content=msg["content"],
                         tokens=msg.get("tokens"),
+                        message_type=msg.get("message_type", msg["role"]),
                     )
 
                 imported_count = 1

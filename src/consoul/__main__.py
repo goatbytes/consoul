@@ -731,6 +731,7 @@ def import_history(import_file: Path, dry_run: bool, db_path: Path | None) -> No
                         role=msg["role"],
                         content=msg["content"],
                         tokens=msg.get("tokens"),
+                        message_type=msg.get("message_type", msg["role"]),
                     )
 
                 imported_count += 1
@@ -771,6 +772,7 @@ def import_history(import_file: Path, dry_run: bool, db_path: Path | None) -> No
                     role=msg["role"],
                     content=msg["content"],
                     tokens=msg.get("tokens"),
+                    message_type=msg.get("message_type", msg["role"]),
                 )
 
             click.echo(f"✓ Imported conversation: {session_id}")

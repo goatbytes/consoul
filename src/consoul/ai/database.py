@@ -60,7 +60,7 @@ class ConversationDatabase:
         >>> conversations = db.list_conversations(limit=10)
     """
 
-    SCHEMA_VERSION = 1  # Single schema version (pre-release)
+    SCHEMA_VERSION = 2  # Schema v2: Added message_type, tool_calls, attachments tables
 
     def __init__(self, db_path: Path | str = "~/.consoul/history.db"):
         """Initialize database connection and schema.
@@ -107,9 +107,11 @@ class ConversationDatabase:
                     summary TEXT DEFAULT NULL
                 );
 
+                -- Enhanced messages table with type discrimination
                 CREATE TABLE IF NOT EXISTS messages (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     conversation_id TEXT NOT NULL,
+                    message_type TEXT NOT NULL DEFAULT 'user',
                     role TEXT NOT NULL,
                     content TEXT NOT NULL,
                     tokens INTEGER,
@@ -118,8 +120,39 @@ class ConversationDatabase:
                         ON DELETE CASCADE
                 );
 
+                -- Tool calls table (linked to message)
+                CREATE TABLE IF NOT EXISTS tool_calls (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    message_id INTEGER NOT NULL,
+                    tool_name TEXT NOT NULL,
+                    arguments TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    result TEXT,
+                    timestamp TEXT NOT NULL,
+                    FOREIGN KEY (message_id) REFERENCES messages(id)
+                        ON DELETE CASCADE
+                );
+
+                -- Attachments table (linked to message)
+                CREATE TABLE IF NOT EXISTS attachments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    message_id INTEGER NOT NULL,
+                    file_path TEXT NOT NULL,
+                    file_type TEXT NOT NULL,
+                    mime_type TEXT NOT NULL,
+                    file_size INTEGER,
+                    FOREIGN KEY (message_id) REFERENCES messages(id)
+                        ON DELETE CASCADE
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_messages_conversation
                     ON messages(conversation_id);
+                CREATE INDEX IF NOT EXISTS idx_messages_type
+                    ON messages(message_type);
+                CREATE INDEX IF NOT EXISTS idx_tool_calls_message
+                    ON tool_calls(message_id);
+                CREATE INDEX IF NOT EXISTS idx_attachments_message
+                    ON attachments(message_id);
                 CREATE INDEX IF NOT EXISTS idx_conversations_session
                     ON conversations(session_id);
                 CREATE INDEX IF NOT EXISTS idx_conversations_updated
@@ -206,7 +239,12 @@ class ConversationDatabase:
             raise DatabaseError(f"Failed to create conversation: {e}") from e
 
     def save_message(
-        self, session_id: str, role: str, content: str, tokens: int | None = None
+        self,
+        session_id: str,
+        role: str,
+        content: str,
+        tokens: int | None = None,
+        message_type: str | None = None,
     ) -> int:
         """Save a message to a conversation.
 
@@ -215,6 +253,9 @@ class ConversationDatabase:
             role: Message role ("system", "user", "assistant")
             content: Message content
             tokens: Optional token count for this message
+            message_type: Message type for UI reconstruction
+                         ("user", "assistant", "system", "tool_call", "tool_result")
+                         Defaults to role if not specified.
 
         Returns:
             The ID of the inserted message
@@ -231,6 +272,8 @@ class ConversationDatabase:
             True
         """
         now = datetime.utcnow().isoformat()
+        # Default message_type to role if not specified
+        msg_type = message_type or role
 
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -243,11 +286,11 @@ class ConversationDatabase:
                         f"Conversation not found: {session_id}"
                     )
 
-                # Insert message
+                # Insert message with message_type
                 cursor = conn.execute(
-                    "INSERT INTO messages (conversation_id, role, content, tokens, timestamp) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (session_id, role, content, tokens, now),
+                    "INSERT INTO messages (conversation_id, message_type, role, content, tokens, timestamp) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (session_id, msg_type, role, content, tokens, now),
                 )
                 message_id = cursor.lastrowid
                 if message_id is None:
@@ -265,6 +308,104 @@ class ConversationDatabase:
         except Exception as e:
             raise DatabaseError(f"Failed to save message: {e}") from e
 
+    def save_tool_call(
+        self,
+        message_id: int,
+        tool_name: str,
+        arguments: dict[str, Any],
+        status: str = "pending",
+        result: str | None = None,
+    ) -> int:
+        """Save a tool call linked to a message.
+
+        Args:
+            message_id: ID of the parent message
+            tool_name: Name of the tool being called
+            arguments: Tool arguments as a dictionary
+            status: Execution status (pending, executing, success, error, denied)
+            result: Optional result text
+
+        Returns:
+            The ID of the inserted tool call
+
+        Raises:
+            DatabaseError: If save operation fails
+        """
+        now = datetime.utcnow().isoformat()
+
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute(
+                    "INSERT INTO tool_calls (message_id, tool_name, arguments, status, result, timestamp) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (message_id, tool_name, json.dumps(arguments), status, result, now),
+                )
+                tool_call_id = cursor.lastrowid
+                if tool_call_id is None:
+                    raise DatabaseError("Failed to get inserted tool call ID")
+                return tool_call_id
+        except Exception as e:
+            raise DatabaseError(f"Failed to save tool call: {e}") from e
+
+    def update_tool_call(
+        self,
+        tool_call_id: int,
+        status: str,
+        result: str | None = None,
+    ) -> None:
+        """Update a tool call's status and result.
+
+        Args:
+            tool_call_id: ID of the tool call to update
+            status: New execution status
+            result: Optional result text
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "UPDATE tool_calls SET status = ?, result = ? WHERE id = ?",
+                    (status, result, tool_call_id),
+                )
+        except Exception as e:
+            raise DatabaseError(f"Failed to update tool call: {e}") from e
+
+    def save_attachment(
+        self,
+        message_id: int,
+        file_path: str,
+        file_type: str,
+        mime_type: str,
+        file_size: int | None = None,
+    ) -> int:
+        """Save an attachment linked to a message.
+
+        Args:
+            message_id: ID of the parent message
+            file_path: Path to the attached file
+            file_type: Type classification (image, code, document, data, unknown)
+            mime_type: MIME type of the file
+            file_size: Optional file size in bytes
+
+        Returns:
+            The ID of the inserted attachment
+
+        Raises:
+            DatabaseError: If save operation fails
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute(
+                    "INSERT INTO attachments (message_id, file_path, file_type, mime_type, file_size) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (message_id, file_path, file_type, mime_type, file_size),
+                )
+                attachment_id = cursor.lastrowid
+                if attachment_id is None:
+                    raise DatabaseError("Failed to get inserted attachment ID")
+                return attachment_id
+        except Exception as e:
+            raise DatabaseError(f"Failed to save attachment: {e}") from e
+
     def load_conversation(self, session_id: str) -> list[dict[str, Any]]:
         """Load all messages for a conversation.
 
@@ -272,7 +413,7 @@ class ConversationDatabase:
             session_id: Conversation session ID
 
         Returns:
-            List of message dicts with keys: role, content, tokens, timestamp
+            List of message dicts with keys: id, role, content, tokens, timestamp, message_type
 
         Raises:
             ConversationNotFoundError: If session_id doesn't exist
@@ -301,13 +442,80 @@ class ConversationDatabase:
                         f"Conversation not found: {session_id}"
                     )
 
-                # Load messages
+                # Load messages with message_type
                 cursor = conn.execute(
-                    "SELECT role, content, tokens, timestamp FROM messages "
+                    "SELECT id, role, content, tokens, timestamp, message_type FROM messages "
                     "WHERE conversation_id = ? ORDER BY id",
                     (session_id,),
                 )
                 return [dict(row) for row in cursor.fetchall()]
+        except ConversationNotFoundError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to load conversation: {e}") from e
+
+    def load_conversation_full(self, session_id: str) -> list[dict[str, Any]]:
+        """Load all messages with tool calls and attachments for UI reconstruction.
+
+        Args:
+            session_id: Conversation session ID
+
+        Returns:
+            List of message dicts with keys: id, role, content, tokens, timestamp,
+            message_type, tool_calls (list), attachments (list)
+
+        Raises:
+            ConversationNotFoundError: If session_id doesn't exist
+            DatabaseError: If load operation fails
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+
+                # Check if conversation exists
+                cursor = conn.execute(
+                    "SELECT id FROM conversations WHERE session_id = ?", (session_id,)
+                )
+                if cursor.fetchone() is None:
+                    raise ConversationNotFoundError(
+                        f"Conversation not found: {session_id}"
+                    )
+
+                # Load messages
+                cursor = conn.execute(
+                    "SELECT id, role, content, tokens, timestamp, message_type FROM messages "
+                    "WHERE conversation_id = ? ORDER BY id",
+                    (session_id,),
+                )
+                messages = [dict(row) for row in cursor.fetchall()]
+
+                # Load tool calls and attachments for each message
+                for msg in messages:
+                    msg_id = msg["id"]
+
+                    # Load tool calls
+                    cursor = conn.execute(
+                        "SELECT id, tool_name, arguments, status, result, timestamp "
+                        "FROM tool_calls WHERE message_id = ? ORDER BY id",
+                        (msg_id,),
+                    )
+                    tool_calls = []
+                    for row in cursor.fetchall():
+                        tc = dict(row)
+                        # Parse JSON arguments
+                        tc["arguments"] = json.loads(tc["arguments"])
+                        tool_calls.append(tc)
+                    msg["tool_calls"] = tool_calls
+
+                    # Load attachments
+                    cursor = conn.execute(
+                        "SELECT id, file_path, file_type, mime_type, file_size "
+                        "FROM attachments WHERE message_id = ? ORDER BY id",
+                        (msg_id,),
+                    )
+                    msg["attachments"] = [dict(row) for row in cursor.fetchall()]
+
+                return messages
         except ConversationNotFoundError:
             raise
         except Exception as e:

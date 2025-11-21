@@ -321,8 +321,40 @@ class ConversationHistory:
             for msg_data in messages_data:
                 role = msg_data["role"]
                 content = msg_data["content"]
-                message = to_langchain_message(role, content)
-                self.messages.append(message)
+
+                # Deserialize JSON content if it's a JSON string
+                if isinstance(content, str) and content.startswith("["):
+                    try:
+                        import json
+
+                        deserialized = json.loads(content)
+                        if isinstance(deserialized, list):
+                            content = deserialized
+                    except (json.JSONDecodeError, ValueError):
+                        # Not JSON or invalid - use as-is
+                        pass
+
+                # Create message with potentially complex content
+                msg: BaseMessage
+                if isinstance(content, list):
+                    # Complex content (e.g., multimodal with images)
+                    # Create message directly with list content
+                    if role.lower() in ("user", "human"):
+                        msg = HumanMessage(content=content)
+                    elif role.lower() in ("assistant", "ai"):
+                        msg = AIMessage(content=content)
+                    elif role.lower() == "system":
+                        msg = SystemMessage(content=content)
+                    elif role.lower() == "tool":
+                        msg = ToolMessage(content=content, tool_call_id="unknown")
+                    else:
+                        # Fallback
+                        msg = to_langchain_message(role, str(content))
+                else:
+                    # Simple string content
+                    msg = to_langchain_message(role, content)
+
+                self.messages.append(msg)
 
             # Load summary if it exists
             try:
@@ -341,14 +373,17 @@ class ConversationHistory:
             logger.error(f"Failed to load conversation from database: {e}")
             raise ValueError(f"Failed to load session {session_id}: {e}") from e
 
-    async def _persist_message(self, message: BaseMessage) -> None:
+    async def _persist_message(self, message: BaseMessage) -> int | None:
         """Persist a message to database asynchronously to avoid blocking UI.
 
         Args:
             message: Message to persist
+
+        Returns:
+            The database message ID if persisted successfully, None otherwise.
         """
         if not self.persist or not self._db or not self.session_id:
-            return
+            return None
 
         try:
             # Get role from message
@@ -373,20 +408,29 @@ class ConversationHistory:
 
             # Run blocking database write in executor to avoid blocking event loop
             import asyncio
+            from functools import partial
+
+            # Determine message_type based on role
+            message_type = role  # Default: user, assistant, system
 
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
+            message_id = await loop.run_in_executor(
                 None,  # Use default ThreadPoolExecutor
-                self._db.save_message,
-                self.session_id,
-                role,
-                content,
-                tokens,
+                partial(
+                    self._db.save_message,
+                    self.session_id,
+                    role,
+                    content,
+                    tokens,
+                    message_type=message_type,
+                ),
             )
+            return message_id
 
         except Exception as e:
             # Don't fail the operation if persistence fails, just log
             logger.warning(f"Failed to persist message: {e}")
+            return None
 
     def add_system_message(self, content: str) -> None:
         """Add or replace system message.
@@ -470,11 +514,14 @@ class ConversationHistory:
                 import json
 
                 content = json.dumps(content)
+            # Determine message_type based on role
+            message_type = role  # Default: user, assistant, system
             self._db.save_message(
                 self.session_id,
                 role,
                 content,
                 tokens,
+                message_type=message_type,
             )
         except Exception as e:
             logger.warning(f"Failed to persist message: {e}")

@@ -84,7 +84,7 @@ class MessageBubble(Container):
                 # Add tool calls button if assistant message has tools
                 if self.tool_calls:
                     yield Button(
-                        "🛠️",
+                        "🛠",
                         id="tools-button",
                         classes="tools-button",
                     )

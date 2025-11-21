@@ -31,6 +31,7 @@ if TYPE_CHECKING:
         InputArea,
         StreamingResponse,
     )
+    from consoul.tui.widgets.input_area import AttachedFile
 
 from consoul.tui.config import TuiConfig
 from consoul.tui.css.themes import load_theme
@@ -528,6 +529,8 @@ class ConsoulApp(App[None]):
         self._max_tool_iterations = (
             5  # Maximum rounds of tool calls before forcing stop
         )
+        # Track current assistant message ID for linking tool calls in database
+        self._current_assistant_message_id: int | None = None
 
     def on_mount(self) -> None:
         """Initialize app after mounting (message pump is running).
@@ -1117,9 +1120,12 @@ class ConsoulApp(App[None]):
                     logger.warning(f"Failed to create conversation in DB: {e}")
                     self.conversation.persist = False
 
-            # Persist message to DB
+            # Persist message to DB and save attachments
             if self.conversation is not None and self.conversation.persist:
-                await self.conversation._persist_message(message)
+                user_message_id = await self.conversation._persist_message(message)
+                # Save attachments linked to this user message
+                if user_message_id and attached_files:
+                    await self._persist_attachments(user_message_id, attached_files)
 
             # Reload conversation list if first message
             if is_first_message and hasattr(self, "conversation_list"):
@@ -1721,8 +1727,12 @@ class ConsoulApp(App[None]):
                 # Important: Use final_message directly to preserve tool_calls attribute
                 if final_message:
                     self.conversation.messages.append(final_message)  # type: ignore[union-attr]
-                    # Persist to DB (content only, tool_calls are transient)
-                    await self.conversation._persist_message(final_message)  # type: ignore[union-attr]
+                    # Persist to DB and capture message ID for linking tool calls
+                    self._current_assistant_message_id = (
+                        await self.conversation._persist_message(  # type: ignore[union-attr]
+                            final_message
+                        )
+                    )
                 elif has_content:
                     # Fallback if final_message reconstruction failed but we have content
                     self.conversation.add_assistant_message(full_response)  # type: ignore[union-attr]
@@ -2459,6 +2469,13 @@ class ConsoulApp(App[None]):
         tool_message = ToolMessage(content=result, tool_call_id=message.tool_call.id)
         self._tool_results[message.tool_call.id] = tool_message
 
+        # Persist tool call to database for UI reconstruction
+        await self._persist_tool_call(
+            message.tool_call,
+            status=self._tool_call_data[message.tool_call.id]["status"],
+            result=result,
+        )
+
         # Check if all tools are done
         completed = len(self._tool_results)
         total = len(self._pending_tool_calls)
@@ -2479,6 +2496,123 @@ class ConsoulApp(App[None]):
             self.log.info(
                 f"[TOOL_FLOW] Waiting for remaining tools ({total - completed} pending)"
             )
+
+    async def _persist_tool_call(
+        self,
+        tool_call: ParsedToolCall,
+        status: str,
+        result: str,
+    ) -> None:
+        """Persist a tool call to the database for UI reconstruction.
+
+        Args:
+            tool_call: The parsed tool call to persist
+            status: Tool call status (SUCCESS, ERROR, DENIED)
+            result: Tool call result or error message
+        """
+        # Check if we have the database and message ID
+        if (
+            not self.conversation
+            or not self.conversation._db
+            or not self._current_assistant_message_id
+        ):
+            self.log.debug(
+                "[TOOL_FLOW] Cannot persist tool call - no database or message ID"
+            )
+            return
+
+        try:
+            import asyncio
+            from functools import partial
+
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                partial(
+                    self.conversation._db.save_tool_call,
+                    message_id=self._current_assistant_message_id,
+                    tool_name=tool_call.name,
+                    arguments=tool_call.arguments,
+                    status=status.lower(),  # DB expects lowercase
+                    result=result,
+                ),
+            )
+            self.log.debug(
+                f"[TOOL_FLOW] Persisted tool call: {tool_call.name} ({status})"
+            )
+        except Exception as e:
+            self.log.warning(f"[TOOL_FLOW] Failed to persist tool call: {e}")
+
+    async def _persist_attachments(
+        self,
+        message_id: int,
+        attached_files: list[AttachedFile],
+    ) -> None:
+        """Persist attachments to the database for UI reconstruction.
+
+        Args:
+            message_id: The database message ID to link attachments to
+            attached_files: List of AttachedFile objects to persist
+        """
+        if not self.conversation or not self.conversation._db:
+            return
+
+        try:
+            import asyncio
+            from functools import partial
+
+            loop = asyncio.get_event_loop()
+            for file in attached_files:
+                await loop.run_in_executor(
+                    None,
+                    partial(
+                        self.conversation._db.save_attachment,
+                        message_id=message_id,
+                        file_path=file.path,
+                        file_type=file.type,
+                        mime_type=file.mime_type,
+                        file_size=file.size,
+                    ),
+                )
+            logger.debug(
+                f"Persisted {len(attached_files)} attachment(s) for message {message_id}"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to persist attachments: {e}")
+
+    async def _display_reconstructed_attachments(
+        self,
+        attachments: list[dict[str, Any]],
+    ) -> None:
+        """Display attachments from a loaded conversation.
+
+        Creates a simple text representation of attachments for now.
+        Future enhancement: Create proper FileChip widgets.
+
+        Args:
+            attachments: List of attachment dicts from database
+        """
+        if not attachments:
+            return
+
+        # Create a simple summary of attachments
+        from pathlib import Path
+
+        attachment_lines = []
+        for att in attachments:
+            file_path = att.get("file_path", "")
+            file_type = att.get("file_type", "unknown")
+            file_name = Path(file_path).name if file_path else "Unknown file"
+            attachment_lines.append(f"📎 {file_name} ({file_type})")
+
+        if attachment_lines:
+            attachment_text = "**Attachments:**\n" + "\n".join(attachment_lines)
+            attachment_bubble = MessageBubble(
+                attachment_text,
+                role="system",
+                show_metadata=False,
+            )
+            await self.chat_view.add_message(attachment_bubble)
 
     # Action handlers (placeholders for Phase 2+)
 
@@ -2705,29 +2839,39 @@ class ConsoulApp(App[None]):
         # Clear current chat view
         await self.chat_view.clear_messages()
 
-        # Load conversation from database
+        # Load conversation from database with full metadata for UI reconstruction
         if self.consoul_config:
             try:
-                # Use the database instance from conversation_list (respects profile db_path)
-                messages = self.conversation_list.db.load_conversation(conversation_id)
+                # Use load_conversation_full to get tool_calls and attachments
+                messages = self.conversation_list.db.load_conversation_full(
+                    conversation_id
+                )
 
-                # Display messages in chat view
+                # Display messages in chat view with proper UI reconstruction
                 from consoul.tui.widgets import MessageBubble
 
                 for msg in messages:
                     role = msg["role"]
                     content = msg["content"]
+                    tool_calls = msg.get("tool_calls", [])
+                    attachments = msg.get("attachments", [])
 
                     # Skip system messages in display
                     if role == "system":
                         continue
 
+                    # Create message bubble with tool call metadata for reconstruction
                     bubble = MessageBubble(
                         content,
                         role=role,
                         show_metadata=True,
+                        tool_calls=tool_calls if tool_calls else None,
                     )
                     await self.chat_view.add_message(bubble)
+
+                    # Display attachments for user messages
+                    if attachments and role == "user":
+                        await self._display_reconstructed_attachments(attachments)
 
                 # Update conversation ID to resume this conversation
                 self.conversation_id = conversation_id

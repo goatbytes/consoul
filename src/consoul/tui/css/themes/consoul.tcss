@@ -8,8 +8,8 @@ $surface: #282A36;
 $surface-lighten-1: #44475A;
 $surface-darken-1: #1E1F28;
 
-$primary: #BD93F9;     /* Purple */
-$secondary: #8BE9FD;   /* Cyan */
+$primary: #0d6efd;     /* Blue */
+$secondary: #6f42c1;   /* Purple */
 $accent: #F1FA8C;      /* Yellow */
 $success: #50FA7B;     /* Green */
 $warning: #FFB86C;     /* Orange */

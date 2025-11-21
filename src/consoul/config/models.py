@@ -948,6 +948,7 @@ class ImageAnalysisToolConfig(BaseModel):
     Example:
         >>> config = ImageAnalysisToolConfig(
         ...     enabled=True,
+        ...     auto_detect_in_messages=True,
         ...     max_image_size_mb=5,
         ...     max_images_per_query=5,
         ...     allowed_extensions=[".png", ".jpg", ".jpeg", ".gif", ".webp"]
@@ -962,6 +963,15 @@ class ImageAnalysisToolConfig(BaseModel):
     enabled: bool = Field(
         default=True,
         description="Enable image analysis tool (requires vision-capable model)",
+    )
+    auto_detect_in_messages: bool = Field(
+        default=True,
+        description=(
+            "Automatically detect and analyze image paths in user messages. "
+            "When enabled, typing 'describe screenshot.png' will directly send "
+            "the image to the vision model. When disabled, users must use the "
+            "analyze_images tool explicitly or attach images via the UI."
+        ),
     )
     max_image_size_mb: int = Field(
         default=5,
