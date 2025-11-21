@@ -2584,10 +2584,7 @@ class ConsoulApp(App[None]):
         self,
         attachments: list[dict[str, Any]],
     ) -> None:
-        """Display attachments from a loaded conversation.
-
-        Creates a simple text representation of attachments for now.
-        Future enhancement: Create proper FileChip widgets.
+        """Display attachments from a loaded conversation using FileChip widgets.
 
         Args:
             attachments: List of attachment dicts from database
@@ -2595,24 +2592,26 @@ class ConsoulApp(App[None]):
         if not attachments:
             return
 
-        # Create a simple summary of attachments
-        from pathlib import Path
+        from textual.containers import Horizontal
 
-        attachment_lines = []
+        from consoul.tui.widgets.historical_file_chip import HistoricalFileChip
+
+        # Create a container for the attachment chips
+        container = Horizontal(classes="historical-attachments")
+
         for att in attachments:
             file_path = att.get("file_path", "")
             file_type = att.get("file_type", "unknown")
-            file_name = Path(file_path).name if file_path else "Unknown file"
-            attachment_lines.append(f"📎 {file_name} ({file_type})")
+            file_size = att.get("file_size")
 
-        if attachment_lines:
-            attachment_text = "**Attachments:**\n" + "\n".join(attachment_lines)
-            attachment_bubble = MessageBubble(
-                attachment_text,
-                role="system",
-                show_metadata=False,
+            chip = HistoricalFileChip(
+                file_path=file_path,
+                file_type=file_type,
+                file_size=file_size,
             )
-            await self.chat_view.add_message(attachment_bubble)
+            container.compose_add_child(chip)
+
+        await self.chat_view.add_message(container)
 
     # Action handlers (placeholders for Phase 2+)
 

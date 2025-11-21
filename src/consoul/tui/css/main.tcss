@@ -618,3 +618,14 @@ Scrollbar {
 ScrollbarCorner {
     background: $surface-darken-1;
 }
+
+/* ============================================================================
+ * Historical Attachments (loaded from saved conversations)
+ * ============================================================================ */
+
+.historical-attachments {
+    width: 100%;
+    height: auto;
+    padding: 0 1;
+    margin-bottom: 1;
+}

@@ -15,6 +15,7 @@ from consoul.tui.widgets.export_modal import ExportModal
 from consoul.tui.widgets.file_attachment_modal import FileAttachmentModal
 from consoul.tui.widgets.file_chip import FileChip
 from consoul.tui.widgets.help_modal import HelpModal
+from consoul.tui.widgets.historical_file_chip import HistoricalFileChip
 from consoul.tui.widgets.import_modal import ImportModal
 from consoul.tui.widgets.input_area import InputArea
 from consoul.tui.widgets.message_bubble import MessageBubble
@@ -41,6 +42,7 @@ __all__ = [
     "FileAttachmentModal",
     "FileChip",
     "HelpModal",
+    "HistoricalFileChip",
     "ImportModal",
     "InputArea",
     "MLXConversionModal",
