@@ -2925,7 +2925,8 @@ class ConsoulApp(App[None]):
                         await self.chat_view.add_message(tool_indicator)
 
                     # Create assistant message bubble (with tool button if tools exist)
-                    if display_content or (role == "assistant" and not tool_calls):
+                    # Always show assistant bubbles (even if empty) to display the 🛠 button
+                    if role == "assistant" or display_content:
                         bubble = MessageBubble(
                             display_content or "",
                             role=role,
