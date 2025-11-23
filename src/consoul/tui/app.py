@@ -3175,10 +3175,14 @@ class ConsoulApp(App[None]):
                                 thinking
                             )
 
+                        # Get token count from database (stored when message was created)
+                        token_count = msg.get("tokens")
+
                         bubble = MessageBubble(
                             message_content,
                             role=role,
                             show_metadata=True,
+                            token_count=token_count,
                             tool_calls=tool_calls if tool_calls else None,
                             message_id=msg.get("id"),  # Pass message ID for branching
                             thinking_content=thinking_to_display
