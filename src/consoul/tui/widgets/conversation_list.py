@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from consoul.ai.database import ConversationDatabase
 
-__all__ = ["ConversationList", "RenameConversationModal"]
+__all__ = ["ConversationList", "DeleteConversationModal", "RenameConversationModal"]
 
 
 class ConversationList(Container):
@@ -52,13 +52,33 @@ class ConversationList(Container):
             super().__init__()
             self.conversation_id = conversation_id
 
+    class ConversationDeleted(Message):
+        """Message sent when a conversation is deleted.
+
+        Attributes:
+            conversation_id: The ID of the deleted conversation
+            was_active: Whether this was the currently active conversation
+        """
+
+        def __init__(self, conversation_id: str, was_active: bool = False) -> None:
+            """Initialize ConversationDeleted message.
+
+            Args:
+                conversation_id: The conversation ID that was deleted
+                was_active: Whether this was the active conversation
+            """
+            super().__init__()
+            self.conversation_id = conversation_id
+            self.was_active = was_active
+
     # Reactive state
     conversation_count: reactive[int] = reactive(0)
     selected_id: reactive[str | None] = reactive(None)
 
     # Key bindings
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("f2", "rename_conversation", "Rename", show=False),
+        Binding("ctrl+r", "rename_conversation", "Rename", show=False),
+        Binding("ctrl+d", "delete_conversation", "Delete", show=False),
     ]
 
     INITIAL_LOAD = 50  # Conversations to load initially
@@ -289,15 +309,14 @@ class ConversationList(Container):
         if self.table.cursor_row is None:
             return
 
-        # Get current row
-        row_key = self.table.get_row_at(self.table.cursor_row)[0]
-        if row_key is None:
+        # Get row key from cursor coordinate
+        cursor_coord = Coordinate(self.table.cursor_row, 0)
+        cell_key = self.table.coordinate_to_cell_key(cursor_coord)
+        if cell_key is None or cell_key.row_key is None:
             return
 
-        conversation_id = str(row_key)
-        current_title = str(
-            self.table.get_cell_at(Coordinate(self.table.cursor_row, 0))
-        )
+        conversation_id = str(cell_key.row_key.value)
+        current_title = str(self.table.get_cell_at(cursor_coord))
 
         # Prompt for new title using app's built-in input
         self.app.push_screen(
@@ -324,6 +343,67 @@ class ConversationList(Container):
                 self._update_title()
                 break
 
+    async def action_delete_conversation(self) -> None:
+        """Prompt to delete the currently selected conversation."""
+        if self.table.cursor_row is None:
+            return
+
+        # Get row key from cursor coordinate
+        cursor_coord = Coordinate(self.table.cursor_row, 0)
+        cell_key = self.table.coordinate_to_cell_key(cursor_coord)
+        if cell_key is None or cell_key.row_key is None:
+            return
+
+        conversation_id = str(cell_key.row_key.value)
+        conversation_title = str(self.table.get_cell_at(cursor_coord))
+
+        # Show confirmation modal
+        self.app.push_screen(
+            DeleteConversationModal(conversation_id, conversation_title),
+            callback=self._handle_delete,
+        )
+
+    async def _handle_delete(self, result: tuple[str, bool] | None) -> None:
+        """Handle delete result from modal.
+
+        Args:
+            result: Tuple of (conversation_id, confirmed) or None if cancelled
+        """
+        if result is None or not result[1]:
+            # Cancelled or not confirmed
+            return
+
+        conversation_id, _confirmed = result
+
+        # Check if this is the currently active conversation
+        was_active = conversation_id == self.selected_id
+
+        try:
+            # Delete from database
+            self.db.delete_conversation(conversation_id)
+
+            # Remove from table and update UI
+            for _row_index, row_key in enumerate(self.table.rows.keys()):
+                if str(row_key.value) == conversation_id:
+                    # Remove the row
+                    self.table.remove_row(row_key)
+                    self.conversation_count -= 1
+                    self._update_title()
+
+                    # Emit deletion message for ConsoulApp to handle
+                    self.post_message(
+                        self.ConversationDeleted(conversation_id, was_active)
+                    )
+                    break
+
+        except Exception as e:
+            # Show error notification
+            self.app.notify(
+                f"Failed to delete conversation: {e}",
+                severity="error",
+                timeout=5,
+            )
+
 
 class RenameConversationModal(ModalScreen[tuple[str, str] | None]):
     """Modal for renaming a conversation."""
@@ -334,7 +414,7 @@ class RenameConversationModal(ModalScreen[tuple[str, str] | None]):
     }
 
     RenameConversationModal > Container {
-        width: 60;
+        width: 80;
         height: auto;
         background: $panel;
         border: thick $primary;
@@ -343,20 +423,19 @@ class RenameConversationModal(ModalScreen[tuple[str, str] | None]):
 
     RenameConversationModal Label {
         width: 100%;
-        height: auto;
         content-align: center middle;
         text-style: bold;
-        padding: 1;
+        margin-bottom: 1;
     }
 
     RenameConversationModal Input {
         width: 100%;
-        margin: 1 0;
     }
 
     RenameConversationModal .modal-actions {
         width: 100%;
         height: auto;
+        min-height: 6;
         layout: horizontal;
         align: center middle;
     }
@@ -429,3 +508,87 @@ class RenameConversationModal(ModalScreen[tuple[str, str] | None]):
             self.dismiss((self.conversation_id, new_title))
         else:
             self.dismiss(None)
+
+
+class DeleteConversationModal(ModalScreen[tuple[str, bool] | None]):
+    """Modal for confirming conversation deletion."""
+
+    DEFAULT_CSS = """
+    DeleteConversationModal {
+        align: center middle;
+    }
+
+    DeleteConversationModal > Container {
+        width: 60;
+        height: auto;
+        background: $panel;
+        border: thick $error;
+        padding: 2;
+    }
+
+    DeleteConversationModal Label {
+        width: 100%;
+        content-align: center middle;
+        margin-bottom: 1;
+    }
+
+    DeleteConversationModal .warning-text {
+        text-style: bold;
+        color: $error;
+    }
+
+    DeleteConversationModal .modal-actions {
+        width: 100%;
+        height: auto;
+        min-height: 6;
+        layout: horizontal;
+        align: center middle;
+        margin-top: 1;
+    }
+
+    DeleteConversationModal Button {
+        margin: 0 1;
+    }
+    """
+
+    def __init__(
+        self,
+        conversation_id: str,
+        conversation_title: str,
+    ) -> None:
+        """Initialize delete confirmation modal.
+
+        Args:
+            conversation_id: ID of conversation to delete
+            conversation_title: Title of the conversation for display
+        """
+        super().__init__()
+        self.conversation_id = conversation_id
+        self.conversation_title = conversation_title
+
+    def compose(self) -> ComposeResult:
+        """Compose modal widgets."""
+        from textual.containers import Horizontal
+
+        with Container():
+            yield Label("Delete Conversation")
+            yield Label(
+                f"Are you sure you want to delete '{self.conversation_title}'?",
+                classes="warning-text",
+            )
+            yield Label("[dim]This action cannot be undone.[/]")
+            with Horizontal(classes="modal-actions"):
+                yield Button("Delete", variant="error", id="delete-button")
+                yield Button("Cancel", variant="default", id="cancel-button")
+
+    def on_mount(self) -> None:
+        """Focus cancel button on mount for safety."""
+        cancel_button = self.query_one("#cancel-button", Button)
+        cancel_button.focus()
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses."""
+        if event.button.id == "delete-button":
+            self.dismiss((self.conversation_id, True))
+        elif event.button.id == "cancel-button":
+            self.dismiss((self.conversation_id, False))

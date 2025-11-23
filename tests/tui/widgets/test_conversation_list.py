@@ -6,12 +6,30 @@ import time
 from typing import TYPE_CHECKING
 
 import pytest
+from textual.app import App, ComposeResult
 
 from consoul.ai.database import ConversationDatabase
 from consoul.tui.widgets.conversation_list import ConversationList
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+
+class ConversationListTestApp(App[None]):
+    """Test app for ConversationList widget."""
+
+    def __init__(self, widget: ConversationList) -> None:
+        """Initialize test app with a ConversationList.
+
+        Args:
+            widget: ConversationList widget to test
+        """
+        super().__init__()
+        self.widget = widget
+
+    def compose(self) -> ComposeResult:
+        """Compose test app with ConversationList."""
+        yield self.widget
 
 
 class TestConversationListInitialization:
@@ -398,3 +416,174 @@ class TestConversationListPerformance:
 
             # Should return ~500 matches
             assert widget.table.row_count == 500
+
+
+class TestConversationDeletion:
+    """Test conversation deletion functionality."""
+
+    @pytest.mark.asyncio
+    async def test_delete_conversation_modal_created(self, tmp_path: Path) -> None:
+        """Test that delete modal is created with correct parameters."""
+        from consoul.tui.widgets.conversation_list import DeleteConversationModal
+
+        modal = DeleteConversationModal(
+            conversation_id="test-id", conversation_title="Test Conversation"
+        )
+
+        assert modal.conversation_id == "test-id"
+        assert modal.conversation_title == "Test Conversation"
+
+    @pytest.mark.asyncio
+    async def test_delete_conversation_updates_db(self, tmp_path: Path) -> None:
+        """Test that deleting conversation removes it from database."""
+        db_path = tmp_path / "test.db"
+        db = ConversationDatabase(db_path)
+
+        # Create test conversation
+        session_id = db.create_conversation(model="gpt-4o")
+        db.save_message(session_id, "user", "Test message", 5)
+
+        widget = ConversationList(db=db)
+        app = ConversationListTestApp(widget)
+
+        async with app.run_test():
+            # Manually load conversations to avoid worker timeout
+            await widget.load_conversations()
+
+            # Verify conversation exists
+            assert widget.table.row_count == 1
+            conversations = db.list_conversations(limit=10)
+            assert len(conversations) == 1
+
+            # Simulate deletion
+            result = (session_id, True)  # confirmed
+            await widget._handle_delete(result)
+
+            # Verify removed from UI and database
+            assert widget.table.row_count == 0
+            conversations = db.list_conversations(limit=10)
+            assert len(conversations) == 0
+
+    @pytest.mark.asyncio
+    async def test_delete_conversation_posts_message(self, tmp_path: Path) -> None:
+        """Test that deleting conversation posts ConversationDeleted message."""
+        db_path = tmp_path / "test.db"
+        db = ConversationDatabase(db_path)
+
+        # Create test conversation
+        session_id = db.create_conversation(model="gpt-4o")
+        db.save_message(session_id, "user", "Test message", 5)
+        widget = ConversationList(db=db)
+
+        # Manually add conversation to table (same as test_delete_conversation_updates_db pattern)
+        async def manually_setup():
+            """Setup widget without on_mount worker."""
+            widget.table.add_column("Title", key="title")
+            widget.table.show_header = False
+            await widget.load_conversations()
+            widget.conversation_count = widget.table.row_count
+
+        app = ConversationListTestApp(widget)
+
+        async with app.run_test():
+            # Cancel the on_mount worker and manually setup
+            widget.workers.cancel_all()
+            await manually_setup()
+
+            # Track posted messages
+            posted_messages = []
+            original_post_message = widget.post_message
+
+            def capture_message(msg):
+                posted_messages.append(msg)
+                # Still call original to maintain functionality
+                original_post_message(msg)
+
+            widget.post_message = capture_message
+
+            # Simulate deletion of active conversation
+            widget.selected_id = session_id
+            result = (session_id, True)
+            await widget._handle_delete(result)
+
+            # Verify ConversationDeleted message was posted
+            assert len(posted_messages) == 1
+            assert hasattr(posted_messages[0], "conversation_id")
+            assert posted_messages[0].conversation_id == session_id
+            assert posted_messages[0].was_active is True
+
+    @pytest.mark.asyncio
+    async def test_delete_cancelled_does_nothing(self, tmp_path: Path) -> None:
+        """Test that cancelling deletion doesn't delete conversation."""
+        db_path = tmp_path / "test.db"
+        db = ConversationDatabase(db_path)
+
+        # Create test conversation
+        session_id = db.create_conversation(model="gpt-4o")
+        db.save_message(session_id, "user", "Test message", 5)
+        widget = ConversationList(db=db)
+        app = ConversationListTestApp(widget)
+
+        async with app.run_test():
+            # Clear table and manually load to avoid duplicate key from on_mount worker
+            widget.table.clear()
+            widget.loaded_count = 0
+            await widget.load_conversations()
+
+            # Simulate cancellation
+            result = (session_id, False)  # not confirmed
+            await widget._handle_delete(result)
+
+            # Verify conversation still exists
+            assert widget.table.row_count == 1
+            conversations = db.list_conversations(limit=10)
+            assert len(conversations) == 1
+
+    @pytest.mark.asyncio
+    async def test_delete_none_result_does_nothing(self, tmp_path: Path) -> None:
+        """Test that None result (modal dismissed) doesn't delete."""
+        db_path = tmp_path / "test.db"
+        db = ConversationDatabase(db_path)
+
+        # Create test conversation
+        session_id = db.create_conversation(model="gpt-4o")
+        db.save_message(session_id, "user", "Test message", 5)
+        widget = ConversationList(db=db)
+        app = ConversationListTestApp(widget)
+
+        async with app.run_test():
+            # Manually load conversations to avoid worker timeout
+            await widget.load_conversations()
+
+            # Simulate modal dismissal
+            result = None
+            await widget._handle_delete(result)
+
+            # Verify conversation still exists
+            assert widget.table.row_count == 1
+
+    @pytest.mark.asyncio
+    async def test_delete_handles_error_gracefully(self, tmp_path: Path) -> None:
+        """Test that deletion errors are handled gracefully."""
+        db_path = tmp_path / "test.db"
+        db = ConversationDatabase(db_path)
+
+        widget = ConversationList(db=db)
+        app = ConversationListTestApp(widget)
+
+        async with app.run_test():
+            # Track notifications
+            notifications = []
+
+            def capture_notify(*args, **kwargs):
+                notifications.append({"args": args, "kwargs": kwargs})
+
+            app.notify = capture_notify
+
+            # Try to delete non-existent conversation
+            result = ("non-existent-id", True)
+            await widget._handle_delete(result)
+
+            # Verify error notification was shown
+            assert len(notifications) == 1
+            assert "Failed to delete" in str(notifications[0])

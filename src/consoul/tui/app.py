@@ -3070,6 +3070,31 @@ class ConsoulApp(App[None]):
                 self.log.error(f"Failed to load conversation: {e}")
                 self.notify(f"Failed to load conversation: {e}", severity="error")
 
+    async def on_conversation_list_conversation_deleted(
+        self,
+        event: ConversationList.ConversationDeleted,  # type: ignore[name-defined]  # noqa: F821
+    ) -> None:
+        """Handle conversation deletion from sidebar.
+
+        If the deleted conversation was the active one, start a new conversation.
+
+        Args:
+            event: ConversationDeleted event from ConversationList
+        """
+        conversation_id = event.conversation_id
+        self.log.info(f"Conversation deleted: {conversation_id}")
+
+        # If the active conversation was deleted, start a new one
+        if event.was_active:
+            self.log.info("Active conversation was deleted, starting new conversation")
+            await self.action_new_conversation()
+            self.notify(
+                "Conversation deleted. Started new conversation.",
+                severity="information",
+            )
+        else:
+            self.notify("Conversation deleted.", severity="information")
+
     # ContextualTopBar message handlers
 
     async def on_contextual_top_bar_settings_requested(
