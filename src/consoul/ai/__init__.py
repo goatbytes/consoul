@@ -30,6 +30,12 @@ from consoul.ai.providers import (
     supports_tool_calling,
     validate_provider_dependencies,
 )
+from consoul.ai.reasoning import (
+    extract_reasoning,
+    extract_reasoning_heuristic,
+    extract_reasoning_patterns,
+    extract_reasoning_xml,
+)
 from consoul.ai.streaming import stream_response
 from consoul.ai.tools import (
     BlockedCommandError,
@@ -63,6 +69,10 @@ __all__ = [
     "build_model_params",
     "count_message_tokens",
     "create_token_counter",
+    "extract_reasoning",
+    "extract_reasoning_heuristic",
+    "extract_reasoning_patterns",
+    "extract_reasoning_xml",
     "get_chat_model",
     "get_model_token_limit",
     "get_provider_from_model",
