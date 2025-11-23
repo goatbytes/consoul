@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-11-22T22:58:53.972813",
+  "updated_at": "2025-11-23T16:30:51.432483Z",
+  "id": "SOUL-143",
+  "uuid": "dc7b4667-da81-43a9-bb68-c6e32ee14e20",
+  "title": "Add delete conversation action in TUI sidebar",
+  "description": "**As a** Consoul user\n**I want** to delete conversations from the history sidebar\n**So that** I can remove unwanted or test conversations and keep my history clean\n\n**Context:**\nThe TUI currently supports renaming conversations (F2 binding in ConversationList) but lacks a delete action. The database layer already provides full delete functionality via `ConversationDatabase.delete_conversation()` which properly cascades deletes to messages, tool_calls, and attachments tables via foreign key constraints.\n\nUsers need a way to delete conversations directly from the TUI sidebar without manually editing the SQLite database. Similar AI terminal tools (aider, llm) provide delete/cleanup functionality.\n\n**Technical Notes:**\nDatabase layer (already implemented):\n- src/consoul/ai/database.py:975 - `delete_conversation(session_id)` method exists\n- Foreign key CASCADE handles cleanup of messages, tool_calls, attachments\n- Raises ConversationNotFoundError if session doesn't exist\n- Database.delete_conversations_older_than(days) also exists for bulk cleanup\n\nTUI integration points:\n- src/consoul/tui/widgets/conversation_list.py:28 - ConversationList widget\n- Line 60-62: BINDINGS list (currently only has F2 for rename)\n- Line 328: RenameConversationModal pattern to follow for confirmation\n- src/consoul/tui/app.py:102 - ConsoulApp BINDINGS (global shortcuts)\n\nPattern to follow:\n- RenameConversationModal (line 328-424) shows modal pattern\n- F2 binding triggers action_rename_conversation\n- Modal returns result via dismiss()\n- ConversationList updates UI on success\n\n**Acceptance Criteria:**\n\n**Given** I have a conversation selected in the sidebar\n**When** I press the Delete key\n**Then** a confirmation modal appears asking \"Delete conversation 'Title'?\"\n\n**Given** the delete confirmation modal is shown\n**When** I click \"Delete\" or press Enter\n**Then** the conversation is deleted from the database and removed from the sidebar\n\n**Given** the delete confirmation modal is shown\n**When** I click \"Cancel\" or press Escape\n**Then** the modal closes without deleting the conversation\n\n**Given** I delete the currently active conversation\n**When** deletion completes\n**Then** a new blank conversation is started automatically\n\n**Given** I attempt to delete a non-existent conversation\n**When** the delete operation fails\n**Then** I see an error notification without crashing the app\n\n**Given** I delete a conversation\n**When** viewing the sidebar\n**Then** the conversation count updates and focus moves to the next/previous item\n\n**Testing Considerations:**\n- Unit test DeleteConversationModal rendering and validation\n- Test ConversationList.action_delete_conversation() behavior\n- Test database deletion via mock ConversationDatabase\n- Test error handling (ConversationNotFoundError)\n- Test focus handling after deletion (empty list, middle item, last item)\n- Test deleting active vs inactive conversations\n- Manual TUI testing with actual conversations\n- Verify foreign key CASCADE properly cleans up related data\n\n**Implementation Hints:**\n1. Create DeleteConversationModal similar to RenameConversationModal:\n   - Show conversation title in confirmation message\n   - Two buttons: \"Delete\" (variant=\"error\") and \"Cancel\"\n   - Return tuple[str, bool] | None (session_id, confirmed)\n\n2. Add binding to ConversationList:\n   ```python\n   BINDINGS = [\n       Binding(\"f2\", \"rename_conversation\", \"Rename\", show=False),\n       Binding(\"delete\", \"delete_conversation\", \"Delete\", show=False),\n   ]\n   ```\n\n3. Implement action_delete_conversation():\n   - Get selected conversation from table\n   - Show DeleteConversationModal with title\n   - On confirm: call db.delete_conversation(session_id)\n   - Update sidebar (reload or remove row)\n   - Handle ConversationNotFoundError gracefully\n   - If deleting active conversation, trigger new_conversation\n\n4. Update ConversationList to emit ConversationDeleted message\n5. ConsoulApp handles ConversationDeleted to start new conversation if needed\n\nFiles to create/modify:\n- src/consoul/tui/widgets/conversation_list.py - Add modal and action\n- tests/tui/widgets/test_conversation_list.py - Add delete tests",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "enhancement",
+    "ux-improvement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-003",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}
