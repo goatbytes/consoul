@@ -76,6 +76,18 @@ colors:
   accent: purple
   error: red
   success: green
+
+# Reasoning/thinking display (for models like DeepSeek-R1, QwQ, Cogito)
+# Options: always, auto, never, collapsed
+show_thinking: auto
+
+# Model patterns that produce reasoning output (used with show_thinking: auto)
+thinking_models:
+  - qwq
+  - deepseek-r1
+  - deepseek
+  - phi4-reasoning
+  - cogito
 ```
 
 ### Conversation Settings
@@ -190,6 +202,59 @@ providers:
 ```
 
 ## Advanced Configuration
+
+### Reasoning/Thinking Display
+
+Modern reasoning models (like DeepSeek-R1, QwQ, Phi4-Reasoning, and Cogito) output their chain-of-thought reasoning in special tags like `<think>...</think>`. Consoul can automatically detect and display this thinking separately from the final response.
+
+**Configuration Options:**
+
+```yaml
+# Control when thinking is displayed
+show_thinking: auto  # Options: always, auto, never, collapsed
+
+# Models known to produce reasoning output
+thinking_models:
+  - qwq
+  - deepseek-r1
+  - deepseek
+  - phi4-reasoning
+  - cogito
+```
+
+**Display Modes:**
+
+- **`always`**: Show thinking for all responses that have it
+- **`auto`** (default): Show only for known reasoning models
+- **`never`**: Extract thinking but don't display it
+- **`collapsed`**: Show thinking but collapsed by default (expandable)
+
+**Example:**
+
+When using a reasoning model like `qwq:32b`:
+
+```
+┌─ Assistant ────────────────────────────────┐
+│ ▶ Thinking (click to expand)              │
+│                                            │
+│ The answer is 4.                          │
+└────────────────────────────────────────────┘
+```
+
+Clicking the thinking section expands it to show the full reasoning:
+
+```
+┌─ Assistant ────────────────────────────────┐
+│ ▼ Thinking                                 │
+│ ┌────────────────────────────────────────┐ │
+│ │ To solve 2+2, I need to add the two   │ │
+│ │ numbers together. 2 + 2 = 4. This is  │ │
+│ │ a basic arithmetic operation.         │ │
+│ └────────────────────────────────────────┘ │
+│                                            │
+│ The answer is 4.                          │
+└────────────────────────────────────────────┘
+```
 
 ### Context Management
 

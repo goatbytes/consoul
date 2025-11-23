@@ -1413,6 +1413,25 @@ class ConsoulConfig(BaseModel):
         default_factory=ToolConfig,
         description="Tool calling configuration (SDK-level, not TUI-specific)",
     )
+    show_thinking: Literal["always", "auto", "never", "collapsed"] = Field(
+        default="auto",
+        description="Control display of AI reasoning/thinking blocks. "
+        "'always' = show for all responses, "
+        "'auto' = show only for known reasoning models, "
+        "'never' = extract but don't display, "
+        "'collapsed' = show but collapsed by default",
+    )
+    thinking_models: list[str] = Field(
+        default_factory=lambda: [
+            "qwq",
+            "deepseek-r1",
+            "deepseek",
+            "phi4-reasoning",
+            "cogito",
+        ],
+        description="Model name patterns known to produce reasoning/thinking output. "
+        "Used with show_thinking='auto' to auto-detect reasoning models.",
+    )
     global_settings: dict[str, Any] = Field(
         default_factory=dict,
         description="Global settings for extensibility",
