@@ -1,0 +1,22 @@
+{
+  "created_at": "2025-11-23T10:23:43.659933",
+  "updated_at": "2025-11-23T19:49:53.400365Z",
+  "id": "SOUL-144",
+  "uuid": "ce183aef-c335-44a9-a823-a5cc3c586125",
+  "title": "Add Wikipedia tool integration using WikipediaQueryRun",
+  "description": "## Overview\n\nIntegrate LangChain's WikipediaQueryRun tool into Consoul to provide Wikipedia article summaries and factual information retrieval alongside the existing web search functionality.\n\n## Background\n\nConsoul currently supports web search via the DuckDuckGoSearchTool, but lacks dedicated Wikipedia access. Wikipedia provides authoritative, structured information ideal for factual queries about people, places, companies, historical events, and general knowledge topics.\n\n## Technical Details\n\n**LangChain Integration:**\n- Use `langchain_community.tools.WikipediaQueryRun`\n- Configure via `WikipediaAPIWrapper` with customizable parameters\n- No API key required (uses public Wikipedia API)\n\n**Configuration Options:**\n- `top_k_results`: Number of Wikipedia pages to fetch (default: 1-3)\n- `doc_content_chars_max`: Character limit per result (default: 1000-4000)\n\n**Example Usage:**\n```python\nfrom langchain_community.tools import WikipediaQueryRun\nfrom langchain_community.utilities import WikipediaAPIWrapper\n\napi_wrapper = WikipediaAPIWrapper(\n    top_k_results=1,\n    doc_content_chars_max=1000\n)\ntool = WikipediaQueryRun(api_wrapper=api_wrapper)\nresult = tool.run({\"query\": \"Neural Network\"})\n```\n\n## Implementation Plan\n\n1. **Add Dependencies:**\n   - Ensure `langchain-community` includes Wikipedia support\n   - Add `wikipedia` package if needed\n\n2. **Create Tool Implementation:**\n   - New file: `src/consoul/ai/tools/implementations/wikipedia.py`\n   - Follow pattern from `web_search.py`\n   - Set RiskLevel appropriately (likely LOW - read-only public data)\n\n3. **Register Tool:**\n   - Add to tool registry in `src/consoul/ai/tools/registry.py`\n   - Configure metadata (name, description, risk level)\n\n4. **Configuration:**\n   - Add Wikipedia tool config to `TuiConfig` or tool settings\n   - Make `top_k_results` and `doc_content_chars_max` configurable\n\n5. **Testing:**\n   - Unit tests for Wikipedia tool wrapper\n   - Integration test with conversation manager\n   - Test error handling for non-existent topics\n\n## Success Criteria\n\n- [ ] Wikipedia tool registered and available in tool list\n- [ ] Can query Wikipedia articles and receive summaries\n- [ ] Results include proper source attribution\n- [ ] Configurable result count and character limits\n- [ ] Error handling for invalid queries\n- [ ] Test coverage >80%\n- [ ] Documentation updated with Wikipedia tool usage examples\n\n## References\n\n- LangChain WikipediaQueryRun: https://api.python.langchain.com/en/latest/tools/langchain_community.tools.wikipedia.tool.WikipediaQueryRun.html\n- Example implementation: `src/consoul/ai/tools/implementations/web_search.py`\n- Tool base classes: `src/consoul/ai/tools/base.py`\n- Tool registry: `src/consoul/ai/tools/registry.py`\n\n## Notes\n\n- Wikipedia tool complements web search, doesn't replace it\n- Useful for RAG pipelines and factual Q&A\n- Consider making it opt-in via tool approval system (RiskLevel.LOW)\n- Handle edge cases: disambiguation pages, non-existent topics, API rate limits",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-002",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

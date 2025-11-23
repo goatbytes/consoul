@@ -113,7 +113,7 @@ class MessageBubble(Container):
                 # Add branch button for assistant messages with message_id
                 if self.role == "assistant" and self.message_id is not None:
                     yield Button(
-                        "🌿",
+                        "🔀",
                         id="branch-button",
                         classes="branch-button",
                         tooltip="Branch conversation from this point",
