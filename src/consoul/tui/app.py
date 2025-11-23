@@ -1643,10 +1643,26 @@ class ConsoulApp(App[None]):
                 f"[TOOL_FLOW] Got first_token: is_none={first_token is None}, value={first_token[:50] if first_token else 'None'}"
             )
 
-            # Hide typing indicator and create streaming response widget
+            # Hide typing indicator
             await self.chat_view.hide_typing_indicator()
+
+            # Check if first token indicates thinking mode
+            thinking_mode = False
+            thinking_indicator = None
+            if first_token and StreamingResponse().detect_thinking_start(first_token):
+                thinking_mode = True
+                logger.debug("[THINKING] Detected thinking tags at start of stream")
+                # Create and show thinking indicator
+                from consoul.tui.widgets.thinking_indicator import ThinkingIndicator
+
+                thinking_indicator = ThinkingIndicator()
+                await self.chat_view.add_message(thinking_indicator)
+
+            # Create streaming response widget
             stream_widget = StreamingResponse(renderer="hybrid")
-            await self.chat_view.add_message(stream_widget)
+            if not thinking_mode:
+                # Show stream widget immediately if not in thinking mode
+                await self.chat_view.add_message(stream_widget)
 
             # Track for cancellation
             self._current_stream = stream_widget
@@ -1672,7 +1688,13 @@ class ConsoulApp(App[None]):
             else:
                 # Add first token (only if we have one)
                 collected_tokens.append(first_token)
-                await stream_widget.add_token(first_token)
+
+                if thinking_mode:
+                    # In thinking mode - buffer tokens and check for end of thinking
+                    stream_widget.thinking_buffer += first_token
+                else:
+                    # Not in thinking mode - add token to stream widget
+                    await stream_widget.add_token(first_token)
 
                 # Consume remaining tokens from queue and update UI in real-time
                 while True:
@@ -1686,14 +1708,47 @@ class ConsoulApp(App[None]):
                     if self._stream_cancelled:
                         break
 
-                    # Add token to UI immediately
+                    # Add token to collected tokens
                     collected_tokens.append(token)
-                    await stream_widget.add_token(token)
+
+                    # Handle thinking mode transitions
+                    if thinking_mode:
+                        # Buffer token and check if thinking has ended
+                        stream_widget.thinking_buffer += token
+
+                        if stream_widget.detect_thinking_end():
+                            # Thinking has ended - transition to normal streaming
+                            logger.debug(
+                                "[THINKING] Detected end of thinking tags, switching to normal streaming"
+                            )
+                            thinking_mode = False
+
+                            # Remove thinking indicator
+                            if thinking_indicator:
+                                await thinking_indicator.remove()
+
+                            # Show stream widget for the answer portion
+                            await self.chat_view.add_message(stream_widget)
+
+                            # Don't add the buffered thinking content to stream widget
+                            # It will be extracted later and shown in collapsible section
+                    else:
+                        # Normal streaming mode - add token to UI immediately
+                        await stream_widget.add_token(token)
 
                     # Yield to event loop to allow screen refresh
                     import asyncio
 
                     await asyncio.sleep(0)
+
+            # If still in thinking mode when stream ends, remove indicator and show stream widget
+            if thinking_mode and thinking_indicator:
+                logger.debug(
+                    "[THINKING] Stream ended while in thinking mode, removing indicator"
+                )
+                await thinking_indicator.remove()
+                # Show the stream widget with all content (thinking will be extracted later)
+                await self.chat_view.add_message(stream_widget)
 
             # Finalize streaming widget (this handles scrolling internally)
             await stream_widget.finalize_stream()

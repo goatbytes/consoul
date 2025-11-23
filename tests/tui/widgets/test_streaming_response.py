@@ -502,3 +502,178 @@ class TestStreamingResponseBugFixes:
 
             assert widget.streaming is False
             assert widget.border_title == "Assistant (1 tokens)"
+
+
+class TestStreamingResponseThinkingDetection:
+    """Test thinking/reasoning detection functionality."""
+
+    async def test_detect_thinking_start_with_think_tag(self) -> None:
+        """Test detection of <think> tag at start of content."""
+        app = StreamingResponseTestApp()
+        async with app.run_test():
+            widget = app.query_one(StreamingResponse)
+
+            assert widget.detect_thinking_start("<think>Let me analyze...") is True
+            assert widget.detect_thinking_start("  <think>Let me analyze...") is True
+            assert widget.detect_thinking_start("\n<think>Let me analyze...") is True
+
+    async def test_detect_thinking_start_with_thinking_tag(self) -> None:
+        """Test detection of <thinking> tag at start of content."""
+        app = StreamingResponseTestApp()
+        async with app.run_test():
+            widget = app.query_one(StreamingResponse)
+
+            assert widget.detect_thinking_start("<thinking>Step 1...") is True
+            assert widget.detect_thinking_start("  <thinking>Step 1...") is True
+
+    async def test_detect_thinking_start_with_reasoning_tag(self) -> None:
+        """Test detection of <reasoning> tag at start of content."""
+        app = StreamingResponseTestApp()
+        async with app.run_test():
+            widget = app.query_one(StreamingResponse)
+
+            assert widget.detect_thinking_start("<reasoning>First, consider...") is True
+
+    async def test_detect_thinking_start_case_insensitive(self) -> None:
+        """Test thinking detection is case-insensitive."""
+        app = StreamingResponseTestApp()
+        async with app.run_test():
+            widget = app.query_one(StreamingResponse)
+
+            assert widget.detect_thinking_start("<THINK>Analysis...") is True
+            assert widget.detect_thinking_start("<Think>Analysis...") is True
+            assert widget.detect_thinking_start("<THINKING>Step 1...") is True
+
+    async def test_detect_thinking_start_returns_false_for_non_thinking(self) -> None:
+        """Test detection returns False for normal content."""
+        app = StreamingResponseTestApp()
+        async with app.run_test():
+            widget = app.query_one(StreamingResponse)
+
+            assert widget.detect_thinking_start("The answer is 42") is False
+            assert widget.detect_thinking_start("Let me think about this...") is False
+            assert widget.detect_thinking_start("  Normal content") is False
+
+    async def test_detect_thinking_start_returns_false_for_tag_not_at_start(
+        self,
+    ) -> None:
+        """Test detection returns False when tag is not at start."""
+        app = StreamingResponseTestApp()
+        async with app.run_test():
+            widget = app.query_one(StreamingResponse)
+
+            assert widget.detect_thinking_start("Here is my <think>...") is False
+            assert widget.detect_thinking_start("Answer: <thinking>...") is False
+
+    async def test_detect_thinking_end_with_closing_tags(self) -> None:
+        """Test detection of closing tags in thinking buffer."""
+        app = StreamingResponseTestApp()
+        async with app.run_test():
+            widget = app.query_one(StreamingResponse)
+
+            # Set up thinking buffer with closing tag
+            widget.thinking_buffer = "<think>Step 1: Analyze\nStep 2: Conclude</think>"
+            assert widget.detect_thinking_end() is True
+
+            widget.thinking_buffer = "<thinking>My reasoning</thinking>"
+            assert widget.detect_thinking_end() is True
+
+            widget.thinking_buffer = "<reasoning>First, then</reasoning>"
+            assert widget.detect_thinking_end() is True
+
+    async def test_detect_thinking_end_case_insensitive(self) -> None:
+        """Test thinking end detection is case-insensitive."""
+        app = StreamingResponseTestApp()
+        async with app.run_test():
+            widget = app.query_one(StreamingResponse)
+
+            widget.thinking_buffer = "<think>Analysis</THINK>"
+            assert widget.detect_thinking_end() is True
+
+            widget.thinking_buffer = "<thinking>Step 1</Thinking>"
+            assert widget.detect_thinking_end() is True
+
+    async def test_detect_thinking_end_returns_false_without_closing(self) -> None:
+        """Test detection returns False when no closing tag present."""
+        app = StreamingResponseTestApp()
+        async with app.run_test():
+            widget = app.query_one(StreamingResponse)
+
+            widget.thinking_buffer = "<think>Still analyzing..."
+            assert widget.detect_thinking_end() is False
+
+            widget.thinking_buffer = "<thinking>Step 1\nStep 2\nStep 3"
+            assert widget.detect_thinking_end() is False
+
+    async def test_in_thinking_mode_reactive_property(self) -> None:
+        """Test in_thinking_mode reactive property exists and updates."""
+        app = StreamingResponseTestApp()
+        async with app.run_test() as pilot:
+            widget = app.query_one(StreamingResponse)
+
+            # Initially not in thinking mode
+            assert widget.in_thinking_mode is False
+
+            # Set to thinking mode
+            widget.in_thinking_mode = True
+            await pilot.pause()
+
+            assert widget.in_thinking_mode is True
+
+    async def test_thinking_mode_updates_border_title(self) -> None:
+        """Test border title updates when in_thinking_mode changes."""
+        app = StreamingResponseTestApp()
+        async with app.run_test() as pilot:
+            widget = app.query_one(StreamingResponse)
+
+            # Initially normal border title
+            assert widget.border_title == "Assistant"
+
+            # Enter thinking mode
+            widget.in_thinking_mode = True
+            await pilot.pause()
+
+            assert widget.border_title == "🧠 Thinking"
+
+            # Exit thinking mode
+            widget.in_thinking_mode = False
+            await pilot.pause()
+
+            assert widget.border_title == "Assistant"
+
+    async def test_thinking_buffer_initialization(self) -> None:
+        """Test thinking_buffer is initialized empty."""
+        app = StreamingResponseTestApp()
+        async with app.run_test():
+            widget = app.query_one(StreamingResponse)
+
+            assert widget.thinking_buffer == ""
+            assert hasattr(widget, "_thinking_detected")
+            assert widget._thinking_detected is False
+
+    async def test_full_thinking_workflow(self) -> None:
+        """Test complete thinking detection workflow."""
+        app = StreamingResponseTestApp()
+        async with app.run_test() as pilot:
+            widget = app.query_one(StreamingResponse)
+
+            # Simulate streaming thinking content
+            thinking_content = "<think>Step 1: Analyze problem\nStep 2: Find solution</think>The answer is 42"
+
+            # Check if content starts with thinking
+            assert widget.detect_thinking_start(thinking_content) is True
+
+            # Accumulate in buffer
+            widget.thinking_buffer = thinking_content
+
+            # Check if thinking has ended
+            assert widget.detect_thinking_end() is True
+
+            # Border title should update based on mode
+            widget.in_thinking_mode = True
+            await pilot.pause()
+            assert "🧠" in widget.border_title
+
+            widget.in_thinking_mode = False
+            await pilot.pause()
+            assert widget.border_title == "Assistant"

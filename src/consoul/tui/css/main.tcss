@@ -188,6 +188,35 @@ ChatView:focus {
 }
 
 /* ============================================================================
+ * Thinking Indicator (Real-time streaming indicator)
+ * ============================================================================ */
+
+ThinkingIndicator {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    margin: 1 0;
+    background: $surface-darken-1;
+    border: dashed $primary;
+    border-title-color: $primary;
+    border-title-align: left;
+}
+
+ThinkingIndicator .thinking-text {
+    width: 100%;
+    height: auto;
+    color: $text-muted;
+    text-style: italic;
+}
+
+ThinkingIndicator .thinking-dots {
+    width: auto;
+    height: auto;
+    color: $primary;
+    text-style: bold;
+}
+
+/* ============================================================================
  * Tool Call Widget
  * ============================================================================ */
 

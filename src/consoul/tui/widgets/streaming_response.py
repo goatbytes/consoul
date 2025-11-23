@@ -41,6 +41,7 @@ class StreamingResponse(RichLog):
     # Reactive state
     streaming: reactive[bool] = reactive(False)
     token_count: reactive[int] = reactive(0)
+    in_thinking_mode: reactive[bool] = reactive(False)
 
     def __init__(
         self,
@@ -59,6 +60,8 @@ class StreamingResponse(RichLog):
         self.full_content = ""
         self.last_render_time = 0.0
         self._last_written_length = 0
+        self.thinking_buffer = ""  # Buffer for detecting thinking tags
+        self._thinking_detected = False  # Flag to track if we've detected thinking
 
     def on_mount(self) -> None:
         """Initialize streaming response widget on mount."""
@@ -191,3 +194,41 @@ class StreamingResponse(RichLog):
             self.add_class("streaming")
         else:
             self.remove_class("streaming")
+
+    def detect_thinking_start(self, content: str) -> bool:
+        """Detect if content starts with thinking/reasoning tags.
+
+        Checks for common thinking tag patterns: <think>, <thinking>, <reasoning>
+
+        Args:
+            content: The content to check (usually first ~50 chars)
+
+        Returns:
+            True if thinking tags detected at start
+        """
+        content_lower = content.lower().lstrip()
+        thinking_patterns = ["<think>", "<thinking>", "<reasoning>"]
+        return any(content_lower.startswith(pattern) for pattern in thinking_patterns)
+
+    def detect_thinking_end(self) -> bool:
+        """Detect if thinking has ended by checking for closing tags.
+
+        Returns:
+            True if closing tag detected in thinking_buffer
+        """
+        buffer_lower = self.thinking_buffer.lower()
+        closing_patterns = ["</think>", "</thinking>", "</reasoning>"]
+        return any(pattern in buffer_lower for pattern in closing_patterns)
+
+    def watch_in_thinking_mode(self, thinking: bool) -> None:
+        """Update border title when thinking mode changes.
+
+        Called automatically when the in_thinking_mode reactive property changes.
+
+        Args:
+            thinking: New thinking mode state
+        """
+        if thinking:
+            self.border_title = "🧠 Thinking"
+        else:
+            self.border_title = "Assistant"
