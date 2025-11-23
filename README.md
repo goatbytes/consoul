@@ -71,6 +71,7 @@ consoul --profile creative chat "Write a poem" # Use specific profile
 - 🛠️ **Tool Calling** - AI-powered command execution with security controls
 - ✏️ **File Editing** - AI-powered file manipulation with safety controls and progressive matching
 - 🔍 **Code Search** - AST-based semantic search across Python, TypeScript, Go, Rust, Java, C/C++
+- 📸 **Image Analysis** - Multimodal vision support for analyzing screenshots, diagrams, and UI designs
 - 📝 **Conversation History** - Save and resume conversations
 - ⚙️ **Flexible Configuration** - YAML-based profiles with environment overrides
 - 🔒 **Security-First** - Multi-layer approval system and audit logging
@@ -300,6 +301,91 @@ result = find_references.invoke({
 - **[Code Search Guide](docs/user-guide/code-search.md)** - Comprehensive usage guide
 - **[Troubleshooting](docs/user-guide/code-search-troubleshooting.md)** - Common issues and solutions
 - **[Code Examples](docs/examples/code-search-example.py)** - Working Python examples
+
+## 📸 Image Analysis
+
+Analyze images with vision-capable AI models (Claude 3.5, GPT-4o, Gemini 2.0 Flash).
+
+### Supported Use Cases
+
+- 🐛 **Debug screenshots** - Analyze error messages and terminal output
+- 🎨 **UI/UX review** - Get feedback on designs and mockups
+- 📊 **Diagram analysis** - Understand architecture and flowcharts
+- 💻 **Code extraction** - Extract code from screenshots
+- 🔍 **Visual comparison** - Compare multiple images side-by-side
+
+### Quick Start
+
+**Method 1: Attach files using the 📎 button**
+
+1. Click the 📎 attachment button in the TUI input area
+2. Select image files (PNG, JPEG, GIF, WebP)
+3. Type your question
+4. Press Enter
+
+**Method 2: Reference images in your message**
+
+```bash
+consoul
+
+> Explain the error in terminal_error.png
+> Compare design_v1.png and design_v2.png
+> Is this interface accessible? ui_mockup.png
+```
+
+### Configuration
+
+```yaml
+active_profile: vision
+
+profiles:
+  vision:
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+
+tools:
+  image_analysis:
+    enabled: true
+    auto_detect_in_messages: true  # Detect image paths automatically
+    max_image_size_mb: 5.0
+    max_images_per_query: 5
+```
+
+### Supported Models
+
+| Provider | Models |
+|----------|--------|
+| Anthropic | `claude-3-5-sonnet-20241022`, `claude-3-opus-20240229` |
+| OpenAI | `gpt-4o`, `gpt-4o-mini` |
+| Google | `gemini-2.0-flash`, `gemini-1.5-pro` |
+| Ollama | `llava:latest` (fully local, private) |
+
+### Programmatic Usage
+
+```python
+from consoul import Consoul
+
+# Initialize with vision model
+consoul = Consoul(model="claude-3-5-sonnet-20241022")
+
+# Analyze a screenshot
+response = consoul.chat(
+    "What error is shown in this screenshot?",
+    image_paths=["terminal_error.png"]
+)
+
+# Compare multiple images
+comparison = consoul.chat(
+    "Which design is better for mobile?",
+    image_paths=["design_a.png", "design_b.png"]
+)
+```
+
+### Documentation
+
+- **[Image Analysis Guide](docs/user-guide/image-analysis.md)** - Complete feature documentation
+- **[Configuration](docs/user-guide/configuration.md#image-analysis-tool)** - Detailed config options
+- **[Code Examples](docs/examples/image-analysis-example.py)** - Working Python examples
 
 ## 📚 Documentation
 

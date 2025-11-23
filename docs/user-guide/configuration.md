@@ -567,6 +567,87 @@ tools:
           - "chmod"
 ```
 
+### Image Analysis Tool
+
+Configure multimodal vision capabilities for analyzing images with AI models.
+
+```yaml
+tools:
+  image_analysis:
+    # Enable/disable image analysis
+    enabled: true
+
+    # Auto-detect image paths in messages (e.g., "analyze screenshot.png")
+    auto_detect_in_messages: true
+
+    # Maximum file size per image (MB)
+    max_image_size_mb: 5.0
+
+    # Maximum number of images per query
+    max_images_per_query: 5
+
+    # Allowed file extensions
+    allowed_extensions:
+      - ".png"
+      - ".jpg"
+      - ".jpeg"
+      - ".gif"
+      - ".webp"
+
+    # Blocked paths for security (prevent accessing sensitive files)
+    blocked_paths:
+      - "~/.ssh"           # SSH keys
+      - "/etc"             # System config
+      - "~/.aws"           # AWS credentials
+      - "~/.config/consoul" # Prevent leaking API keys
+      - "/System"          # macOS system files
+      - "/Windows"         # Windows system files
+```
+
+**Security Considerations:**
+
+- Images are sent to external AI provider APIs (Claude, OpenAI, Google, etc.)
+- Use `blocked_paths` to prevent accessing sensitive directories
+- File size limits prevent large uploads that could incur high API costs
+- Magic byte validation prevents malicious file uploads via extension spoofing
+- Path traversal protection blocks attempts to access parent directories
+
+**Supported Vision Models:**
+
+| Provider | Models |
+|----------|--------|
+| Anthropic | `claude-3-5-sonnet-20241022`, `claude-3-opus-20240229`, `claude-3-haiku-20240307` |
+| OpenAI | `gpt-4o`, `gpt-4o-mini` |
+| Google | `gemini-2.0-flash`, `gemini-1.5-pro` |
+| Ollama (local) | `llava:latest`, `bakllava:latest` |
+
+**Example Usage:**
+
+```yaml
+# High-resolution diagram analysis
+tools:
+  image_analysis:
+    enabled: true
+    max_image_size_mb: 10.0  # Allow larger technical diagrams
+    max_images_per_query: 3
+    auto_detect_in_messages: true
+
+# Privacy-focused (local only)
+active_profile: local_vision
+
+profiles:
+  local_vision:
+    provider: ollama
+    model: llava:latest
+
+tools:
+  image_analysis:
+    enabled: true
+    max_image_size_mb: 20.0  # Local models have no API cost
+```
+
+See the [Image Analysis Guide](image-analysis.md) for detailed usage instructions and examples.
+
 ### See Also
 
 - **[Tool Calling Guide](../tools.md)** - Complete documentation
