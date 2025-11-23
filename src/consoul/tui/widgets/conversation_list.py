@@ -161,11 +161,14 @@ class ConversationList(Container):
             # Get title from first user message or use "Untitled"
             title = self._get_conversation_title(conv)
 
-            self.table.add_row(
-                title,
-                key=conv["session_id"],
-            )
-            self.loaded_count += 1
+            # Check if row already exists (avoid duplicate key error)
+            session_id = conv["session_id"]
+            if session_id not in [str(key.value) for key in self.table.rows]:
+                self.table.add_row(
+                    title,
+                    key=session_id,
+                )
+                self.loaded_count += 1
 
         self.conversation_count = self.loaded_count
         self._update_title()
