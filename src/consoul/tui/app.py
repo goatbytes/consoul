@@ -1690,8 +1690,9 @@ class ConsoulApp(App[None]):
                 collected_tokens.append(first_token)
 
                 if thinking_mode:
-                    # In thinking mode - buffer tokens and check for end of thinking
+                    # In thinking mode - show token in thinking indicator AND buffer
                     stream_widget.thinking_buffer += first_token
+                    await thinking_indicator.add_token(first_token)  # type: ignore[union-attr]
                 else:
                     # Not in thinking mode - add token to stream widget
                     await stream_widget.add_token(first_token)
@@ -1713,8 +1714,11 @@ class ConsoulApp(App[None]):
 
                     # Handle thinking mode transitions
                     if thinking_mode:
-                        # Buffer token and check if thinking has ended
+                        # Buffer token for end detection
                         stream_widget.thinking_buffer += token
+
+                        # Show token in thinking indicator (visible streaming)
+                        await thinking_indicator.add_token(token)  # type: ignore[union-attr]
 
                         if stream_widget.detect_thinking_end():
                             # Thinking has ended - transition to normal streaming

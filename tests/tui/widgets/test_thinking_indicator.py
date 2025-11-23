@@ -51,8 +51,6 @@ class TestThinkingIndicator:
             widget = app.query_one(ThinkingIndicator)
             text_widget = widget.query_one("#thinking-text", Static)
             assert text_widget is not None
-            # Static widgets store content as renderable, need to check via render or update
-            assert text_widget is not None  # Widget exists is enough for this test
 
     async def test_has_dots_widget(self) -> None:
         """Test indicator has animated dots widget."""
@@ -201,3 +199,68 @@ class TestThinkingIndicator:
             # Should no longer be in DOM
             indicators = app.query(ThinkingIndicator)
             assert len(indicators) == 0
+
+    async def test_add_token_updates_content(self) -> None:
+        """Test adding tokens updates the thinking content display."""
+
+        indicator = ThinkingIndicator()
+        app = ThinkingIndicatorTestApp(indicator)
+
+        async with app.run_test() as pilot:
+            widget = app.query_one(ThinkingIndicator)
+
+            # Initially no content
+            assert widget.thinking_content == ""
+
+            # Add some tokens
+            await widget.add_token("Step 1: ")
+            await pilot.pause()
+            assert widget.thinking_content == "Step 1: "
+
+            await widget.add_token("Analyze ")
+            await pilot.pause()
+            assert widget.thinking_content == "Step 1: Analyze "
+
+            await widget.add_token("problem")
+            await pilot.pause()
+            assert widget.thinking_content == "Step 1: Analyze problem"
+
+    async def test_has_content_log_widget(self) -> None:
+        """Test indicator has RichLog for displaying thinking content."""
+        from textual.widgets import RichLog
+
+        indicator = ThinkingIndicator()
+        app = ThinkingIndicatorTestApp(indicator)
+
+        async with app.run_test():
+            widget = app.query_one(ThinkingIndicator)
+            content_log = widget.query_one("#thinking-content-log", RichLog)
+            assert content_log is not None
+
+    async def test_streaming_thinking_workflow(self) -> None:
+        """Test complete workflow of streaming thinking content."""
+        indicator = ThinkingIndicator()
+        app = ThinkingIndicatorTestApp(indicator)
+
+        async with app.run_test() as pilot:
+            widget = app.query_one(ThinkingIndicator)
+
+            # Simulate streaming thinking tokens
+            thinking_tokens = [
+                "<think>",
+                "Step 1: ",
+                "Understand the problem\n",
+                "Step 2: ",
+                "Formulate solution\n",
+                "Step 3: ",
+                "Verify correctness",
+                "</think>",
+            ]
+
+            for token in thinking_tokens:
+                await widget.add_token(token)
+                await pilot.pause()
+
+            # Check all content was accumulated
+            expected = "".join(thinking_tokens)
+            assert widget.thinking_content == expected

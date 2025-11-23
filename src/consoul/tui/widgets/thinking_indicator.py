@@ -1,8 +1,9 @@
 """ThinkingIndicator widget for showing AI reasoning/chain-of-thought state.
 
 This module provides a visual indicator that appears when the AI is streaming
-thinking/reasoning content (e.g., content within <think> tags). It shows a pulsing
-animation to indicate the model is in "thinking mode" before providing the answer.
+thinking/reasoning content (e.g., content within <think> tags). It shows the
+streaming thinking content in real-time with a pulsing animation to indicate
+the model is in "thinking mode" before providing the answer.
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ from typing import TYPE_CHECKING
 
 from textual.containers import Container
 from textual.reactive import reactive
-from textual.widgets import Static
+from textual.widgets import RichLog, Static
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
@@ -22,28 +23,38 @@ __all__ = ["ThinkingIndicator"]
 class ThinkingIndicator(Container):
     """Visual indicator for AI thinking/reasoning state during streaming.
 
-    Displays an animated "🧠 Thinking..." message with pulsing dots to show
-    that the AI is currently outputting chain-of-thought reasoning before
-    providing the final answer.
+    Displays streaming thinking content in real-time with an animated
+    "🧠 Thinking..." header and pulsing dots to show that the AI is currently
+    outputting chain-of-thought reasoning before providing the final answer.
 
     Attributes:
         dot_count: Number of dots currently displayed (cycles 0-3)
+        thinking_content: Full accumulated thinking content
     """
 
     DEFAULT_CSS = """
     ThinkingIndicator {
         width: 100%;
         height: auto;
-        padding: 1 2;
+        padding: 0;
         margin: 1 0;
         background: $surface-darken-1;
         border: dashed $primary;
         border-title-color: $primary;
         border-title-align: left;
+        layout: vertical;
+    }
+
+    ThinkingIndicator #thinking-header {
+        width: 100%;
+        height: auto;
+        padding: 0 2;
+        background: $surface-darken-2;
+        layout: horizontal;
     }
 
     ThinkingIndicator .thinking-text {
-        width: 100%;
+        width: 1fr;
         height: auto;
         color: $text-muted;
         text-style: italic;
@@ -54,6 +65,16 @@ class ThinkingIndicator(Container):
         height: auto;
         color: $primary;
         text-style: bold;
+    }
+
+    ThinkingIndicator #thinking-content-log {
+        width: 100%;
+        height: auto;
+        padding: 1 2;
+        color: $text-muted;
+        text-style: italic;
+        background: transparent;
+        scrollbar-size: 0 0;
     }
     """
 
@@ -68,15 +89,25 @@ class ThinkingIndicator(Container):
         """
         super().__init__(**kwargs)
         self.border_title = "🧠 Thinking"
+        self.thinking_content = ""
 
     def compose(self) -> ComposeResult:
         """Compose thinking indicator widgets.
 
         Yields:
-            Static widgets for thinking text and animated dots
+            Header with text/dots and RichLog for streaming content
         """
-        yield Static("Reasoning", classes="thinking-text", id="thinking-text")
-        yield Static("", classes="thinking-dots", id="thinking-dots")
+        # Header with "Reasoning" text and animated dots
+        with Container(id="thinking-header"):
+            yield Static("Reasoning", classes="thinking-text", id="thinking-text")
+            yield Static("", classes="thinking-dots", id="thinking-dots")
+
+        # Scrollable content area for streaming thinking
+        yield RichLog(
+            id="thinking-content-log",
+            wrap=True,
+            markup=True,
+        )
 
     def on_mount(self) -> None:
         """Start pulsing animation on mount."""
@@ -92,3 +123,15 @@ class ThinkingIndicator(Container):
         dots_widget = self.query_one("#thinking-dots", Static)
         dots_text = "." * self.dot_count if self.dot_count > 0 else "\u00a0"
         dots_widget.update(dots_text)
+
+    async def add_token(self, token: str) -> None:
+        """Add a streaming token to the thinking content display.
+
+        Args:
+            token: Text token from thinking stream
+        """
+        self.thinking_content += token
+        content_log = self.query_one("#thinking-content-log", RichLog)
+        # Clear and rewrite with updated content (simple approach for thinking display)
+        content_log.clear()
+        content_log.write(self.thinking_content)
