@@ -66,6 +66,8 @@ class MessageBubble(Container):
         tool_calls: list[dict[str, Any]] | None = None,
         message_id: int | None = None,
         thinking_content: str | None = None,
+        tokens_per_second: float | None = None,
+        time_to_first_token: float | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize MessageBubble widget.
@@ -79,6 +81,8 @@ class MessageBubble(Container):
             tool_calls: Optional list of tool call data dicts (for assistant messages)
             message_id: Optional database message ID (for branching functionality)
             thinking_content: Optional AI reasoning/thinking content to display in collapsible section
+            tokens_per_second: Optional tokens/sec throughput metric
+            time_to_first_token: Optional time (seconds) to receive first token
             **kwargs: Additional arguments passed to Static
         """
         super().__init__(**kwargs)
@@ -90,6 +94,8 @@ class MessageBubble(Container):
         self.tool_calls = tool_calls or []
         self.message_id = message_id
         self.thinking_content = thinking_content
+        self.tokens_per_second = tokens_per_second
+        self.time_to_first_token = time_to_first_token
         self._markdown_failed = False
         # Set role last (triggers watcher which needs other attributes)
         self.role = role
@@ -204,7 +210,9 @@ class MessageBubble(Container):
                 pass
 
     def _build_metadata_text(self) -> Text:
-        """Build metadata text with timestamp and optional token count.
+        """Build metadata text with timestamp and optional streaming metrics.
+
+        Format: "49.75 tok/sec • 491 tokens • 0.16s to first token"
 
         Returns:
             Rich Text object with styled metadata
@@ -216,11 +224,26 @@ class MessageBubble(Container):
         footer.append("🕐 ", style="dim")
         footer.append(time_str, style="dim italic")
 
-        # Add token count if available
+        # Build streaming metrics if available
+        metrics_parts = []
+
+        # Tokens per second
+        if self.tokens_per_second is not None:
+            metrics_parts.append(f"{self.tokens_per_second:.2f} tok/sec")
+
+        # Token count
         if self.token_count is not None:
+            metrics_parts.append(f"{self.token_count} tokens")
+
+        # Time to first token
+        if self.time_to_first_token is not None:
+            metrics_parts.append(f"{self.time_to_first_token:.2f}s to first token")
+
+        # Add metrics with separator if we have any
+        if metrics_parts:
             footer.append(" │ ", style="dim")
-            footer.append("🎯 ", style="bold")
-            footer.append(f"{self.token_count} tokens", style="bold cyan")
+            metrics_text = " • ".join(metrics_parts)
+            footer.append(metrics_text, style="bold cyan")
 
         return footer
 

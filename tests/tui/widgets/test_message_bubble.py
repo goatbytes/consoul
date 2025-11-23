@@ -239,7 +239,6 @@ class TestMessageBubbleMetadata:
             widget = app.query_one(MessageBubble)
             footer = widget._build_metadata_text()
             assert "100 tokens" in str(footer)
-            assert "🎯" in str(footer)
 
     async def test_metadata_footer_with_both(self) -> None:
         """Test metadata footer with timestamp and token count."""
@@ -263,6 +262,74 @@ class TestMessageBubbleMetadata:
             widget = app.query_one(MessageBubble)
             # When metadata is disabled, it shouldn't affect content
             assert widget.show_metadata is False
+
+    async def test_metadata_with_tokens_per_second(self) -> None:
+        """Test metadata displays tokens/sec metric."""
+        bubble = MessageBubble(
+            "Test",
+            token_count=491,
+            tokens_per_second=49.75,
+            show_metadata=True,
+        )
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+            footer = widget._build_metadata_text()
+            assert "49.75 tok/sec" in str(footer)
+            assert "491 tokens" in str(footer)
+            assert "•" in str(footer)
+
+    async def test_metadata_with_time_to_first_token(self) -> None:
+        """Test metadata displays time to first token metric."""
+        bubble = MessageBubble(
+            "Test",
+            token_count=100,
+            time_to_first_token=0.16,
+            show_metadata=True,
+        )
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+            footer = widget._build_metadata_text()
+            assert "0.16s to first token" in str(footer)
+            assert "100 tokens" in str(footer)
+
+    async def test_metadata_with_all_metrics(self) -> None:
+        """Test metadata with all streaming metrics."""
+        bubble = MessageBubble(
+            "Test",
+            token_count=491,
+            tokens_per_second=49.75,
+            time_to_first_token=0.16,
+            show_metadata=True,
+        )
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+            footer = widget._build_metadata_text()
+            # Check all three metrics are present
+            assert "49.75 tok/sec" in str(footer)
+            assert "491 tokens" in str(footer)
+            assert "0.16s to first token" in str(footer)
+            # Check bullet separator (2 bullets for 3 metrics)
+            assert str(footer).count("•") == 2
+
+    async def test_metadata_metrics_formatting(self) -> None:
+        """Test metrics are formatted with proper precision."""
+        bubble = MessageBubble(
+            "Test",
+            token_count=1234,
+            tokens_per_second=123.456789,
+            time_to_first_token=0.123456,
+            show_metadata=True,
+        )
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+            footer = widget._build_metadata_text()
+            # Check 2 decimal precision
+            assert "123.46 tok/sec" in str(footer)
+            assert "0.12s to first token" in str(footer)
 
 
 class TestMessageBubbleReactive:

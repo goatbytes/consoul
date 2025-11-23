@@ -1638,9 +1638,13 @@ class ConsoulApp(App[None]):
             stream_thread.start()
 
             # Wait for first token, then replace typing indicator with streaming widget
+            import time
+
+            stream_start_time = time.time()
             first_token = await token_queue.get()
+            time_to_first_token = time.time() - stream_start_time
             logger.debug(
-                f"[TOOL_FLOW] Got first_token: is_none={first_token is None}, value={first_token[:50] if first_token else 'None'}"
+                f"[TOOL_FLOW] Got first_token: is_none={first_token is None}, value={first_token[:50] if first_token else 'None'}, ttft={time_to_first_token:.3f}s"
             )
 
             # Hide typing indicator
@@ -1966,6 +1970,13 @@ class ConsoulApp(App[None]):
                         # Fallback to character approximation if token counting fails
                         token_count = len(full_response) // 4
 
+                    # Calculate streaming metrics
+                    stream_end_time = time.time()
+                    stream_duration = stream_end_time - stream_start_time
+                    tokens_per_second = (
+                        token_count / stream_duration if stream_duration > 0 else None
+                    )
+
                     # Extract thinking/reasoning from response
                     thinking = None
                     response_text = full_response
@@ -1986,6 +1997,8 @@ class ConsoulApp(App[None]):
                         tool_calls=tool_calls_list,
                         message_id=self._current_assistant_message_id,
                         thinking_content=thinking_content,
+                        tokens_per_second=tokens_per_second,
+                        time_to_first_token=time_to_first_token,
                     )
                     await self.chat_view.add_message(assistant_bubble)
             elif self._stream_cancelled:

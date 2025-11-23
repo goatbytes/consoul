@@ -1,0 +1,22 @@
+2025-11-23 15:50:47,008 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
+2025-11-23 15:51:02,512 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.0ms
+2025-11-23 15:51:02,513 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.2ms
+2025-11-23 15:51:02,522 - consoul.tui.app - INFO - [TIMING] Added message bubble: 9.7ms
+2025-11-23 15:51:02,525 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 2.7ms
+2025-11-23 15:51:02,525 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.0ms
+2025-11-23 15:51:02,526 - consoul.tui.app - INFO - [IMAGE_DETECTION] Auto-detect enabled: True, Attached images: 0, Auto-detected: 0, Total (deduplicated): 0
+2025-11-23 15:51:02,526 - consoul.tui.app - INFO - [IMAGE_DETECTION] Checking vision support for model: qwq:32b
+2025-11-23 15:51:02,526 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model 'qwq:32b' has vision: False
+2025-11-23 15:51:02,526 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model supports vision: False
+2025-11-23 15:51:02,526 - consoul.tui.app - INFO - [IMAGE_DETECTION] Condition check: image_paths=False, model_supports_vision=False, combined=False
+2025-11-23 15:51:02,526 - consoul.tui.app - INFO - [TIMING] Worker started: 13.3ms from submit
+2025-11-23 15:51:02,526 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 13.4ms
+2025-11-23 15:51:02,529 - consoul.tui.app - INFO - Created conversation session: cee68e1f-32b1-461c-b45d-5be1664eaed4
+2025-11-23 15:51:02,529 - consoul.tui.app - DEBUG - Persisted user message with ID: 177
+2025-11-23 15:51:02,534 - consoul.tui.app - INFO - [TIMING] DB persist complete: 8.8ms
+2025-11-23 15:51:02,535 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
+2025-11-23 15:51:02,535 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.2ms
+2025-11-23 15:51:02,535 - consoul.tui.app - INFO - [TIMING] Got model config: 0.0ms
+2025-11-23 15:51:02,537 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 2.2ms
+2025-11-23 15:51:02,537 - consoul.tui.app - INFO - [IMAGE_DETECTION] Last message has multimodal content: False
+2025-11-23 15:51:02,537 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.4ms, total prep: 2.8ms
