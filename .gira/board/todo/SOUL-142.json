@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-11-22T19:14:00.215489",
+  "updated_at": "2025-11-22T19:14:00.215497",
+  "id": "SOUL-142",
+  "uuid": "74a3b258-c8b3-4898-b346-dc4fa5fa09bc",
+  "title": "Implement accurate token counting for Ollama models using HuggingFace tokenizers",
+  "description": "**As a** Consoul user running Ollama models locally\n**I want** accurate token counting that doesn't hang or timeout\n**So that** I get reliable context window management without 18+ second delays\n\n**Context:**\nCurrently, token counting for Ollama models uses character approximation (1 token ≈ 4 chars) which is only 66% accurate and can cause context overflow errors. The previous implementation using model.get_num_tokens_from_messages() caused 18+ second delays and complete TUI freezing due to slow HTTP calls to the Ollama server.\n\nResearch findings:\n- Tiktoken is inaccurate for Ollama models (50-70% accuracy, different tokenizers)\n- Ollama API calls are slow (3-10s) and can hang indefinitely\n- HuggingFace provides each model's actual tokenizer (100% accurate, < 2ms)\n- LangChain supports custom_get_token_ids parameter for custom tokenizers\n\nTest results with Granite 4:3b (92 characters, 3 messages):\n- HuggingFace tokenizer: 35 tokens in 1.9ms (100% accurate) ✓\n- Character approximation: 23 tokens in 0.002ms (66% accurate)\n- Ollama API: 35 tokens in 3-10s (hangs/timeouts) ✗\n\n**Technical Notes:**\n- src/consoul/ai/context.py:333-351 - create_token_counter() function\n- Lines 341-347 currently disable get_num_tokens_from_messages for all Ollama models\n- granite_tokenizer.py already implemented and tested (production-ready)\n- Requires transformers package (~500MB, same category as tiktoken)\n- Model mapping: granite4:3b → ibm-granite/granite-4.0-micro (vocab: 100,352)\n- Tokenizer uses GPT-2 BPE (not GPT-2 vocab) - Starcoder-based\n- Character approximation remains as fallback for users without transformers\n\nImplementation files:\n- src/consoul/ai/context.py - Update create_token_counter()\n- src/consoul/ai/granite_tokenizer.py - Move from root (already complete)\n- pyproject.toml - Add transformers to optional dependencies\n- tests/ai/test_token_counting.py - Add tests for HF tokenizer path\n\n**Acceptance Criteria:**\n\n**Given** I have transformers package installed\n**When** I use an Ollama model (granite4:3b, llama3:8b, etc.)\n**Then** token counting uses the model's actual HuggingFace tokenizer\n\n**Given** I count tokens for a conversation with Granite 4\n**When** using HuggingFace tokenizer\n**Then** token count is 100% accurate (matches model's actual count)\n\n**Given** I count tokens repeatedly\n**When** using HuggingFace tokenizer\n**Then** each count completes in < 5ms (no HTTP calls, no hangs)\n\n**Given** transformers package is not installed\n**When** I use an Ollama model\n**Then** system falls back to character approximation gracefully\n\n**Given** I use an unmapped Ollama model (e.g., custom local model)\n**When** HuggingFace tokenizer lookup fails\n**Then** system falls back to character approximation with warning log\n\n**Given** I load a conversation from database\n**When** token counting is needed\n**Then** fast estimation is still used (existing _use_fast_token_counting flag)\n\n**Testing Considerations:**\n- Unit tests for create_token_counter() with Ollama models\n- Test HuggingFace tokenizer path (mock transformers import)\n- Test fallback when transformers unavailable\n- Test model mapping (granite, llama, qwen, mistral)\n- Integration test with actual transformers package\n- Verify no performance regression (< 5ms per count)\n- Test DB-loaded conversations still use fast path\n- Mock HuggingFace tokenizer downloads for CI\n\n**Implementation Hints:**\nSee granite_tokenizer.py for production-ready implementation.\nUpdate create_token_counter() to try HF tokenizer first for Ollama models.\nAdd model mapping for common models (granite, llama, qwen, mistral).\nAdd transformers to optional dependencies in pyproject.toml.\n\nDependencies: SOUL-138, SOUL-139 (DB loading fixes - completed)",
+  "status": "todo",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "ai",
+    "ollama",
+    "performance",
+    "cost-optimization"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-002",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

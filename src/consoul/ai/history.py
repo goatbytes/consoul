@@ -248,6 +248,10 @@ class ConversationHistory:
         self._token_counter = create_token_counter(model_name, model)
         self._model = model
 
+        # Flag to use fast estimation instead of real token counting
+        # Set to True when loading from DB to avoid expensive/hanging token counts
+        self._use_fast_token_counting = False
+
         # Persistence setup
         self.persist = persist
         self.session_id = session_id
@@ -265,6 +269,8 @@ class ConversationHistory:
                     # Resume existing conversation
                     self._load_from_db(session_id)
                     self._conversation_created = True
+                    # Use fast token counting for loaded conversations to avoid hangs
+                    self._use_fast_token_counting = True
                 # else: Defer conversation creation until first user message
 
             except Exception as e:
@@ -329,7 +335,26 @@ class ConversationHistory:
 
                         deserialized = json.loads(content)
                         if isinstance(deserialized, list):
-                            content = deserialized
+                            # Strip base64 image data to prevent token counting hangs
+                            # Replace with placeholders for conversation context
+                            cleaned_content = []
+                            for item in deserialized:
+                                if isinstance(item, dict):
+                                    if item.get("type") == "text":
+                                        cleaned_content.append(item)
+                                    elif item.get("type") == "image_url":
+                                        # Replace with placeholder instead of full base64
+                                        cleaned_content.append(
+                                            {
+                                                "type": "text",
+                                                "text": "[Image attachment]",
+                                            }
+                                        )
+                                else:
+                                    cleaned_content.append(item)
+                            content = (
+                                cleaned_content if cleaned_content else deserialized
+                            )
                     except (json.JSONDecodeError, ValueError):
                         # Not JSON or invalid - use as-is
                         pass
@@ -396,7 +421,10 @@ class ConversationHistory:
             role = role_map.get(type(message), message.type)
 
             # Count tokens for this message
-            tokens = self._token_counter([message])
+            # For performance: use simple estimation instead of expensive token counting
+            # Token counting can hang/timeout when model is in bad state (especially after DB load)
+            content_str = str(message.content) if message.content else ""
+            tokens = len(content_str) // 4  # Rough estimate: 1 token ≈ 4 chars
 
             # Handle both string and complex content types
             content = message.content
@@ -764,11 +792,26 @@ class ConversationHistory:
 
         # Standard LangChain trim_messages (no summarization or summarization failed)
         try:
+            # Use fast estimation if enabled (e.g., when loaded from DB)
+            if self._use_fast_token_counting:
+
+                def fast_token_counter(messages: list[BaseMessage]) -> int:
+                    """Fast token estimation based on character count."""
+                    total = 0
+                    for msg in messages:
+                        content_str = str(msg.content) if msg.content else ""
+                        total += len(content_str) // 4  # 1 token ≈ 4 chars
+                    return total
+
+                token_counter_fn: Any = fast_token_counter
+            else:
+                token_counter_fn = self._token_counter
+
             trimmed = trim_messages(
                 self.messages,
                 max_tokens=available_tokens,
                 strategy=strategy,
-                token_counter=self._token_counter,
+                token_counter=token_counter_fn,
                 # Always preserve system message (first message if it exists)
                 include_system=True,
                 # Ensure conversation starts with user message (after system)

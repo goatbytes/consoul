@@ -1,4 +1,0 @@
-2025-11-22 00:01:54,813 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./log.txt
-2025-11-22 00:02:02,036 - consoul.ai.history - INFO - Loaded 4 messages from session fd59366e-6618-4cf2-81db-9821b5e9092a
-2025-11-22 00:02:11,839 - consoul.ai.history - INFO - Loaded 1 messages from session bef04a65-4b8d-4e82-a0ac-9d8aa1c262d5
-2025-11-22 00:02:16,359 - consoul.ai.history - INFO - Loaded 4 messages from session 5c284dc9-8272-40a0-8227-887884726f27

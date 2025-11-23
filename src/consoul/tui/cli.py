@@ -144,10 +144,15 @@ def tui(
         logger = logging.getLogger(__name__)
         logger.info(f"Debug logging enabled, writing to: {log_path}")
 
+    import contextlib
+
     app = ConsoulApp(
         config=tui_config, consoul_config=consoul_config, test_mode=test_mode
     )
-    app.run()
+
+    # Handle Ctrl+C gracefully - exit without error
+    with contextlib.suppress(KeyboardInterrupt):
+        app.run()
 
 
 if __name__ == "__main__":

@@ -156,6 +156,12 @@ class ConsoulApp(App[None]):
         # GC management will be set up in on_mount (after message pump starts)
         self._gc_interval_timer: object | None = None
 
+        # Create managed thread pool executor for async operations
+        # This ensures clean shutdown on Ctrl+C
+        from concurrent.futures import ThreadPoolExecutor
+
+        self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="consoul")
+
         # Load Consoul configuration for AI providers
         if consoul_config is None:
             from consoul.config import load_config
@@ -574,6 +580,14 @@ class ConsoulApp(App[None]):
 
         Restores original GC state to avoid affecting embedding applications.
         """
+        # Shutdown thread pool executor gracefully
+        if hasattr(self, "_executor"):
+            try:
+                # Cancel pending futures and don't wait
+                self._executor.shutdown(wait=False, cancel_futures=True)
+            except Exception as e:
+                self.log.warning(f"Error shutting down executor: {e}")
+
         # Restore original GC state
         if self._original_gc_enabled:
             gc.enable()
@@ -917,7 +931,6 @@ class ConsoulApp(App[None]):
         from consoul.tui.widgets import MessageBubble
 
         t0 = time.time()
-        logger.info("[TIMING] Message submit handler started")
 
         user_message = event.content
 
@@ -1108,7 +1121,7 @@ class ConsoulApp(App[None]):
 
                     loop = asyncio.get_event_loop()
                     self.conversation.session_id = await loop.run_in_executor(
-                        None,
+                        self._executor,
                         self.conversation._db.create_conversation,
                         self.conversation.model_name,
                     )
@@ -1144,7 +1157,6 @@ class ConsoulApp(App[None]):
             logger.info(f"[TIMING] DB persist complete: {(t7 - t6) * 1000:.1f}ms")
 
             # Start streaming AI response
-            logger.info("[TIMING] About to call _stream_ai_response")
             await self._stream_ai_response()
 
             t8 = time.time()
@@ -1176,7 +1188,6 @@ class ConsoulApp(App[None]):
         from consoul.tui.widgets import MessageBubble, StreamingResponse
 
         s0 = time.time()
-        logger.info("[TIMING] _stream_ai_response ENTRY")
 
         # DEBUG: Log entry to verify this method is called
         logger.debug(
@@ -1250,11 +1261,26 @@ class ConsoulApp(App[None]):
                 # Just take the last few messages to keep context manageable
                 messages = list(self.conversation.messages[-10:])  # type: ignore
             else:
-                messages = await loop.run_in_executor(
-                    None,
-                    self.conversation.get_trimmed_messages,  # type: ignore[union-attr]
-                    reserve_tokens,
-                )
+                try:
+                    # Add timeout to prevent hanging on token counting
+                    messages = await asyncio.wait_for(
+                        loop.run_in_executor(
+                            self._executor,
+                            self.conversation.get_trimmed_messages,  # type: ignore[union-attr]
+                            reserve_tokens,
+                        ),
+                        timeout=10.0,  # 10 second timeout
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        "Token counting timed out after 10s, using last 20 messages as fallback"
+                    )
+                    # Fallback: use last 20 messages without token counting
+                    messages = list(self.conversation.messages[-20:])  # type: ignore
+                except Exception as e:
+                    logger.error(f"Error trimming messages: {e}", exc_info=True)
+                    # Fallback: use last 20 messages
+                    messages = list(self.conversation.messages[-20:])  # type: ignore
 
             s3 = time.time()
             logger.info(f"[TIMING] Got trimmed messages: {(s3 - s2) * 1000:.1f}ms")
@@ -1354,7 +1380,7 @@ class ConsoulApp(App[None]):
             else:
                 # Convert to dict format for LangChain (also can be slow with many messages)
                 messages_to_send = await loop.run_in_executor(
-                    None, lambda: [to_dict_message(msg) for msg in messages]
+                    self._executor, lambda: [to_dict_message(msg) for msg in messages]
                 )
 
             s4 = time.time()
@@ -1736,11 +1762,21 @@ class ConsoulApp(App[None]):
                 if final_message:
                     self.conversation.messages.append(final_message)  # type: ignore[union-attr]
                     # Persist to DB and capture message ID for linking tool calls
-                    self._current_assistant_message_id = (
-                        await self.conversation._persist_message(  # type: ignore[union-attr]
-                            final_message
+                    try:
+                        self._current_assistant_message_id = await asyncio.wait_for(
+                            self.conversation._persist_message(  # type: ignore[union-attr]
+                                final_message
+                            ),
+                            timeout=10.0,  # 10 second timeout
                         )
-                    )
+                    except asyncio.TimeoutError:
+                        logger.error(
+                            "Message persistence timed out after 10s - continuing without DB save"
+                        )
+                        self._current_assistant_message_id = None
+                    except Exception as e:
+                        logger.error(f"Message persistence failed: {e}")
+                        self._current_assistant_message_id = None
                 elif has_content:
                     # Fallback if final_message reconstruction failed but we have content
                     self.conversation.add_assistant_message(full_response)  # type: ignore[union-attr]
@@ -1839,10 +1875,20 @@ class ConsoulApp(App[None]):
                     try:
                         from langchain_core.messages import AIMessage
 
-                        token_count = self.conversation._token_counter(  # type: ignore[union-attr]
-                            [AIMessage(content=full_response)]
+                        # Use a timeout to prevent hanging on token counting
+                        token_count = await asyncio.wait_for(
+                            loop.run_in_executor(
+                                self._executor,
+                                self.conversation._token_counter,  # type: ignore[union-attr,arg-type]
+                                [AIMessage(content=full_response)],
+                            ),
+                            timeout=5.0,  # 5 second timeout
                         )
-                    except Exception:
+                    except asyncio.TimeoutError:
+                        logger.warning("Token counting timed out, using approximation")
+                        token_count = len(full_response) // 4
+                    except Exception as e:
+                        logger.warning(f"Token counting failed: {e}")
                         # Fallback to character approximation if token counting fails
                         token_count = len(full_response) // 4
 
@@ -1954,7 +2000,7 @@ class ConsoulApp(App[None]):
 
             loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
-                None,  # Use default executor
+                self._executor,
                 tool_metadata.tool.invoke,
                 tool_call.arguments,
             )
@@ -2535,7 +2581,7 @@ class ConsoulApp(App[None]):
 
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(
-                None,
+                self._executor,
                 partial(
                     self.conversation._db.save_tool_call,
                     message_id=self._current_assistant_message_id,
@@ -2572,7 +2618,7 @@ class ConsoulApp(App[None]):
             loop = asyncio.get_event_loop()
             for file in attached_files:
                 await loop.run_in_executor(
-                    None,
+                    self._executor,
                     partial(
                         self.conversation._db.save_attachment,
                         message_id=message_id,
@@ -2898,11 +2944,68 @@ class ConsoulApp(App[None]):
                 # Display messages in chat view with proper UI reconstruction
                 from consoul.tui.widgets import MessageBubble
 
-                for msg in messages:
+                # Pre-process messages to merge consecutive assistant messages
+                # (one with tools, one with content) into a single bubble
+                processed_messages = []
+                i = 0
+                while i < len(messages):
+                    msg = messages[i]
+
+                    # Check if this is an assistant message with tools but no content
+                    # and the next message is also an assistant with content
+                    if (
+                        msg["role"] == "assistant"
+                        and msg.get("tool_calls")
+                        and not msg["content"].strip()
+                        and i + 1 < len(messages)
+                    ):
+                        # Look ahead for tool message(s) and next assistant message
+                        next_idx = i + 1
+                        # Skip tool result messages
+                        while (
+                            next_idx < len(messages)
+                            and messages[next_idx]["role"] == "tool"
+                        ):
+                            next_idx += 1
+
+                        # If next non-tool message is assistant with content, merge them
+                        if (
+                            next_idx < len(messages)
+                            and messages[next_idx]["role"] == "assistant"
+                            and messages[next_idx]["content"].strip()
+                        ):
+                            # Merge: use tool_calls from first, content from second
+                            merged = {
+                                **messages[next_idx],
+                                "tool_calls": msg["tool_calls"],
+                            }
+                            processed_messages.append(merged)
+                            i = next_idx + 1  # Skip both messages
+                            continue
+
+                    processed_messages.append(msg)
+                    i += 1
+
+                for msg in processed_messages:
                     role = msg["role"]
                     content = msg["content"]
-                    tool_calls = msg.get("tool_calls", [])
+                    tool_calls_raw = msg.get("tool_calls", [])
                     attachments = msg.get("attachments", [])
+
+                    # Map database tool_call structure to expected format
+                    # DB uses 'tool_name' key, but ToolCallDetailsModal expects 'name' key
+                    tool_calls = []
+                    for tc in tool_calls_raw:
+                        tool_calls.append(
+                            {
+                                "name": tc.get("tool_name", "unknown"),
+                                "arguments": tc.get("arguments", {}),
+                                "status": tc.get("status", "unknown"),
+                                "result": tc.get("result"),
+                                "id": tc.get("id"),
+                                "type": "tool_call",
+                            }
+                        )
 
                     # Skip system and tool messages in display
                     # Tool results are shown via the 🛠 button modal
@@ -2915,7 +3018,7 @@ class ConsoulApp(App[None]):
                     # Show tool execution indicator for assistant messages with tools
                     if tool_calls and role == "assistant":
                         tool_names = ", ".join(
-                            [tc.get("tool_name", "unknown") for tc in tool_calls]
+                            [tc.get("name", "unknown") for tc in tool_calls]
                         )
                         tool_indicator = MessageBubble(
                             f"🔧 Executing: {tool_names}",
@@ -2924,9 +3027,10 @@ class ConsoulApp(App[None]):
                         )
                         await self.chat_view.add_message(tool_indicator)
 
-                    # Create assistant message bubble (with tool button if tools exist)
-                    # Always show assistant bubbles (even if empty) to display the 🛠 button
-                    if role == "assistant" or display_content:
+                    # Create message bubbles
+                    # Show assistant messages (always, even if empty, for 🛠 button)
+                    # Show user messages only if they have content
+                    if role == "assistant" or (role == "user" and display_content):
                         bubble = MessageBubble(
                             display_content or "",
                             role=role,
