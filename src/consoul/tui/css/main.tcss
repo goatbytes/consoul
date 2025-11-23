@@ -161,7 +161,7 @@ ChatView:focus {
 
 .thinking-section {
     background: $surface-darken-1;
-    border: dashed $text-muted;
+    border: dashed gray;
     margin: 0 0 1 0;
     padding: 0;
 }
