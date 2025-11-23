@@ -6,9 +6,11 @@ with appropriate fallbacks.
 
 Provider-Specific Token Counting:
     - OpenAI (gpt-*, o1-*, o2-*, etc.): Uses tiktoken for accurate counting
+    - Ollama (llama*, granite*, qwen*, etc.): Uses HuggingFace tokenizers (100% accurate)
+      Falls back to character approximation if transformers not installed
     - Anthropic (claude-*): Uses LangChain's get_num_tokens_from_messages
     - Google (gemini-*): Uses LangChain's get_num_tokens_from_messages
-    - Ollama/Others: Uses character-based approximation (4 chars ≈ 1 token)
+    - Others: Uses character-based approximation (4 chars ≈ 1 token)
 
 Token Limits (as of 2025-11-12):
     - OpenAI GPT-5/4.1: 400K/1M tokens
@@ -203,6 +205,41 @@ def _is_openai_model(model_name: str) -> bool:
     return any(key.startswith(prefix) for prefix in openai_prefixes)
 
 
+def _is_ollama_model(model_name: str) -> bool:
+    """Check if model name matches Ollama model patterns.
+
+    Detects common Ollama model naming patterns to determine if we should
+    try using HuggingFace tokenizers for accurate token counting.
+
+    Args:
+        model_name: Model identifier
+
+    Returns:
+        True if model appears to be an Ollama model
+    """
+    key = (model_name or "").lower()
+
+    # Common Ollama model prefixes and patterns
+    ollama_patterns = (
+        "llama",
+        "granite",
+        "qwen",
+        "mistral",
+        "mixtral",
+        "phi",
+        "codellama",
+        "deepseek",
+        "gemma",
+        "vicuna",
+        "orca",
+        "starling",
+        "solar",
+        "yi",
+    )
+
+    return any(key.startswith(pattern) for pattern in ollama_patterns)
+
+
 def _create_tiktoken_counter(model_name: str) -> Callable[[list[BaseMessage]], int]:
     """Create token counter using tiktoken for OpenAI models.
 
@@ -306,6 +343,59 @@ def _create_approximate_counter() -> Callable[[list[BaseMessage]], int]:
     return count_tokens
 
 
+def _create_huggingface_counter(
+    model_name: str,
+) -> Callable[[list[BaseMessage]], int]:
+    """Create token counter using HuggingFace tokenizer for Ollama models.
+
+    Uses the actual model tokenizer from HuggingFace for 100% accurate token
+    counting without making slow HTTP requests to Ollama server.
+
+    Args:
+        model_name: Ollama model name (e.g., "granite4:3b", "llama3:8b")
+
+    Returns:
+        Function that counts tokens using HuggingFace tokenizer
+
+    Raises:
+        ImportError: If transformers package not installed
+        ValueError: If model not found in mapping
+        Exception: If tokenizer fails to load
+    """
+    try:
+        from consoul.ai.tokenizers import create_huggingface_token_counter
+
+        return create_huggingface_token_counter(model_name)
+    except ImportError:
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            f"transformers package not installed for {model_name}. "
+            "Falling back to character approximation. "
+            "Install with: pip install transformers or pip install consoul[huggingface-local]"
+        )
+        raise
+    except ValueError as e:
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            f"Model {model_name} not found in HuggingFace mapping: {e}. "
+            "Falling back to character approximation."
+        )
+        raise
+    except Exception as e:
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.error(
+            f"Failed to load HuggingFace tokenizer for {model_name}: {e}. "
+            "Falling back to character approximation."
+        )
+        raise
+
+
 def create_token_counter(
     model_name: str, model: BaseChatModel | None = None
 ) -> Callable[[list[BaseMessage]], int]:
@@ -313,11 +403,12 @@ def create_token_counter(
 
     Selects the best token counting method based on the model:
     - OpenAI models: Uses tiktoken for accurate counting
+    - Ollama models: Tries HuggingFace tokenizer, falls back to approximation
     - Other models with LangChain support: Uses model's built-in counter
     - Unknown models: Uses character-based approximation
 
     Args:
-        model_name: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet")
+        model_name: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet", "granite4:3b")
         model: Optional LangChain model instance (for provider-specific counting)
 
     Returns:
@@ -330,11 +421,28 @@ def create_token_counter(
         >>> print(f"Tokens: {tokens}")
         Tokens: 8
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     # Use tiktoken for OpenAI models (most accurate)
     if _is_openai_model(model_name):
         return _create_tiktoken_counter(model_name)
 
-    # For local models (LlamaCpp, Ollama, MLX), avoid using model's token counter as it can
+    # For Ollama models, try HuggingFace tokenizer for accurate counting
+    # Falls back to approximation if transformers not installed or model not mapped
+    if _is_ollama_model(model_name):
+        try:
+            return _create_huggingface_counter(model_name)
+        except (ImportError, ValueError, Exception):
+            # Fallback to approximation on any error
+            logger.debug(
+                f"Using character approximation for {model_name} "
+                "(HuggingFace tokenizer unavailable)"
+            )
+            return _create_approximate_counter()
+
+    # For other local models (LlamaCpp, MLX), avoid using model's token counter as it can
     # cause blocking/hanging when loading models. Use approximation instead.
     if model is not None:
         model_class_name = model.__class__.__name__

@@ -197,3 +197,112 @@ class TestDeterministicTokenCounting:
 
         # Should be deterministic
         assert result1 == result2 == result3
+
+
+class TestOllamaModelDetection:
+    """Tests for Ollama model detection and HuggingFace tokenizer integration."""
+
+    def test_is_ollama_model_detection(self):
+        """Test _is_ollama_model correctly identifies Ollama models."""
+        from consoul.ai.context import _is_ollama_model
+
+        # Should detect Ollama models
+        assert _is_ollama_model("llama3:8b")
+        assert _is_ollama_model("llama3.1:70b")
+        assert _is_ollama_model("granite4:3b")
+        assert _is_ollama_model("qwen2.5:7b")
+        assert _is_ollama_model("mistral:7b")
+        assert _is_ollama_model("mixtral:8x7b")
+        assert _is_ollama_model("phi:latest")
+        assert _is_ollama_model("codellama:13b")
+
+        # Should not detect non-Ollama models
+        assert not _is_ollama_model("gpt-4o")
+        assert not _is_ollama_model("claude-3-5-sonnet")
+        assert not _is_ollama_model("gemini-2.5-pro")
+
+    def test_ollama_model_uses_huggingface_tokenizer(self):
+        """Test Ollama models try to use HuggingFace tokenizer."""
+        from unittest.mock import MagicMock, patch
+
+        # Mock the HuggingFace tokenizer module
+        with patch("consoul.ai.context._create_huggingface_counter") as mock_hf_counter:
+            mock_hf_counter.return_value = MagicMock()
+
+            create_token_counter("granite4:3b")
+
+            # Should attempt to use HuggingFace tokenizer
+            mock_hf_counter.assert_called_once_with("granite4:3b")
+
+    def test_ollama_model_fallback_to_approximation(self):
+        """Test Ollama models fall back to approximation when HF unavailable."""
+        from unittest.mock import patch
+
+        # Mock _create_huggingface_counter to raise ImportError
+        with patch(
+            "consoul.ai.context._create_huggingface_counter",
+            side_effect=ImportError("transformers not installed"),
+        ):
+            counter = create_token_counter("granite4:3b")
+
+            # Should fall back to approximation counter
+            messages = [HumanMessage(content="test message")]  # 12 chars
+            tokens = counter(messages)
+
+            # Character approximation: 12 chars // 4 = 3 tokens
+            assert tokens == 3
+
+    def test_ollama_model_fallback_on_model_not_mapped(self):
+        """Test fallback when Ollama model not in HuggingFace mapping."""
+        from unittest.mock import patch
+
+        # Mock _create_huggingface_counter to raise ValueError
+        with patch(
+            "consoul.ai.context._create_huggingface_counter",
+            side_effect=ValueError("Model not found in mapping"),
+        ):
+            # Use an Ollama-style model name that's not in mapping
+            counter = create_token_counter("custom-local-model:7b")
+
+            # Should fall back to approximation counter
+            messages = [HumanMessage(content="Hello world")]  # 11 chars
+            tokens = counter(messages)
+
+            # Character approximation: 11 chars // 4 = 2 tokens
+            assert tokens == 2
+
+    def test_chat_ollama_model_instance_with_hf_unavailable(self):
+        """Test ChatOllama model instances use approximation when HF unavailable."""
+        from unittest.mock import patch
+
+        # Mock ChatOllama model
+        mock_model = MagicMock()
+        mock_model.__class__.__name__ = "ChatOllama"
+
+        # Mock HF tokenizer as unavailable
+        with patch(
+            "consoul.ai.context._create_huggingface_counter",
+            side_effect=ImportError("transformers not available"),
+        ):
+            counter = create_token_counter("granite4:3b", model=mock_model)
+
+            # Should use approximation counter, not model's slow token counter
+            messages = [HumanMessage(content="test")]  # 4 chars
+            tokens = counter(messages)
+
+            # Character approximation: 4 chars // 4 = 1 token
+            assert tokens == 1
+
+    def test_openai_model_still_uses_tiktoken(self):
+        """Test OpenAI models still use tiktoken (not affected by Ollama changes)."""
+        pytest.importorskip("tiktoken")
+
+        counter = create_token_counter("gpt-4o")
+
+        # Should use tiktoken, not HuggingFace or approximation
+        messages = [HumanMessage(content="Hello world")]
+        tokens = counter(messages)
+
+        # tiktoken should give accurate count (not char approximation)
+        # "Hello world" = ~8 tokens with tiktoken, not 11//4 = 2
+        assert tokens > 2
