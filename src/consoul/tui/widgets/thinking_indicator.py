@@ -8,6 +8,7 @@ the model is in "thinking mode" before providing the answer.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from textual.containers import Container
@@ -89,7 +90,8 @@ class ThinkingIndicator(Container):
         """
         super().__init__(**kwargs)
         self.border_title = "🧠 Thinking"
-        self.thinking_content = ""
+        self.thinking_content = ""  # Raw content with tags
+        self.display_content = ""  # Filtered content without tags
 
     def compose(self) -> ComposeResult:
         """Compose thinking indicator widgets.
@@ -124,14 +126,38 @@ class ThinkingIndicator(Container):
         dots_text = "." * self.dot_count if self.dot_count > 0 else "\u00a0"
         dots_widget.update(dots_text)
 
+    def _strip_thinking_tags(self, text: str) -> str:
+        """Remove thinking XML tags from text.
+
+        Strips opening and closing tags: <think>, <thinking>, <reasoning>
+
+        Args:
+            text: Text potentially containing thinking tags
+
+        Returns:
+            Text with thinking tags removed
+        """
+        # Remove opening tags
+        text = re.sub(r"<think>|<thinking>|<reasoning>", "", text, flags=re.IGNORECASE)
+        # Remove closing tags
+        text = re.sub(
+            r"</think>|</thinking>|</reasoning>", "", text, flags=re.IGNORECASE
+        )
+        return text
+
     async def add_token(self, token: str) -> None:
         """Add a streaming token to the thinking content display.
+
+        Tokens are accumulated in raw form (with tags) but displayed
+        with tags stripped out for cleaner presentation.
 
         Args:
             token: Text token from thinking stream
         """
         self.thinking_content += token
+        # Strip tags for display
+        self.display_content = self._strip_thinking_tags(self.thinking_content)
         content_log = self.query_one("#thinking-content-log", RichLog)
         # Clear and rewrite with updated content (simple approach for thinking display)
         content_log.clear()
-        content_log.write(self.thinking_content)
+        content_log.write(self.display_content)

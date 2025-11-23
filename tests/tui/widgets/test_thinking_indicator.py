@@ -264,3 +264,82 @@ class TestThinkingIndicator:
             # Check all content was accumulated
             expected = "".join(thinking_tokens)
             assert widget.thinking_content == expected
+
+    async def test_strips_opening_tags(self) -> None:
+        """Test that opening thinking tags are stripped from display."""
+        indicator = ThinkingIndicator()
+        app = ThinkingIndicatorTestApp(indicator)
+
+        async with app.run_test() as pilot:
+            widget = app.query_one(ThinkingIndicator)
+
+            # Add content with opening tag
+            await widget.add_token("<think>")
+            await widget.add_token("Step 1: Analyze")
+            await pilot.pause()
+
+            # Raw content includes tags
+            assert widget.thinking_content == "<think>Step 1: Analyze"
+            # Display content strips tags
+            assert widget.display_content == "Step 1: Analyze"
+
+    async def test_strips_closing_tags(self) -> None:
+        """Test that closing thinking tags are stripped from display."""
+        indicator = ThinkingIndicator()
+        app = ThinkingIndicatorTestApp(indicator)
+
+        async with app.run_test() as pilot:
+            widget = app.query_one(ThinkingIndicator)
+
+            # Add content with closing tag
+            await widget.add_token("<think>Reasoning</think>")
+            await pilot.pause()
+
+            # Raw content includes tags
+            assert widget.thinking_content == "<think>Reasoning</think>"
+            # Display content strips tags
+            assert widget.display_content == "Reasoning"
+
+    async def test_strips_all_tag_variants(self) -> None:
+        """Test that all thinking tag variants are stripped."""
+        indicator = ThinkingIndicator()
+        app = ThinkingIndicatorTestApp(indicator)
+
+        async with app.run_test() as pilot:
+            widget = app.query_one(ThinkingIndicator)
+
+            # Test different tag types
+            test_cases = [
+                ("<think>Content</think>", "Content"),
+                ("<thinking>Content</thinking>", "Content"),
+                ("<reasoning>Content</reasoning>", "Content"),
+                ("<THINK>Content</THINK>", "Content"),  # Case insensitive
+            ]
+
+            for raw, expected_display in test_cases:
+                # Reset widget
+                widget.thinking_content = ""
+                widget.display_content = ""
+
+                await widget.add_token(raw)
+                await pilot.pause()
+
+                assert widget.display_content == expected_display
+
+    async def test_preserves_content_between_tags(self) -> None:
+        """Test that content between tags is preserved."""
+        indicator = ThinkingIndicator()
+        app = ThinkingIndicatorTestApp(indicator)
+
+        async with app.run_test() as pilot:
+            widget = app.query_one(ThinkingIndicator)
+
+            # Stream tokens that form complete tagged content
+            tokens = ["<think>", "Step 1\n", "Step 2\n", "Step 3", "</think>"]
+            for token in tokens:
+                await widget.add_token(token)
+                await pilot.pause()
+
+            # Display should have only the steps, no tags
+            expected_display = "Step 1\nStep 2\nStep 3"
+            assert widget.display_content == expected_display
