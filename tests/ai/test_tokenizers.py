@@ -1,5 +1,6 @@
 """Tests for HuggingFace tokenizer-based token counting."""
 
+import json
 from unittest.mock import Mock, patch
 
 import pytest
@@ -290,3 +291,130 @@ class TestPerformance:
 
         # Tokenizer should be loaded only once during init
         assert mock_auto_tokenizer.from_pretrained.call_count == 1
+
+
+class TestManifestDiscovery:
+    """Tests for Tier 2 manifest-based tokenizer discovery."""
+
+    def test_discover_from_manifest_library_model(self, tmp_path):
+        """Test discovery from library model manifest."""
+        from consoul.ai.tokenizers import discover_hf_model_from_manifest
+
+        # Create fake Ollama manifest structure
+        manifest_dir = (
+            tmp_path / ".ollama" / "models" / "manifests" / "registry.ollama.ai"
+        )
+        library_path = manifest_dir / "library" / "granite4" / "latest"
+        library_path.parent.mkdir(parents=True)
+
+        # Create manifest with HuggingFace source annotation
+        manifest = {
+            "layers": [
+                {
+                    "annotations": {
+                        "org.opencontainers.image.source": "https://huggingface.co/ibm-granite/granite-4.0-micro"
+                    }
+                }
+            ]
+        }
+        library_path.write_text(json.dumps(manifest))
+
+        # Mock Path.home() to use tmp_path
+        with patch("consoul.ai.tokenizers.Path.home", return_value=tmp_path):
+            result = discover_hf_model_from_manifest("granite4:3b")
+
+        assert result == "ibm-granite/granite-4.0-micro"
+
+    def test_discover_from_manifest_community_model(self, tmp_path):
+        """Test discovery from community model manifest."""
+        from consoul.ai.tokenizers import discover_hf_model_from_manifest
+
+        # Create fake community model manifest
+        manifest_dir = (
+            tmp_path / ".ollama" / "models" / "manifests" / "registry.ollama.ai"
+        )
+        community_path = manifest_dir / "community" / "custom-model" / "latest"
+        community_path.parent.mkdir(parents=True)
+
+        manifest = {
+            "layers": [
+                {
+                    "annotations": {
+                        "org.opencontainers.image.source": "https://huggingface.co/user/custom-model"
+                    }
+                }
+            ]
+        }
+        community_path.write_text(json.dumps(manifest))
+
+        with patch("consoul.ai.tokenizers.Path.home", return_value=tmp_path):
+            result = discover_hf_model_from_manifest("custom-model:latest")
+
+        assert result == "user/custom-model"
+
+    def test_discover_no_manifest(self, tmp_path):
+        """Test discovery returns None when manifest doesn't exist."""
+        from consoul.ai.tokenizers import discover_hf_model_from_manifest
+
+        with patch("consoul.ai.tokenizers.Path.home", return_value=tmp_path):
+            result = discover_hf_model_from_manifest("nonexistent:1b")
+
+        assert result is None
+
+    def test_discover_manifest_no_hf_source(self, tmp_path):
+        """Test discovery returns None when manifest has no HF source."""
+        from consoul.ai.tokenizers import discover_hf_model_from_manifest
+
+        manifest_dir = (
+            tmp_path / ".ollama" / "models" / "manifests" / "registry.ollama.ai"
+        )
+        library_path = manifest_dir / "library" / "test" / "latest"
+        library_path.parent.mkdir(parents=True)
+
+        # Manifest without HF source
+        manifest = {"layers": [{"annotations": {}}]}
+        library_path.write_text(json.dumps(manifest))
+
+        with patch("consoul.ai.tokenizers.Path.home", return_value=tmp_path):
+            result = discover_hf_model_from_manifest("test:1b")
+
+        assert result is None
+
+    @patch("transformers.AutoTokenizer")
+    def test_tokenizer_uses_manifest_discovery_fallback(
+        self, mock_auto_tokenizer, tmp_path
+    ):
+        """Test that unmapped models fall back to manifest discovery."""
+        from consoul.ai.tokenizers import HuggingFaceTokenCounter
+
+        # Create manifest for unmapped model
+        manifest_dir = (
+            tmp_path / ".ollama" / "models" / "manifests" / "registry.ollama.ai"
+        )
+        library_path = manifest_dir / "library" / "unmapped" / "latest"
+        library_path.parent.mkdir(parents=True)
+
+        manifest = {
+            "layers": [
+                {
+                    "annotations": {
+                        "org.opencontainers.image.source": "https://huggingface.co/test/unmapped-model"
+                    }
+                }
+            ]
+        }
+        library_path.write_text(json.dumps(manifest))
+
+        # Mock tokenizer
+        mock_tokenizer = Mock()
+        mock_tokenizer.vocab_size = 50000
+        mock_auto_tokenizer.from_pretrained.return_value = mock_tokenizer
+
+        with patch("consoul.ai.tokenizers.Path.home", return_value=tmp_path):
+            counter = HuggingFaceTokenCounter("unmapped:1b")
+
+        # Should have loaded tokenizer from discovered HF model
+        assert counter.tokenizer == mock_tokenizer
+        mock_auto_tokenizer.from_pretrained.assert_called_once_with(
+            "test/unmapped-model"
+        )

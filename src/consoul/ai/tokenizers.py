@@ -11,6 +11,11 @@ Accuracy:
 - HuggingFace tokenizer: 100% (uses model's actual tokenizer)
 - Character approximation: ~66% (1 token ≈ 4 chars)
 
+Tokenizer Discovery Strategy:
+    Tier 1: Static mapping (fastest, covers 95% of models)
+    Tier 2: Manifest discovery (handles custom/community models)
+    Tier 3: Character approximation (ultimate fallback)
+
 Usage:
     from consoul.ai.tokenizers import create_huggingface_token_counter
 
@@ -20,7 +25,9 @@ Usage:
 
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
@@ -29,6 +36,69 @@ if TYPE_CHECKING:
     from langchain_core.messages import BaseMessage
 
 logger = logging.getLogger(__name__)
+
+
+def discover_hf_model_from_manifest(model_name: str) -> str | None:
+    """Discover HuggingFace model ID from Ollama manifest files.
+
+    Ollama stores manifest metadata at:
+    ~/.ollama/models/manifests/registry.ollama.ai/{library|community}/{model}/latest
+
+    The manifest contains source URLs that often point to the HuggingFace model.
+
+    Args:
+        model_name: Ollama model name (e.g., "granite4:3b")
+
+    Returns:
+        HuggingFace model ID (e.g., "ibm-granite/granite-4.0-micro") or None
+
+    Example:
+        >>> discover_hf_model_from_manifest("granite4:3b")
+        'ibm-granite/granite-4.0-micro'
+    """
+    try:
+        base = Path.home() / ".ollama" / "models" / "manifests" / "registry.ollama.ai"
+        name = model_name.split(":")[
+            0
+        ]  # Remove tag (e.g., "granite4:3b" -> "granite4")
+
+        # Check both library (official) and community models
+        candidate_paths = [
+            base / "library" / name / "latest",
+            base / "community" / name / "latest",
+        ]
+
+        for path in candidate_paths:
+            if not path.exists():
+                continue
+
+            try:
+                manifest = json.loads(path.read_text())
+
+                # Search for HuggingFace source URL in layer annotations
+                for layer in manifest.get("layers", []):
+                    annotations = layer.get("annotations", {})
+                    source = annotations.get("org.opencontainers.image.source", "")
+
+                    if source and "huggingface.co" in source:
+                        # Extract model ID from URL
+                        # Example: https://huggingface.co/ibm-granite/granite-4.0-micro
+                        parts = source.rstrip("/").split("/")
+                        if len(parts) >= 2:
+                            hf_model_id = f"{parts[-2]}/{parts[-1]}"
+                            logger.info(
+                                f"Discovered HF model for {model_name} from manifest: {hf_model_id}"
+                            )
+                            return hf_model_id
+
+            except (json.JSONDecodeError, OSError) as e:
+                logger.debug(f"Could not parse manifest at {path}: {e}")
+                continue
+
+    except Exception as e:
+        logger.debug(f"Manifest discovery failed for {model_name}: {e}")
+
+    return None
 
 
 class HuggingFaceTokenCounter:
@@ -106,6 +176,11 @@ class HuggingFaceTokenCounter:
     def _load_tokenizer(self, model_name: str) -> Any:
         """Load HuggingFace tokenizer for the model.
 
+        Uses a tiered discovery approach:
+        1. Check static HUGGINGFACE_MODEL_MAP (fastest, most reliable)
+        2. Discover from Ollama manifest files (handles custom/community models)
+        3. Raise ValueError if not found
+
         Args:
             model_name: Ollama model name
 
@@ -114,7 +189,7 @@ class HuggingFaceTokenCounter:
 
         Raises:
             ImportError: If transformers not installed
-            ValueError: If model not in mapping
+            ValueError: If model not in mapping and not discoverable
             Exception: If model not found or load fails
         """
         try:
@@ -125,12 +200,20 @@ class HuggingFaceTokenCounter:
                 "Install with: pip install transformers or pip install consoul[huggingface-local]"
             ) from e
 
-        # Get HuggingFace model ID from mapping
+        # Tier 1: Check static mapping (fastest, covers 95% of models)
         hf_model_id = self.HUGGINGFACE_MODEL_MAP.get(model_name)
+
+        # Tier 2: Try manifest discovery for unmapped models
+        if not hf_model_id:
+            logger.debug(
+                f"Model {model_name} not in static map, trying manifest discovery"
+            )
+            hf_model_id = discover_hf_model_from_manifest(model_name)
+
         if not hf_model_id:
             raise ValueError(
-                f"Model '{model_name}' not found in HuggingFace model mapping. "
-                f"Available models: {', '.join(sorted(self.HUGGINGFACE_MODEL_MAP.keys()))}"
+                f"Model '{model_name}' not found in HuggingFace model mapping or Ollama manifests. "
+                f"Known models: {', '.join(sorted(self.HUGGINGFACE_MODEL_MAP.keys()))}"
             )
 
         logger.info(f"Loading tokenizer for {model_name} from {hf_model_id}")
