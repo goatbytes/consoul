@@ -1912,6 +1912,7 @@ class ConsoulApp(App[None]):
                         show_metadata=True,
                         token_count=token_count,
                         tool_calls=tool_calls_list,
+                        message_id=self._current_assistant_message_id,
                     )
                     await self.chat_view.add_message(assistant_bubble)
             elif self._stream_cancelled:

@@ -125,7 +125,7 @@ ChatView:focus {
     height: auto;
 }
 
-.copy-button, .tools-button {
+.copy-button, .tools-button, .branch-button {
     width: auto;
     min-width: 5;
     height: 1;
@@ -135,12 +135,12 @@ ChatView:focus {
     border: none;
 }
 
-.copy-button:hover, .tools-button:hover {
+.copy-button:hover, .tools-button:hover, .branch-button:hover {
     background: $surface-lighten-1;
     color: $accent;
 }
 
-.copy-button:focus, .tools-button:focus {
+.copy-button:focus, .tools-button:focus, .branch-button:focus {
     background: $surface-lighten-1;
     color: $primary;
 }
