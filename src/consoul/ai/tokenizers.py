@@ -132,14 +132,19 @@ class HuggingFaceTokenCounter:
         "granite3-dense:8b": "ibm-granite/granite-3.3-8b-instruct",
         "granite3.1-dense:8b": "ibm-granite/granite-3.3-8b-instruct",
         # Llama models (Meta)
-        "llama3:8b": "meta-llama/Llama-3.3-8B-Instruct",
-        "llama3:70b": "meta-llama/Llama-3.3-70B-Instruct",
+        "llama3:8b": "meta-llama/Llama-3.1-8B-Instruct",  # Ollama llama3 uses 3.1
+        "llama3:70b": "meta-llama/Llama-3.1-70B-Instruct",
         "llama3.1:8b": "meta-llama/Llama-3.1-8B-Instruct",
         "llama3.1:70b": "meta-llama/Llama-3.1-70B-Instruct",
         "llama3.1:405b": "meta-llama/Llama-3.1-405B-Instruct",
         "llama3.2:1b": "meta-llama/Llama-3.2-1B-Instruct",
         "llama3.2:3b": "meta-llama/Llama-3.2-3B-Instruct",
         "llama3.3:70b": "meta-llama/Llama-3.3-70B-Instruct",
+        # Additional popular models
+        "smollm2:1.7b": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        "phi4:14b": "microsoft/phi-4",
+        "starcoder2:15b": "bigcode/starcoder2-15b",
+        "deepseek:latest": "deepseek-ai/deepseek-coder-33b-instruct",
         # Qwen models (Alibaba)
         "qwen2.5:0.5b": "Qwen/Qwen2.5-0.5B-Instruct",
         "qwen2.5:1.5b": "Qwen/Qwen2.5-1.5B-Instruct",
