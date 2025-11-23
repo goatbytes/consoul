@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-20T23:16:13.890028",
-  "updated_at": "2025-11-20T23:16:13.890037",
+  "updated_at": "2025-11-23T05:53:57.743940Z",
   "id": "SOUL-138",
   "uuid": "ece4c41b-3a10-4cfd-9c51-7ae5b650dfee",
   "title": "Conversation UI not reconstructed from database",
   "description": "When reloading a conversation from the database, the UI does not match the original:\n- Tool calls are not displayed with proper formatting\n- Attachments have no UI representation\n- Images referenced in prompts that get converted are not shown\n- The system message showing tool execution is displayed as raw text\n\nThis is a significant UX issue as users lose context when revisiting saved conversations.\n\nRoot cause: The database schema stores raw message content but not the UI component metadata needed to reconstruct the visual representation.\n\nPotential solutions:\n1. Extend database schema to store UI component metadata\n2. Add message type field to distinguish tool calls, system messages, attachments\n3. Create parsers to reconstruct UI components from stored message content",
-  "status": "todo",
+  "status": "done",
   "type": "bug",
   "priority": "high",
   "labels": [],

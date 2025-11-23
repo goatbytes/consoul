@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-20T23:16:43.909417",
-  "updated_at": "2025-11-20T23:16:43.909425",
+  "updated_at": "2025-11-23T05:54:47.772530Z",
   "id": "SOUL-140",
   "uuid": "26148bb6-000d-4cd8-a695-cde966230b4b",
   "title": "Add UI for displaying attachments in reloaded conversations",
   "description": "Create UI components to display file attachments when loading saved conversations.\n\nRequirements:\n- Show FileChip components for previously attached files\n- Handle missing files gracefully (show warning if file no longer exists)\n- Display image attachments inline or as thumbnails\n- Support both current session attachments and historical attachments\n\nImplementation:\n1. Query attachment metadata from database when loading conversation\n2. Create FileChip widgets for each attachment\n3. Add visual indicator if file is no longer accessible\n4. Integrate with MessageBubble component to show attachments per message\n\nRelated: SOUL-138, SOUL-139",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "medium",
   "labels": [],
