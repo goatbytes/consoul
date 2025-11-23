@@ -123,10 +123,11 @@ def tui(
 
         # Configure root logger to WARNING to suppress third-party debug spam
         # (urllib3, httpcore, httpx, markdown_it, asyncio all log at DEBUG)
+        # Only log to file, not to console (StreamHandler would overlap TUI)
         logging.basicConfig(
             level=logging.WARNING,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            handlers=[logging.FileHandler(log_path, mode="w"), logging.StreamHandler()],
+            handlers=[logging.FileHandler(log_path, mode="w")],
         )
 
         # Enable debug logging ONLY for our packages
