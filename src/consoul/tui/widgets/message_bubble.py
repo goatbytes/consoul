@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from rich.text import Text
 from textual import on
 from textual.containers import Container, Horizontal
+from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Button, Markdown, Static
 
@@ -33,7 +34,24 @@ class MessageBubble(Container):
         timestamp: Message timestamp
         token_count: Optional token count for the message
         show_metadata: Whether to display metadata footer
+        message_id: Database message ID for branching
     """
+
+    class BranchRequested(Message):
+        """Message sent when user requests to branch from this message.
+
+        Attributes:
+            message_id: The database message ID to branch from
+        """
+
+        def __init__(self, message_id: int) -> None:
+            """Initialize BranchRequested message.
+
+            Args:
+                message_id: The message ID to branch from
+            """
+            super().__init__()
+            self.message_id = message_id
 
     # Reactive state
     role: reactive[str] = reactive("user")
@@ -46,6 +64,7 @@ class MessageBubble(Container):
         token_count: int | None = None,
         show_metadata: bool = True,
         tool_calls: list[dict[str, Any]] | None = None,
+        message_id: int | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize MessageBubble widget.
@@ -57,6 +76,7 @@ class MessageBubble(Container):
             token_count: Optional token count to display
             show_metadata: Whether to show metadata footer
             tool_calls: Optional list of tool call data dicts (for assistant messages)
+            message_id: Optional database message ID (for branching functionality)
             **kwargs: Additional arguments passed to Static
         """
         super().__init__(**kwargs)
@@ -66,6 +86,7 @@ class MessageBubble(Container):
         self.token_count = token_count
         self.show_metadata = show_metadata
         self.tool_calls = tool_calls or []
+        self.message_id = message_id
         self._markdown_failed = False
         # Set role last (triggers watcher which needs other attributes)
         self.role = role
@@ -87,6 +108,15 @@ class MessageBubble(Container):
                         "🛠",
                         id="tools-button",
                         classes="tools-button",
+                    )
+
+                # Add branch button for assistant messages with message_id
+                if self.role == "assistant" and self.message_id is not None:
+                    yield Button(
+                        "🌿",
+                        id="branch-button",
+                        classes="branch-button",
+                        tooltip="Branch conversation from this point",
                     )
 
                 yield Button("📋", id="copy-button", classes="copy-button")
@@ -199,6 +229,12 @@ class MessageBubble(Container):
         if self.tool_calls:
             modal = ToolCallDetailsModal(tool_calls=self.tool_calls)
             await self.app.push_screen(modal)
+
+    @on(Button.Pressed, "#branch-button")
+    async def request_branch(self) -> None:
+        """Request to branch conversation from this message."""
+        if self.message_id is not None:
+            self.post_message(self.BranchRequested(self.message_id))
 
     @on(Markdown.LinkClicked)
     def handle_link_clicked(self, event: Markdown.LinkClicked) -> None:

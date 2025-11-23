@@ -3050,6 +3050,7 @@ class ConsoulApp(App[None]):
                             role=role,
                             show_metadata=True,
                             tool_calls=tool_calls if tool_calls else None,
+                            message_id=msg.get("id"),  # Pass message ID for branching
                         )
                         await self.chat_view.add_message(bubble)
 
@@ -3108,6 +3109,63 @@ class ConsoulApp(App[None]):
             )
         else:
             self.notify("Conversation deleted.", severity="information")
+
+    async def on_message_bubble_branch_requested(
+        self,
+        event: MessageBubble.BranchRequested,
+    ) -> None:
+        """Handle conversation branching from a specific message.
+
+        Creates a new conversation with all messages up to and including the
+        branch point, then switches to the new conversation.
+
+        Args:
+            event: BranchRequested event from MessageBubble
+        """
+        message_id = event.message_id
+        current_session_id = self.conversation_id
+
+        if not current_session_id:
+            self.notify("No active conversation to branch from", severity="error")
+            return
+
+        try:
+            self.log.info(
+                f"Branching conversation {current_session_id} at message {message_id}"
+            )
+
+            # Branch the conversation in the database
+            new_session_id = self.conversation_list.db.branch_conversation(
+                source_session_id=current_session_id,
+                branch_at_message_id=message_id,
+            )
+
+            self.log.info(f"Created branched conversation: {new_session_id}")
+
+            # Reload conversation list to show the new branch
+            await self.conversation_list.reload_conversations()
+
+            # Switch to the new branched conversation
+            from consoul.tui.widgets.conversation_list import ConversationList
+
+            # Simulate conversation selection event to load the branched conversation
+            branch_event = ConversationList.ConversationSelected(new_session_id)
+            await self.on_conversation_list_conversation_selected(branch_event)
+
+            # Notify user
+            self.notify(
+                "Conversation branched successfully! 🌿",
+                severity="information",
+                timeout=3,
+            )
+
+        except Exception as e:
+            self.log.error(f"Failed to branch conversation: {e}")
+            self.notify(
+                f"Failed to branch conversation: {e}",
+                severity="error",
+                timeout=5,
+            )
 
     # ContextualTopBar message handlers
 

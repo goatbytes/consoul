@@ -597,6 +597,159 @@ class ConversationDatabase:
         except Exception as e:
             raise DatabaseError(f"Failed to load summary: {e}") from e
 
+    def branch_conversation(
+        self,
+        source_session_id: str,
+        branch_at_message_id: int,
+        new_model: str | None = None,
+    ) -> str:
+        """Create a new conversation branched from an existing one.
+
+        Copies all messages (including tool_calls and attachments) from the source
+        conversation up to and including the specified message ID into a new conversation.
+        This allows users to explore different conversation paths from any point.
+
+        Args:
+            source_session_id: Source conversation session ID
+            branch_at_message_id: Message ID to branch from (inclusive)
+            new_model: Model for new conversation (defaults to source model)
+
+        Returns:
+            Session ID of the new branched conversation
+
+        Raises:
+            ConversationNotFoundError: If source session doesn't exist
+            DatabaseError: If branching fails or message ID not found
+
+        Example:
+            >>> db = ConversationDatabase()
+            >>> session_id = db.create_conversation("gpt-4o")
+            >>> msg_id = db.save_message(session_id, "user", "Hello!", 5)
+            >>> new_session_id = db.branch_conversation(session_id, msg_id)
+            >>> messages = db.load_conversation(new_session_id)
+            >>> len(messages)
+            1
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                conn.execute("PRAGMA foreign_keys=ON")
+
+                # Verify source conversation exists
+                cursor = conn.execute(
+                    "SELECT model, metadata FROM conversations WHERE session_id = ?",
+                    (source_session_id,),
+                )
+                source_row = cursor.fetchone()
+                if source_row is None:
+                    raise ConversationNotFoundError(
+                        f"Source conversation not found: {source_session_id}"
+                    )
+
+                # Get source model and metadata
+                source_model = source_row["model"]
+                source_metadata = json.loads(source_row["metadata"] or "{}")
+
+                # Use source model if new_model not specified
+                model = new_model or source_model
+
+                # Load messages up to and including branch point
+                cursor = conn.execute(
+                    "SELECT id, role, content, tokens, timestamp, message_type "
+                    "FROM messages "
+                    "WHERE conversation_id = ? AND id <= ? "
+                    "ORDER BY id",
+                    (source_session_id, branch_at_message_id),
+                )
+                messages_to_copy = [dict(row) for row in cursor.fetchall()]
+
+                if not messages_to_copy:
+                    raise DatabaseError(
+                        f"No messages found up to message ID {branch_at_message_id} "
+                        f"in conversation {source_session_id}"
+                    )
+
+                # Create branch metadata
+                branch_metadata = {
+                    "branched_from": source_session_id,
+                    "branch_message_id": branch_at_message_id,
+                    "branch_timestamp": datetime.utcnow().isoformat(),
+                }
+
+                # Merge with title from source if available
+                if "title" in source_metadata:
+                    branch_metadata["title"] = f"Branch from {source_metadata['title']}"
+
+                # Create new conversation
+                new_session_id = self.create_conversation(
+                    model=model, metadata=branch_metadata
+                )
+
+                # Copy messages to new conversation
+                for msg in messages_to_copy:
+                    # Get original message ID for tool_calls/attachments lookup
+                    original_msg_id = msg["id"]
+
+                    # Insert message into new conversation
+                    cursor = conn.execute(
+                        "INSERT INTO messages (conversation_id, message_type, role, content, tokens, timestamp) "
+                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        (
+                            new_session_id,
+                            msg["message_type"],
+                            msg["role"],
+                            msg["content"],
+                            msg["tokens"],
+                            msg["timestamp"],
+                        ),
+                    )
+                    new_msg_id = cursor.lastrowid
+                    if new_msg_id is None:
+                        raise DatabaseError("Failed to get inserted message ID")
+
+                    # Copy tool calls
+                    cursor = conn.execute(
+                        "SELECT tool_name, arguments, status, result, timestamp "
+                        "FROM tool_calls WHERE message_id = ? ORDER BY id",
+                        (original_msg_id,),
+                    )
+                    tool_calls = cursor.fetchall()
+                    for tc in tool_calls:
+                        conn.execute(
+                            "INSERT INTO tool_calls (message_id, tool_name, arguments, status, result, timestamp) "
+                            "VALUES (?, ?, ?, ?, ?, ?)",
+                            (new_msg_id, tc[0], tc[1], tc[2], tc[3], tc[4]),
+                        )
+
+                    # Copy attachments
+                    cursor = conn.execute(
+                        "SELECT file_path, file_type, mime_type, file_size "
+                        "FROM attachments WHERE message_id = ? ORDER BY id",
+                        (original_msg_id,),
+                    )
+                    attachments = cursor.fetchall()
+                    for att in attachments:
+                        conn.execute(
+                            "INSERT INTO attachments (message_id, file_path, file_type, mime_type, file_size) "
+                            "VALUES (?, ?, ?, ?, ?)",
+                            (new_msg_id, att[0], att[1], att[2], att[3]),
+                        )
+
+                # Update conversation updated_at timestamp
+                conn.execute(
+                    "UPDATE conversations SET updated_at = ? WHERE session_id = ?",
+                    (datetime.utcnow().isoformat(), new_session_id),
+                )
+
+                return new_session_id
+
+        except ConversationNotFoundError:
+            raise
+        except DatabaseError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to branch conversation: {e}") from e
+
     def search_messages(
         self,
         query: str,
