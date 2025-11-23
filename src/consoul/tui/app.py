@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     )
     from consoul.tui.widgets.input_area import AttachedFile
 
+from consoul.ai.reasoning import extract_reasoning
 from consoul.tui.config import TuiConfig
 from consoul.tui.css.themes import load_theme
 from consoul.tui.widgets import InputArea, MessageBubble
@@ -1906,13 +1907,26 @@ class ConsoulApp(App[None]):
                         # Fallback to character approximation if token counting fails
                         token_count = len(full_response) // 4
 
+                    # Extract thinking/reasoning from response
+                    thinking = None
+                    response_text = full_response
+
+                    if full_response.strip():
+                        thinking, response_text = extract_reasoning(
+                            full_response, model_name=self.current_model
+                        )
+
+                    # Determine if thinking should be displayed based on config
+                    thinking_content = self._should_display_thinking(thinking)
+
                     assistant_bubble = MessageBubble(
-                        full_response,
+                        response_text,
                         role="assistant",
                         show_metadata=True,
                         token_count=token_count,
                         tool_calls=tool_calls_list,
                         message_id=self._current_assistant_message_id,
+                        thinking_content=thinking_content,
                     )
                     await self.chat_view.add_message(assistant_bubble)
             elif self._stream_cancelled:
@@ -2892,6 +2906,36 @@ class ConsoulApp(App[None]):
         # Generate title after first complete exchange
         return user_msgs == 1 and assistant_msgs == 1
 
+    def _should_display_thinking(self, thinking: str | None) -> str | None:
+        """Determine if thinking should be displayed based on config.
+
+        Args:
+            thinking: Extracted thinking content (or None)
+
+        Returns:
+            Thinking content to display, or None to hide it
+        """
+        if not thinking or not self.consoul_config:
+            return None
+
+        show_thinking = self.consoul_config.show_thinking
+        thinking_models = self.consoul_config.thinking_models
+
+        if show_thinking == "always":
+            return thinking
+        elif show_thinking == "auto":
+            # Show only for known reasoning models
+            if any(
+                model_pattern.lower() in self.current_model.lower()
+                for model_pattern in thinking_models
+            ):
+                return thinking
+        elif show_thinking == "collapsed":
+            return thinking
+        # "never" or unknown -> None
+
+        return None
+
     async def _generate_and_save_title(
         self, session_id: str, user_msg: str, assistant_msg: str
     ) -> None:
@@ -3046,12 +3090,28 @@ class ConsoulApp(App[None]):
                     # Show assistant messages (always, even if empty, for 🛠 button)
                     # Show user messages only if they have content
                     if role == "assistant" or (role == "user" and display_content):
+                        # Extract thinking for assistant messages
+                        thinking_to_display = None
+                        message_content = display_content or ""
+
+                        if role == "assistant" and message_content.strip():
+                            thinking, response_text = extract_reasoning(
+                                message_content, model_name=self.current_model
+                            )
+                            message_content = response_text
+                            thinking_to_display = self._should_display_thinking(
+                                thinking
+                            )
+
                         bubble = MessageBubble(
-                            display_content or "",
+                            message_content,
                             role=role,
                             show_metadata=True,
                             tool_calls=tool_calls if tool_calls else None,
                             message_id=msg.get("id"),  # Pass message ID for branching
+                            thinking_content=thinking_to_display
+                            if role == "assistant"
+                            else None,
                         )
                         await self.chat_view.add_message(bubble)
 
