@@ -833,6 +833,49 @@ class ReadUrlToolConfig(BaseModel):
     )
 
 
+class WikipediaToolConfig(BaseModel):
+    """Configuration for wikipedia_search tool execution.
+
+    Fetches Wikipedia article summaries using the public Wikipedia API.
+    No API key required. Useful for factual queries about people, places,
+    companies, historical events, and technical concepts.
+
+    Example:
+        >>> # Basic usage (1 article, 1000 chars)
+        >>> config = WikipediaToolConfig()
+        >>>
+        >>> # Multiple articles with more detail
+        >>> config = WikipediaToolConfig(
+        ...     max_results=3,
+        ...     chars_per_result=2000,
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    max_results: int = Field(
+        default=1,
+        gt=0,
+        le=5,
+        description="Number of Wikipedia articles to fetch (1-5)",
+    )
+    chars_per_result: int = Field(
+        default=1000,
+        gt=0,
+        le=4000,
+        description="Character limit per article summary (1-4000)",
+    )
+    timeout: int = Field(
+        default=10,
+        gt=0,
+        le=30,
+        description="Request timeout in seconds (max 30s)",
+    )
+
+
 class ReadToolConfig(BaseModel):
     """Configuration for read file tool.
 
@@ -1197,6 +1240,10 @@ class ToolConfig(BaseModel):
     web_search: WebSearchToolConfig = Field(
         default_factory=WebSearchToolConfig,
         description="Web search tool-specific configuration",
+    )
+    wikipedia: WikipediaToolConfig = Field(
+        default_factory=WikipediaToolConfig,
+        description="Wikipedia search tool-specific configuration",
     )
     read_url: ReadUrlToolConfig = Field(
         default_factory=ReadUrlToolConfig,

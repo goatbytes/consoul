@@ -303,7 +303,9 @@ class ConsoulApp(App[None]):
                         set_read_config,
                         set_read_url_config,
                         set_web_search_config,
+                        set_wikipedia_config,
                         web_search,
+                        wikipedia_search,
                     )
                     from consoul.ai.tools.providers import CliApprovalProvider
 
@@ -330,6 +332,10 @@ class ConsoulApp(App[None]):
                     # Configure web_search tool with profile settings
                     if consoul_config.tools.web_search:
                         set_web_search_config(consoul_config.tools.web_search)
+
+                    # Configure wikipedia_search tool with profile settings
+                    if consoul_config.tools.wikipedia:
+                        set_wikipedia_config(consoul_config.tools.wikipedia)
 
                     # Configure read_url tool with profile settings
                     if consoul_config.tools.read_url:
@@ -390,6 +396,14 @@ class ConsoulApp(App[None]):
                         web_search,
                         risk_level=RiskLevel.SAFE,
                         tags=["search", "readonly", "web"],
+                        enabled=True,
+                    )
+
+                    # Register wikipedia_search tool (read-only Wikipedia access)
+                    self.tool_registry.register(
+                        wikipedia_search,
+                        risk_level=RiskLevel.SAFE,
+                        tags=["search", "readonly", "wikipedia"],
                         enabled=True,
                     )
 

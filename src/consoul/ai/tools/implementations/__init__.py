@@ -55,6 +55,11 @@ from consoul.ai.tools.implementations.web_search import (
     set_web_search_config,
     web_search,
 )
+from consoul.ai.tools.implementations.wikipedia import (
+    get_wikipedia_config,
+    set_wikipedia_config,
+    wikipedia_search,
+)
 
 __all__ = [
     "analyze_images",
@@ -75,6 +80,7 @@ __all__ = [
     "get_read_config",
     "get_read_url_config",
     "get_web_search_config",
+    "get_wikipedia_config",
     "grep_search",
     "read_file",
     "read_url",
@@ -87,5 +93,7 @@ __all__ = [
     "set_read_config",
     "set_read_url_config",
     "set_web_search_config",
+    "set_wikipedia_config",
     "web_search",
+    "wikipedia_search",
 ]
