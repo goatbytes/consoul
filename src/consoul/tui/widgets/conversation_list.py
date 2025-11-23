@@ -77,8 +77,8 @@ class ConversationList(Container):
 
     # Key bindings
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("ctrl+r", "rename_conversation", "Rename", show=False),
-        Binding("ctrl+d", "delete_conversation", "Delete", show=False),
+        Binding("ctrl+r", "rename_conversation", "Rename", show=True),
+        Binding("ctrl+d", "delete_conversation", "Delete", show=True),
     ]
 
     INITIAL_LOAD = 50  # Conversations to load initially
