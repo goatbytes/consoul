@@ -156,6 +156,38 @@ ChatView:focus {
 }
 
 /* ============================================================================
+ * Thinking Section (Reasoning/Chain-of-Thought)
+ * ============================================================================ */
+
+.thinking-section {
+    background: $surface-darken-1;
+    border: dashed $text-muted;
+    margin: 0 0 1 0;
+    padding: 0;
+}
+
+.thinking-section > CollapsibleTitle {
+    background: $surface-darken-2;
+    color: $text-muted;
+    text-style: italic;
+    padding: 0 1;
+}
+
+.thinking-section > CollapsibleTitle:hover {
+    background: $surface-darken-1;
+    color: $accent;
+}
+
+.thinking-section > Contents {
+    padding: 1 2;
+}
+
+.thinking-content {
+    color: $text-muted;
+    text-style: italic;
+}
+
+/* ============================================================================
  * Tool Call Widget
  * ============================================================================ */
 

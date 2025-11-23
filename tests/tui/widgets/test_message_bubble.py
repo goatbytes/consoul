@@ -227,7 +227,7 @@ class TestMessageBubbleMetadata:
         app = MessageBubbleTestApp(bubble)
         async with app.run_test():
             widget = app.query_one(MessageBubble)
-            footer = widget._build_metadata_footer()
+            footer = widget._build_metadata_text()
             assert "14:30:45" in str(footer)
             assert "🕐" in str(footer)
 
@@ -237,7 +237,7 @@ class TestMessageBubbleMetadata:
         app = MessageBubbleTestApp(bubble)
         async with app.run_test():
             widget = app.query_one(MessageBubble)
-            footer = widget._build_metadata_footer()
+            footer = widget._build_metadata_text()
             assert "100 tokens" in str(footer)
             assert "🎯" in str(footer)
 
@@ -250,7 +250,7 @@ class TestMessageBubbleMetadata:
         app = MessageBubbleTestApp(bubble)
         async with app.run_test():
             widget = app.query_one(MessageBubble)
-            footer = widget._build_metadata_footer()
+            footer = widget._build_metadata_text()
             assert "09:15:30" in str(footer)
             assert "42 tokens" in str(footer)
             assert "│" in str(footer)
@@ -439,7 +439,7 @@ class TestMessageBubbleEdgeCases:
         app = MessageBubbleTestApp(bubble)
         async with app.run_test():
             widget = app.query_one(MessageBubble)
-            footer = widget._build_metadata_footer()
+            footer = widget._build_metadata_text()
             # Should not include token count
             assert "tokens" not in str(footer)
 
@@ -449,7 +449,7 @@ class TestMessageBubbleEdgeCases:
         app = MessageBubbleTestApp(bubble)
         async with app.run_test():
             widget = app.query_one(MessageBubble)
-            footer = widget._build_metadata_footer()
+            footer = widget._build_metadata_text()
             assert "0 tokens" in str(footer)
 
     async def test_markdown_failed_flag_prevents_repeated_attempts(self) -> None:
@@ -489,3 +489,180 @@ class TestMessageBubbleEdgeCases:
 
             # Flag should be reset
             assert widget._markdown_failed is False
+
+
+class TestMessageBubbleThinking:
+    """Test MessageBubble thinking/reasoning section."""
+
+    async def test_thinking_section_present(self) -> None:
+        """Test thinking section appears when content provided."""
+        thinking = "Step 1: Analyze the problem\nStep 2: Find solution"
+        bubble = MessageBubble("The answer is 42", thinking_content=thinking)
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+            assert widget.thinking_content == thinking
+
+            # Check that thinking collapsible exists
+            from textual.widgets import Collapsible
+
+            collapsible = widget.query_one("#thinking-collapsible", Collapsible)
+            assert collapsible is not None
+            assert collapsible.has_class("thinking-section")
+
+    async def test_thinking_section_absent(self) -> None:
+        """Test no thinking section when content is None."""
+        bubble = MessageBubble("Just a simple answer", thinking_content=None)
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+            assert widget.thinking_content is None
+
+            # Thinking collapsible should not exist
+
+            collapsibles = widget.query("#thinking-collapsible")
+            assert len(collapsibles) == 0
+
+    async def test_thinking_section_collapsed_by_default(self) -> None:
+        """Test thinking section starts collapsed."""
+        thinking = "Let me think about this..."
+        bubble = MessageBubble("Answer", thinking_content=thinking)
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+
+            from textual.widgets import Collapsible
+
+            collapsible = widget.query_one("#thinking-collapsible", Collapsible)
+            assert collapsible.collapsed is True
+
+    async def test_thinking_section_expandable(self) -> None:
+        """Test thinking section can be expanded."""
+        thinking = "Step by step reasoning here"
+        bubble = MessageBubble("Final answer", thinking_content=thinking)
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test() as pilot:
+            widget = app.query_one(MessageBubble)
+
+            from textual.widgets import Collapsible
+
+            collapsible = widget.query_one("#thinking-collapsible", Collapsible)
+            assert collapsible.collapsed is True
+
+            # Expand the collapsible
+            collapsible.collapsed = False
+            await pilot.pause()
+
+            assert collapsible.collapsed is False
+
+    async def test_thinking_section_toggle(self) -> None:
+        """Test expanding and collapsing thinking section."""
+        thinking = "Thinking content"
+        bubble = MessageBubble("Response", thinking_content=thinking)
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test() as pilot:
+            widget = app.query_one(MessageBubble)
+
+            from textual.widgets import Collapsible
+
+            collapsible = widget.query_one("#thinking-collapsible", Collapsible)
+
+            # Start collapsed
+            assert collapsible.collapsed is True
+
+            # Expand
+            collapsible.collapsed = False
+            await pilot.pause()
+            assert collapsible.collapsed is False
+
+            # Collapse again
+            collapsible.collapsed = True
+            await pilot.pause()
+            assert collapsible.collapsed is True
+
+    async def test_thinking_with_multiline_content(self) -> None:
+        """Test thinking section with multi-paragraph content."""
+        thinking = """First paragraph of thinking.
+
+Second paragraph with more details.
+
+Third paragraph with conclusion."""
+        bubble = MessageBubble("Answer", thinking_content=thinking)
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+            assert widget.thinking_content == thinking
+
+            # Content should be preserved
+            assert "First paragraph" in widget.thinking_content
+            assert "Second paragraph" in widget.thinking_content
+            assert "Third paragraph" in widget.thinking_content
+
+    async def test_thinking_with_markdown(self) -> None:
+        """Test thinking content supports markdown formatting."""
+        thinking = """**Bold thinking**
+
+- Point 1
+- Point 2
+
+`code example`"""
+        bubble = MessageBubble("Response", thinking_content=thinking)
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+
+            # Markdown widget should exist for thinking
+
+            thinking_markdown = widget.query(".thinking-content")
+            assert len(thinking_markdown) == 1
+
+    async def test_thinking_with_empty_string(self) -> None:
+        """Test thinking section with empty string."""
+        bubble = MessageBubble("Answer", thinking_content="")
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+
+            # Empty string is falsy, so no collapsible should be created
+
+            collapsibles = widget.query("#thinking-collapsible")
+            assert len(collapsibles) == 0
+
+    async def test_thinking_position_before_main_content(self) -> None:
+        """Test thinking appears before main response."""
+        thinking = "Reasoning process"
+        bubble = MessageBubble("Final answer", thinking_content=thinking)
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+
+            # Get all children
+            children = list(widget.query("*"))
+
+            # Find thinking collapsible and main content
+            thinking_idx = None
+            content_idx = None
+
+            for idx, child in enumerate(children):
+                if hasattr(child, "id"):
+                    if child.id == "thinking-collapsible":
+                        thinking_idx = idx
+                    elif child.id == "message-content":
+                        content_idx = idx
+
+            # Thinking should appear before content
+            assert thinking_idx is not None
+            assert content_idx is not None
+            assert thinking_idx < content_idx
+
+    async def test_thinking_with_special_characters(self) -> None:
+        """Test thinking with unicode and special chars."""
+        thinking = "Thinking: 你好 мир 🧠 @#$%^&*()"
+        bubble = MessageBubble("Answer", thinking_content=thinking)
+        app = MessageBubbleTestApp(bubble)
+        async with app.run_test():
+            widget = app.query_one(MessageBubble)
+            assert widget.thinking_content == thinking
+            assert "你好" in widget.thinking_content
+            assert "мир" in widget.thinking_content
+            assert "🧠" in widget.thinking_content

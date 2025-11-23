@@ -14,7 +14,7 @@ from textual import on
 from textual.containers import Container, Horizontal
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import Button, Markdown, Static
+from textual.widgets import Button, Collapsible, Markdown, Static
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
@@ -65,6 +65,7 @@ class MessageBubble(Container):
         show_metadata: bool = True,
         tool_calls: list[dict[str, Any]] | None = None,
         message_id: int | None = None,
+        thinking_content: str | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize MessageBubble widget.
@@ -77,6 +78,7 @@ class MessageBubble(Container):
             show_metadata: Whether to show metadata footer
             tool_calls: Optional list of tool call data dicts (for assistant messages)
             message_id: Optional database message ID (for branching functionality)
+            thinking_content: Optional AI reasoning/thinking content to display in collapsible section
             **kwargs: Additional arguments passed to Static
         """
         super().__init__(**kwargs)
@@ -87,12 +89,25 @@ class MessageBubble(Container):
         self.show_metadata = show_metadata
         self.tool_calls = tool_calls or []
         self.message_id = message_id
+        self.thinking_content = thinking_content
         self._markdown_failed = False
         # Set role last (triggers watcher which needs other attributes)
         self.role = role
 
     def compose(self) -> ComposeResult:
         """Compose the message bubble with content and metadata."""
+        # Add thinking section if present
+        if self.thinking_content:
+            with Collapsible(
+                title="💭 Thinking",
+                collapsed=True,
+                collapsed_symbol="▶",
+                expanded_symbol="▼",
+                id="thinking-collapsible",
+                classes="thinking-section",
+            ):
+                yield Markdown(self.thinking_content, classes="thinking-content")
+
         # Create markdown widget for content (supports clickable links)
         # Will fallback to Static with Text if markdown fails
         yield Markdown(id="message-content", classes="message-content")
