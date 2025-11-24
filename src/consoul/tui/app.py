@@ -763,11 +763,12 @@ class ConsoulApp(App[None]):
         logger.info(
             f"[SYSPROMPT] Adding initial system prompt to conversation "
             f"(conversation exists: {self.conversation is not None}, "
+            f"message count: {len(self.conversation.messages) if self.conversation else 0}, "
             f"active_profile exists: {self.active_profile is not None}, "
             f"tool_registry exists: {self.tool_registry is not None})"
         )
 
-        if not self.conversation:
+        if self.conversation is None:
             logger.warning("[SYSPROMPT] No conversation exists, skipping")
             return
 
