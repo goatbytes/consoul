@@ -248,26 +248,29 @@ class ToolManagerScreen(ModalScreen[bool]):
         self._update_tool_count()
 
     def action_toggle_tool(self) -> None:
-        """Toggle the selected tool's enabled state."""
+        """Toggle the selected tool's enabled state (Space/T key)."""
         table = self.query_one("#tool-table", DataTable)
 
-        if table.cursor_row >= 0:
-            # Get tool name from row key
-            row_key = table.get_row_at(table.cursor_row)
-            if row_key:
-                tool_name = str(row_key)
+        cursor_row = table.cursor_row
+        if cursor_row is None or cursor_row < 0:
+            return
 
-                # Get current state
-                tools = self.tool_registry.list_tools()
-                meta = next((m for m in tools if m.name == tool_name), None)
+        # Get row key from cursor position (matching Gira pattern)
+        row_keys = list(table.rows.keys())
+        if 0 <= cursor_row < len(row_keys):
+            tool_name = str(row_keys[cursor_row])
 
-                if meta:
-                    # Toggle pending state
-                    current_state = self.pending_changes.get(tool_name, meta.enabled)
-                    self.pending_changes[tool_name] = not current_state
+            # Get current state
+            tools = self.tool_registry.list_tools()
+            meta = next((m for m in tools if m.name == tool_name), None)
 
-                    # Refresh display
-                    self._refresh_table()
+            if meta:
+                # Toggle pending state
+                current_state = self.pending_changes.get(tool_name, meta.enabled)
+                self.pending_changes[tool_name] = not current_state
+
+                # Refresh display
+                self._refresh_table()
 
     def action_filter_all(self) -> None:
         """Enable all tools."""
