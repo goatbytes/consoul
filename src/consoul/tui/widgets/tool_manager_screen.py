@@ -123,6 +123,7 @@ class ToolManagerScreen(ModalScreen[bool]):
         Binding("a", "filter_all", "All", show=True),
         Binding("n", "filter_none", "None", show=True),
         Binding("s", "filter_safe", "Safe", show=True),
+        Binding("ctrl+s", "save_to_config", "Save to Config", show=True),
     ]
 
     def __init__(
@@ -151,7 +152,7 @@ class ToolManagerScreen(ModalScreen[bool]):
             yield Static("Tool Manager", classes="modal-title")
             yield Static("", classes="tool-count", id="tool-count")
             yield Static(
-                "Space/T: toggle · ↑↓: navigate · A: all · N: none · S: safe · Enter: apply · Esc: cancel",
+                "Space/T: toggle · ↑↓: navigate · A: all · N: none · S: safe · Ctrl+S: save to config · Enter: apply · Esc: cancel",
                 classes="tool-count",
             )
 
@@ -340,6 +341,56 @@ class ToolManagerScreen(ModalScreen[bool]):
         logger.info("[TOOL_MGR] action_cancel called")
         # Return False to indicate no changes
         self.dismiss(False)
+
+    def action_save_to_config(self) -> None:
+        """Save current tool selection to config file (Ctrl+S)."""
+        from pathlib import Path
+
+        from consoul.config.loader import find_config_files, save_config
+
+        try:
+            # Get enabled tools from pending changes (or current state if no changes)
+            tools = self.tool_registry.list_tools()
+            enabled_tools = [
+                meta.name
+                for meta in tools
+                if self.pending_changes.get(meta.name, meta.enabled)
+            ]
+
+            # Determine config file path (prefer project, fallback to global)
+            global_config, project_config = find_config_files()
+            config_path = project_config or global_config
+
+            # If no config exists, create global config
+            if not config_path:
+                config_path = Path.home() / ".consoul" / "config.yaml"
+
+            # Get app's config and update allowed_tools
+            config = self.app.consoul_config  # type: ignore[attr-defined]
+            config.tools.allowed_tools = enabled_tools
+
+            # Save to config file
+            save_config(config, config_path)
+
+            # Show confirmation with shortened path
+            config_name = (
+                "config.yaml"
+                if config_path == Path.home() / ".consoul" / "config.yaml"
+                else ".consoul/config.yaml"
+            )
+            self.app.notify(
+                f"Tool selection saved to {config_name}",
+                severity="information",
+            )
+            logger.info(f"[TOOL_MGR] Saved {len(enabled_tools)} tools to {config_path}")
+
+        except Exception as e:
+            error_msg = str(e).replace("[", "\\[")
+            self.app.notify(
+                f"Failed to save config: {error_msg}",
+                severity="error",
+            )
+            logger.error(f"[TOOL_MGR] Failed to save config: {e}", exc_info=True)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses.
