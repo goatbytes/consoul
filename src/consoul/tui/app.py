@@ -206,14 +206,10 @@ class ConsoulApp(App[None]):
                     **conv_kwargs,
                 )
 
-                # Add system prompt if configured
-                if (
-                    hasattr(self.active_profile, "system_prompt")
-                    and self.active_profile.system_prompt
-                ):
-                    self.conversation.add_system_message(
-                        self.active_profile.system_prompt
-                    )
+                # Add system prompt if configured (with dynamic tool documentation)
+                system_prompt = self._build_current_system_prompt()
+                if system_prompt:
+                    self.conversation.add_system_message(system_prompt)
 
                 # Set conversation ID for tracking
                 self.conversation_id = self.conversation.session_id
@@ -715,6 +711,25 @@ class ConsoulApp(App[None]):
 
         return kwargs
 
+    def _build_current_system_prompt(self) -> str | None:
+        """Build system prompt with current tool registry state.
+
+        Replaces {AVAILABLE_TOOLS} marker in profile's system_prompt with
+        dynamically generated tool documentation based on enabled tools.
+
+        Returns:
+            Complete system prompt with tool documentation, or None if no prompt
+        """
+        from consoul.ai.prompt_builder import build_system_prompt
+
+        if not self.active_profile or not self.active_profile.system_prompt:
+            return None
+
+        return build_system_prompt(
+            self.active_profile.system_prompt,
+            self.tool_registry,
+        )
+
     def _model_supports_vision(self) -> bool:
         """Check if current model supports vision/multimodal input.
 
@@ -971,11 +986,25 @@ class ConsoulApp(App[None]):
 
                 # Update top bar to reflect changes
                 self._update_top_bar_state()
+
+                # Update system prompt to reflect new tool availability
+                system_prompt = self._build_current_system_prompt()
+                if self.conversation and system_prompt:
+                    self.conversation.clear(preserve_system=False)
+                    self.conversation.add_system_message(system_prompt)
+                    self.log.info("Updated system prompt with new tool availability")
             elif not enabled_tools:
                 # No tools enabled - unbind all
                 # TODO: Need to handle unbinding - may need to recreate model
                 self.log.info("No tools enabled")
                 self._update_top_bar_state()
+
+                # Update system prompt to show no tools available
+                system_prompt = self._build_current_system_prompt()
+                if self.conversation and system_prompt:
+                    self.conversation.clear(preserve_system=False)
+                    self.conversation.add_system_message(system_prompt)
+                    self.log.info("Updated system prompt - no tools available")
 
         except Exception as e:
             self.log.error(f"Error rebinding tools: {e}", exc_info=True)
@@ -2919,11 +2948,10 @@ class ConsoulApp(App[None]):
                 **conv_kwargs,
             )
 
-            # Re-add system prompt if configured
-            if self.active_profile and hasattr(self.active_profile, "system_prompt"):
-                system_prompt = self.active_profile.system_prompt
-                if system_prompt:
-                    self.conversation.add_system_message(system_prompt)
+            # Re-add system prompt if configured (with dynamic tool documentation)
+            system_prompt = self._build_current_system_prompt()
+            if system_prompt:
+                self.conversation.add_system_message(system_prompt)
 
             self.conversation_id = self.conversation.session_id
             self.notify("Started new conversation", severity="information")
@@ -3587,12 +3615,13 @@ class ConsoulApp(App[None]):
                     f"Switched to profile '{profile_name}' with database: {new_db_path}"
                 )
 
-            # Update conversation with new system prompt if needed
-            if self.conversation and self.active_profile.system_prompt:
+            # Update conversation with new system prompt if needed (with dynamic tools)
+            system_prompt = self._build_current_system_prompt()
+            if self.conversation and system_prompt:
                 # Clear and re-add system message with new prompt
                 # (This preserves conversation history but updates instructions)
                 self.conversation.clear(preserve_system=False)
-                self.conversation.add_system_message(self.active_profile.system_prompt)
+                self.conversation.add_system_message(system_prompt)
 
             # Update top bar display
             self._update_top_bar_state()
