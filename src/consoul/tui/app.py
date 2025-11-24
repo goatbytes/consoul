@@ -340,11 +340,20 @@ class ConsoulApp(App[None]):
                         set_analyze_images_config(consoul_config.tools.image_analysis)
 
                     # Determine which tools to register based on config
+                    # Note: We always register ALL tools in the registry so Tool Manager can show them all
+                    # The enabled/disabled state is set based on config (allowed_tools, risk_filter, or default)
+
+                    # Get all available tools
+                    all_tools = list(TOOL_CATALOG.values())
+
+                    # Determine which tools should be ENABLED based on config
                     # Precedence: allowed_tools > risk_filter > all tools (default)
-                    # Note: allowed_tools=None means "not set", [] means "no tools" (explicit)
+                    enabled_tool_names = (
+                        set()
+                    )  # Set of tool.name values that should be enabled
+
                     if consoul_config.tools.allowed_tools is not None:
                         # Explicit whitelist takes precedence (even if empty)
-                        tools_to_register = []
                         normalized_tool_names = []  # Actual tool.name values for registry
                         invalid_tools = []
 
@@ -352,9 +361,9 @@ class ConsoulApp(App[None]):
                             result = get_tool_by_name(tool_name)
                             if result:
                                 tool, risk_level, _categories = result
-                                tools_to_register.append(result)
                                 # Store the actual tool.name for execution whitelist
                                 normalized_tool_names.append(tool.name)
+                                enabled_tool_names.add(tool.name)
                             else:
                                 invalid_tools.append(tool_name)
 
@@ -372,15 +381,19 @@ class ConsoulApp(App[None]):
                         consoul_config.tools.allowed_tools = normalized_tool_names
 
                         self.log.info(
-                            f"Registering {len(tools_to_register)} tools from allowed_tools "
-                            f"{'(chat-only mode)' if len(tools_to_register) == 0 else 'whitelist'}"
+                            f"Enabled {len(enabled_tool_names)} tools from allowed_tools "
+                            f"{'(chat-only mode)' if len(enabled_tool_names) == 0 else 'whitelist'}"
                         )
 
                     elif consoul_config.tools.risk_filter:
-                        # Risk-based filtering: only register tools up to specified risk level
-                        tools_to_register = get_tools_by_risk_level(
+                        # Risk-based filtering: enable tools up to specified risk level
+                        tools_by_risk = get_tools_by_risk_level(
                             consoul_config.tools.risk_filter
                         )
+
+                        # Enable tools that match risk filter
+                        for tool, _risk_level, _categories in tools_by_risk:
+                            enabled_tool_names.add(tool.name)
 
                         # DO NOT populate allowed_tools - leave empty for risk_filter.
                         #
@@ -390,12 +403,12 @@ class ConsoulApp(App[None]):
                         # regardless of permission_policy settings (src/consoul/ai/tools/permissions/policy.py:307).
                         #
                         # Security model:
-                        # - risk_filter controls REGISTRATION (which tools exist)
+                        # - risk_filter controls which tools are ENABLED
                         # - permission_policy controls APPROVAL (which tools need confirmation)
-                        # - Both work together: registration limits capabilities, policy controls UX
+                        # - Both work together: risk_filter limits capabilities, policy controls UX
                         #
                         # Example: risk_filter="caution" + permission_policy="balanced"
-                        # - Registers: SAFE + CAUTION tools (12 total)
+                        # - Enables: SAFE + CAUTION tools (12 total)
                         # - Auto-approves: SAFE tools only
                         # - Prompts for: CAUTION tools (file edits, bash, etc.)
                         #
@@ -403,15 +416,17 @@ class ConsoulApp(App[None]):
                         # Use permission_policy (BALANCED/TRUSTING/etc) instead.
 
                         self.log.info(
-                            f"Registering {len(tools_to_register)} tools with "
+                            f"Enabled {len(enabled_tool_names)} tools with "
                             f"risk_filter='{consoul_config.tools.risk_filter}'"
                         )
 
                     else:
-                        # Default: register all tools (backward compatible)
-                        tools_to_register = list(TOOL_CATALOG.values())
+                        # Default: enable all tools (backward compatible)
+                        for tool, _risk_level, _categories in all_tools:
+                            enabled_tool_names.add(tool.name)
+
                         self.log.info(
-                            f"Registering all {len(tools_to_register)} available tools (no filters specified)"
+                            f"Enabled all {len(enabled_tool_names)} available tools (no filters specified)"
                         )
 
                     # Create registry with CLI provider (we override approval in _request_tool_approval)
@@ -422,10 +437,13 @@ class ConsoulApp(App[None]):
                         approval_provider=CliApprovalProvider(),  # Required but unused
                     )
 
-                    # Register filtered tools
-                    for tool, risk_level, _categories in tools_to_register:
+                    # Register ALL tools with appropriate enabled state
+                    # This ensures Tool Manager shows all available tools (not just enabled ones)
+                    for tool, risk_level, _categories in all_tools:
+                        # Tool is enabled if its name is in the enabled_tool_names set
+                        is_enabled = tool.name in enabled_tool_names
                         self.tool_registry.register(
-                            tool, risk_level=risk_level, enabled=True
+                            tool, risk_level=risk_level, enabled=is_enabled
                         )
 
                     # NOTE: analyze_images tool registration disabled for SOUL-116
@@ -443,9 +461,9 @@ class ConsoulApp(App[None]):
                         f"Initialized tool registry with {len(tool_metadata_list)} enabled tools"
                     )
 
-                    # Set tools_total for top bar display
+                    # Set tools_total for top bar display (total registered tools)
                     if hasattr(self, "top_bar"):
-                        self.top_bar.tools_total = len(tools_to_register)
+                        self.top_bar.tools_total = len(all_tools)
 
                     # Bind tools to model (extract BaseTool from metadata)
                     if tool_metadata_list:
