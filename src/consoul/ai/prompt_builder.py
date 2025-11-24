@@ -23,6 +23,9 @@ def build_system_prompt(
     Replaces the {AVAILABLE_TOOLS} marker in the base prompt with a dynamically
     generated tools section based on currently enabled tools.
 
+    If no marker is present but tools are available, appends tools section to end.
+    This provides smart fallback for custom profiles without explicit markers.
+
     Args:
         base_prompt: Base system prompt template (may contain {AVAILABLE_TOOLS})
         tool_registry: Tool registry to query for enabled tools (optional)
@@ -31,32 +34,47 @@ def build_system_prompt(
         Complete system prompt with tool documentation, or None if no base prompt
 
     Example:
+        >>> # With marker
         >>> prompt = build_system_prompt(
         ...     "You are an AI assistant.\\n\\n{AVAILABLE_TOOLS}",
         ...     tool_registry
         ... )
         >>> "bash_execute" in prompt
         True
+
+        >>> # Without marker (smart fallback)
+        >>> prompt = build_system_prompt(
+        ...     "You are an AI assistant.",
+        ...     tool_registry  # has tools
+        ... )
+        >>> "# Available Tools" in prompt
+        True
     """
     if not base_prompt:
         return None
 
-    # If no marker present, return as-is (backward compatibility)
-    if "{AVAILABLE_TOOLS}" not in base_prompt:
-        return base_prompt
-
-    # Build tools section
-    if not tool_registry:
-        tools_section = _format_no_tools_message()
-    else:
+    # Build tools section if registry exists
+    tools_section = None
+    if tool_registry:
         enabled_tools = tool_registry.list_tools(enabled_only=True)
-        if not enabled_tools:
-            tools_section = _format_no_tools_message()
-        else:
+        if enabled_tools:
             tools_section = format_tools_documentation(enabled_tools)
 
-    # Replace marker with generated content
-    return base_prompt.replace("{AVAILABLE_TOOLS}", tools_section)
+    # Strategy 1: Replace marker if present
+    if "{AVAILABLE_TOOLS}" in base_prompt:
+        if tools_section:
+            return base_prompt.replace("{AVAILABLE_TOOLS}", tools_section)
+        else:
+            # No tools - replace with "no tools" message
+            return base_prompt.replace("{AVAILABLE_TOOLS}", _format_no_tools_message())
+
+    # Strategy 2: Smart fallback - append tools if available
+    if tools_section:
+        # Append tools section to end (for profiles without explicit marker)
+        return f"{base_prompt}\n\n{tools_section}"
+
+    # Strategy 3: No marker, no tools - return as-is
+    return base_prompt
 
 
 def format_tools_documentation(tools: list[ToolMetadata]) -> str:

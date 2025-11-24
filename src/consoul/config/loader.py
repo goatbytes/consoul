@@ -260,15 +260,15 @@ def select_intelligent_default_model() -> tuple[Provider, str]:
 
     # Priority 1: Anthropic (most capable general model)
     if anthropic_key:
-        return (Provider.ANTHROPIC, "claude-3-5-sonnet-20241022")
+        return (Provider.ANTHROPIC, "claude-3-opus-20240229")
 
     # Priority 2: OpenAI
     if openai_key:
-        return (Provider.OPENAI, "gpt-4o")
+        return (Provider.OPENAI, "gpt-5-nano")
 
     # Priority 3: Google
     if google_key:
-        return (Provider.GOOGLE, "gemini-2.0-flash")
+        return (Provider.GOOGLE, "gemini-2.5-flash")
 
     # Priority 4: Ollama (free, local)
     try:

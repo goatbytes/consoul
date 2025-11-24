@@ -61,7 +61,8 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
             "system_prompt": (
                 "You are a senior software engineer conducting a thorough code review. "
                 "Focus on code quality, best practices, potential bugs, security issues, "
-                "and maintainability. Provide specific, actionable feedback."
+                "and maintainability. Provide specific, actionable feedback.\n\n"
+                "{AVAILABLE_TOOLS}"
             ),
             "conversation": {
                 "persist": True,
@@ -106,7 +107,10 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
         "fast": {
             "name": "fast",
             "description": "Fast profile optimized for quick responses with lower context",
-            "system_prompt": "You are a helpful AI assistant. Be concise and to the point.",
+            "system_prompt": (
+                "You are a helpful AI assistant. Be concise and to the point.\n\n"
+                "{AVAILABLE_TOOLS}"
+            ),
             "conversation": {
                 "persist": True,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
