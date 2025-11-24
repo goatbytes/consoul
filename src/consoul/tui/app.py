@@ -466,53 +466,8 @@ class ConsoulApp(App[None]):
                                 "Tools are disabled for this model."
                             )
 
-                # Add system prompt after tool initialization (outside tools.enabled check)
-                # This ensures the system prompt is added even if tools are disabled
-                self.log.info("[SYSPROMPT] Reached system prompt initialization code")
-                if self.conversation:
-                    self.log.info("[SYSPROMPT] Conversation exists, building prompt")
-                    try:
-                        system_prompt = self._build_current_system_prompt()
-                        self.log.info(
-                            f"[SYSPROMPT] Built prompt: {len(system_prompt) if system_prompt else 0} chars"
-                        )
-
-                        if system_prompt:
-                            self.log.info(
-                                "[SYSPROMPT] Adding system message to conversation"
-                            )
-                            self.conversation.add_system_message(system_prompt)
-                            self.log.info(
-                                f"[SYSPROMPT] Added. Total messages: {len(self.conversation.messages)}"
-                            )
-
-                            tool_count = 0
-                            if self.tool_registry:
-                                tool_count = len(
-                                    self.tool_registry.list_tools(enabled_only=True)
-                                )
-
-                            self.log.info(
-                                f"[SYSPROMPT] Storing metadata (tools: {tool_count})"
-                            )
-                            self.conversation.store_system_prompt_metadata(
-                                profile_name=self.active_profile.name
-                                if self.active_profile
-                                else None,
-                                tool_count=tool_count,
-                            )
-                            self.log.info(
-                                f"[SYSPROMPT] SUCCESS: Added system prompt ({tool_count} tools, {len(system_prompt)} chars)"
-                            )
-                        else:
-                            self.log.warning(
-                                "[SYSPROMPT] System prompt was empty, not adding"
-                            )
-                    except Exception as prompt_error:
-                        self.log.error(
-                            f"Failed to add system prompt: {prompt_error}",
-                            exc_info=True,
-                        )
+                # NOTE: System prompt will be added in on_mount() after logging is set up
+                # This ensures logs are captured and the system prompt is properly initialized
 
             except Exception as e:
                 # Log error but allow app to start (graceful degradation)
@@ -590,6 +545,9 @@ class ConsoulApp(App[None]):
 
         Sets up GC management and validates theme.
         """
+        # Add system prompt to conversation (now that logging is set up)
+        self._add_initial_system_prompt()
+
         # Apply theme from config
         # Custom themes (TCSS files): monokai, dracula, nord, gruvbox
         # Built-in themes: textual-dark, textual-light, textual-ansi, tokyo-night, etc.
@@ -761,6 +719,53 @@ class ConsoulApp(App[None]):
             }
 
         return kwargs
+
+    def _add_initial_system_prompt(self) -> None:
+        """Add system prompt to conversation during app initialization.
+
+        Called from on_mount() after logging is set up. Adds the system prompt
+        with dynamic tool documentation and stores metadata for the Ctrl+Shift+S viewer.
+        """
+        self.log.info("[SYSPROMPT] Adding initial system prompt to conversation")
+
+        if not self.conversation:
+            self.log.warning("[SYSPROMPT] No conversation exists, skipping")
+            return
+
+        try:
+            system_prompt = self._build_current_system_prompt()
+            self.log.info(
+                f"[SYSPROMPT] Built prompt: {len(system_prompt) if system_prompt else 0} chars"
+            )
+
+            if system_prompt:
+                self.log.info("[SYSPROMPT] Adding system message to conversation")
+                self.conversation.add_system_message(system_prompt)
+                self.log.info(
+                    f"[SYSPROMPT] Added. Total messages: {len(self.conversation.messages)}"
+                )
+
+                tool_count = 0
+                if self.tool_registry:
+                    tool_count = len(self.tool_registry.list_tools(enabled_only=True))
+
+                self.log.info(f"[SYSPROMPT] Storing metadata (tools: {tool_count})")
+                self.conversation.store_system_prompt_metadata(
+                    profile_name=self.active_profile.name
+                    if self.active_profile
+                    else None,
+                    tool_count=tool_count,
+                )
+                self.log.info(
+                    f"[SYSPROMPT] SUCCESS: Added system prompt ({tool_count} tools, {len(system_prompt)} chars)"
+                )
+            else:
+                self.log.warning("[SYSPROMPT] System prompt was empty, not adding")
+        except Exception as prompt_error:
+            self.log.error(
+                f"[SYSPROMPT] Failed to add system prompt: {prompt_error}",
+                exc_info=True,
+            )
 
     def _build_current_system_prompt(self) -> str | None:
         """Build system prompt with current tool registry state.
