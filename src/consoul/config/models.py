@@ -1207,11 +1207,12 @@ class ToolConfig(BaseModel):
     )
     risk_filter: Literal["safe", "caution", "dangerous"] | None = Field(
         default=None,
-        description="Filter tools by maximum risk level. "
+        description="[TUI ONLY] Filter tools by maximum risk level. "
         "'safe' = only SAFE tools (read-only), "
         "'caution' = SAFE + CAUTION tools (includes file operations), "
         "'dangerous' = all tools (includes destructive operations). "
-        "Ignored if allowed_tools is set.",
+        "Ignored if allowed_tools is set. "
+        "Note: Currently only supported in TUI; SDK uses 'tools' parameter instead.",
     )
     approval_mode: Literal[
         "always", "once_per_session", "whitelist", "risk_based", "never"

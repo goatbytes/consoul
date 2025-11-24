@@ -469,10 +469,16 @@ audit_focused:
             - "ls"
 
 # =============================================================================
-# Example 6: Risk-Based Tool Filtering
+# Example 6: Risk-Based Tool Filtering (TUI ONLY)
 # =============================================================================
 # Use risk_filter for simple tool filtering by risk level without listing
 # individual tools. This is easier than maintaining explicit allowed_tools lists.
+#
+# ⚠️  TUI ONLY: risk_filter is currently only supported in the TUI (consoul tui).
+#     The SDK and CLI commands (consoul chat, consoul ask) do NOT honor this setting.
+#     For SDK usage, use the `tools` parameter instead:
+#       console = Consoul(tools="safe")  # SDK equivalent
+#       console = Consoul(tools="caution")
 #
 # IMPORTANT: risk_filter should be used with permission_policy (BALANCED, TRUSTING, etc.),
 # NOT with approval_mode="whitelist". The two features are incompatible:
@@ -480,7 +486,7 @@ audit_focused:
 #   - permission_policy: Controls which tools need APPROVAL (UX/security workflow)
 #   - approval_mode="whitelist": Requires explicit allowed_tools list (legacy mode)
 #
-# How it works:
+# How it works (TUI only):
 #   1. risk_filter limits which tools exist (registration boundary)
 #   2. permission_policy determines approval requirements based on risk level
 #   3. Example: risk_filter="caution" + permission_policy="balanced"
