@@ -545,6 +545,16 @@ class ConsoulApp(App[None]):
 
         Sets up GC management and validates theme.
         """
+        # DEBUG: Write to file to prove this code runs
+        with open("/tmp/consoul_mount_debug.txt", "w") as f:
+            f.write(
+                f"on_mount called, conversation exists: {self.conversation is not None}\n"
+            )
+            if self.conversation:
+                f.write(
+                    f"conversation has {len(self.conversation.messages)} messages\n"
+                )
+
         self.log.info("[MOUNT] on_mount() called, adding system prompt")
 
         # Add system prompt to conversation (now that logging is set up)
