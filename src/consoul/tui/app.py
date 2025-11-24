@@ -760,7 +760,12 @@ class ConsoulApp(App[None]):
         with dynamic tool documentation and stores metadata for the Ctrl+Shift+S viewer.
         """
         logger = logging.getLogger(__name__)
-        logger.info("[SYSPROMPT] Adding initial system prompt to conversation")
+        logger.info(
+            f"[SYSPROMPT] Adding initial system prompt to conversation "
+            f"(conversation exists: {self.conversation is not None}, "
+            f"active_profile exists: {self.active_profile is not None}, "
+            f"tool_registry exists: {self.tool_registry is not None})"
+        )
 
         if not self.conversation:
             logger.warning("[SYSPROMPT] No conversation exists, skipping")
