@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-11-23T19:52:16.538425",
+  "updated_at": "2025-11-23T19:52:16.538434",
+  "id": "SOUL-160",
+  "uuid": "f1408f1e-1a96-40e8-94b1-cd6cda54322a",
+  "title": "Add persist-to-config option for Tool Manager changes",
+  "description": "**As a** Consoul TUI user\n**I want** to save Tool Manager changes to my config file\n**So that** my tool preferences persist across sessions\n\n**Context:**\nCurrently, Tool Manager changes (SOUL-158) are session-only. Power users may want to persist their tool selections to config without manually editing the TOML file.\n\nThis adds a \"Save to Config\" action to Tool Manager that writes the current tool selection to config.toml as allowed_tools.\n\n**Technical Notes:**\n- Add action to Tool Manager screen (SOUL-158)\n- Write to ~/.consoul/config.toml (or project .consoul.yaml)\n- Update [tools].allowed_tools with current enabled tool list\n- Preserve other config settings (don't overwrite entire file)\n- Use TOML library for safe editing (tomlkit for preserving comments/formatting)\n- Show confirmation message after save\n- Optional: Add \"Save as Preset\" to create custom preset\n\n**Acceptance Criteria:**\n\n**Given** I'm in Tool Manager with modified tool selection\n**When** I press Ctrl+S (Save to Config)\n**Then** allowed_tools in config.toml is updated with current selection\n\n**Given** config.toml has other settings\n**When** I save Tool Manager changes\n**Then** only allowed_tools is updated (other settings preserved)\n\n**Given** I save Tool Manager changes\n**When** I restart TUI\n**Then** saved tool selection is loaded\n\n**Given** I save Tool Manager changes\n**When** save completes\n**Then** I see confirmation: \"Tool selection saved to config\"\n\n**Testing Considerations:**\n- Test config file writing\n- Test preservation of other settings\n- Test TOML formatting preservation\n- Test error handling (file permissions, invalid path)\n- Verify saved config loads correctly\n- Test with both global and project configs\n\n**Implementation Hints:**\n1. Add keybinding to Tool Manager:\n   ```python\n   (\"ctrl+s\", \"save_to_config\", \"Save to Config\"),\n   ```\n2. Use tomlkit for safe TOML editing:\n   ```python\n   import tomlkit\n   \n   def action_save_to_config(self):\n       enabled_tools = [\n           meta.name for meta in self.app.tool_registry.list_tools(enabled_only=True)\n       ]\n       \n       config_path = Path.home() / \".consoul\" / \"config.toml\"\n       with open(config_path) as f:\n           doc = tomlkit.load(f)\n       \n       if \"tools\" not in doc:\n           doc[\"tools\"] = {}\n       doc[\"tools\"][\"allowed_tools\"] = enabled_tools\n       \n       with open(config_path, \"w\") as f:\n           tomlkit.dump(doc, f)\n       \n       self.app.notify(\"Tool selection saved to config\")\n   ```\n3. Handle edge cases (file doesn't exist, no [tools] section)\n4. Add confirmation dialog (optional)\n5. Document in Tool Manager help text\n\n**Future Enhancement:**\n- Add \"Save as Preset\" to create custom named preset\n- Support saving to project-level .consoul.yaml\n\n**Dependencies:**\n- SOUL-158 (Tool Manager screen must exist)\n- SOUL-154 (Config-based tool registration)",
+  "status": "todo",
+  "type": "feature",
+  "priority": "low",
+  "labels": [
+    "tui",
+    "config",
+    "tools",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic": "EPIC-008",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 7,
+  "custom_fields": {}
+}

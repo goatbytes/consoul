@@ -1,0 +1,17 @@
+{
+  "created_at": "2025-11-23T19:54:32.911270",
+  "updated_at": "2025-11-23T19:54:32.911272",
+  "id": "EPIC-008",
+  "title": "Tool Control & Management System",
+  "description": "Comprehensive tool control system for Consoul TUI, giving users fine-grained control over which AI tools are available.\n\n## Problem Statement\n\nCurrently, Consoul TUI registers all 13 tools automatically with no user control. The allowed_tools config exists but only blocks execution (not registration), creating a registration vs. execution gap. Users cannot:\n- Limit AI capabilities to specific tool sets\n- Run chat-only mode without tools\n- See which tools are currently available\n- Control tools at runtime without restarting\n\n## Solution\n\nMulti-layer tool control system:\n\n**Layer 1: Configuration** - Control via config file (allowed_tools, risk_filter)\n**Layer 2: CLI Flags** - Session-based control (--tools flag)\n**Layer 3: Interactive UI** - Runtime management (Tool Manager screen)\n**Layer 4: Presets** - Quick workflow switching (readonly, development, etc.)\n\n## Benefits\n\n- **Security**: Users can restrict AI to safe read-only tools\n- **Context Efficiency**: Only register needed tools (smaller context)\n- **Flexibility**: Per-session tool control via CLI\n- **Visibility**: See what tools are enabled\n- **UX**: Quick presets for common workflows\n- **Consistency**: Aligns TUI with SDK behavior\n\n## Phases\n\n**Phase 1 (Critical)**: Foundation - Config and CLI control\n**Phase 2 (Important)**: Visibility - Status indicator and Tool Manager\n**Phase 3 (Nice-to-Have)**: Power features - Presets and persistence\n\n## Success Metrics\n\n- Users can control tool registration via config\n- Users can override via CLI flag\n- Users see tool status in TUI\n- Users can manage tools interactively\n- All changes are backward compatible\n\n## Related Work\n\n- EPIC-004: Tool Calling & Function Execution System (completed)\n- SOUL-150: Implement discover_tools (completed)\n- SOUL-151: Add tool categories (completed)\n- SOUL-153: SDK tool specification docs (completed)",
+  "status": "draft",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2025-12-20",
+  "labels": [],
+  "tickets": [],
+  "comments": [],
+  "comment_count": 0,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}
