@@ -115,7 +115,7 @@ class ToolManagerScreen(ModalScreen[bool]):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("escape,q", "cancel", "Cancel", show=True),
         Binding("enter", "apply", "Apply", show=True),
-        Binding("space", "toggle_tool", "Toggle", show=False),
+        Binding("space,t", "toggle_tool", "Toggle (Space/T)", show=True, priority=True),
         Binding("a", "filter_all", "All", show=True),
         Binding("n", "filter_none", "None", show=True),
         Binding("s", "filter_safe", "Safe", show=True),
@@ -326,20 +326,29 @@ class ToolManagerScreen(ModalScreen[bool]):
             self.action_filter_safe()
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
-        """Handle row selection (Enter key on row).
+        """Handle row selection (double-click or Enter on row).
 
         Args:
             event: The row selection event
         """
         self.action_toggle_tool()
 
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        """Handle row click - store the row for Space key toggle.
+
+        Args:
+            event: The row highlight event
+        """
+        # Row is now highlighted, Space key can toggle it
+        pass
+
     def on_key(self, event: Key) -> None:
-        """Handle key presses, particularly Space for toggling.
+        """Handle key presses, particularly Space/T for toggling.
 
         Args:
             event: The key event
         """
-        if event.key == "space":
+        if event.key in ("space", "t"):
             self.action_toggle_tool()
             event.prevent_default()
             event.stop()
