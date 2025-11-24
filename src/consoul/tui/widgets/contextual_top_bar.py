@@ -264,6 +264,11 @@ class ContextualTopBar(Static):
         # Consoul logo
         yield Label("🤖 Consoul", classes="brand-logo", id="brand-logo")
 
+        # Tool status indicator (in brand zone for better layout)
+        tool_text = self._get_tool_status_text()
+        tool_classes = f"tool-status -{self.highest_risk}"
+        yield Label(tool_text, classes=tool_classes, id="tool-status")
+
         # Conversation count indicator
         count_text = (
             f"{self.conversation_count} conversations"
@@ -279,11 +284,6 @@ class ContextualTopBar(Static):
 
     def _compose_status_zone(self) -> ComposeResult:
         """Compose the system info zone."""
-        # Tool status indicator (left-most for prominence)
-        tool_text = self._get_tool_status_text()
-        tool_classes = f"tool-status -{self.highest_risk}"
-        yield Label(tool_text, classes=tool_classes, id="tool-status")
-
         # Streaming indicator
         if self.streaming:
             yield Label(
