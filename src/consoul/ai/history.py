@@ -31,6 +31,7 @@ Example:
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import (
@@ -491,6 +492,50 @@ class ConversationHistory:
 
         # Note: Persistence is handled by add_user_message when conversation is created
         # System messages added during initialization are persisted later
+
+    def store_system_prompt_metadata(
+        self, profile_name: str | None = None, tool_count: int | None = None
+    ) -> None:
+        """Store system prompt metadata in conversation database.
+
+        Call this after adding the system message to persist the prompt content
+        and metadata (profile, tool count) for later retrieval/debugging.
+
+        Args:
+            profile_name: Name of the profile used (optional)
+            tool_count: Number of tools enabled when prompt was created (optional)
+
+        Example:
+            >>> history = ConversationHistory("gpt-4o", persist=True)
+            >>> history.add_system_message("You are helpful...")
+            >>> history.store_system_prompt_metadata("default", 10)
+        """
+        if not self.persist or not self._db or not self.session_id:
+            return
+
+        # Extract system prompt from messages
+        system_prompt = None
+        if self.messages and isinstance(self.messages[0], SystemMessage):
+            system_prompt = self.messages[0].content
+
+        if not system_prompt:
+            return
+
+        # Build metadata
+        metadata: dict[str, Any] = {
+            "system_prompt": str(system_prompt),
+            "system_prompt_stored_at": datetime.utcnow().isoformat(),
+        }
+        if profile_name:
+            metadata["profile_name"] = profile_name
+        if tool_count is not None:
+            metadata["tool_count"] = tool_count
+
+        try:
+            self._db.update_conversation_metadata(self.session_id, metadata)
+            logger.info(f"Stored system prompt metadata for {self.session_id}")
+        except Exception as e:
+            logger.warning(f"Failed to store system prompt metadata: {e}")
 
     def add_user_message(self, content: str) -> None:
         """Add user message to conversation history.

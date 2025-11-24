@@ -120,6 +120,7 @@ class ConsoulApp(App[None]):
         Binding("ctrl+comma", "settings", "Settings", show=False),
         Binding("ctrl+shift+p", "permissions", "Permissions", show=True),
         Binding("ctrl+t", "tools", "Tools", show=True),
+        Binding("ctrl+shift+s", "view_system_prompt", "System Prompt", show=False),
         Binding("f1", "help", "Help", show=False),
     ]
 
@@ -210,6 +211,18 @@ class ConsoulApp(App[None]):
                 system_prompt = self._build_current_system_prompt()
                 if system_prompt:
                     self.conversation.add_system_message(system_prompt)
+                    # Store prompt metadata for debugging/viewing later
+                    tool_count = (
+                        len(self.tool_registry.list_tools(enabled_only=True))
+                        if self.tool_registry
+                        else 0
+                    )
+                    self.conversation.store_system_prompt_metadata(
+                        profile_name=self.active_profile.name
+                        if self.active_profile
+                        else None,
+                        tool_count=tool_count,
+                    )
 
                 # Set conversation ID for tracking
                 self.conversation_id = self.conversation.session_id
@@ -992,6 +1005,13 @@ class ConsoulApp(App[None]):
                 if self.conversation and system_prompt:
                     self.conversation.clear(preserve_system=False)
                     self.conversation.add_system_message(system_prompt)
+                    # Store updated prompt metadata
+                    self.conversation.store_system_prompt_metadata(
+                        profile_name=self.active_profile.name
+                        if self.active_profile
+                        else None,
+                        tool_count=len(enabled_tools),
+                    )
                     self.log.info("Updated system prompt with new tool availability")
             elif not enabled_tools:
                 # No tools enabled - unbind all
@@ -1004,6 +1024,13 @@ class ConsoulApp(App[None]):
                 if self.conversation and system_prompt:
                     self.conversation.clear(preserve_system=False)
                     self.conversation.add_system_message(system_prompt)
+                    # Store updated prompt metadata
+                    self.conversation.store_system_prompt_metadata(
+                        profile_name=self.active_profile.name
+                        if self.active_profile
+                        else None,
+                        tool_count=0,
+                    )
                     self.log.info("Updated system prompt - no tools available")
 
         except Exception as e:
@@ -2952,6 +2979,18 @@ class ConsoulApp(App[None]):
             system_prompt = self._build_current_system_prompt()
             if system_prompt:
                 self.conversation.add_system_message(system_prompt)
+                # Store prompt metadata for debugging/viewing later
+                tool_count = (
+                    len(self.tool_registry.list_tools(enabled_only=True))
+                    if self.tool_registry
+                    else 0
+                )
+                self.conversation.store_system_prompt_metadata(
+                    profile_name=self.active_profile.name
+                    if self.active_profile
+                    else None,
+                    tool_count=tool_count,
+                )
 
             self.conversation_id = self.conversation.session_id
             self.notify("Started new conversation", severity="information")
@@ -3075,6 +3114,70 @@ class ConsoulApp(App[None]):
             # Changes were applied - rebind tools to model
             self._rebind_tools()
             self.notify("Tool settings applied successfully", severity="information")
+
+    async def action_view_system_prompt(self) -> None:
+        """Show system prompt modal with current or stored prompt."""
+        from consoul.tui.widgets.system_prompt_modal import SystemPromptModal
+
+        if not self.conversation:
+            self.notify("No active conversation", severity="warning")
+            return
+
+        # Try to get stored prompt from database metadata
+        system_prompt = None
+        profile_name = None
+        tool_count = None
+        stored_at = None
+
+        if (
+            self.conversation.persist
+            and self.conversation._db
+            and self.conversation.session_id
+        ):
+            try:
+                metadata = self.conversation._db.get_conversation_metadata(
+                    self.conversation.session_id
+                )
+                if "metadata" in metadata:
+                    meta = metadata["metadata"]
+                    system_prompt = meta.get("system_prompt")
+                    profile_name = meta.get("profile_name")
+                    tool_count = meta.get("tool_count")
+                    stored_at = meta.get("system_prompt_stored_at")
+            except Exception as e:
+                self.log.warning(f"Failed to retrieve stored prompt: {e}")
+
+        # Fallback to current system message if no stored prompt
+        if (
+            not system_prompt
+            and self.conversation.messages
+            and isinstance(
+                self.conversation.messages[0],
+                __import__(
+                    "langchain_core.messages", fromlist=["SystemMessage"]
+                ).SystemMessage,
+            )
+        ):
+            system_prompt = str(self.conversation.messages[0].content)
+            profile_name = self.active_profile.name if self.active_profile else None
+            tool_count = (
+                len(self.tool_registry.list_tools(enabled_only=True))
+                if self.tool_registry
+                else 0
+            )
+
+        if not system_prompt:
+            self.notify("No system prompt found", severity="warning")
+            return
+
+        await self.push_screen(
+            SystemPromptModal(
+                system_prompt=system_prompt,
+                profile_name=profile_name,
+                tool_count=tool_count,
+                stored_at=stored_at,
+            )
+        )
 
     async def action_help(self) -> None:
         """Show help modal."""
@@ -3622,6 +3725,18 @@ class ConsoulApp(App[None]):
                 # (This preserves conversation history but updates instructions)
                 self.conversation.clear(preserve_system=False)
                 self.conversation.add_system_message(system_prompt)
+                # Store updated prompt metadata
+                tool_count = (
+                    len(self.tool_registry.list_tools(enabled_only=True))
+                    if self.tool_registry
+                    else 0
+                )
+                self.conversation.store_system_prompt_metadata(
+                    profile_name=self.active_profile.name
+                    if self.active_profile
+                    else None,
+                    tool_count=tool_count,
+                )
 
             # Update top bar display
             self._update_top_bar_state()
