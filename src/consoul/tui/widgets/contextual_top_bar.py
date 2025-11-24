@@ -132,6 +132,29 @@ class ContextualTopBar(Static):
         background: transparent;
     }
 
+    /* Tool status indicator with risk-based colors */
+    ContextualTopBar .tool-status {
+        color: auto 80%;
+        margin: 0 1;
+        background: transparent;
+    }
+
+    ContextualTopBar .tool-status.-safe {
+        color: $success;
+    }
+
+    ContextualTopBar .tool-status.-caution {
+        color: $warning;
+    }
+
+    ContextualTopBar .tool-status.-dangerous {
+        color: $error;
+    }
+
+    ContextualTopBar .tool-status.-none {
+        color: auto 50%;
+    }
+
     /* Responsive - hide non-essential on narrow terminals */
     ContextualTopBar.-narrow .conversation-info {
         display: none;
@@ -149,6 +172,11 @@ class ContextualTopBar(Static):
     conversation_count: reactive[int] = reactive(0)
     streaming: reactive[bool] = reactive(False)
     terminal_width: reactive[int] = reactive(80)
+    tools_enabled: reactive[int] = reactive(0)
+    tools_total: reactive[int] = reactive(13)  # Total available tools
+    highest_risk: reactive[str] = reactive(
+        "none"
+    )  # "safe", "caution", "dangerous", "none"
 
     # Custom message types
     class SearchChanged(Message):
@@ -202,6 +230,20 @@ class ContextualTopBar(Static):
         elif size.width > 140:
             self.add_class("-wide")
 
+    def _get_tool_status_text(self) -> str:
+        """Get formatted tool status text.
+
+        Returns:
+            Formatted string like "Tools: 10/13" or "No Tools"
+        """
+        if self.tools_enabled == 0:
+            return "🔒 No Tools"
+
+        if self.tools_enabled == self.tools_total:
+            return f"🛠️  {self.tools_enabled}"  # All tools (compact)
+
+        return f"🛠️  {self.tools_enabled}/{self.tools_total}"
+
     def compose(self) -> ComposeResult:
         """Compose the three-zone top bar layout."""
         with Horizontal(classes="top-bar-container"):
@@ -237,6 +279,11 @@ class ContextualTopBar(Static):
 
     def _compose_status_zone(self) -> ComposeResult:
         """Compose the system info zone."""
+        # Tool status indicator (left-most for prominence)
+        tool_text = self._get_tool_status_text()
+        tool_classes = f"tool-status -{self.highest_risk}"
+        yield Label(tool_text, classes=tool_classes, id="tool-status")
+
         # Streaming indicator
         if self.streaming:
             yield Label(
@@ -363,6 +410,30 @@ class ContextualTopBar(Static):
         """React to streaming state changes."""
         # Trigger recompose to show/hide streaming indicator
         self.refresh(recompose=True)
+
+    def watch_tools_enabled(self, count: int) -> None:
+        """React to tool count changes."""
+        if not self.is_mounted:
+            return
+
+        try:
+            tool_label = self.query_one("#tool-status", Label)
+            tool_label.update(self._get_tool_status_text())
+        except Exception:
+            pass
+
+    def watch_highest_risk(self, risk: str) -> None:
+        """React to risk level changes."""
+        if not self.is_mounted:
+            return
+
+        try:
+            tool_label = self.query_one("#tool-status", Label)
+            # Update classes for color coding
+            tool_label.remove_class("-safe", "-caution", "-dangerous", "-none")
+            tool_label.add_class(f"-{risk}")
+        except Exception:
+            pass
 
     async def on_click(self, event: Click) -> None:
         """Handle click events on action buttons."""

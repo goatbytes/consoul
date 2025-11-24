@@ -447,6 +447,10 @@ class ConsoulApp(App[None]):
                         f"Initialized tool registry with {len(tool_metadata_list)} enabled tools"
                     )
 
+                    # Set tools_total for top bar display
+                    if hasattr(self, "top_bar"):
+                        self.top_bar.tools_total = len(tools_to_register)
+
                     # Bind tools to model (extract BaseTool from metadata)
                     if tool_metadata_list:
                         # Check if model supports tool calling
@@ -901,6 +905,42 @@ class ConsoulApp(App[None]):
                 )
             else:
                 self.top_bar.conversation_count = 0
+
+            # Update tool status
+            if self.tool_registry:
+                # Get enabled tools
+                enabled_tools = self.tool_registry.list_tools(enabled_only=True)
+                self.top_bar.tools_enabled = len(enabled_tools)
+
+                # Determine highest risk level
+                if not enabled_tools:
+                    self.top_bar.highest_risk = "none"
+                else:
+                    from consoul.ai.tools.base import RiskLevel
+
+                    # Find highest risk among enabled tools
+                    risk_hierarchy = {
+                        RiskLevel.SAFE: 0,
+                        RiskLevel.CAUTION: 1,
+                        RiskLevel.DANGEROUS: 2,
+                    }
+
+                    max_risk = max(
+                        risk_hierarchy.get(meta.risk_level, 0) for meta in enabled_tools
+                    )
+
+                    # Map back to string
+                    if max_risk == 2:
+                        self.top_bar.highest_risk = "dangerous"
+                    elif max_risk == 1:
+                        self.top_bar.highest_risk = "caution"
+                    else:
+                        self.top_bar.highest_risk = "safe"
+            else:
+                # No registry (shouldn't happen, but defensive)
+                self.top_bar.tools_enabled = 0
+                self.top_bar.highest_risk = "none"
+
         except Exception as e:
             logger.error(f"Error updating top bar state: {e}", exc_info=True)
 
