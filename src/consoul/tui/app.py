@@ -548,6 +548,34 @@ class ConsoulApp(App[None]):
         logger = logging.getLogger(__name__)
         logger.info("[MOUNT] on_mount() called, adding system prompt")
 
+        # If conversation doesn't exist (initialization failed), create it now
+        if not self.conversation and self.consoul_config:
+            logger.warning("[MOUNT] Conversation not initialized, creating now")
+            try:
+                from consoul.ai import ConversationHistory, get_chat_model
+
+                # Initialize chat model if needed
+                if not self.chat_model:
+                    model_config = self.consoul_config.get_current_model_config()
+                    self.chat_model = get_chat_model(
+                        model_config, config=self.consoul_config
+                    )
+
+                # Create conversation
+                conv_kwargs = self._get_conversation_config()
+                self.conversation = ConversationHistory(
+                    model_name=self.consoul_config.current_model,
+                    model=self.chat_model,
+                    **conv_kwargs,
+                )
+                logger.info(
+                    "[MOUNT] Successfully created conversation during on_mount()"
+                )
+            except Exception as e:
+                logger.error(
+                    f"[MOUNT] Failed to create conversation: {e}", exc_info=True
+                )
+
         # Add system prompt to conversation (now that logging is set up)
         self._add_initial_system_prompt()
 
