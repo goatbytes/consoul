@@ -55,6 +55,7 @@ TOOL_CATALOG: dict[str, tuple[BaseTool, RiskLevel, list[ToolCategory]]] = {
 }
 
 # Alias mappings for convenience
+# Maps tool.name (actual function name) to catalog key (friendly name)
 TOOL_ALIASES: dict[str, str] = {
     "bash_execute": "bash",
     "grep_search": "grep",
@@ -62,6 +63,7 @@ TOOL_ALIASES: dict[str, str] = {
     "read_file": "read",
     "edit_file_lines": "edit_lines",
     "edit_file_search_replace": "edit_replace",
+    "append_to_file": "append_file",
     "wikipedia_search": "wikipedia",
 }
 
