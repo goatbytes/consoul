@@ -342,23 +342,20 @@ class ConsoulApp(App[None]):
                     if consoul_config.tools.image_analysis:
                         set_analyze_images_config(consoul_config.tools.image_analysis)
 
-                    # Create registry with CLI provider (we override approval in _request_tool_approval)
-                    # The provider is required by registry but we don't use it - we show our own modal
-                    self.tool_registry = ToolRegistry(
-                        config=consoul_config.tools,
-                        approval_provider=CliApprovalProvider(),  # Required but unused
-                    )
-
                     # Determine which tools to register based on allowed_tools config
                     if consoul_config.tools.allowed_tools:
                         # Non-empty whitelist: only register specified tools
                         tools_to_register = []
+                        normalized_tool_names = []  # Actual tool.name values for registry
                         invalid_tools = []
 
                         for tool_name in consoul_config.tools.allowed_tools:
                             result = get_tool_by_name(tool_name)
                             if result:
+                                tool, risk_level, _categories = result
                                 tools_to_register.append(result)
+                                # Store the actual tool.name for execution whitelist
+                                normalized_tool_names.append(tool.name)
                             else:
                                 invalid_tools.append(tool_name)
 
@@ -370,6 +367,11 @@ class ConsoulApp(App[None]):
                                 f"Available tools: {available}"
                             )
 
+                        # Normalize allowed_tools to actual tool.name values for execution checks
+                        # This ensures friendly names like "bash" work with ToolRegistry.is_allowed()
+                        # which checks against tool.name like "bash_execute"
+                        consoul_config.tools.allowed_tools = normalized_tool_names
+
                         self.log.info(
                             f"Registering {len(tools_to_register)} tools from allowed_tools whitelist"
                         )
@@ -379,6 +381,14 @@ class ConsoulApp(App[None]):
                         self.log.info(
                             f"Registering all {len(tools_to_register)} available tools (allowed_tools is empty)"
                         )
+
+                    # Create registry with CLI provider (we override approval in _request_tool_approval)
+                    # The provider is required by registry but we don't use it - we show our own modal
+                    # NOTE: If allowed_tools was specified, it has been normalized to actual tool names
+                    self.tool_registry = ToolRegistry(
+                        config=consoul_config.tools,
+                        approval_provider=CliApprovalProvider(),  # Required but unused
+                    )
 
                     # Register filtered tools
                     for tool, risk_level, _categories in tools_to_register:
