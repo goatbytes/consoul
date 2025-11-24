@@ -9,6 +9,7 @@ Provides a visual interface for:
 
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING, ClassVar
 
 from textual.binding import Binding, BindingType
@@ -236,9 +237,17 @@ class ToolManagerScreen(ModalScreen[bool]):
         count_label = self.query_one("#tool-count", Static)
         count_label.update(f"{total_count} tools ({enabled_count} enabled)")
 
-    def _refresh_table(self) -> None:
-        """Refresh the entire table with current state."""
+    def _refresh_table(self, preserve_cursor: bool = True) -> None:
+        """Refresh the entire table with current state.
+
+        Args:
+            preserve_cursor: If True, restore cursor position after refresh
+        """
         table = self.query_one("#tool-table", DataTable)
+
+        # Save cursor position before clearing
+        saved_cursor = table.cursor_row if preserve_cursor else None
+
         table.clear()
 
         tools = self.tool_registry.list_tools()
@@ -246,6 +255,12 @@ class ToolManagerScreen(ModalScreen[bool]):
             self._add_tool_row(table, meta)
 
         self._update_tool_count()
+
+        # Restore cursor position
+        if saved_cursor is not None and saved_cursor >= 0:
+            # If cursor position is invalid, leave it at default
+            with contextlib.suppress(Exception):
+                table.move_cursor(row=saved_cursor)
 
     def action_toggle_tool(self) -> None:
         """Toggle the selected tool's enabled state (Space/T key)."""
@@ -255,10 +270,14 @@ class ToolManagerScreen(ModalScreen[bool]):
         if cursor_row is None or cursor_row < 0:
             return
 
-        # Get row key from cursor position (matching Gira pattern)
+        # Get row key from cursor position
         row_keys = list(table.rows.keys())
         if 0 <= cursor_row < len(row_keys):
-            tool_name = str(row_keys[cursor_row])
+            row_key = row_keys[cursor_row]
+            # RowKey object has a value property that contains the actual string key
+            tool_name = (
+                str(row_key.value) if hasattr(row_key, "value") else str(row_key)
+            )
 
             # Get current state
             tools = self.tool_registry.list_tools()
