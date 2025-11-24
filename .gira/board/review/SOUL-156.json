@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T19:50:40.955834",
-  "updated_at": "2025-11-24T04:41:53.872740Z",
+  "updated_at": "2025-11-23T21:01:35.660012",
   "id": "SOUL-156",
   "uuid": "86cf5047-3295-4df1-b5ce-fc358fe59e5f",
   "title": "Add risk_filter field to ToolConfig for risk-based tool filtering",
@@ -16,10 +16,24 @@
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-23T21:01:35.659896",
+      "updated_at": "2025-11-23T21:01:35.659897",
+      "id": "20251123210135-0ceafde3",
+      "ticket_id": "SOUL-156",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation complete with TUI-only scope.\n\n**Current State:**\n- ✅ risk_filter field added to ToolConfig\n- ✅ TUI honors risk_filter for tool registration\n- ✅ Precedence logic: allowed_tools > risk_filter > all tools\n- ✅ Documentation updated with examples\n- ✅ Critical safety fix: empty allowed_tools prevents approval bypass\n- ✅ Documentation clarified: TUI-only limitation\n\n**TUI-Only Limitation:**\nrisk_filter is currently only implemented in TUI (src/consoul/tui/app.py:381-410).\nSDK and CLI commands do NOT honor this setting because:\n- SDK uses 'tools' parameter in __init__ for tool resolution\n- SDK creates standalone ToolConfig, doesn't consult config.tools.risk_filter\n- Different architectures = different mechanisms\n\n**SDK Equivalent:**\nUsers can achieve same functionality in SDK via tools parameter:\n```python\nconsole = Consoul(tools=\"safe\")      # Only SAFE tools\nconsole = Consoul(tools=\"caution\")   # SAFE + CAUTION tools\nconsole = Consoul(tools=\"dangerous\") # All tools\n```\n\n**Follow-up Work:**\nConsider creating ticket for SDK support:\n- Option 1: Make SDK consult config.tools.risk_filter\n- Option 2: Keep separate (SDK=explicit param, TUI=config-driven)\n- Document architectural decision in ADR\n\n**Commits:**\n- bc887ee: Initial SOUL-154 (dynamic tool registration)\n- 205b033: Fix execution whitelist normalization\n- c9dd480: Initial SOUL-156 (add risk_filter field)\n- d7f8796: Security fix (don't populate allowed_tools)\n- b6460de: Revert (broken - caused approval bypass)\n- f8b3829: Critical safety fix (prevent approval bypass)\n- e6daa6d: Documentation fix (clarify TUI-only)",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 2,
   "order": 2,
   "custom_fields": {},
