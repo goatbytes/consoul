@@ -10,12 +10,15 @@ Provides a visual interface for:
 from __future__ import annotations
 
 import contextlib
+import logging
 from typing import TYPE_CHECKING, ClassVar
 
 from textual.binding import Binding, BindingType
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, DataTable, Static
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
@@ -319,18 +322,24 @@ class ToolManagerScreen(ModalScreen[bool]):
 
     def action_apply(self) -> None:
         """Apply pending changes and close screen."""
+        logger.info(
+            f"[TOOL_MGR] action_apply called, pending changes: {len(self.pending_changes)}"
+        )
         # Apply all pending changes to registry
         for tool_name, enabled in self.pending_changes.items():
             tools = self.tool_registry.list_tools()
             meta = next((m for m in tools if m.name == tool_name), None)
             if meta:
                 meta.enabled = enabled
+                logger.info(f"[TOOL_MGR] Set {tool_name} enabled={enabled}")
 
         # Return True to indicate changes were applied
+        logger.info("[TOOL_MGR] Dismissing with result=True")
         self.dismiss(True)
 
     def action_cancel(self) -> None:
         """Cancel changes and close screen."""
+        logger.info("[TOOL_MGR] action_cancel called")
         # Return False to indicate no changes
         self.dismiss(False)
 
