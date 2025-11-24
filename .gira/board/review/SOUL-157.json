@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-23T19:51:01.246742",
-  "updated_at": "2025-11-23T22:11:27.784532",
+  "updated_at": "2025-11-24T19:58:59.312492Z",
   "id": "SOUL-157",
   "uuid": "09f53ca1-1513-4009-828d-5a7ff76c6554",
   "title": "Add tool status indicator to TUI top bar",
   "description": "**As a** Consoul TUI user\n**I want** to see which tools are enabled in the top bar\n**So that** I know the AI's current capabilities at a glance\n\n**Context:**\nUsers have no visibility into which tools are currently registered. A simple indicator in the top bar shows enabled tool count and provides awareness of the current security posture.\n\nSimilar to status indicators in other TUI apps (tmux status bar, vim mode indicator).\n\n**Technical Notes:**\n- src/consoul/tui/widgets/top_bar.py - Add tool count to ContextualTopBar widget\n- Query tool_registry.list_tools(enabled_only=True) to get count\n- Display format: \"Tools: 10/13\" (enabled/total)\n- Update reactively when tools change (if runtime toggling implemented)\n- Consider color coding:\n  - Green: Only SAFE tools\n  - Yellow: CAUTION included\n  - Red: DANGEROUS included\n  - Gray: No tools\n- Reference Textual reactive patterns for live updates\n\n**Acceptance Criteria:**\n\n**Given** TUI is running with 10 tools enabled\n**When** I look at the top bar\n**Then** I see \"Tools: 10/13\" indicator\n\n**Given** TUI is running with all tools enabled\n**When** I look at the top bar\n**Then** I see \"Tools: 13/13\"\n\n**Given** TUI is running in chat-only mode (no tools)\n**When** I look at the top bar\n**Then** I see \"Tools: 0\" or \"No Tools\"\n\n**Given** enabled tools include DANGEROUS risk level\n**When** I look at the top bar\n**Then** the indicator is colored red (warning)\n\n**Testing Considerations:**\n- Test with different tool counts\n- Test with no tools (0)\n- Test with all tools (13)\n- Verify color coding matches risk levels\n- Test reactive updates (if applicable)\n\n**Implementation Hints:**\n1. Add to ContextualTopBar widget:\n   ```python\n   @property\n   def tool_status(self) -> str:\n       if not self.app.tool_registry:\n           return \"No Tools\"\n       enabled = self.app.tool_registry.list_tools(enabled_only=True)\n       total = 13  # Or query all registered tools\n       return f\"Tools: {len(enabled)}/{total}\"\n   ```\n2. Determine color based on highest risk level present\n3. Add click handler to show detailed tool list (Phase 2.2)\n4. Use Textual Static widget for display\n5. Keep it compact (< 15 chars)\n\n**Dependencies:**\n- SOUL-154 (Use allowed_tools for registration)",
-  "status": "todo",
+  "status": "review",
   "type": "feature",
   "priority": "medium",
   "labels": [

@@ -1,58 +1,4 @@
 {
-  "tickets_view": {
-    "visible_columns": [
-      "id",
-      "type",
-      "title",
-      "status",
-      "assignee",
-      "priority",
-      "epic",
-      "created"
-    ],
-    "column_order": [
-      "id",
-      "type",
-      "title",
-      "status",
-      "assignee",
-      "priority",
-      "epic",
-      "sprint",
-      "story_points",
-      "labels",
-      "due_date",
-      "version",
-      "comments",
-      "created",
-      "updated",
-      "reporter"
-    ],
-    "column_widths": {
-      "id": 12,
-      "type": 12,
-      "title": 50,
-      "status": 15,
-      "assignee": 20,
-      "priority": 12
-    }
-  },
-  "epic_view": {
-    "sort_column": null,
-    "sort_reverse": false,
-    "filters": {
-      "status": [],
-      "owner": null
-    }
-  },
-  "sprint_view": {
-    "filters": {
-      "status": [],
-      "start_after": null,
-      "start_before": null
-    }
-  },
-  "click_behavior": "double_click",
   "theme": "gira-minimal",
   "sidebar_width": 15,
   "auto_refresh": true,
@@ -66,7 +12,7 @@
   "collapse_empty_versions": false,
   "max_search_results": 25,
   "use_compact_create_modal": true,
-  "markdown_renderer": "auto",
+  "markdown_renderer": "rich",
   "markdown_size_threshold": 5000,
   "enable_mouse_drag": true,
   "force_keyboard_mode": false,
