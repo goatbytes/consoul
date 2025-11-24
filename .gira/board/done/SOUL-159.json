@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-23T19:51:52.146832",
-  "updated_at": "2025-11-23T19:51:52.146840",
+  "updated_at": "2025-11-24T12:09:57.872373",
   "id": "SOUL-159",
   "uuid": "20ffbbee-e5cc-4f99-837d-806329f7ba1c",
   "title": "Add tool preset system for quick workflow switching",
   "description": "**As a** Consoul power user\n**I want** predefined tool presets (readonly, development, safe-research)\n**So that** I can quickly switch between common workflows without manual configuration\n\n**Context:**\nUsers often need different tool sets for different workflows:\n- Code review: read-only tools (grep, code_search, read_file)\n- Development: file editing + execution (bash, create_file, edit_file_lines)\n- Research: web + search tools (web_search, read_url, grep)\n- Safe mode: only SAFE risk level tools\n\nTool presets provide named configurations that can be loaded via CLI or config.\n\nSimilar patterns:\n- aider: .aider.conf.yml presets\n- llm: model aliases and saved options\n- tmux: named sessions\n\n**Technical Notes:**\n- src/consoul/config/models.py - Add ToolPreset model\n- src/consoul/config/models.py - Add tool_presets dict to ConsoulConfig\n- Built-in presets (hardcoded defaults)\n- User presets (defined in config.toml)\n- CLI flag: --preset readonly\n- Config reference: preset = \"development\"\n- Presets expand to tool lists during initialization\n\nBuilt-in presets:\n- readonly: [\"grep_search\", \"code_search\", \"find_references\", \"read_file\", \"read_url\", \"web_search\"]\n- development: [\"bash\", \"grep_search\", \"code_search\", \"create_file\", \"edit_file_lines\", \"edit_file_search_replace\"]\n- safe-research: [\"web_search\", \"wikipedia_search\", \"read_url\", \"grep_search\", \"code_search\", \"read_file\"]\n- power-user: [] (all tools)\n\n**Acceptance Criteria:**\n\n**Given** I run consoul tui --preset readonly\n**When** TUI initializes\n**Then** only read-only tools from the preset are registered\n\n**Given** I have a custom preset defined in config\n**When** I run consoul tui --preset my-workflow\n**Then** tools from my custom preset are registered\n\n**Given** I request an invalid preset\n**When** I run consoul tui --preset invalid\n**Then** I get error with list of available presets (built-in + custom)\n\n**Given** I define a preset in config\n**When** I view consoul preset list\n**Then** I see both built-in and custom presets\n\n**Testing Considerations:**\n- Test all built-in presets\n- Test custom user presets\n- Test invalid preset name (error handling)\n- Test preset list command\n- Test CLI override of config preset\n- Validate preset definitions\n\n**Implementation Hints:**\n1. Add ToolPreset model:\n   ```python\n   class ToolPreset(BaseModel):\n       name: str\n       description: str\n       tools: list[str]  # Tool names or \"all\" for all tools\n   ```\n2. Add to ConsoulConfig:\n   ```python\n   tool_presets: dict[str, ToolPreset] = Field(\n       default_factory=dict,\n       description=\"Custom tool presets (in addition to built-in)\",\n   )\n   ```\n3. Define built-in presets in constants\n4. Add --preset CLI flag\n5. Add consoul preset list command\n6. Expand preset to tool list during initialization\n7. Document in sample config with example custom preset\n\n**Example config.toml:**\n```toml\n[tool_presets.my-workflow]\ndescription = \"My custom workflow\"\ntools = [\"bash\", \"grep_search\", \"create_file\"]\n```\n\n**Dependencies:**\n- SOUL-154 (Use allowed_tools for registration)\n- SOUL-155 (--tools CLI flag for similar parsing logic)",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "low",
   "labels": [
@@ -14,15 +14,30 @@
     "enhancement",
     "ux-improvement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
-  "epic": "EPIC-008",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-24T12:09:57.872297",
+      "updated_at": "2025-11-24T12:09:57.872298",
+      "id": "20251124120957-72bd016d",
+      "ticket_id": "SOUL-159",
+      "author": "jared@goatbytes.io",
+      "content": "Completed tool preset system implementation. Features:\n\n✅ ToolPreset model with name, description, and tools list\n✅ 4 built-in presets: readonly, development, safe-research, power-user\n✅ Custom preset support via config.tool_presets\n✅ --preset CLI flag (takes precedence over --tools)\n✅ 'consoul preset list' command showing all presets\n✅ Error handling with available presets list\n✅ Preset resolution logic (resolve_preset, list_available_presets)\n\nTesting results:\n- consoul preset list: ✅ Shows all 4 built-in presets with descriptions\n- consoul tui --preset readonly: ✅ Resolves to correct tools\n- consoul tui --preset invalid: ✅ Shows error with available presets\n- Preset resolution: ✅ Correctly expands presets to tool lists\n\nImplementation:\n- src/consoul/config/models.py: ToolPreset model + tool_presets field\n- src/consoul/ai/tools/presets.py: Built-in presets and resolution logic\n- src/consoul/tui/cli.py: --preset CLI flag integration\n- src/consoul/__main__.py: 'consoul preset list' command\n\nAll acceptance criteria met.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 5,
   "order": 6,
-  "custom_fields": {}
+  "custom_fields": {},
+  "epic": "EPIC-008"
 }

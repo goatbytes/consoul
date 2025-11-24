@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T18:19:59.301673",
-  "updated_at": "2025-11-24T03:43:57.054763Z",
+  "updated_at": "2025-11-24T20:09:48.925057Z",
   "id": "SOUL-153",
   "uuid": "72f1ebe8-5e02-4abf-be9d-636d0fc46298",
   "title": "Add SDK tool specification documentation and examples",
@@ -13,6 +13,7 @@
     "documentation",
     "tools"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

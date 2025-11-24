@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T13:18:45.974452",
-  "updated_at": "2025-11-23T22:01:43.514531Z",
+  "updated_at": "2025-11-24T20:09:48.921230Z",
   "id": "SOUL-146",
   "uuid": "f13e0a65-7e9c-4928-b6c2-5c038e1dbf9e",
   "title": "Add collapsible thinking section to MessageBubble widget",
@@ -14,6 +14,7 @@
     "enhancement",
     "ux-improvement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T13:19:14.079290",
-  "updated_at": "2025-11-23T22:27:28.090249Z",
+  "updated_at": "2025-11-24T20:09:48.918620Z",
   "id": "SOUL-147",
   "uuid": "b201eb1b-7f0a-4603-b5ab-bbfc48594a51",
   "title": "Integrate reasoning extraction into AI response handling",
@@ -13,6 +13,7 @@
     "tui",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

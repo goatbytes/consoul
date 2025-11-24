@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-20T23:16:43.909417",
-  "updated_at": "2025-11-23T05:54:47.772530Z",
+  "updated_at": "2025-11-24T20:09:48.927916Z",
   "id": "SOUL-140",
   "uuid": "26148bb6-000d-4cd8-a695-cde966230b4b",
   "title": "Add UI for displaying attachments in reloaded conversations",
@@ -9,6 +9,7 @@
   "type": "feature",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

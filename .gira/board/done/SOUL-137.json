@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-20T12:10:11.905053",
-  "updated_at": "2025-11-23T05:54:09.009512Z",
+  "updated_at": "2025-11-24T20:09:48.919310Z",
   "id": "SOUL-137",
   "uuid": "cd5903a9-d021-4477-be43-dc6881d23110",
   "title": "Add image attachment button to TUI input area",
@@ -14,6 +14,7 @@
     "ux-improvement",
     "multimodal"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-007",
   "blocked_by": [],

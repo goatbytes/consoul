@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T19:51:26.230535",
-  "updated_at": "2025-11-24T11:59:09.004122",
+  "updated_at": "2025-11-24T20:09:48.925938Z",
   "id": "SOUL-158",
   "uuid": "953b861f-6d4b-4c0e-803d-c9cd370f96c7",
   "title": "Create Tool Manager screen for runtime tool control",
@@ -13,6 +13,7 @@
     "tools",
     "ux-improvement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

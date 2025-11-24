@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T19:51:01.246742",
-  "updated_at": "2025-11-24T19:58:59.312492Z",
+  "updated_at": "2025-11-24T20:09:48.926838Z",
   "id": "SOUL-157",
   "uuid": "09f53ca1-1513-4009-828d-5a7ff76c6554",
   "title": "Add tool status indicator to TUI top bar",
@@ -13,6 +13,7 @@
     "tools",
     "ux-improvement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

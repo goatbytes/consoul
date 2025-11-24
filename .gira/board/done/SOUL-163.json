@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T23:30:00.253822",
-  "updated_at": "2025-11-24T11:54:05.874863",
+  "updated_at": "2025-11-24T20:09:48.920474Z",
   "id": "SOUL-163",
   "uuid": "cd4430db-1e30-4358-ab49-042cf6f609c0",
   "title": "Build system prompt dynamically based on enabled tools",
@@ -9,6 +9,7 @@
   "type": "feature",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T18:19:24.200737",
-  "updated_at": "2025-11-24T03:08:40.514096Z",
+  "updated_at": "2025-11-24T20:09:48.923602Z",
   "id": "SOUL-151",
   "uuid": "42262589-bdc8-4f26-abcf-a0969e183a77",
   "title": "Add tool categories and filtering to ToolRegistry",
@@ -13,6 +13,7 @@
     "enhancement",
     "sdk"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

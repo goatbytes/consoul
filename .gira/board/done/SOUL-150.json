@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T18:19:02.014347",
-  "updated_at": "2025-11-24T02:54:20.246751Z",
+  "updated_at": "2025-11-24T20:09:48.929205Z",
   "id": "SOUL-150",
   "uuid": "6bbf4374-5eb1-495d-9531-be4faaec4444",
   "title": "Implement discover_tools functionality",
@@ -13,6 +13,7 @@
     "enhancement",
     "tools"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

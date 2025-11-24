@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T10:23:43.659933",
-  "updated_at": "2025-11-23T19:49:53.400365Z",
+  "updated_at": "2025-11-24T20:09:48.922025Z",
   "id": "SOUL-144",
   "uuid": "ce183aef-c335-44a9-a823-a5cc3c586125",
   "title": "Add Wikipedia tool integration using WikipediaQueryRun",
@@ -9,6 +9,7 @@
   "type": "feature",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],

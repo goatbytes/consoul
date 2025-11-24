@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-22T19:14:00.215489",
-  "updated_at": "2025-11-23T04:36:27.338130Z",
+  "updated_at": "2025-11-24T20:09:48.919740Z",
   "id": "SOUL-142",
   "uuid": "74a3b258-c8b3-4898-b346-dc4fa5fa09bc",
   "title": "Implement accurate token counting for Ollama models using HuggingFace tokenizers",
@@ -14,6 +14,7 @@
     "performance",
     "cost-optimization"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-002",
   "blocked_by": [],
