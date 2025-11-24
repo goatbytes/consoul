@@ -20,7 +20,7 @@ class TestToolConfig:
 
         assert config.enabled is True
         assert config.auto_approve is False
-        assert config.allowed_tools == []
+        assert config.allowed_tools is None
         assert config.approval_mode == "always"
         assert config.timeout == 30
 
