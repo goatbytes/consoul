@@ -3212,9 +3212,12 @@ class ConsoulApp(App[None]):
             return
 
         logger = logging.getLogger(__name__)
+        logger.info("[TOOL_MANAGER] About to push tool manager screen")
         result = await self.push_screen(ToolManagerScreen(self.tool_registry))  # type: ignore[func-returns-value]
-        logger.info(f"[TOOL_MANAGER] Tool manager closed, result={result}")
-        if result:
+        logger.info(
+            f"[TOOL_MANAGER] Tool manager closed, result={result}, type={type(result)}"
+        )
+        if result is True:
             # Changes were applied - rebind tools to model
             logger.info("[TOOL_MANAGER] Applying changes, rebinding tools")
             self._rebind_tools()
