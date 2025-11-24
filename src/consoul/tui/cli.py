@@ -18,6 +18,13 @@ __all__ = ["tui"]
 @click.option("--theme", help="Color theme (monokai, dracula, nord, gruvbox)")
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 @click.option("--log-file", type=click.Path(), help="Debug log file path")
+@click.option(
+    "--tools",
+    type=str,
+    help="Tool specification: 'all', 'none', 'safe', 'caution', 'dangerous', "
+    "category names (search/file-edit/web/execute), "
+    "or comma-separated tool names (bash,grep,code_search)",
+)
 @click.option("--test-mode", is_flag=True, hidden=True, help="Test mode (auto-exit)")
 @click.pass_context
 def tui(
@@ -25,6 +32,7 @@ def tui(
     theme: str | None,
     debug: bool,
     log_file: str | None,
+    tools: str | None,
     test_mode: bool,
 ) -> None:
     """Launch Consoul TUI.
@@ -36,6 +44,10 @@ def tui(
         $ consoul tui
         $ consoul tui --theme dracula
         $ consoul --model gpt-4o tui
+        $ consoul tui --tools safe
+        $ consoul tui --tools bash,grep,code_search
+        $ consoul tui --tools search,web
+        $ consoul tui --tools none
     """
     # Apply macOS PyTorch fixes BEFORE any imports that might trigger torch/transformers
     # This must happen at the very start to prevent segfaults
@@ -95,6 +107,31 @@ def tui(
             consoul_config = load_config()
     else:
         consoul_config = load_config()
+
+    # Handle --tools CLI override
+    if tools is not None:
+        from consoul.ai.tools.catalog import parse_and_resolve_tools
+
+        try:
+            # Parse and resolve tools specification
+            tools_to_register = parse_and_resolve_tools(tools)
+
+            # Normalize to actual tool.name values for execution whitelist
+            # This ensures friendly names like "bash" work with ToolRegistry.is_allowed()
+            # which checks against tool.name like "bash_execute"
+            normalized_tool_names = [
+                tool.name for tool, _risk, _cats in tools_to_register
+            ]
+
+            # Override config with CLI tools specification
+            consoul_config.tools.allowed_tools = normalized_tool_names
+
+        except ValueError as e:
+            # Show error and exit
+            import sys
+
+            click.echo(f"Error: {e}", err=True)
+            sys.exit(1)
 
     # Get TUI config from loaded config, then apply CLI overrides
     if consoul_config:

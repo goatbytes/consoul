@@ -474,11 +474,20 @@ audit_focused:
 # Use risk_filter for simple tool filtering by risk level without listing
 # individual tools. This is easier than maintaining explicit allowed_tools lists.
 #
-# ⚠️  TUI ONLY: risk_filter is currently only supported in the TUI (consoul tui).
-#     The SDK and CLI commands (consoul chat, consoul ask) do NOT honor this setting.
-#     For SDK usage, use the `tools` parameter instead:
+# ⚠️  TUI Config vs CLI Override:
+#     - risk_filter: Config-based filtering (TUI only, persistent)
+#     - --tools flag: CLI override (per-session, overrides config)
+#
+#     For SDK usage, use the `tools` parameter:
 #       console = Consoul(tools="safe")  # SDK equivalent
 #       console = Consoul(tools="caution")
+#
+#     For CLI usage, use the --tools flag (overrides config):
+#       consoul tui --tools safe           # Same as risk_filter: safe
+#       consoul tui --tools caution        # Same as risk_filter: caution
+#       consoul tui --tools bash,grep      # Specific tools
+#       consoul tui --tools search,web     # Categories
+#       consoul tui --tools none           # No tools (chat-only)
 #
 # IMPORTANT: risk_filter should be used with permission_policy (BALANCED, TRUSTING, etc.),
 # NOT with approval_mode="whitelist". The two features are incompatible:

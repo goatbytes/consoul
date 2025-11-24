@@ -217,3 +217,117 @@ def validate_category_name(name: str) -> bool:
         return True
     except ValueError:
         return False
+
+
+def parse_and_resolve_tools(
+    spec: str,
+) -> list[tuple[BaseTool, RiskLevel, list[ToolCategory]]]:
+    """Parse tool specification string and resolve to tool instances.
+
+    This function provides a unified interface for parsing tool specifications
+    from CLI arguments or config values. It supports multiple formats:
+    - Special keywords: "all", "none"
+    - Risk levels: "safe", "caution", "dangerous"
+    - Categories: "search", "file-edit", "web", "execute"
+    - Comma-separated tool names: "bash,grep,code_search"
+    - Mixed formats: "search,bash" (category + tool name)
+
+    Args:
+        spec: Tool specification string (case-insensitive)
+
+    Returns:
+        List of (tool, risk_level, categories) tuples
+
+    Raises:
+        ValueError: If specification contains invalid tool or category names
+
+    Examples:
+        >>> # All tools
+        >>> tools = parse_and_resolve_tools("all")
+        >>> assert len(tools) == 13
+
+        >>> # Risk level filtering
+        >>> tools = parse_and_resolve_tools("safe")
+        >>> assert all(risk == RiskLevel.SAFE for _, risk, _ in tools)
+
+        >>> # Specific tools
+        >>> tools = parse_and_resolve_tools("bash,grep,code_search")
+        >>> assert len(tools) == 3
+
+        >>> # Category filtering
+        >>> tools = parse_and_resolve_tools("search")
+        >>> assert all(ToolCategory.SEARCH in cats for _, _, cats in tools)
+
+        >>> # Mixed specification
+        >>> tools = parse_and_resolve_tools("search,bash")
+        >>> assert any(tool.name == "bash_execute" for tool, _, _ in tools)
+
+        >>> # No tools
+        >>> tools = parse_and_resolve_tools("none")
+        >>> assert len(tools) == 0
+    """
+    spec = spec.strip().lower()
+
+    # Handle special keywords
+    if spec == "all":
+        return list(TOOL_CATALOG.values())
+
+    if spec == "none" or spec == "":
+        return []
+
+    # Risk level keywords
+    risk_levels = {"safe", "caution", "dangerous"}
+
+    # Single value (risk level, category, or tool name)
+    if "," not in spec:
+        # Check if it's a risk level
+        if spec in risk_levels:
+            return get_tools_by_risk_level(spec)
+
+        # Check if it's a category
+        if validate_category_name(spec):
+            return get_tools_by_category(spec)
+
+        # Check if it's a tool name
+        result = get_tool_by_name(spec)
+        if result is None:
+            available_categories = get_all_category_names()
+            available_tools = get_all_tool_names()
+            raise ValueError(
+                f"Unknown tool or category '{spec}'. "
+                f"Categories: {', '.join(available_categories)}. "
+                f"Tools: {', '.join(available_tools)}"
+            )
+        return [result]
+
+    # Comma-separated list (categories and/or tool names)
+    parts = [p.strip() for p in spec.split(",")]
+    resolved_tools: list[tuple[BaseTool, RiskLevel, list[ToolCategory]]] = []
+
+    for part in parts:
+        if not part:  # Skip empty parts
+            continue
+
+        # Check if it's a category
+        if validate_category_name(part):
+            category_tools = get_tools_by_category(part)
+            resolved_tools.extend(category_tools)
+        else:
+            # Tool name lookup
+            result = get_tool_by_name(part)
+            if result is None:
+                available_categories = get_all_category_names()
+                available_tools = get_all_tool_names()
+                raise ValueError(
+                    f"Unknown tool or category '{part}'. "
+                    f"Categories: {', '.join(available_categories)}. "
+                    f"Tools: {', '.join(available_tools)}"
+                )
+            resolved_tools.append(result)
+
+    # Deduplicate by tool name (last occurrence wins for consistency with SDK)
+    seen_names: dict[str, tuple[BaseTool, RiskLevel, list[ToolCategory]]] = {}
+    for tool, risk_level, categories in resolved_tools:
+        seen_names[tool.name] = (tool, risk_level, categories)
+
+    return list(seen_names.values())
