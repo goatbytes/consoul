@@ -18,6 +18,7 @@ from textual.widgets import Button, DataTable, Static
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
+    from textual.events import Key
 
     from consoul.ai.tools.base import ToolMetadata
     from consoul.ai.tools.registry import ToolRegistry
@@ -331,3 +332,14 @@ class ToolManagerScreen(ModalScreen[bool]):
             event: The row selection event
         """
         self.action_toggle_tool()
+
+    def on_key(self, event: Key) -> None:
+        """Handle key presses, particularly Space for toggling.
+
+        Args:
+            event: The key event
+        """
+        if event.key == "space":
+            self.action_toggle_tool()
+            event.prevent_default()
+            event.stop()
