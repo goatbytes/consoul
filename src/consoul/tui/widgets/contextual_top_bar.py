@@ -132,29 +132,6 @@ class ContextualTopBar(Static):
         background: transparent;
     }
 
-    /* Tool status indicator with risk-based colors */
-    ContextualTopBar .tool-status {
-        color: auto 80%;
-        margin: 0 1;
-        background: transparent;
-    }
-
-    ContextualTopBar .tool-status.-safe {
-        color: $success;
-    }
-
-    ContextualTopBar .tool-status.-caution {
-        color: $warning;
-    }
-
-    ContextualTopBar .tool-status.-dangerous {
-        color: $error;
-    }
-
-    ContextualTopBar .tool-status.-none {
-        color: auto 50%;
-    }
-
     /* Responsive - hide non-essential on narrow terminals */
     ContextualTopBar.-narrow .conversation-info {
         display: none;
@@ -204,6 +181,9 @@ class ContextualTopBar(Static):
     class ThemeSwitchRequested(Message):
         """Message sent when theme switch is requested."""
 
+    class ToolsRequested(Message):
+        """Message sent when tools button is clicked."""
+
     def on_mount(self) -> None:
         """Initialize the top bar when mounted."""
         # Update terminal width for responsive design
@@ -230,19 +210,22 @@ class ContextualTopBar(Static):
         elif size.width > 140:
             self.add_class("-wide")
 
-    def _get_tool_status_text(self) -> str:
-        """Get formatted tool status text.
+    def _get_tool_status_icon(self) -> str:
+        """Get tool status icon based on enabled state and risk level.
 
         Returns:
-            Formatted string like "Tools: 10/13" or "No Tools"
+            Icon representing current tool status
         """
         if self.tools_enabled == 0:
-            return "🔒 No Tools"
+            return "🔒"  # No tools
 
-        if self.tools_enabled == self.tools_total:
-            return f"🛠️  {self.tools_enabled}"  # All tools (compact)
-
-        return f"🛠️  {self.tools_enabled}/{self.tools_total}"
+        # Show icon based on risk level
+        if self.highest_risk == "dangerous":
+            return "🔴"  # Red for dangerous
+        elif self.highest_risk == "caution":
+            return "🟡"  # Yellow for caution
+        else:
+            return "🛠️"  # Tools icon for safe
 
     def compose(self) -> ComposeResult:
         """Compose the three-zone top bar layout."""
@@ -263,11 +246,6 @@ class ContextualTopBar(Static):
         """Compose the branding/status zone."""
         # Consoul logo
         yield Label("🤖 Consoul", classes="brand-logo", id="brand-logo")
-
-        # Tool status indicator (in brand zone for better layout)
-        tool_text = self._get_tool_status_text()
-        tool_classes = f"tool-status -{self.highest_risk}"
-        yield Label(tool_text, classes=tool_classes, id="tool-status")
 
         # Conversation count indicator
         count_text = (
@@ -313,6 +291,12 @@ class ContextualTopBar(Static):
         yield profile_label
 
         # Quick action buttons
+        # Tool status button (shows icon based on enabled tools and risk)
+        tool_icon = self._get_tool_status_icon()
+        tools_btn = Label(tool_icon, classes="action-button", id="tools-btn")
+        tools_btn.can_focus = True
+        yield tools_btn
+
         settings_btn = Label("⚙️", classes="action-button", id="settings-btn")
         settings_btn.can_focus = True
         yield settings_btn
@@ -417,8 +401,8 @@ class ContextualTopBar(Static):
             return
 
         try:
-            tool_label = self.query_one("#tool-status", Label)
-            tool_label.update(self._get_tool_status_text())
+            tool_btn = self.query_one("#tools-btn", Label)
+            tool_btn.update(self._get_tool_status_icon())
         except Exception:
             pass
 
@@ -428,10 +412,8 @@ class ContextualTopBar(Static):
             return
 
         try:
-            tool_label = self.query_one("#tool-status", Label)
-            # Update classes for color coding
-            tool_label.remove_class("-safe", "-caution", "-dangerous", "-none")
-            tool_label.add_class(f"-{risk}")
+            tool_btn = self.query_one("#tools-btn", Label)
+            tool_btn.update(self._get_tool_status_icon())
         except Exception:
             pass
 
@@ -446,7 +428,9 @@ class ContextualTopBar(Static):
             else None
         )
 
-        if target_id == "settings-btn":
+        if target_id == "tools-btn":
+            self.post_message(self.ToolsRequested())
+        elif target_id == "settings-btn":
             self.post_message(self.SettingsRequested())
         elif target_id == "help-btn":
             self.post_message(self.HelpRequested())
