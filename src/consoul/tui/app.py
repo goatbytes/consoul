@@ -545,22 +545,13 @@ class ConsoulApp(App[None]):
 
         Sets up GC management and validates theme.
         """
-        # DEBUG: Write to file to prove this code runs
-        with open("/tmp/consoul_mount_debug.txt", "w") as f:
-            f.write(
-                f"on_mount called, conversation exists: {self.conversation is not None}\n"
-            )
-            if self.conversation:
-                f.write(
-                    f"conversation has {len(self.conversation.messages)} messages\n"
-                )
-
-        self.log.info("[MOUNT] on_mount() called, adding system prompt")
+        logger = logging.getLogger(__name__)
+        logger.info("[MOUNT] on_mount() called, adding system prompt")
 
         # Add system prompt to conversation (now that logging is set up)
         self._add_initial_system_prompt()
 
-        self.log.info("[MOUNT] on_mount() completed system prompt initialization")
+        logger.info("[MOUNT] on_mount() completed system prompt initialization")
 
         # Apply theme from config
         # Custom themes (TCSS files): monokai, dracula, nord, gruvbox
@@ -740,22 +731,23 @@ class ConsoulApp(App[None]):
         Called from on_mount() after logging is set up. Adds the system prompt
         with dynamic tool documentation and stores metadata for the Ctrl+Shift+S viewer.
         """
-        self.log.info("[SYSPROMPT] Adding initial system prompt to conversation")
+        logger = logging.getLogger(__name__)
+        logger.info("[SYSPROMPT] Adding initial system prompt to conversation")
 
         if not self.conversation:
-            self.log.warning("[SYSPROMPT] No conversation exists, skipping")
+            logger.warning("[SYSPROMPT] No conversation exists, skipping")
             return
 
         try:
             system_prompt = self._build_current_system_prompt()
-            self.log.info(
+            logger.info(
                 f"[SYSPROMPT] Built prompt: {len(system_prompt) if system_prompt else 0} chars"
             )
 
             if system_prompt:
-                self.log.info("[SYSPROMPT] Adding system message to conversation")
+                logger.info("[SYSPROMPT] Adding system message to conversation")
                 self.conversation.add_system_message(system_prompt)
-                self.log.info(
+                logger.info(
                     f"[SYSPROMPT] Added. Total messages: {len(self.conversation.messages)}"
                 )
 
@@ -763,20 +755,20 @@ class ConsoulApp(App[None]):
                 if self.tool_registry:
                     tool_count = len(self.tool_registry.list_tools(enabled_only=True))
 
-                self.log.info(f"[SYSPROMPT] Storing metadata (tools: {tool_count})")
+                logger.info(f"[SYSPROMPT] Storing metadata (tools: {tool_count})")
                 self.conversation.store_system_prompt_metadata(
                     profile_name=self.active_profile.name
                     if self.active_profile
                     else None,
                     tool_count=tool_count,
                 )
-                self.log.info(
+                logger.info(
                     f"[SYSPROMPT] SUCCESS: Added system prompt ({tool_count} tools, {len(system_prompt)} chars)"
                 )
             else:
-                self.log.warning("[SYSPROMPT] System prompt was empty, not adding")
+                logger.warning("[SYSPROMPT] System prompt was empty, not adding")
         except Exception as prompt_error:
-            self.log.error(
+            logger.error(
                 f"[SYSPROMPT] Failed to add system prompt: {prompt_error}",
                 exc_info=True,
             )
