@@ -384,10 +384,16 @@ class ConsoulApp(App[None]):
                             consoul_config.tools.risk_filter
                         )
 
-                        # DO NOT set allowed_tools - leave empty for risk_filter
-                        # Security: Only register filtered tools, let ToolRegistry.is_allowed()
-                        # check registration status (empty whitelist = all registered tools allowed)
-                        # This ensures risk_filter actually restricts capabilities
+                        # Populate allowed_tools for approval workflow (e.g., whitelist mode).
+                        # Security note: This enables auto-approval for filtered tools, but
+                        # actual execution is still restricted by registration check in
+                        # ToolRegistry.is_allowed() (registry.py:244: tool_name not in self._tools).
+                        # Only registered tools can execute, so risk_filter effectively controls
+                        # capabilities via registration, while allowed_tools controls approval.
+                        normalized_tool_names = [
+                            tool.name for tool, _risk, _cats in tools_to_register
+                        ]
+                        consoul_config.tools.allowed_tools = normalized_tool_names
 
                         self.log.info(
                             f"Registering {len(tools_to_register)} tools with "
