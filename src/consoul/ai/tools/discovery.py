@@ -24,7 +24,17 @@ def discover_tools_from_directory(
 
     Scans Python files in the specified directory for:
     - Functions decorated with @tool
-    - Classes that inherit from BaseTool
+    - Instantiated BaseTool objects
+
+    IMPORTANT: This function only discovers tool INSTANCES, not class definitions.
+    If you define a BaseTool subclass, you must instantiate it in the module:
+
+        # This will be discovered:
+        my_tool = MyToolClass()
+
+        # This will NOT be discovered:
+        class MyToolClass(BaseTool):
+            ...
 
     Args:
         directory: Directory to scan for tools
@@ -49,7 +59,7 @@ def discover_tools_from_directory(
     Notes:
         - Syntax errors in tool files are logged as warnings and skipped
         - Import errors are logged as warnings and skipped
-        - Non-tool objects are silently ignored
+        - Non-tool objects and class definitions are silently ignored
         - Discovered tools are assigned RiskLevel.CAUTION by default
     """
     directory = Path(directory)
