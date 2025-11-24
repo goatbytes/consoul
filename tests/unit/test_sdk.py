@@ -1,8 +1,12 @@
 """Unit tests for Consoul SDK."""
 
+from unittest.mock import Mock, patch
+
 import pytest
+from langchain_core.tools import tool
 
 from consoul import Consoul, ConsoulResponse
+from consoul.ai.tools import RiskLevel
 
 
 class TestConsoulResponse:
@@ -94,3 +98,263 @@ class TestConsoulProperties:
     def test_has_last_cost_property(self) -> None:
         """Test that Consoul class has last_cost property."""
         assert hasattr(Consoul, "last_cost")
+
+
+class TestConsoulToolSpecification:
+    """Test tool specification functionality."""
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_tools_disabled_with_false(self, mock_get_model: Mock) -> None:
+        """Test that tools=False disables all tools."""
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        console = Consoul(tools=False, persist=False)
+
+        assert console.tools_spec is False
+        assert console.registry is None
+        assert console.tools_enabled is False
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_tools_disabled_with_none(self, mock_get_model: Mock) -> None:
+        """Test that tools=None disables all tools."""
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        console = Consoul(tools=None, persist=False)
+
+        assert console.tools_spec is None
+        assert console.registry is None
+        assert console.tools_enabled is False
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    def test_tools_enabled_with_true(
+        self, mock_registry_class: Mock, mock_get_model: Mock
+    ) -> None:
+        """Test that tools=True enables all tools (backward compatible)."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        console = Consoul(tools=True, persist=False)
+
+        assert console.tools_spec is True
+        assert console.tools_enabled is True
+        assert mock_registry.register.call_count == 9  # All 9 tools
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    def test_tools_by_name_list(
+        self, mock_registry_class: Mock, mock_get_model: Mock
+    ) -> None:
+        """Test specifying tools by name in a list."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        console = Consoul(tools=["bash", "grep"], persist=False)
+
+        assert console.tools_spec == ["bash", "grep"]
+        assert mock_registry.register.call_count == 2
+
+        # Verify the right tools were registered
+        calls = mock_registry.register.call_args_list
+        registered_names = {call.kwargs["tool"].name for call in calls}
+        assert "bash_execute" in registered_names
+        assert "grep_search" in registered_names
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    def test_tools_by_risk_level_safe(
+        self, mock_registry_class: Mock, mock_get_model: Mock
+    ) -> None:
+        """Test specifying tools by risk level (safe)."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        console = Consoul(tools="safe", persist=False)
+
+        assert console.tools_spec == "safe"
+
+        # Verify only safe tools were registered
+        calls = mock_registry.register.call_args_list
+        for call in calls:
+            assert call.kwargs["risk_level"] == RiskLevel.SAFE
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    def test_tools_by_risk_level_caution(
+        self, mock_registry_class: Mock, mock_get_model: Mock
+    ) -> None:
+        """Test specifying tools by risk level (caution)."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        console = Consoul(tools="caution", persist=False)
+
+        assert console.tools_spec == "caution"
+
+        # Verify safe + caution tools were registered
+        calls = mock_registry.register.call_args_list
+        risk_levels = {call.kwargs["risk_level"] for call in calls}
+        assert RiskLevel.SAFE in risk_levels
+        assert RiskLevel.CAUTION in risk_levels
+        assert RiskLevel.DANGEROUS not in risk_levels
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    def test_tools_custom_basetool(
+        self, mock_registry_class: Mock, mock_get_model: Mock
+    ) -> None:
+        """Test specifying custom BaseTool instance."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        # Create a custom tool
+        @tool
+        def my_custom_tool(query: str) -> str:
+            """Custom tool for testing."""
+            return f"Result: {query}"
+
+        console = Consoul(tools=[my_custom_tool], persist=False)
+
+        assert console.tools_spec == [my_custom_tool]
+        assert mock_registry.register.call_count == 1
+
+        # Verify custom tool was registered with CAUTION level
+        call = mock_registry.register.call_args
+        assert call.kwargs["tool"] == my_custom_tool
+        assert call.kwargs["risk_level"] == RiskLevel.CAUTION
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    def test_tools_mixed_custom_and_builtin(
+        self, mock_registry_class: Mock, mock_get_model: Mock
+    ) -> None:
+        """Test mixing custom tools with built-in tool names."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        # Create a custom tool
+        @tool
+        def my_tool(x: int) -> int:
+            """Double the input."""
+            return x * 2
+
+        Consoul(tools=[my_tool, "bash", "grep"], persist=False)
+
+        assert mock_registry.register.call_count == 3
+
+        # Verify mixed tools were registered
+        calls = mock_registry.register.call_args_list
+        tool_names = {call.kwargs["tool"].name for call in calls}
+        assert "my_tool" in tool_names
+        assert "bash_execute" in tool_names
+        assert "grep_search" in tool_names
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_tools_invalid_name_raises_error(self, mock_get_model: Mock) -> None:
+        """Test that invalid tool name raises ValueError."""
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        with pytest.raises(ValueError, match="Unknown tool 'invalid_tool'"):
+            Consoul(tools=["invalid_tool"], persist=False)
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_tools_invalid_type_raises_error(self, mock_get_model: Mock) -> None:
+        """Test that invalid tool type raises ValueError."""
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        with pytest.raises(ValueError, match="Invalid tools parameter type"):
+            Consoul(tools=123, persist=False)  # type: ignore
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_tools_empty_list(self, mock_get_model: Mock) -> None:
+        """Test that empty list disables tools."""
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        console = Consoul(tools=[], persist=False)
+
+        assert console.tools_spec == []
+        assert console.registry is None
+        assert console.tools_enabled is False
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    def test_tools_single_string_name(
+        self, mock_registry_class: Mock, mock_get_model: Mock
+    ) -> None:
+        """Test specifying a single tool as string."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        console = Consoul(tools="bash", persist=False)
+
+        assert console.tools_spec == "bash"
+        assert console.tools_enabled is True
+        assert mock_registry.register.call_count == 1
+
+        # Verify bash tool was registered
+        call = mock_registry.register.call_args
+        assert call.kwargs["tool"].name == "bash_execute"
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    def test_tools_enabled_accessible_in_settings(
+        self, mock_registry_class: Mock, mock_get_model: Mock
+    ) -> None:
+        """Test that tools_enabled is accessible via settings property."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        # Test with tools enabled
+        console = Consoul(tools=["bash"], persist=False)
+        settings = console.settings
+        assert settings["tools_enabled"] is True
+
+        # Test with tools disabled
+        console_no_tools = Consoul(tools=False, persist=False)
+        settings_no_tools = console_no_tools.settings
+        assert settings_no_tools["tools_enabled"] is False

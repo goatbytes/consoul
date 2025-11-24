@@ -18,26 +18,22 @@ Examples:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from consoul.ai import ConversationHistory, get_chat_model
-from consoul.ai.tools import (
-    RiskLevel,
-    ToolRegistry,
-    append_to_file,
-    bash_execute,
-    code_search,
-    create_file,
-    delete_file,
-    edit_file_lines,
-    edit_file_search_replace,
-    find_references,
-    grep_search,
+from consoul.ai.tools import RiskLevel, ToolRegistry
+from consoul.ai.tools.catalog import (
+    get_all_tool_names,
+    get_tool_by_name,
+    get_tools_by_risk_level,
 )
 from consoul.ai.tools.permissions import PermissionPolicy
 from consoul.ai.tools.providers import CliApprovalProvider
 from consoul.config import load_config
 from consoul.config.models import ConsoulConfig, ToolConfig
+
+if TYPE_CHECKING:
+    from langchain_core.tools import BaseTool
 
 
 class ConsoulResponse:
@@ -106,7 +102,7 @@ class Consoul:
         self,
         model: str | None = None,
         profile: str = "default",
-        tools: bool = True,
+        tools: bool | str | list[str | BaseTool] | None = True,
         temperature: float | None = None,
         system_prompt: str | None = None,
         persist: bool = True,
@@ -119,21 +115,49 @@ class Consoul:
             model: Model name (e.g., "gpt-4o", "claude-3-5-sonnet").
                    Auto-detects provider. Defaults to profile's model.
             profile: Profile name to use (default: "default")
-            tools: Enable tool calling with CLI approval (default: False)
+            tools: Tool specification. Supports multiple formats:
+                   - True: Enable all built-in tools (default)
+                   - False/None: Disable all tools
+                   - "safe": Only safe (read-only) tools
+                   - "caution": Safe + caution tools (file writes, bash)
+                   - "dangerous": All tools including delete operations
+                   - ["bash", "grep"]: Specific tools by name
+                   - [custom_tool, "bash"]: Mix of custom and built-in tools
             temperature: Override temperature (0.0-2.0)
             system_prompt: Override system prompt
             persist: Save conversation history (default: True)
             api_key: Override API key (falls back to environment)
-            discover_tools: Auto-discover available tools (default: False)
+            discover_tools: Auto-discover tools from .consoul/tools/ (default: False)
 
         Raises:
             ValueError: If profile not found or invalid parameters
             MissingAPIKeyError: If no API key found for provider
 
         Examples:
-            >>> console = Consoul()  # Use defaults
-            >>> console = Consoul(model="gpt-4o", temperature=0.7)
-            >>> console = Consoul(profile="code-review", tools=True)
+            Basic usage:
+                >>> console = Consoul()  # All tools enabled
+                >>> console = Consoul(model="gpt-4o", temperature=0.7)
+
+            Tool specification:
+                >>> # Disable tools
+                >>> console = Consoul(tools=False)
+
+                >>> # Only safe read-only tools
+                >>> console = Consoul(tools="safe")
+
+                >>> # Specific tools by name
+                >>> console = Consoul(tools=["bash", "grep", "code_search"])
+
+                >>> # Custom tool + built-in
+                >>> from langchain_core.tools import tool
+                >>> @tool
+                ... def my_tool(query: str) -> str:
+                ...     return "result"
+                >>> console = Consoul(tools=[my_tool, "bash"])
+
+        Available tool names:
+            bash, grep, code_search, find_references, create_file,
+            edit_lines, edit_replace, append_file, delete_file
         """
         # Validate temperature
         if temperature is not None and not 0.0 <= temperature <= 2.0:
@@ -204,10 +228,13 @@ class Consoul:
             self.history.add_system_message(self.profile.system_prompt)
 
         # Initialize tools if requested
-        self.tools_enabled = tools
+        self.tools_spec = tools
         self.discover_tools = discover_tools
+        self.tools_enabled = (
+            False  # Will be set to True if tools are actually registered
+        )
         self.registry: ToolRegistry | None = None
-        if tools:
+        if tools is not False and tools is not None:
             self._setup_tools()
 
         # Track last request for introspection
@@ -236,8 +263,91 @@ class Consoul:
 
         return kwargs
 
+    def _validate_and_resolve_tools(
+        self,
+    ) -> list[tuple[BaseTool, RiskLevel]]:
+        """Validate and resolve tool specification to list of (tool, risk_level).
+
+        Returns:
+            List of (tool, risk_level) tuples to register
+
+        Raises:
+            ValueError: If tool specification is invalid
+        """
+        tools_spec = self.tools_spec
+
+        # Handle boolean values (backward compatibility)
+        if tools_spec is True:
+            # All tools (current behavior)
+            return list(get_tools_by_risk_level(RiskLevel.DANGEROUS))
+
+        if tools_spec is False or tools_spec is None:
+            # No tools
+            return []
+
+        # Handle risk level strings
+        if isinstance(tools_spec, str):
+            risk_levels = {"safe", "caution", "dangerous"}
+            if tools_spec.lower() in risk_levels:
+                return list(get_tools_by_risk_level(tools_spec.lower()))
+
+            # Single tool name
+            result = get_tool_by_name(tools_spec)
+            if result is None:
+                available = get_all_tool_names()
+                raise ValueError(
+                    f"Unknown tool '{tools_spec}'. "
+                    f"Available tools: {', '.join(available)}"
+                )
+            return [result]
+
+        # Handle list of tools
+        if isinstance(tools_spec, list):
+            if not tools_spec:
+                return []  # Empty list = no tools
+
+            resolved_tools: list[tuple[BaseTool, RiskLevel]] = []
+
+            for tool_spec in tools_spec:
+                if isinstance(tool_spec, str):
+                    # Tool name lookup
+                    result = get_tool_by_name(tool_spec)
+                    if result is None:
+                        available = get_all_tool_names()
+                        raise ValueError(
+                            f"Unknown tool '{tool_spec}'. "
+                            f"Available tools: {', '.join(available)}"
+                        )
+                    resolved_tools.append(result)
+                elif hasattr(tool_spec, "name") and hasattr(tool_spec, "run"):
+                    # Check if it's a BaseTool instance (custom tool)
+                    # Assume custom tools are CAUTION level by default
+                    resolved_tools.append((tool_spec, RiskLevel.CAUTION))
+                else:
+                    raise ValueError(
+                        f"Invalid tool specification: {tool_spec}. "
+                        "Must be a tool name (str) or BaseTool instance."
+                    )
+
+            return resolved_tools
+
+        # Invalid type
+        raise ValueError(
+            f"Invalid tools parameter type: {type(tools_spec)}. "
+            "Must be bool, str, list, or None."
+        )
+
     def _setup_tools(self) -> None:
         """Setup tool calling with CLI approval."""
+        # Validate and resolve tool specification
+        tools_to_register = self._validate_and_resolve_tools()
+
+        if not tools_to_register:
+            # No tools to register
+            self.tools_enabled = False
+            return
+
+        # Create tool registry
         tool_config = ToolConfig(
             enabled=True,
             permission_policy=PermissionPolicy.BALANCED,
@@ -251,58 +361,18 @@ class Consoul:
             approval_provider=approval_provider,
         )
 
-        # Register bash tool
-        self.registry.register(
-            tool=bash_execute,
-            risk_level=RiskLevel.CAUTION,
-        )
-
-        # Register grep_search tool
-        self.registry.register(
-            tool=grep_search,
-            risk_level=RiskLevel.SAFE,
-        )
-
-        # Register code_search tool
-        self.registry.register(
-            tool=code_search,
-            risk_level=RiskLevel.SAFE,
-        )
-
-        # Register find_references tool
-        self.registry.register(
-            tool=find_references,
-            risk_level=RiskLevel.SAFE,
-        )
-
-        # Register file edit tools
-        self.registry.register(
-            tool=create_file,
-            risk_level=RiskLevel.CAUTION,
-        )
-
-        self.registry.register(
-            tool=edit_file_lines,
-            risk_level=RiskLevel.CAUTION,
-        )
-
-        self.registry.register(
-            tool=edit_file_search_replace,
-            risk_level=RiskLevel.CAUTION,
-        )
-
-        self.registry.register(
-            tool=append_to_file,
-            risk_level=RiskLevel.CAUTION,
-        )
-
-        self.registry.register(
-            tool=delete_file,
-            risk_level=RiskLevel.DANGEROUS,
-        )
+        # Register all resolved tools
+        for tool, risk_level in tools_to_register:
+            self.registry.register(
+                tool=tool,
+                risk_level=risk_level,
+            )
 
         # Bind tools to model
         self.model = self.registry.bind_to_model(self.model)
+
+        # Mark tools as enabled
+        self.tools_enabled = True
 
     def _track_request(self, message: str) -> None:
         """Track last request for introspection.
