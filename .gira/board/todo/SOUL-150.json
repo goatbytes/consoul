@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-23T18:19:02.014347",
+  "updated_at": "2025-11-23T18:19:02.014357",
+  "id": "SOUL-150",
+  "uuid": "6bbf4374-5eb1-495d-9531-be4faaec4444",
+  "title": "Implement discover_tools functionality",
+  "description": "**As a** Consoul SDK user\n**I want** the SDK to auto-discover available tools in my project\n**So that** I can extend Consoul with custom tools without manually registering them\n\n**Context:**\nThe SDK currently has a `discover_tools` parameter (src/consoul/sdk.py:114) that is documented but never used:\n```python\ndef __init__(\n    self,\n    ...\n    discover_tools: bool = False,  # ← Exists but unused\n):\n    \"\"\"\n    ...\n    discover_tools: Auto-discover available tools (default: False)\n    \"\"\"\n```\n\nTool discovery would enable:\n1. Auto-loading custom tools from a project directory (e.g., `.consoul/tools/`)\n2. Convention-based tool registration (any `@tool` decorated function)\n3. Plugin-style extensibility without code changes\n4. Similar to how `pytest` discovers tests or `Click` discovers commands\n\n**Similar Tool Patterns:**\n- **llm** (Simon Willison): Plugin system with entry points\n- **pytest**: Auto-discovers test files/functions\n- **LangChain**: Tool discovery from modules\n\n**Technical Notes:**\n- src/consoul/sdk.py:114, 208, 502 - `discover_tools` parameter defined but unused\n- Should scan for:\n  - `.consoul/tools/*.py` files in current directory\n  - Python files with `@tool` decorated functions\n  - Modules exporting `BaseTool` instances\n- Use importlib for dynamic importing\n- Validate discovered tools (must be BaseTool instances)\n- Log discovered tools for debugging\n- Error handling for invalid tools\n\n**Acceptance Criteria:**\n\n**Given** I have a `.consoul/tools/my_tool.py` file with a `@tool` function\n**When** I initialize `Consoul(discover_tools=True)`\n**Then** my custom tool is automatically registered and available\n\n**Given** I have multiple tools in `.consoul/tools/`\n**When** I initialize `Consoul(discover_tools=True)`\n**Then** all valid tools are discovered and registered\n\n**Given** a discovered tool file has syntax errors\n**When** discovery runs\n**Then** I get a clear warning but other tools still load\n\n**Given** discover_tools=False (default)\n**When** I initialize SDK\n**Then** no discovery happens (current behavior, backward compatible)\n\n**Given** no `.consoul/tools/` directory exists\n**When** discover_tools=True\n**Then** discovery silently succeeds with no tools (no error)\n\n**Testing Considerations:**\n- Create test fixtures with sample tool files\n- Test discovery with valid tools\n- Test discovery with invalid tools (syntax errors, not BaseTool)\n- Test discovery with empty directory\n- Test discovery with nested modules\n- Verify discovered tools work correctly\n- Test that discovered tools appear in tool list\n- Mock importlib for unit tests\n\n**Implementation Hints:**\n1. Create `src/consoul/ai/tools/discovery.py` module\n2. Implement `discover_tools_from_directory(path: Path) -> list[BaseTool]`\n3. Scan `.consoul/tools/**/*.py` files\n4. Use `importlib.util.spec_from_file_location()` for dynamic import\n5. Find all `BaseTool` instances and `@tool` decorated functions\n6. Validate each discovered tool\n7. Log discovered tools (DEBUG level)\n8. Handle import errors gracefully (warn but continue)\n9. Call from `_setup_tools()` when `self.discover_tools=True`\n10. Consider supporting custom discovery paths in config\n\n**Example Tool File:**\n```python\n# .consoul/tools/my_api.py\nfrom langchain_core.tools import tool\n\n@tool\ndef call_my_api(query: str) -> str:\n    \"\"\"Call my custom API.\"\"\"\n    return api_client.query(query)\n```\n\n**Example Usage:**\n```python\nfrom consoul.sdk import Consoul\n\n# Discover and register tools from .consoul/tools/\nchat = Consoul(discover_tools=True)\n\n# Combine with manual tool specification\nchat = Consoul(tools=[\"bash\", \"grep\"], discover_tools=True)\n```",
+  "status": "todo",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "sdk",
+    "enhancement",
+    "tools"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}
