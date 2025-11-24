@@ -398,11 +398,14 @@ class ConversationHistory:
             logger.error(f"Failed to load conversation from database: {e}")
             raise ValueError(f"Failed to load session {session_id}: {e}") from e
 
-    async def _persist_message(self, message: BaseMessage) -> int | None:
+    async def _persist_message(
+        self, message: BaseMessage, metadata: dict[str, Any] | None = None
+    ) -> int | None:
         """Persist a message to database asynchronously to avoid blocking UI.
 
         Args:
             message: Message to persist
+            metadata: Optional metadata dict (e.g., streaming metrics)
 
         Returns:
             The database message ID if persisted successfully, None otherwise.
@@ -451,6 +454,7 @@ class ConversationHistory:
                     content,
                     tokens,
                     message_type=message_type,
+                    metadata=metadata,
                 ),
             )
             return message_id
@@ -521,13 +525,16 @@ class ConversationHistory:
         # Persist if enabled (blocking for sync SDK)
         self._persist_message_sync(message)
 
-    def _persist_message_sync(self, message: BaseMessage) -> None:
+    def _persist_message_sync(
+        self, message: BaseMessage, metadata: dict[str, Any] | None = None
+    ) -> None:
         """Synchronously persist a message (blocking).
 
         For use in synchronous contexts like SDK. TUI should use async version.
 
         Args:
             message: Message to persist
+            metadata: Optional metadata dict (e.g., streaming metrics)
         """
         if not self.persist or not self._db or not self.session_id:
             return
@@ -550,6 +557,7 @@ class ConversationHistory:
                 content,
                 tokens,
                 message_type=message_type,
+                metadata=metadata,
             )
         except Exception as e:
             logger.warning(f"Failed to persist message: {e}")

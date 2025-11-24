@@ -1835,15 +1835,50 @@ class ConsoulApp(App[None]):
             )
 
             if has_content or has_tool_calls_in_message:
+                # Calculate streaming metrics before persisting
+                # (need token count for tokens_per_second calculation)
+                stream_end_time = time.time()
+                stream_duration = stream_end_time - stream_start_time
+
+                # Try to get token count - will recalculate more accurately later if needed
+                try:
+                    from langchain_core.messages import AIMessage
+
+                    # Quick token count for metrics
+                    token_count_for_metrics = await asyncio.wait_for(
+                        loop.run_in_executor(
+                            self._executor,
+                            self.conversation._token_counter,  # type: ignore[union-attr,arg-type]
+                            [AIMessage(content=full_response)],
+                        ),
+                        timeout=2.0,  # Short timeout for quick estimate
+                    )
+                except Exception:
+                    # Fallback to quick approximation
+                    token_count_for_metrics = len(full_response) // 4
+
+                tokens_per_second = (
+                    token_count_for_metrics / stream_duration
+                    if stream_duration > 0
+                    else None
+                )
+
                 # Add to conversation history
                 # Important: Use final_message directly to preserve tool_calls attribute
                 if final_message:
                     self.conversation.messages.append(final_message)  # type: ignore[union-attr]
                     # Persist to DB and capture message ID for linking tool calls
                     try:
+                        # Build metadata for streaming metrics
+                        metadata: dict[str, float] = {}
+                        if tokens_per_second is not None:
+                            metadata["tokens_per_second"] = tokens_per_second
+                        if time_to_first_token is not None:
+                            metadata["time_to_first_token"] = time_to_first_token
+
                         self._current_assistant_message_id = await asyncio.wait_for(
                             self.conversation._persist_message(  # type: ignore[union-attr]
-                                final_message
+                                final_message, metadata=metadata if metadata else None
                             ),
                             timeout=10.0,  # 10 second timeout
                         )
@@ -3177,6 +3212,9 @@ class ConsoulApp(App[None]):
 
                         # Get token count from database (stored when message was created)
                         token_count = msg.get("tokens")
+                        # Get streaming metrics from database
+                        tokens_per_second = msg.get("tokens_per_second")
+                        time_to_first_token = msg.get("time_to_first_token")
 
                         bubble = MessageBubble(
                             message_content,
@@ -3188,6 +3226,8 @@ class ConsoulApp(App[None]):
                             thinking_content=thinking_to_display
                             if role == "assistant"
                             else None,
+                            tokens_per_second=tokens_per_second,
+                            time_to_first_token=time_to_first_token,
                         )
                         await self.chat_view.add_message(bubble)
 

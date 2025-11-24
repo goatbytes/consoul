@@ -116,6 +116,8 @@ class ConversationDatabase:
                     content TEXT NOT NULL,
                     tokens INTEGER,
                     timestamp TEXT NOT NULL,
+                    tokens_per_second REAL,
+                    time_to_first_token REAL,
                     FOREIGN KEY (conversation_id) REFERENCES conversations(session_id)
                         ON DELETE CASCADE
                 );
@@ -245,6 +247,7 @@ class ConversationDatabase:
         content: str,
         tokens: int | None = None,
         message_type: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> int:
         """Save a message to a conversation.
 
@@ -256,6 +259,8 @@ class ConversationDatabase:
             message_type: Message type for UI reconstruction
                          ("user", "assistant", "system", "tool_call", "tool_result")
                          Defaults to role if not specified.
+            metadata: Optional metadata dict containing streaming metrics
+                     (tokens_per_second, time_to_first_token)
 
         Returns:
             The ID of the inserted message
@@ -286,11 +291,20 @@ class ConversationDatabase:
                         f"Conversation not found: {session_id}"
                     )
 
-                # Insert message with message_type
+                # Insert message with message_type and streaming metrics
                 cursor = conn.execute(
-                    "INSERT INTO messages (conversation_id, message_type, role, content, tokens, timestamp) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
-                    (session_id, msg_type, role, content, tokens, now),
+                    "INSERT INTO messages (conversation_id, message_type, role, content, tokens, timestamp, tokens_per_second, time_to_first_token) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        session_id,
+                        msg_type,
+                        role,
+                        content,
+                        tokens,
+                        now,
+                        metadata.get("tokens_per_second") if metadata else None,
+                        metadata.get("time_to_first_token") if metadata else None,
+                    ),
                 )
                 message_id = cursor.lastrowid
                 if message_id is None:
@@ -444,7 +458,7 @@ class ConversationDatabase:
 
                 # Load messages with message_type
                 cursor = conn.execute(
-                    "SELECT id, role, content, tokens, timestamp, message_type FROM messages "
+                    "SELECT id, role, content, tokens, timestamp, message_type, tokens_per_second, time_to_first_token FROM messages "
                     "WHERE conversation_id = ? ORDER BY id",
                     (session_id,),
                 )
@@ -483,7 +497,7 @@ class ConversationDatabase:
 
                 # Load messages
                 cursor = conn.execute(
-                    "SELECT id, role, content, tokens, timestamp, message_type FROM messages "
+                    "SELECT id, role, content, tokens, timestamp, message_type, tokens_per_second, time_to_first_token FROM messages "
                     "WHERE conversation_id = ? ORDER BY id",
                     (session_id,),
                 )
@@ -692,8 +706,8 @@ class ConversationDatabase:
 
                     # Insert message into new conversation
                     cursor = conn.execute(
-                        "INSERT INTO messages (conversation_id, message_type, role, content, tokens, timestamp) "
-                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        "INSERT INTO messages (conversation_id, message_type, role, content, tokens, timestamp, tokens_per_second, time_to_first_token) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                         (
                             new_session_id,
                             msg["message_type"],
@@ -701,6 +715,8 @@ class ConversationDatabase:
                             msg["content"],
                             msg["tokens"],
                             msg["timestamp"],
+                            msg.get("tokens_per_second"),
+                            msg.get("time_to_first_token"),
                         ),
                     )
                     new_msg_id = cursor.lastrowid
