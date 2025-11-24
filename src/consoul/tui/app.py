@@ -1089,7 +1089,7 @@ class ConsoulApp(App[None]):
 
                 # Update system prompt to reflect new tool availability
                 system_prompt = self._build_current_system_prompt()
-                if self.conversation and system_prompt:
+                if self.conversation is not None and system_prompt:
                     self.conversation.clear(preserve_system=False)
                     self.conversation.add_system_message(system_prompt)
                     # Store updated prompt metadata
@@ -1123,7 +1123,7 @@ class ConsoulApp(App[None]):
 
                 # Update system prompt to show no tools available
                 system_prompt = self._build_current_system_prompt()
-                if self.conversation and system_prompt:
+                if self.conversation is not None and system_prompt:
                     self.conversation.clear(preserve_system=False)
                     self.conversation.add_system_message(system_prompt)
                     # Store updated prompt metadata
