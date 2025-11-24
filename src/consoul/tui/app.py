@@ -3211,14 +3211,19 @@ class ConsoulApp(App[None]):
             self.notify("Tool registry not initialized", severity="error")
             return
 
+        logger = logging.getLogger(__name__)
         result = await self.push_screen(ToolManagerScreen(self.tool_registry))  # type: ignore[func-returns-value]
+        logger.info(f"[TOOL_MANAGER] Tool manager closed, result={result}")
         if result:
             # Changes were applied - rebind tools to model
+            logger.info("[TOOL_MANAGER] Applying changes, rebinding tools")
             self._rebind_tools()
             self.notify(
                 "Tool settings applied - conversation history cleared",
                 severity="information",
             )
+        else:
+            logger.info("[TOOL_MANAGER] No changes applied")
 
     async def action_view_system_prompt(self) -> None:
         """Show system prompt modal with current or stored prompt."""
