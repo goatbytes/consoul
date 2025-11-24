@@ -468,19 +468,22 @@ class ConsoulApp(App[None]):
 
                 # Add system prompt after tool initialization (outside tools.enabled check)
                 # This ensures the system prompt is added even if tools are disabled
+                self.log.info("[SYSPROMPT] Reached system prompt initialization code")
                 if self.conversation:
+                    self.log.info("[SYSPROMPT] Conversation exists, building prompt")
                     try:
-                        self.log.debug("Building system prompt...")
                         system_prompt = self._build_current_system_prompt()
-                        self.log.debug(
-                            f"System prompt built: {len(system_prompt) if system_prompt else 0} chars"
+                        self.log.info(
+                            f"[SYSPROMPT] Built prompt: {len(system_prompt) if system_prompt else 0} chars"
                         )
 
                         if system_prompt:
-                            self.log.debug("Adding system message to conversation...")
+                            self.log.info(
+                                "[SYSPROMPT] Adding system message to conversation"
+                            )
                             self.conversation.add_system_message(system_prompt)
-                            self.log.debug(
-                                f"System message added. Total messages: {len(self.conversation.messages)}"
+                            self.log.info(
+                                f"[SYSPROMPT] Added. Total messages: {len(self.conversation.messages)}"
                             )
 
                             tool_count = 0
@@ -489,8 +492,8 @@ class ConsoulApp(App[None]):
                                     self.tool_registry.list_tools(enabled_only=True)
                                 )
 
-                            self.log.debug(
-                                f"Storing system prompt metadata (tools: {tool_count})..."
+                            self.log.info(
+                                f"[SYSPROMPT] Storing metadata (tools: {tool_count})"
                             )
                             self.conversation.store_system_prompt_metadata(
                                 profile_name=self.active_profile.name
@@ -499,10 +502,12 @@ class ConsoulApp(App[None]):
                                 tool_count=tool_count,
                             )
                             self.log.info(
-                                f"Added system prompt ({tool_count} tools, {len(system_prompt)} chars)"
+                                f"[SYSPROMPT] SUCCESS: Added system prompt ({tool_count} tools, {len(system_prompt)} chars)"
                             )
                         else:
-                            self.log.warning("System prompt was empty, not adding")
+                            self.log.warning(
+                                "[SYSPROMPT] System prompt was empty, not adding"
+                            )
                     except Exception as prompt_error:
                         self.log.error(
                             f"Failed to add system prompt: {prompt_error}",
