@@ -322,19 +322,17 @@ class ToolManagerScreen(ModalScreen[bool]):
 
     def action_apply(self) -> None:
         """Apply pending changes and close screen."""
-        logger.info(
-            f"[TOOL_MGR] action_apply called, pending changes: {len(self.pending_changes)}"
-        )
         # Apply all pending changes to registry
         for tool_name, enabled in self.pending_changes.items():
             tools = self.tool_registry.list_tools()
             meta = next((m for m in tools if m.name == tool_name), None)
             if meta:
                 meta.enabled = enabled
-                logger.info(f"[TOOL_MGR] Set {tool_name} enabled={enabled}")
+
+        # Trigger rebind immediately via app to update system prompt
+        self.app._rebind_tools()  # type: ignore[attr-defined]
 
         # Return True to indicate changes were applied
-        logger.info("[TOOL_MGR] Dismissing with result=True")
         self.dismiss(True)
 
     def action_cancel(self) -> None:
