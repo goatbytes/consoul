@@ -997,6 +997,10 @@ class ConsoulApp(App[None]):
 
                 self.log.info(f"Rebound {len(tools)} tools to chat model")
 
+                # Update conversation's model reference so it uses the rebound model
+                if self.conversation:
+                    self.conversation._model = self.chat_model
+
                 # Update top bar to reflect changes
                 self._update_top_bar_state()
 
