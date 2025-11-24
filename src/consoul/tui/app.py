@@ -384,11 +384,10 @@ class ConsoulApp(App[None]):
                             consoul_config.tools.risk_filter
                         )
 
-                        # Normalize tool names for execution whitelist
-                        normalized_tool_names = [
-                            tool.name for tool, _risk, _cats in tools_to_register
-                        ]
-                        consoul_config.tools.allowed_tools = normalized_tool_names
+                        # DO NOT set allowed_tools - leave empty for risk_filter
+                        # Security: Only register filtered tools, let ToolRegistry.is_allowed()
+                        # check registration status (empty whitelist = all registered tools allowed)
+                        # This ensures risk_filter actually restricts capabilities
 
                         self.log.info(
                             f"Registering {len(tools_to_register)} tools with "
