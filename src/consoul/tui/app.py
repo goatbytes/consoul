@@ -379,21 +379,30 @@ class ConsoulApp(App[None]):
                         )
 
                     elif consoul_config.tools.risk_filter:
-                        # Risk-based filtering
+                        # Risk-based filtering: only register tools up to specified risk level
                         tools_to_register = get_tools_by_risk_level(
                             consoul_config.tools.risk_filter
                         )
 
-                        # Populate allowed_tools for approval workflow (e.g., whitelist mode).
-                        # Security note: This enables auto-approval for filtered tools, but
-                        # actual execution is still restricted by registration check in
-                        # ToolRegistry.is_allowed() (registry.py:244: tool_name not in self._tools).
-                        # Only registered tools can execute, so risk_filter effectively controls
-                        # capabilities via registration, while allowed_tools controls approval.
-                        normalized_tool_names = [
-                            tool.name for tool, _risk, _cats in tools_to_register
-                        ]
-                        consoul_config.tools.allowed_tools = normalized_tool_names
+                        # DO NOT populate allowed_tools - leave empty for risk_filter.
+                        #
+                        # Why: Populating allowed_tools would bypass risk-based approval workflow.
+                        # The approval flow checks _is_whitelisted() BEFORE checking risk levels,
+                        # so adding all filtered tools to allowed_tools would auto-approve them
+                        # regardless of permission_policy settings (src/consoul/ai/tools/permissions/policy.py:307).
+                        #
+                        # Security model:
+                        # - risk_filter controls REGISTRATION (which tools exist)
+                        # - permission_policy controls APPROVAL (which tools need confirmation)
+                        # - Both work together: registration limits capabilities, policy controls UX
+                        #
+                        # Example: risk_filter="caution" + permission_policy="balanced"
+                        # - Registers: SAFE + CAUTION tools (12 total)
+                        # - Auto-approves: SAFE tools only
+                        # - Prompts for: CAUTION tools (file edits, bash, etc.)
+                        #
+                        # Note: risk_filter is incompatible with approval_mode="whitelist".
+                        # Use permission_policy (BALANCED/TRUSTING/etc) instead.
 
                         self.log.info(
                             f"Registering {len(tools_to_register)} tools with "

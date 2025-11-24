@@ -473,6 +473,20 @@ audit_focused:
 # =============================================================================
 # Use risk_filter for simple tool filtering by risk level without listing
 # individual tools. This is easier than maintaining explicit allowed_tools lists.
+#
+# IMPORTANT: risk_filter should be used with permission_policy (BALANCED, TRUSTING, etc.),
+# NOT with approval_mode="whitelist". The two features are incompatible:
+#   - risk_filter: Controls which tools are REGISTERED (capability filtering)
+#   - permission_policy: Controls which tools need APPROVAL (UX/security workflow)
+#   - approval_mode="whitelist": Requires explicit allowed_tools list (legacy mode)
+#
+# How it works:
+#   1. risk_filter limits which tools exist (registration boundary)
+#   2. permission_policy determines approval requirements based on risk level
+#   3. Example: risk_filter="caution" + permission_policy="balanced"
+#      - Registers: SAFE + CAUTION tools (12 total)
+#      - Auto-approves: SAFE tools only
+#      - Prompts for: CAUTION tools (file edits, bash, etc.)
 
 risk_filter_examples:
   profiles:
