@@ -287,6 +287,7 @@ class ConsoulApp(App[None]):
                         TOOL_CATALOG,
                         get_all_tool_names,
                         get_tool_by_name,
+                        get_tools_by_risk_level,
                     )
                     from consoul.ai.tools.implementations import (
                         set_analyze_images_config,
@@ -342,9 +343,10 @@ class ConsoulApp(App[None]):
                     if consoul_config.tools.image_analysis:
                         set_analyze_images_config(consoul_config.tools.image_analysis)
 
-                    # Determine which tools to register based on allowed_tools config
+                    # Determine which tools to register based on config
+                    # Precedence: allowed_tools > risk_filter > all tools (default)
                     if consoul_config.tools.allowed_tools:
-                        # Non-empty whitelist: only register specified tools
+                        # Explicit whitelist takes precedence
                         tools_to_register = []
                         normalized_tool_names = []  # Actual tool.name values for registry
                         invalid_tools = []
@@ -375,11 +377,29 @@ class ConsoulApp(App[None]):
                         self.log.info(
                             f"Registering {len(tools_to_register)} tools from allowed_tools whitelist"
                         )
+
+                    elif consoul_config.tools.risk_filter:
+                        # Risk-based filtering
+                        tools_to_register = get_tools_by_risk_level(
+                            consoul_config.tools.risk_filter
+                        )
+
+                        # Normalize tool names for execution whitelist
+                        normalized_tool_names = [
+                            tool.name for tool, _risk, _cats in tools_to_register
+                        ]
+                        consoul_config.tools.allowed_tools = normalized_tool_names
+
+                        self.log.info(
+                            f"Registering {len(tools_to_register)} tools with "
+                            f"risk_filter='{consoul_config.tools.risk_filter}'"
+                        )
+
                     else:
-                        # Empty whitelist: register all tools (backward compatible)
+                        # Default: register all tools (backward compatible)
                         tools_to_register = list(TOOL_CATALOG.values())
                         self.log.info(
-                            f"Registering all {len(tools_to_register)} available tools (allowed_tools is empty)"
+                            f"Registering all {len(tools_to_register)} available tools (no filters specified)"
                         )
 
                     # Create registry with CLI provider (we override approval in _request_tool_approval)

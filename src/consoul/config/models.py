@@ -1205,6 +1205,14 @@ class ToolConfig(BaseModel):
         default_factory=list,
         description="Whitelist of allowed tools (empty = all tools allowed with approval)",
     )
+    risk_filter: Literal["safe", "caution", "dangerous"] | None = Field(
+        default=None,
+        description="Filter tools by maximum risk level. "
+        "'safe' = only SAFE tools (read-only), "
+        "'caution' = SAFE + CAUTION tools (includes file operations), "
+        "'dangerous' = all tools (includes destructive operations). "
+        "Ignored if allowed_tools is set.",
+    )
     approval_mode: Literal[
         "always", "once_per_session", "whitelist", "risk_based", "never"
     ] = Field(

@@ -469,6 +469,82 @@ audit_focused:
             - "ls"
 
 # =============================================================================
+# Example 6: Risk-Based Tool Filtering
+# =============================================================================
+# Use risk_filter for simple tool filtering by risk level without listing
+# individual tools. This is easier than maintaining explicit allowed_tools lists.
+
+risk_filter_examples:
+  profiles:
+    # Read-only mode: Only SAFE tools (no file modifications)
+    readonly:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+
+      tools:
+        enabled: true
+
+        # Only register SAFE tools (read-only operations)
+        # Tools: grep_search, code_search, find_references, read_file,
+        #        web_search, wikipedia_search, read_url
+        risk_filter: safe
+
+        # Still use BALANCED policy for approval workflow
+        permission_policy: balanced
+
+    # Safe + file operations (excludes delete_file)
+    development:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+
+      tools:
+        enabled: true
+
+        # Register SAFE + CAUTION tools (read + write, but no delete)
+        # Adds: bash_execute, create_file, edit_file_lines,
+        #       edit_file_search_replace, append_to_file
+        risk_filter: caution
+
+        permission_policy: balanced
+
+    # All tools including destructive operations
+    power_user:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+
+      tools:
+        enabled: true
+
+        # Register all tools including DANGEROUS (delete_file)
+        risk_filter: dangerous
+
+        # Use TRUSTING policy since user accepts the risk
+        permission_policy: trusting
+
+    # Precedence example: allowed_tools wins over risk_filter
+    explicit_override:
+      model:
+        provider: anthropic
+        model: claude-3-5-sonnet-20241022
+
+      tools:
+        enabled: true
+
+        # Explicit list takes precedence (risk_filter is ignored)
+        allowed_tools:
+          - bash
+          - grep
+          - code_search
+
+        # This is ignored when allowed_tools is set
+        risk_filter: safe
+
+        permission_policy: balanced
+
+# =============================================================================
 # Usage Examples
 # =============================================================================
 
