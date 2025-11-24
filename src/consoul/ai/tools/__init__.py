@@ -44,6 +44,7 @@ from consoul.ai.tools.catalog import (
     get_tools_by_risk_level,
     validate_tool_name,
 )
+from consoul.ai.tools.discovery import discover_tools_from_directory
 from consoul.ai.tools.exceptions import (
     BlockedCommandError,
     ToolError,
@@ -113,6 +114,7 @@ __all__ = [
     "code_search",
     "create_file",
     "delete_file",
+    "discover_tools_from_directory",
     "edit_file_lines",
     "edit_file_search_replace",
     "find_references",

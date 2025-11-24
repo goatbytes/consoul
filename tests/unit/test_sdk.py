@@ -358,3 +358,189 @@ class TestConsoulToolSpecification:
         console_no_tools = Consoul(tools=False, persist=False)
         settings_no_tools = console_no_tools.settings
         assert settings_no_tools["tools_enabled"] is False
+
+
+class TestConsoulToolDiscovery:
+    """Test tool discovery functionality."""
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.discover_tools_from_directory")
+    def test_discover_tools_disabled_by_default(
+        self,
+        mock_discover: Mock,
+        mock_registry_class: Mock,
+        mock_get_model: Mock,
+    ) -> None:
+        """Test that tool discovery is disabled by default."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        Consoul(tools=["bash"], persist=False)
+
+        # discover_tools_from_directory should NOT be called
+        mock_discover.assert_not_called()
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.discover_tools_from_directory")
+    def test_discover_tools_when_enabled(
+        self,
+        mock_discover: Mock,
+        mock_registry_class: Mock,
+        mock_get_model: Mock,
+    ) -> None:
+        """Test that discover_tools=True enables discovery."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        # Mock discovered tools
+        @tool
+        def discovered_tool(x: str) -> str:
+            """Discovered tool."""
+            return x
+
+        mock_discover.return_value = [(discovered_tool, RiskLevel.CAUTION)]
+
+        Consoul(tools=["bash"], discover_tools=True, persist=False)
+
+        # discover_tools_from_directory should be called once
+        mock_discover.assert_called_once()
+
+        # Verify it was called with correct path
+        call_args = mock_discover.call_args
+        assert str(call_args[0][0]).endswith(".consoul/tools")
+        assert call_args[1]["recursive"] is True
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.discover_tools_from_directory")
+    def test_discover_tools_combined_with_builtin(
+        self,
+        mock_discover: Mock,
+        mock_registry_class: Mock,
+        mock_get_model: Mock,
+    ) -> None:
+        """Test that discovered tools are combined with built-in tools."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        # Mock discovered tools
+        @tool
+        def custom_tool_1(x: str) -> str:
+            """Custom tool 1."""
+            return x
+
+        @tool
+        def custom_tool_2(y: int) -> int:
+            """Custom tool 2."""
+            return y
+
+        mock_discover.return_value = [
+            (custom_tool_1, RiskLevel.CAUTION),
+            (custom_tool_2, RiskLevel.CAUTION),
+        ]
+
+        Consoul(tools=["bash", "grep"], discover_tools=True, persist=False)
+
+        # Should have registered 4 tools: bash, grep, custom_tool_1, custom_tool_2
+        assert mock_registry.register.call_count == 4
+
+        # Verify tool names
+        calls = mock_registry.register.call_args_list
+        registered_names = {call.kwargs["tool"].name for call in calls}
+        assert "bash_execute" in registered_names
+        assert "grep_search" in registered_names
+        assert "custom_tool_1" in registered_names
+        assert "custom_tool_2" in registered_names
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.discover_tools_from_directory")
+    def test_discover_tools_with_tools_true(
+        self,
+        mock_discover: Mock,
+        mock_registry_class: Mock,
+        mock_get_model: Mock,
+    ) -> None:
+        """Test discovery with tools=True (all built-in tools)."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        # Mock one discovered tool
+        @tool
+        def my_tool(x: str) -> str:
+            """My tool."""
+            return x
+
+        mock_discover.return_value = [(my_tool, RiskLevel.CAUTION)]
+
+        Consoul(tools=True, discover_tools=True, persist=False)
+
+        # Should have registered 10 tools: 9 built-in + 1 discovered
+        assert mock_registry.register.call_count == 10
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.discover_tools_from_directory")
+    def test_discover_tools_only_no_builtin(
+        self,
+        mock_discover: Mock,
+        mock_get_model: Mock,
+    ) -> None:
+        """Test discovery with tools=False (only discovered tools)."""
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        # Mock discovered tools
+        @tool
+        def only_discovered(x: str) -> str:
+            """Only discovered."""
+            return x
+
+        mock_discover.return_value = [(only_discovered, RiskLevel.CAUTION)]
+
+        console = Consoul(tools=False, discover_tools=True, persist=False)
+
+        # Should have enabled tools from discovery
+        assert console.tools_enabled is True
+        mock_discover.assert_called_once()
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.discover_tools_from_directory")
+    def test_discover_tools_empty_directory(
+        self,
+        mock_discover: Mock,
+        mock_get_model: Mock,
+    ) -> None:
+        """Test discovery with empty directory (no tools found)."""
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        # Mock empty discovery
+        mock_discover.return_value = []
+
+        console = Consoul(tools=False, discover_tools=True, persist=False)
+
+        # Should have disabled tools since nothing was discovered
+        assert console.tools_enabled is False
+        mock_discover.assert_called_once()

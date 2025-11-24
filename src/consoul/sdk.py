@@ -18,6 +18,7 @@ Examples:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from consoul.ai import ConversationHistory, get_chat_model
@@ -27,6 +28,7 @@ from consoul.ai.tools.catalog import (
     get_tool_by_name,
     get_tools_by_risk_level,
 )
+from consoul.ai.tools.discovery import discover_tools_from_directory
 from consoul.ai.tools.permissions import PermissionPolicy
 from consoul.ai.tools.providers import CliApprovalProvider
 from consoul.config import load_config
@@ -155,9 +157,34 @@ class Consoul:
                 ...     return "result"
                 >>> console = Consoul(tools=[my_tool, "bash"])
 
+            Tool discovery:
+                >>> # Auto-discover tools from .consoul/tools/
+                >>> console = Consoul(discover_tools=True)
+
+                >>> # Combine with specific tools
+                >>> console = Consoul(tools=["bash", "grep"], discover_tools=True)
+
+                >>> # Only discovered tools (no built-in)
+                >>> console = Consoul(tools=False, discover_tools=True)
+
         Available tool names:
             bash, grep, code_search, find_references, create_file,
             edit_lines, edit_replace, append_file, delete_file
+
+        Tool discovery:
+            When discover_tools=True, Consoul will scan .consoul/tools/ for
+            custom tools. Create a .consoul/tools/ directory in your project
+            and add Python files with @tool decorated functions:
+
+                .consoul/tools/my_tool.py:
+                    from langchain_core.tools import tool
+
+                    @tool
+                    def my_custom_tool(query: str) -> str:
+                        '''My custom tool description.'''
+                        return process(query)
+
+            All discovered tools default to RiskLevel.CAUTION for safety.
         """
         # Validate temperature
         if temperature is not None and not 0.0 <= temperature <= 2.0:
@@ -234,7 +261,7 @@ class Consoul:
             False  # Will be set to True if tools are actually registered
         )
         self.registry: ToolRegistry | None = None
-        if tools is not False and tools is not None:
+        if (tools is not False and tools is not None) or discover_tools:
             self._setup_tools()
 
         # Track last request for introspection
@@ -341,6 +368,12 @@ class Consoul:
         """Setup tool calling with CLI approval."""
         # Validate and resolve tool specification
         tools_to_register = self._validate_and_resolve_tools()
+
+        # Discover custom tools if enabled
+        if self.discover_tools:
+            tools_dir = Path.cwd() / ".consoul" / "tools"
+            discovered_tools = discover_tools_from_directory(tools_dir, recursive=True)
+            tools_to_register.extend(discovered_tools)
 
         if not tools_to_register:
             # No tools to register
