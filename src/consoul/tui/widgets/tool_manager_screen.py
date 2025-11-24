@@ -18,7 +18,6 @@ from textual.widgets import Button, DataTable, Static
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
-    from textual.events import Key
 
     from consoul.ai.tools.base import ToolMetadata
     from consoul.ai.tools.registry import ToolRegistry
@@ -115,7 +114,8 @@ class ToolManagerScreen(ModalScreen[bool]):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("escape,q", "cancel", "Cancel", show=True),
         Binding("enter", "apply", "Apply", show=True),
-        Binding("space,t", "toggle_tool", "Toggle (Space/T)", show=True, priority=True),
+        Binding("space", "toggle_tool", "Toggle", show=False),
+        Binding("t", "toggle_tool", "Toggle", show=False),
         Binding("a", "filter_all", "All", show=True),
         Binding("n", "filter_none", "None", show=True),
         Binding("s", "filter_safe", "Safe", show=True),
@@ -146,6 +146,10 @@ class ToolManagerScreen(ModalScreen[bool]):
         with Vertical():
             yield Static("Tool Manager", classes="modal-title")
             yield Static("", classes="tool-count", id="tool-count")
+            yield Static(
+                "Space/T: toggle · ↑↓: navigate · A: all · N: none · S: safe · Enter: apply · Esc: cancel",
+                classes="tool-count",
+            )
 
             # Quick filter buttons
             with Horizontal(classes="filter-container"):
@@ -326,29 +330,10 @@ class ToolManagerScreen(ModalScreen[bool]):
             self.action_filter_safe()
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
-        """Handle row selection (double-click or Enter on row).
+        """Handle row selection (Enter key) - no action, use Space for toggle.
 
         Args:
             event: The row selection event
         """
-        self.action_toggle_tool()
-
-    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
-        """Handle row click - store the row for Space key toggle.
-
-        Args:
-            event: The row highlight event
-        """
-        # Row is now highlighted, Space key can toggle it
+        # Prevent Enter from doing anything - Space/T is for toggle
         pass
-
-    def on_key(self, event: Key) -> None:
-        """Handle key presses, particularly Space/T for toggling.
-
-        Args:
-            event: The key event
-        """
-        if event.key in ("space", "t"):
-            self.action_toggle_tool()
-            event.prevent_default()
-            event.stop()
