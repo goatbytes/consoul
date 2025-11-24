@@ -552,14 +552,23 @@ class ConversationHistory:
         # Create conversation in DB on first user message if not already created
         if self.persist and self._db and not self._conversation_created:
             try:
+                logger.debug(
+                    f"Creating new conversation in DB (current messages: {len(self.messages)})"
+                )
                 self.session_id = self._db.create_conversation(self.model_name)
                 self._conversation_created = True
                 logger.info(f"Created new conversation session: {self.session_id}")
 
                 # Persist any existing system messages that were added before first user message
+                system_msg_count = 0
                 for msg in self.messages:
                     if isinstance(msg, SystemMessage):
+                        logger.debug(
+                            f"Persisting existing system message ({len(msg.content)} chars)"
+                        )
                         self._persist_message_sync(msg)
+                        system_msg_count += 1
+                logger.debug(f"Persisted {system_msg_count} system message(s)")
             except Exception as e:
                 logger.warning(f"Failed to create conversation in database: {e}")
                 self.persist = False

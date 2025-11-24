@@ -175,8 +175,15 @@ def _format_no_tools_message() -> str:
         Message indicating no tools are enabled
     """
     return (
-        "# Available Tools\n"
-        "No tools are currently enabled. You can only provide text-based responses."
+        "# Available Tools\n\n"
+        "**You have NO tools available.**\n\n"
+        "When asked about your capabilities or what tools you have:\n"
+        "- Respond: 'I currently have no tools enabled. I can only provide text-based responses.'\n"
+        "- Do NOT list or describe hypothetical tools\n"
+        "- Do NOT mention bash, file operations, search capabilities, or any other tool features\n\n"
+        "If asked to perform actions (read files, execute commands, search code):\n"
+        "- Respond: 'I cannot perform that action - all tools are disabled. Enable tools via the Tool Manager first.'\n\n"
+        "You are limited to conversational responses only."
     )
 
 
