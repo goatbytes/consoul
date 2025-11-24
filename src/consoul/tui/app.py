@@ -1018,9 +1018,24 @@ class ConsoulApp(App[None]):
                     )
                     self.log.info("Updated system prompt with new tool availability")
             elif not enabled_tools:
-                # No tools enabled - unbind all
-                # TODO: Need to handle unbinding - may need to recreate model
-                self.log.info("No tools enabled")
+                # No tools enabled - need to recreate model without tool bindings
+                # LangChain doesn't provide an "unbind" method, so we recreate the model
+                self.log.info("No tools enabled - recreating model without tools")
+
+                from consoul.ai import get_chat_model
+
+                if self.consoul_config:
+                    model_config = self.consoul_config.get_current_model_config()
+                    self.chat_model = get_chat_model(
+                        model_config, config=self.consoul_config
+                    )
+
+                    # Update conversation's model reference
+                    if self.conversation:
+                        self.conversation._model = self.chat_model
+
+                    self.log.info("Recreated model without tool bindings")
+
                 self._update_top_bar_state()
 
                 # Update system prompt to show no tools available
