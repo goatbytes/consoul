@@ -545,8 +545,12 @@ class ConsoulApp(App[None]):
 
         Sets up GC management and validates theme.
         """
+        self.log.info("[MOUNT] on_mount() called, adding system prompt")
+
         # Add system prompt to conversation (now that logging is set up)
         self._add_initial_system_prompt()
+
+        self.log.info("[MOUNT] on_mount() completed system prompt initialization")
 
         # Apply theme from config
         # Custom themes (TCSS files): monokai, dracula, nord, gruvbox

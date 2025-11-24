@@ -1,385 +1,385 @@
-2025-11-24 10:15:30,712 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
-2025-11-24 10:15:39,923 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.0ms
-2025-11-24 10:15:39,923 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.2ms
-2025-11-24 10:15:39,932 - consoul.tui.app - INFO - [TIMING] Added message bubble: 8.7ms
-2025-11-24 10:15:39,934 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 2.6ms
-2025-11-24 10:15:39,934 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.0ms
-2025-11-24 10:15:39,935 - consoul.tui.app - INFO - [IMAGE_DETECTION] Auto-detect enabled: True, Attached images: 0, Auto-detected: 0, Total (deduplicated): 0
-2025-11-24 10:15:39,935 - consoul.tui.app - INFO - [IMAGE_DETECTION] Checking vision support for model: gpt-oss:20b
-2025-11-24 10:15:39,935 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model 'gpt-oss:20b' has vision: False
-2025-11-24 10:15:39,935 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model supports vision: False
-2025-11-24 10:15:39,935 - consoul.tui.app - INFO - [IMAGE_DETECTION] Condition check: image_paths=False, model_supports_vision=False, combined=False
-2025-11-24 10:15:39,935 - consoul.tui.app - INFO - [TIMING] Worker started: 12.1ms from submit
-2025-11-24 10:15:39,935 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 12.2ms
-2025-11-24 10:15:39,940 - consoul.tui.app - INFO - Created conversation session: 92137a96-fe4d-4387-b5d7-d1e740f554e4
-2025-11-24 10:15:39,941 - consoul.tui.app - DEBUG - Persisted user message with ID: 87
-2025-11-24 10:15:39,947 - consoul.tui.app - INFO - [TIMING] DB persist complete: 11.6ms
-2025-11-24 10:15:39,947 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
-2025-11-24 10:15:39,947 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.2ms
-2025-11-24 10:15:39,947 - consoul.tui.app - INFO - [TIMING] Got model config: 0.0ms
-2025-11-24 10:15:39,950 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 2.9ms
-2025-11-24 10:15:39,950 - consoul.tui.app - INFO - [IMAGE_DETECTION] Last message has multimodal content: False
-2025-11-24 10:15:39,950 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.4ms, total prep: 3.5ms
-2025-11-24 10:15:41,748 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=False, value=Here, ttft=1.797s
-2025-11-24 10:15:41,754 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=1764008141755ms, total_len=4
-2025-11-24 10:15:41,754 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 4 chars
-2025-11-24 10:15:41,761 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=7ms, total_len=6
-2025-11-24 10:15:41,773 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=19ms, total_len=8
-2025-11-24 10:15:41,786 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=32ms, total_len=14
-2025-11-24 10:15:41,799 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=45ms, total_len=22
-2025-11-24 10:15:41,812 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=58ms, total_len=25
-2025-11-24 10:15:41,826 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=25, time_since=72ms, total_len=29
-2025-11-24 10:15:41,839 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=31, time_since=85ms, total_len=35
-2025-11-24 10:15:41,852 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=98ms, total_len=37
-2025-11-24 10:15:41,865 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=37, time_since=111ms, total_len=41
-2025-11-24 10:15:41,878 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=42, time_since=124ms, total_len=46
-2025-11-24 10:15:41,891 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=46, time_since=137ms, total_len=50
-2025-11-24 10:15:41,906 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=152ms, total_len=54
-2025-11-24 10:15:41,906 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 54 chars
-2025-11-24 10:15:41,917 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=11ms, total_len=57
-2025-11-24 10:15:41,930 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=24ms, total_len=58
-2025-11-24 10:15:41,943 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=37ms, total_len=63
-2025-11-24 10:15:41,956 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=50ms, total_len=65
-2025-11-24 10:15:41,969 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=63ms, total_len=73
-2025-11-24 10:15:41,982 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=76ms, total_len=75
-2025-11-24 10:15:41,995 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=89ms, total_len=80
-2025-11-24 10:15:42,008 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=102ms, total_len=92
-2025-11-24 10:15:42,021 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=115ms, total_len=93
-2025-11-24 10:15:42,034 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=42, time_since=128ms, total_len=96
-2025-11-24 10:15:42,046 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=140ms, total_len=97
-2025-11-24 10:15:42,060 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=49, time_since=154ms, total_len=103
-2025-11-24 10:15:42,060 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 103 chars
-2025-11-24 10:15:42,075 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=16ms, total_len=104
-2025-11-24 10:15:42,086 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=26ms, total_len=120
-2025-11-24 10:15:42,099 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=39ms, total_len=133
-2025-11-24 10:15:42,112 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=52ms, total_len=135
-2025-11-24 10:15:42,124 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=65ms, total_len=136
-2025-11-24 10:15:42,140 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=80ms, total_len=139
-2025-11-24 10:15:42,150 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=40, time_since=91ms, total_len=143
-2025-11-24 10:15:42,163 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=48, time_since=104ms, total_len=151
-2025-11-24 10:15:42,176 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=117ms, total_len=153
-2025-11-24 10:15:42,191 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=52, time_since=131ms, total_len=155
-2025-11-24 10:15:42,202 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=56, time_since=143ms, total_len=159
-2025-11-24 10:15:42,215 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=58, time_since=156ms, total_len=161
-2025-11-24 10:15:42,215 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 161 chars
-2025-11-24 10:15:42,228 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=12ms, total_len=167
-2025-11-24 10:15:42,241 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=26ms, total_len=175
-2025-11-24 10:15:42,256 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=41ms, total_len=177
-2025-11-24 10:15:42,267 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=52ms, total_len=181
-2025-11-24 10:15:42,281 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=65ms, total_len=190
-2025-11-24 10:15:42,293 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=78ms, total_len=197
-2025-11-24 10:15:42,306 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=91ms, total_len=199
-2025-11-24 10:15:42,319 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=41, time_since=104ms, total_len=202
-2025-11-24 10:15:42,332 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=42, time_since=117ms, total_len=203
-2025-11-24 10:15:42,345 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=45, time_since=130ms, total_len=206
-2025-11-24 10:15:42,358 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=49, time_since=143ms, total_len=210
-2025-11-24 10:15:42,372 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=56, time_since=156ms, total_len=217
-2025-11-24 10:15:42,372 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 217 chars
-2025-11-24 10:15:42,384 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=13ms, total_len=219
-2025-11-24 10:15:42,397 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=26ms, total_len=221
-2025-11-24 10:15:42,410 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=39ms, total_len=228
-2025-11-24 10:15:42,423 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=52ms, total_len=232
-2025-11-24 10:15:42,439 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=67ms, total_len=238
-2025-11-24 10:15:42,450 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=78ms, total_len=247
-2025-11-24 10:15:42,463 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=91ms, total_len=250
-2025-11-24 10:15:42,476 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=104ms, total_len=256
-2025-11-24 10:15:42,489 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=41, time_since=117ms, total_len=258
-2025-11-24 10:15:42,502 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=44, time_since=130ms, total_len=261
-2025-11-24 10:15:42,515 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=48, time_since=143ms, total_len=265
-2025-11-24 10:15:42,528 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=49, time_since=156ms, total_len=266
-2025-11-24 10:15:42,528 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 266 chars
-2025-11-24 10:15:42,542 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=14ms, total_len=270
-2025-11-24 10:15:42,555 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=27ms, total_len=272
-2025-11-24 10:15:42,567 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=39ms, total_len=275
-2025-11-24 10:15:42,580 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=53ms, total_len=276
-2025-11-24 10:15:42,593 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=65ms, total_len=279
-2025-11-24 10:15:42,608 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=80ms, total_len=283
-2025-11-24 10:15:42,619 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=24, time_since=92ms, total_len=290
-2025-11-24 10:15:42,632 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=104ms, total_len=292
-2025-11-24 10:15:42,645 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=118ms, total_len=294
-2025-11-24 10:15:42,658 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=131ms, total_len=299
-2025-11-24 10:15:42,674 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=147ms, total_len=304
-2025-11-24 10:15:42,684 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=46, time_since=157ms, total_len=312
-2025-11-24 10:15:42,685 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 312 chars
-2025-11-24 10:15:42,697 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=13ms, total_len=314
-2025-11-24 10:15:42,710 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=25ms, total_len=323
-2025-11-24 10:15:42,724 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=39ms, total_len=324
-2025-11-24 10:15:42,736 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=52ms, total_len=332
-2025-11-24 10:15:42,749 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=65ms, total_len=333
-2025-11-24 10:15:42,763 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=78ms, total_len=341
-2025-11-24 10:15:42,775 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=91ms, total_len=342
-2025-11-24 10:15:42,791 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=34, time_since=107ms, total_len=346
-2025-11-24 10:15:42,803 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=118ms, total_len=350
-2025-11-24 10:15:42,816 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=46, time_since=131ms, total_len=358
-2025-11-24 10:15:42,828 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=47, time_since=144ms, total_len=359
-2025-11-24 10:15:42,842 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=157ms, total_len=362
-2025-11-24 10:15:42,842 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 362 chars
-2025-11-24 10:15:42,859 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=17ms, total_len=363
-2025-11-24 10:15:42,868 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=26ms, total_len=366
-2025-11-24 10:15:42,881 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=40ms, total_len=370
-2025-11-24 10:15:42,895 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=53ms, total_len=373
-2025-11-24 10:15:42,907 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=66ms, total_len=381
-2025-11-24 10:15:42,924 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=82ms, total_len=383
-2025-11-24 10:15:42,934 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=92ms, total_len=385
-2025-11-24 10:15:42,947 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=105ms, total_len=392
-2025-11-24 10:15:42,960 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=34, time_since=118ms, total_len=396
-2025-11-24 10:15:42,974 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=45, time_since=132ms, total_len=407
-2025-11-24 10:15:42,985 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=48, time_since=144ms, total_len=410
-2025-11-24 10:15:42,998 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=52, time_since=156ms, total_len=414
-2025-11-24 10:15:42,998 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 414 chars
-2025-11-24 10:15:43,011 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=13ms, total_len=417
-2025-11-24 10:15:43,024 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=26ms, total_len=419
-2025-11-24 10:15:43,038 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=40ms, total_len=426
-2025-11-24 10:15:43,050 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=52ms, total_len=433
-2025-11-24 10:15:43,063 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=65ms, total_len=437
-2025-11-24 10:15:43,076 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=78ms, total_len=442
-2025-11-24 10:15:43,092 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=93ms, total_len=446
-2025-11-24 10:15:43,102 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=104ms, total_len=447
-2025-11-24 10:15:43,115 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=117ms, total_len=450
-2025-11-24 10:15:43,128 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=37, time_since=130ms, total_len=451
-2025-11-24 10:15:43,141 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=40, time_since=143ms, total_len=454
-2025-11-24 10:15:43,158 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=44, time_since=159ms, total_len=458
-2025-11-24 10:15:43,158 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 458 chars
-2025-11-24 10:15:43,167 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=9ms, total_len=463
-2025-11-24 10:15:43,179 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=22ms, total_len=465
-2025-11-24 10:15:43,192 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=35ms, total_len=467
-2025-11-24 10:15:43,207 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=49ms, total_len=472
-2025-11-24 10:15:43,219 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=61ms, total_len=477
-2025-11-24 10:15:43,231 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=25, time_since=74ms, total_len=483
-2025-11-24 10:15:43,244 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=86ms, total_len=486
-2025-11-24 10:15:43,257 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=99ms, total_len=491
-2025-11-24 10:15:43,270 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=112ms, total_len=496
-2025-11-24 10:15:43,283 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=126ms, total_len=501
-2025-11-24 10:15:43,296 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=44, time_since=139ms, total_len=502
-2025-11-24 10:15:43,309 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=152ms, total_len=508
-2025-11-24 10:15:43,309 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 508 chars
-2025-11-24 10:15:43,323 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=14ms, total_len=519
-2025-11-24 10:15:43,335 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=26ms, total_len=520
-2025-11-24 10:15:43,348 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=39ms, total_len=523
-2025-11-24 10:15:43,361 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=52ms, total_len=524
-2025-11-24 10:15:43,374 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=65ms, total_len=527
-2025-11-24 10:15:43,387 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=25, time_since=78ms, total_len=533
-2025-11-24 10:15:43,400 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=91ms, total_len=538
-2025-11-24 10:15:43,413 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=104ms, total_len=540
-2025-11-24 10:15:43,426 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=34, time_since=117ms, total_len=542
-2025-11-24 10:15:43,439 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=41, time_since=130ms, total_len=549
-2025-11-24 10:15:43,452 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=142ms, total_len=551
-2025-11-24 10:15:43,465 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=47, time_since=155ms, total_len=555
-2025-11-24 10:15:43,465 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 555 chars
-2025-11-24 10:15:43,477 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=13ms, total_len=560
-2025-11-24 10:15:43,490 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=26ms, total_len=562
-2025-11-24 10:15:43,503 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=38ms, total_len=568
-2025-11-24 10:15:43,516 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=51ms, total_len=572
-2025-11-24 10:15:43,529 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=64ms, total_len=578
-2025-11-24 10:15:43,542 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=77ms, total_len=584
-2025-11-24 10:15:43,557 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=93ms, total_len=585
-2025-11-24 10:15:43,568 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=34, time_since=103ms, total_len=589
-2025-11-24 10:15:43,581 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=41, time_since=116ms, total_len=596
-2025-11-24 10:15:43,594 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=129ms, total_len=598
-2025-11-24 10:15:43,607 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=52, time_since=143ms, total_len=607
-2025-11-24 10:15:43,620 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=53, time_since=155ms, total_len=608
-2025-11-24 10:15:43,620 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 608 chars
-2025-11-24 10:15:43,632 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=12ms, total_len=611
-2025-11-24 10:15:43,645 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=25ms, total_len=612
-2025-11-24 10:15:43,658 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=38ms, total_len=615
-2025-11-24 10:15:43,674 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=55ms, total_len=619
-2025-11-24 10:15:43,684 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=64ms, total_len=624
-2025-11-24 10:15:43,697 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=77ms, total_len=630
-2025-11-24 10:15:43,709 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=24, time_since=90ms, total_len=632
-2025-11-24 10:15:43,725 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=105ms, total_len=634
-2025-11-24 10:15:43,735 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=31, time_since=116ms, total_len=639
-2025-11-24 10:15:43,748 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=40, time_since=129ms, total_len=648
-2025-11-24 10:15:43,761 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=45, time_since=142ms, total_len=653
-2025-11-24 10:15:43,774 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=52, time_since=155ms, total_len=660
-2025-11-24 10:15:43,774 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 660 chars
-2025-11-24 10:15:43,787 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=13ms, total_len=663
-2025-11-24 10:15:43,799 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=25ms, total_len=665
-2025-11-24 10:15:43,813 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=39ms, total_len=670
-2025-11-24 10:15:43,826 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=52ms, total_len=675
-2025-11-24 10:15:43,841 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=67ms, total_len=681
-2025-11-24 10:15:43,852 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=78ms, total_len=682
-2025-11-24 10:15:43,866 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=25, time_since=92ms, total_len=685
-2025-11-24 10:15:43,879 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=105ms, total_len=686
-2025-11-24 10:15:43,892 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=118ms, total_len=689
-2025-11-24 10:15:43,908 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=134ms, total_len=693
-2025-11-24 10:15:43,918 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=144ms, total_len=698
-2025-11-24 10:15:43,931 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=45, time_since=157ms, total_len=705
-2025-11-24 10:15:43,932 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 705 chars
-2025-11-24 10:15:43,945 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=13ms, total_len=713
-2025-11-24 10:15:43,957 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=26ms, total_len=715
-2025-11-24 10:15:43,974 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=43ms, total_len=717
-2025-11-24 10:15:43,983 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=52ms, total_len=725
-2025-11-24 10:15:43,996 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=27, time_since=65ms, total_len=732
-2025-11-24 10:15:44,009 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=78ms, total_len=733
-2025-11-24 10:15:44,024 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=31, time_since=92ms, total_len=736
-2025-11-24 10:15:44,035 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=104ms, total_len=737
-2025-11-24 10:15:44,049 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=117ms, total_len=744
-2025-11-24 10:15:44,062 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=46, time_since=130ms, total_len=751
-2025-11-24 10:15:44,074 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=51, time_since=143ms, total_len=756
-2025-11-24 10:15:44,087 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=60, time_since=156ms, total_len=765
-2025-11-24 10:15:44,087 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 765 chars
-2025-11-24 10:15:44,100 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=12ms, total_len=774
-2025-11-24 10:15:44,113 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=26ms, total_len=775
-2025-11-24 10:15:44,126 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=39ms, total_len=778
-2025-11-24 10:15:44,139 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=52ms, total_len=779
-2025-11-24 10:15:44,152 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=65ms, total_len=782
-2025-11-24 10:15:44,165 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=78ms, total_len=788
-2025-11-24 10:15:44,178 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=91ms, total_len=791
-2025-11-24 10:15:44,191 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=31, time_since=104ms, total_len=796
-2025-11-24 10:15:44,207 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=120ms, total_len=798
-2025-11-24 10:15:44,217 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=130ms, total_len=800
-2025-11-24 10:15:44,230 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=42, time_since=143ms, total_len=807
-2025-11-24 10:15:44,243 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=156ms, total_len=815
-2025-11-24 10:15:44,243 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 815 chars
-2025-11-24 10:15:44,256 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=13ms, total_len=818
-2025-11-24 10:15:44,269 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=26ms, total_len=822
-2025-11-24 10:15:44,282 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=39ms, total_len=826
-2025-11-24 10:15:44,294 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=51ms, total_len=829
-2025-11-24 10:15:44,308 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=65ms, total_len=831
-2025-11-24 10:15:44,324 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=81ms, total_len=836
-2025-11-24 10:15:44,335 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=92ms, total_len=838
-2025-11-24 10:15:44,349 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=106ms, total_len=845
-2025-11-24 10:15:44,362 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=119ms, total_len=850
-2025-11-24 10:15:44,375 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=132ms, total_len=853
-2025-11-24 10:15:44,388 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=48, time_since=145ms, total_len=863
-2025-11-24 10:15:44,401 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=158ms, total_len=865
-2025-11-24 10:15:44,401 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 865 chars
-2025-11-24 10:15:44,414 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=13ms, total_len=868
-2025-11-24 10:15:44,427 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=26ms, total_len=869
-2025-11-24 10:15:44,440 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=39ms, total_len=872
-2025-11-24 10:15:44,452 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=52ms, total_len=878
-2025-11-24 10:15:44,466 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=65ms, total_len=883
-2025-11-24 10:15:44,479 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=78ms, total_len=885
-2025-11-24 10:15:44,492 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=91ms, total_len=887
-2025-11-24 10:15:44,507 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=106ms, total_len=894
-2025-11-24 10:15:44,518 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=31, time_since=117ms, total_len=896
-2025-11-24 10:15:44,531 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=130ms, total_len=901
-2025-11-24 10:15:44,543 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=142ms, total_len=903
-2025-11-24 10:15:44,558 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=44, time_since=157ms, total_len=909
-2025-11-24 10:15:44,558 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 909 chars
-2025-11-24 10:15:44,569 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=11ms, total_len=918
-2025-11-24 10:15:44,582 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=24ms, total_len=927
-2025-11-24 10:15:44,596 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=38ms, total_len=929
-2025-11-24 10:15:44,608 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=50ms, total_len=932
-2025-11-24 10:15:44,625 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=24, time_since=67ms, total_len=933
-2025-11-24 10:15:44,634 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=27, time_since=76ms, total_len=936
-2025-11-24 10:15:44,647 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=31, time_since=90ms, total_len=940
-2025-11-24 10:15:44,660 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=102ms, total_len=944
-2025-11-24 10:15:44,674 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=37, time_since=117ms, total_len=946
-2025-11-24 10:15:44,686 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=128ms, total_len=948
-2025-11-24 10:15:44,699 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=141ms, total_len=952
-2025-11-24 10:15:44,711 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=46, time_since=154ms, total_len=955
-2025-11-24 10:15:44,711 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 955 chars
-2025-11-24 10:15:44,725 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=13ms, total_len=957
-2025-11-24 10:15:44,741 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=30ms, total_len=964
-2025-11-24 10:15:44,750 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=39ms, total_len=968
-2025-11-24 10:15:44,763 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=52ms, total_len=973
-2025-11-24 10:15:44,776 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=64ms, total_len=977
-2025-11-24 10:15:44,790 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=79ms, total_len=984
-2025-11-24 10:15:44,802 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=91ms, total_len=993
-2025-11-24 10:15:44,814 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=103ms, total_len=994
-2025-11-24 10:15:44,828 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=48, time_since=116ms, total_len=1003
-2025-11-24 10:15:44,842 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=56, time_since=131ms, total_len=1011
-2025-11-24 10:15:44,858 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=57, time_since=146ms, total_len=1012
-2025-11-24 10:15:44,866 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=60, time_since=155ms, total_len=1015
-2025-11-24 10:15:44,866 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1015 chars
-2025-11-24 10:15:44,879 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=1, time_since=13ms, total_len=1016
-2025-11-24 10:15:44,892 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=26ms, total_len=1019
-2025-11-24 10:15:44,907 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=41ms, total_len=1022
-2025-11-24 10:15:44,918 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=52ms, total_len=1029
-2025-11-24 10:15:44,931 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=65ms, total_len=1031
-2025-11-24 10:15:44,944 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=78ms, total_len=1033
-2025-11-24 10:15:44,957 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=91ms, total_len=1041
-2025-11-24 10:15:44,974 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=108ms, total_len=1043
-2025-11-24 10:15:44,983 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=117ms, total_len=1047
-2025-11-24 10:15:44,996 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=130ms, total_len=1054
-2025-11-24 10:15:45,008 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=142ms, total_len=1058
-2025-11-24 10:15:45,024 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=45, time_since=158ms, total_len=1060
-2025-11-24 10:15:45,024 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1060 chars
-2025-11-24 10:15:45,034 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=10ms, total_len=1063
-2025-11-24 10:15:45,047 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=23ms, total_len=1064
-2025-11-24 10:15:45,060 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=36ms, total_len=1066
-2025-11-24 10:15:45,073 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=48ms, total_len=1069
-2025-11-24 10:15:45,086 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=62ms, total_len=1070
-2025-11-24 10:15:45,099 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=75ms, total_len=1072
-2025-11-24 10:15:45,112 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=88ms, total_len=1073
-2025-11-24 10:15:45,125 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=100ms, total_len=1076
-2025-11-24 10:15:45,141 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=117ms, total_len=1081
-2025-11-24 10:15:45,150 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=25, time_since=126ms, total_len=1085
-2025-11-24 10:15:45,164 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=27, time_since=139ms, total_len=1087
-2025-11-24 10:15:45,176 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=152ms, total_len=1088
-2025-11-24 10:15:45,176 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1088 chars
-2025-11-24 10:15:45,191 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=15ms, total_len=1091
-2025-11-24 10:15:45,202 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=26ms, total_len=1092
-2025-11-24 10:15:45,215 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=39ms, total_len=1095
-2025-11-24 10:15:45,228 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=52ms, total_len=1096
-2025-11-24 10:15:45,242 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=66ms, total_len=1104
-2025-11-24 10:15:45,258 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=82ms, total_len=1111
-2025-11-24 10:15:45,267 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=25, time_since=91ms, total_len=1113
-2025-11-24 10:15:45,280 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=27, time_since=104ms, total_len=1115
-2025-11-24 10:15:45,294 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=118ms, total_len=1120
-2025-11-24 10:15:45,306 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=42, time_since=130ms, total_len=1130
-2025-11-24 10:15:45,319 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=143ms, total_len=1138
-2025-11-24 10:15:45,332 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=60, time_since=156ms, total_len=1148
-2025-11-24 10:15:45,332 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1148 chars
-2025-11-24 10:15:45,345 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=13ms, total_len=1152
-2025-11-24 10:15:45,358 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=26ms, total_len=1154
-2025-11-24 10:15:45,372 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=40ms, total_len=1160
-2025-11-24 10:15:45,384 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=52ms, total_len=1161
-2025-11-24 10:15:45,401 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=70ms, total_len=1165
-2025-11-24 10:15:45,414 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=83ms, total_len=1169
-2025-11-24 10:15:45,427 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=96ms, total_len=1174
-2025-11-24 10:15:45,440 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=109ms, total_len=1177
-2025-11-24 10:15:45,455 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=123ms, total_len=1181
-2025-11-24 10:15:45,466 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=134ms, total_len=1184
-2025-11-24 10:15:45,479 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=41, time_since=147ms, total_len=1189
-2025-11-24 10:15:45,492 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=47, time_since=160ms, total_len=1195
-2025-11-24 10:15:45,492 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1195 chars
-2025-11-24 10:15:45,507 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=14ms, total_len=1199
-2025-11-24 10:15:45,518 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=26ms, total_len=1203
-2025-11-24 10:15:45,531 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=39ms, total_len=1205
-2025-11-24 10:15:45,544 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=52ms, total_len=1210
-2025-11-24 10:15:45,557 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=65ms, total_len=1213
-2025-11-24 10:15:45,575 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=83ms, total_len=1217
-2025-11-24 10:15:45,583 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=25, time_since=91ms, total_len=1220
-2025-11-24 10:15:45,596 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=104ms, total_len=1223
-2025-11-24 10:15:45,609 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=117ms, total_len=1227
-2025-11-24 10:15:45,623 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=37, time_since=131ms, total_len=1232
-2025-11-24 10:15:45,635 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=42, time_since=143ms, total_len=1237
-2025-11-24 10:15:45,648 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=49, time_since=156ms, total_len=1244
-2025-11-24 10:15:45,648 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1244 chars
-2025-11-24 10:15:45,661 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=13ms, total_len=1247
-2025-11-24 10:15:45,674 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=26ms, total_len=1251
-2025-11-24 10:15:45,692 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=44ms, total_len=1254
-2025-11-24 10:15:45,700 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=52ms, total_len=1259
-2025-11-24 10:15:45,713 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=65ms, total_len=1260
-2025-11-24 10:15:45,727 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 419 chunks, exception=None
-2025-11-24 10:15:45,727 - consoul.tui.app - DEBUG - Found 0 tool_calls after merging chunks
-2025-11-24 10:15:45,727 - consoul.tui.app - DEBUG - Final tool_calls: []
-2025-11-24 10:15:45,728 - consoul.tui.app - DEBUG - Final message has 0 tool_calls
-2025-11-24 10:15:45,728 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
-2025-11-24 10:15:45,728 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
-2025-11-24 10:15:45,729 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
-2025-11-24 10:15:45,729 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
-2025-11-24 10:15:45,729 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=Here’s a quick rundown of the tools I can call for you:
+2025-11-24 10:18:52,470 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
+2025-11-24 10:18:58,254 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.0ms
+2025-11-24 10:18:58,254 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.1ms
+2025-11-24 10:18:58,262 - consoul.tui.app - INFO - [TIMING] Added message bubble: 8.5ms
+2025-11-24 10:18:58,265 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 2.5ms
+2025-11-24 10:18:58,265 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.0ms
+2025-11-24 10:18:58,265 - consoul.tui.app - INFO - [IMAGE_DETECTION] Auto-detect enabled: True, Attached images: 0, Auto-detected: 0, Total (deduplicated): 0
+2025-11-24 10:18:58,265 - consoul.tui.app - INFO - [IMAGE_DETECTION] Checking vision support for model: gpt-oss:20b
+2025-11-24 10:18:58,265 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model 'gpt-oss:20b' has vision: False
+2025-11-24 10:18:58,265 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model supports vision: False
+2025-11-24 10:18:58,265 - consoul.tui.app - INFO - [IMAGE_DETECTION] Condition check: image_paths=False, model_supports_vision=False, combined=False
+2025-11-24 10:18:58,266 - consoul.tui.app - INFO - [TIMING] Worker started: 11.7ms from submit
+2025-11-24 10:18:58,266 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 11.8ms
+2025-11-24 10:18:58,269 - consoul.tui.app - INFO - Created conversation session: b81c1571-078f-483b-a7c0-6f4f051b91f7
+2025-11-24 10:18:58,271 - consoul.tui.app - DEBUG - Persisted user message with ID: 89
+2025-11-24 10:18:58,276 - consoul.tui.app - INFO - [TIMING] DB persist complete: 10.2ms
+2025-11-24 10:18:58,276 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
+2025-11-24 10:18:58,276 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.2ms
+2025-11-24 10:18:58,276 - consoul.tui.app - INFO - [TIMING] Got model config: 0.0ms
+2025-11-24 10:18:58,278 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 2.5ms
+2025-11-24 10:18:58,278 - consoul.tui.app - INFO - [IMAGE_DETECTION] Last message has multimodal content: False
+2025-11-24 10:18:58,279 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.4ms, total prep: 3.1ms
+2025-11-24 10:19:00,437 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=False, value=Here, ttft=2.158s
+2025-11-24 10:19:00,442 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=1764008340443ms, total_len=4
+2025-11-24 10:19:00,443 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 4 chars
+2025-11-24 10:19:00,450 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=7ms, total_len=6
+2025-11-24 10:19:00,463 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=20ms, total_len=8
+2025-11-24 10:19:00,475 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=33ms, total_len=14
+2025-11-24 10:19:00,488 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=46ms, total_len=24
+2025-11-24 10:19:00,501 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=59ms, total_len=27
+2025-11-24 10:19:00,514 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=27, time_since=72ms, total_len=31
+2025-11-24 10:19:00,529 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=86ms, total_len=37
+2025-11-24 10:19:00,540 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=98ms, total_len=39
+2025-11-24 10:19:00,553 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=111ms, total_len=43
+2025-11-24 10:19:00,566 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=44, time_since=123ms, total_len=48
+2025-11-24 10:19:00,579 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=47, time_since=137ms, total_len=51
+2025-11-24 10:19:00,592 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=48, time_since=149ms, total_len=52
+2025-11-24 10:19:00,604 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=53, time_since=162ms, total_len=57
+2025-11-24 10:19:00,604 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 57 chars
+2025-11-24 10:19:00,617 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=13ms, total_len=62
+2025-11-24 10:19:00,630 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=26ms, total_len=64
+2025-11-24 10:19:00,645 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=41ms, total_len=72
+2025-11-24 10:19:00,656 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=51ms, total_len=75
+2025-11-24 10:19:00,669 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=64ms, total_len=76
+2025-11-24 10:19:00,681 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=77ms, total_len=87
+2025-11-24 10:19:00,696 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=31, time_since=91ms, total_len=88
+2025-11-24 10:19:00,708 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=40, time_since=103ms, total_len=97
+2025-11-24 10:19:00,720 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=42, time_since=116ms, total_len=99
+2025-11-24 10:19:00,733 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=129ms, total_len=100
+2025-11-24 10:19:00,746 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=46, time_since=142ms, total_len=103
+2025-11-24 10:19:00,759 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=155ms, total_len=107
+2025-11-24 10:19:00,760 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 107 chars
+2025-11-24 10:19:00,772 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=12ms, total_len=115
+2025-11-24 10:19:00,784 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=25ms, total_len=117
+2025-11-24 10:19:00,797 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=38ms, total_len=119
+2025-11-24 10:19:00,813 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=53ms, total_len=123
+2025-11-24 10:19:00,823 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=64ms, total_len=125
+2025-11-24 10:19:00,836 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=24, time_since=77ms, total_len=131
+2025-11-24 10:19:00,851 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=92ms, total_len=139
+2025-11-24 10:19:00,862 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=34, time_since=103ms, total_len=141
+2025-11-24 10:19:00,875 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=116ms, total_len=145
+2025-11-24 10:19:00,888 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=128ms, total_len=146
+2025-11-24 10:19:00,900 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=141ms, total_len=150
+2025-11-24 10:19:00,914 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=44, time_since=154ms, total_len=151
+2025-11-24 10:19:00,914 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 151 chars
+2025-11-24 10:19:00,932 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=18ms, total_len=157
+2025-11-24 10:19:00,939 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=25ms, total_len=161
+2025-11-24 10:19:00,952 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=38ms, total_len=162
+2025-11-24 10:19:00,965 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=51ms, total_len=164
+2025-11-24 10:19:00,980 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=66ms, total_len=171
+2025-11-24 10:19:00,991 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=27, time_since=77ms, total_len=178
+2025-11-24 10:19:01,004 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=90ms, total_len=180
+2025-11-24 10:19:01,017 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=103ms, total_len=183
+2025-11-24 10:19:01,030 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=116ms, total_len=184
+2025-11-24 10:19:01,044 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=130ms, total_len=187
+2025-11-24 10:19:01,056 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=40, time_since=142ms, total_len=191
+2025-11-24 10:19:01,069 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=47, time_since=155ms, total_len=198
+2025-11-24 10:19:01,069 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 198 chars
+2025-11-24 10:19:01,081 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=13ms, total_len=200
+2025-11-24 10:19:01,097 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=28ms, total_len=202
+2025-11-24 10:19:01,107 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=39ms, total_len=207
+2025-11-24 10:19:01,120 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=52ms, total_len=213
+2025-11-24 10:19:01,133 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=64ms, total_len=214
+2025-11-24 10:19:01,146 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=77ms, total_len=219
+2025-11-24 10:19:01,159 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=90ms, total_len=224
+2025-11-24 10:19:01,173 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=105ms, total_len=231
+2025-11-24 10:19:01,186 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=40, time_since=118ms, total_len=238
+2025-11-24 10:19:01,199 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=46, time_since=131ms, total_len=244
+2025-11-24 10:19:01,212 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=48, time_since=143ms, total_len=246
+2025-11-24 10:19:01,225 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=52, time_since=157ms, total_len=250
+2025-11-24 10:19:01,225 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 250 chars
+2025-11-24 10:19:01,238 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=13ms, total_len=254
+2025-11-24 10:19:01,251 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=26ms, total_len=258
+2025-11-24 10:19:01,264 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=39ms, total_len=259
+2025-11-24 10:19:01,278 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=52ms, total_len=263
+2025-11-24 10:19:01,290 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=65ms, total_len=265
+2025-11-24 10:19:01,303 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=77ms, total_len=268
+2025-11-24 10:19:01,316 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=90ms, total_len=269
+2025-11-24 10:19:01,329 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=104ms, total_len=272
+2025-11-24 10:19:01,342 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=116ms, total_len=276
+2025-11-24 10:19:01,355 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=129ms, total_len=283
+2025-11-24 10:19:01,367 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=142ms, total_len=285
+2025-11-24 10:19:01,380 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=37, time_since=155ms, total_len=287
+2025-11-24 10:19:01,380 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 287 chars
+2025-11-24 10:19:01,395 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=15ms, total_len=296
+2025-11-24 10:19:01,406 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=26ms, total_len=303
+2025-11-24 10:19:01,419 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=39ms, total_len=307
+2025-11-24 10:19:01,432 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=52ms, total_len=315
+2025-11-24 10:19:01,445 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=65ms, total_len=317
+2025-11-24 10:19:01,458 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=78ms, total_len=326
+2025-11-24 10:19:01,471 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=40, time_since=91ms, total_len=327
+2025-11-24 10:19:01,484 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=48, time_since=104ms, total_len=335
+2025-11-24 10:19:01,497 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=49, time_since=117ms, total_len=336
+2025-11-24 10:19:01,512 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=57, time_since=132ms, total_len=344
+2025-11-24 10:19:01,523 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=58, time_since=143ms, total_len=345
+2025-11-24 10:19:01,536 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=62, time_since=156ms, total_len=349
+2025-11-24 10:19:01,536 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 349 chars
+2025-11-24 10:19:01,548 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=12ms, total_len=353
+2025-11-24 10:19:01,564 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=28ms, total_len=361
+2025-11-24 10:19:01,574 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=39ms, total_len=362
+2025-11-24 10:19:01,587 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=51ms, total_len=365
+2025-11-24 10:19:01,600 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=64ms, total_len=366
+2025-11-24 10:19:01,613 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=77ms, total_len=369
+2025-11-24 10:19:01,626 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=24, time_since=90ms, total_len=373
+2025-11-24 10:19:01,639 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=27, time_since=103ms, total_len=376
+2025-11-24 10:19:01,652 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=116ms, total_len=384
+2025-11-24 10:19:01,664 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=37, time_since=129ms, total_len=386
+2025-11-24 10:19:01,680 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=144ms, total_len=388
+2025-11-24 10:19:01,690 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=44, time_since=154ms, total_len=393
+2025-11-24 10:19:01,690 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 393 chars
+2025-11-24 10:19:01,703 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=12ms, total_len=397
+2025-11-24 10:19:01,715 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=25ms, total_len=404
+2025-11-24 10:19:01,730 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=39ms, total_len=407
+2025-11-24 10:19:01,742 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=52ms, total_len=409
+2025-11-24 10:19:01,755 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=65ms, total_len=416
+2025-11-24 10:19:01,767 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=25, time_since=77ms, total_len=418
+2025-11-24 10:19:01,780 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=90ms, total_len=423
+2025-11-24 10:19:01,796 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=31, time_since=106ms, total_len=424
+2025-11-24 10:19:01,806 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=116ms, total_len=432
+2025-11-24 10:19:01,819 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=40, time_since=129ms, total_len=433
+2025-11-24 10:19:01,832 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=141ms, total_len=443
+2025-11-24 10:19:01,846 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=59, time_since=156ms, total_len=452
+2025-11-24 10:19:01,846 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 452 chars
+2025-11-24 10:19:01,857 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=11ms, total_len=454
+2025-11-24 10:19:01,870 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=24ms, total_len=457
+2025-11-24 10:19:01,883 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=37ms, total_len=458
+2025-11-24 10:19:01,897 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=51ms, total_len=461
+2025-11-24 10:19:01,912 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=66ms, total_len=465
+2025-11-24 10:19:01,922 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=76ms, total_len=470
+2025-11-24 10:19:01,935 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=89ms, total_len=472
+2025-11-24 10:19:01,948 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=102ms, total_len=474
+2025-11-24 10:19:01,963 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=27, time_since=117ms, total_len=479
+2025-11-24 10:19:01,974 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=128ms, total_len=481
+2025-11-24 10:19:01,987 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=34, time_since=141ms, total_len=486
+2025-11-24 10:19:01,999 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=153ms, total_len=491
+2025-11-24 10:19:02,000 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 491 chars
+2025-11-24 10:19:02,013 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=14ms, total_len=496
+2025-11-24 10:19:02,025 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=25ms, total_len=501
+2025-11-24 10:19:02,038 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=39ms, total_len=509
+2025-11-24 10:19:02,051 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=52ms, total_len=512
+2025-11-24 10:19:02,064 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=64ms, total_len=514
+2025-11-24 10:19:02,080 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=27, time_since=80ms, total_len=518
+2025-11-24 10:19:02,090 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=91ms, total_len=523
+2025-11-24 10:19:02,103 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=103ms, total_len=529
+2025-11-24 10:19:02,115 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=116ms, total_len=530
+2025-11-24 10:19:02,130 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=42, time_since=131ms, total_len=533
+2025-11-24 10:19:02,141 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=142ms, total_len=534
+2025-11-24 10:19:02,154 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=46, time_since=155ms, total_len=537
+2025-11-24 10:19:02,154 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 537 chars
+2025-11-24 10:19:02,166 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=12ms, total_len=543
+2025-11-24 10:19:02,180 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=26ms, total_len=548
+2025-11-24 10:19:02,192 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=38ms, total_len=550
+2025-11-24 10:19:02,205 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=51ms, total_len=552
+2025-11-24 10:19:02,218 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=64ms, total_len=559
+2025-11-24 10:19:02,231 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=24, time_since=77ms, total_len=561
+2025-11-24 10:19:02,246 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=92ms, total_len=565
+2025-11-24 10:19:02,257 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=103ms, total_len=570
+2025-11-24 10:19:02,270 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=116ms, total_len=572
+2025-11-24 10:19:02,283 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=37, time_since=129ms, total_len=574
+2025-11-24 10:19:02,295 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=47, time_since=141ms, total_len=584
+2025-11-24 10:19:02,308 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=154ms, total_len=587
+2025-11-24 10:19:02,308 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 587 chars
+2025-11-24 10:19:02,321 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=13ms, total_len=595
+2025-11-24 10:19:02,334 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=26ms, total_len=597
+2025-11-24 10:19:02,347 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=39ms, total_len=600
+2025-11-24 10:19:02,361 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=53ms, total_len=601
+2025-11-24 10:19:02,374 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=66ms, total_len=604
+2025-11-24 10:19:02,387 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=79ms, total_len=608
+2025-11-24 10:19:02,400 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=91ms, total_len=613
+2025-11-24 10:19:02,413 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=105ms, total_len=619
+2025-11-24 10:19:02,427 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=34, time_since=119ms, total_len=621
+2025-11-24 10:19:02,439 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=131ms, total_len=623
+2025-11-24 10:19:02,452 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=41, time_since=143ms, total_len=628
+2025-11-24 10:19:02,465 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=47, time_since=156ms, total_len=634
+2025-11-24 10:19:02,465 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 634 chars
+2025-11-24 10:19:02,479 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=15ms, total_len=642
+2025-11-24 10:19:02,491 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=26ms, total_len=651
+2025-11-24 10:19:02,504 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=39ms, total_len=656
+2025-11-24 10:19:02,517 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=52ms, total_len=663
+2025-11-24 10:19:02,530 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=65ms, total_len=666
+2025-11-24 10:19:02,546 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=34, time_since=82ms, total_len=668
+2025-11-24 10:19:02,556 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=91ms, total_len=673
+2025-11-24 10:19:02,569 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=40, time_since=104ms, total_len=674
+2025-11-24 10:19:02,581 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=116ms, total_len=677
+2025-11-24 10:19:02,595 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=44, time_since=131ms, total_len=678
+2025-11-24 10:19:02,607 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=47, time_since=143ms, total_len=681
+2025-11-24 10:19:02,620 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=51, time_since=156ms, total_len=685
+2025-11-24 10:19:02,620 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 685 chars
+2025-11-24 10:19:02,633 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=12ms, total_len=690
+2025-11-24 10:19:02,646 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=26ms, total_len=697
+2025-11-24 10:19:02,659 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=39ms, total_len=705
+2025-11-24 10:19:02,672 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=52ms, total_len=707
+2025-11-24 10:19:02,685 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=24, time_since=65ms, total_len=709
+2025-11-24 10:19:02,698 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=31, time_since=78ms, total_len=716
+2025-11-24 10:19:02,713 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=93ms, total_len=717
+2025-11-24 10:19:02,724 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=104ms, total_len=720
+2025-11-24 10:19:02,737 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=116ms, total_len=721
+2025-11-24 10:19:02,749 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=129ms, total_len=728
+2025-11-24 10:19:02,764 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=143ms, total_len=735
+2025-11-24 10:19:02,775 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=55, time_since=155ms, total_len=740
+2025-11-24 10:19:02,776 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 740 chars
+2025-11-24 10:19:02,788 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=12ms, total_len=750
+2025-11-24 10:19:02,801 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=25ms, total_len=758
+2025-11-24 10:19:02,814 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=38ms, total_len=760
+2025-11-24 10:19:02,830 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=55ms, total_len=766
+2025-11-24 10:19:02,840 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=27, time_since=65ms, total_len=767
+2025-11-24 10:19:02,853 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=29, time_since=77ms, total_len=769
+2025-11-24 10:19:02,865 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=37, time_since=90ms, total_len=777
+2025-11-24 10:19:02,880 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=105ms, total_len=779
+2025-11-24 10:19:02,892 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=116ms, total_len=783
+2025-11-24 10:19:02,905 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=45, time_since=129ms, total_len=785
+2025-11-24 10:19:02,917 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=48, time_since=142ms, total_len=788
+2025-11-24 10:19:02,930 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=49, time_since=155ms, total_len=789
+2025-11-24 10:19:02,931 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 789 chars
+2025-11-24 10:19:02,945 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=15ms, total_len=792
+2025-11-24 10:19:02,956 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=25ms, total_len=798
+2025-11-24 10:19:02,969 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=38ms, total_len=801
+2025-11-24 10:19:02,984 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=54ms, total_len=806
+2025-11-24 10:19:02,997 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=66ms, total_len=808
+2025-11-24 10:19:03,014 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=83ms, total_len=810
+2025-11-24 10:19:03,023 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=93ms, total_len=817
+2025-11-24 10:19:03,035 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=105ms, total_len=822
+2025-11-24 10:19:03,048 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=118ms, total_len=825
+2025-11-24 10:19:03,062 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=40, time_since=132ms, total_len=829
+2025-11-24 10:19:03,075 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=44, time_since=144ms, total_len=833
+2025-11-24 10:19:03,087 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=47, time_since=157ms, total_len=836
+2025-11-24 10:19:03,087 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 836 chars
+2025-11-24 10:19:03,100 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=12ms, total_len=838
+2025-11-24 10:19:03,113 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=25ms, total_len=843
+2025-11-24 10:19:03,129 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=41ms, total_len=844
+2025-11-24 10:19:03,139 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=52ms, total_len=855
+2025-11-24 10:19:03,152 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=65ms, total_len=864
+2025-11-24 10:19:03,169 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=31, time_since=82ms, total_len=867
+2025-11-24 10:19:03,178 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=90ms, total_len=868
+2025-11-24 10:19:03,191 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=103ms, total_len=871
+2025-11-24 10:19:03,204 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=116ms, total_len=872
+2025-11-24 10:19:03,216 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=129ms, total_len=875
+2025-11-24 10:19:03,231 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=45, time_since=144ms, total_len=881
+2025-11-24 10:19:03,242 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=155ms, total_len=886
+2025-11-24 10:19:03,242 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 886 chars
+2025-11-24 10:19:03,255 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=13ms, total_len=888
+2025-11-24 10:19:03,268 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=25ms, total_len=890
+2025-11-24 10:19:03,281 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=39ms, total_len=897
+2025-11-24 10:19:03,295 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=53ms, total_len=899
+2025-11-24 10:19:03,307 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=65ms, total_len=904
+2025-11-24 10:19:03,320 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=20, time_since=78ms, total_len=906
+2025-11-24 10:19:03,333 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=91ms, total_len=914
+2025-11-24 10:19:03,346 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=37, time_since=104ms, total_len=923
+2025-11-24 10:19:03,359 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=46, time_since=117ms, total_len=932
+2025-11-24 10:19:03,372 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=48, time_since=130ms, total_len=934
+2025-11-24 10:19:03,386 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=51, time_since=143ms, total_len=937
+2025-11-24 10:19:03,398 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=52, time_since=156ms, total_len=938
+2025-11-24 10:19:03,398 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 938 chars
+2025-11-24 10:19:03,413 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=14ms, total_len=941
+2025-11-24 10:19:03,425 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=7, time_since=26ms, total_len=945
+2025-11-24 10:19:03,438 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=40ms, total_len=949
+2025-11-24 10:19:03,451 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=13, time_since=53ms, total_len=951
+2025-11-24 10:19:03,464 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=66ms, total_len=953
+2025-11-24 10:19:03,478 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=80ms, total_len=959
+2025-11-24 10:19:03,490 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=25, time_since=92ms, total_len=963
+2025-11-24 10:19:03,503 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=105ms, total_len=971
+2025-11-24 10:19:03,516 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=117ms, total_len=973
+2025-11-24 10:19:03,530 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=132ms, total_len=977
+2025-11-24 10:19:03,542 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=44, time_since=144ms, total_len=982
+2025-11-24 10:19:03,555 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=47, time_since=157ms, total_len=985
+2025-11-24 10:19:03,555 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 985 chars
+2025-11-24 10:19:03,568 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=13ms, total_len=994
+2025-11-24 10:19:03,581 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=26ms, total_len=996
+2025-11-24 10:19:03,594 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=39ms, total_len=997
+2025-11-24 10:19:03,607 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=52ms, total_len=1000
+2025-11-24 10:19:03,620 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=18, time_since=65ms, total_len=1003
+2025-11-24 10:19:03,633 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=78ms, total_len=1004
+2025-11-24 10:19:03,647 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=24, time_since=92ms, total_len=1009
+2025-11-24 10:19:03,662 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=107ms, total_len=1018
+2025-11-24 10:19:03,672 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=117ms, total_len=1020
+2025-11-24 10:19:03,685 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=130ms, total_len=1023
+2025-11-24 10:19:03,698 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=142ms, total_len=1024
+2025-11-24 10:19:03,713 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=42, time_since=158ms, total_len=1027
+2025-11-24 10:19:03,713 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1027 chars
+2025-11-24 10:19:03,724 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=11ms, total_len=1030
+2025-11-24 10:19:03,736 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=24ms, total_len=1037
+2025-11-24 10:19:03,749 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=37ms, total_len=1039
+2025-11-24 10:19:03,765 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=14, time_since=52ms, total_len=1041
+2025-11-24 10:19:03,776 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=63ms, total_len=1049
+2025-11-24 10:19:03,788 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=24, time_since=76ms, total_len=1051
+2025-11-24 10:19:03,801 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=28, time_since=88ms, total_len=1055
+2025-11-24 10:19:03,814 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=101ms, total_len=1062
+2025-11-24 10:19:03,830 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=37, time_since=117ms, total_len=1064
+2025-11-24 10:19:03,840 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=38, time_since=127ms, total_len=1065
+2025-11-24 10:19:03,853 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=41, time_since=140ms, total_len=1068
+2025-11-24 10:19:03,866 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=43, time_since=154ms, total_len=1070
+2025-11-24 10:19:03,866 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1070 chars
+2025-11-24 10:19:03,879 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=13ms, total_len=1072
+2025-11-24 10:19:03,896 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=5, time_since=30ms, total_len=1075
+2025-11-24 10:19:03,906 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=6, time_since=40ms, total_len=1076
+2025-11-24 10:19:03,919 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=8, time_since=53ms, total_len=1078
+2025-11-24 10:19:03,932 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=10, time_since=66ms, total_len=1080
+2025-11-24 10:19:03,946 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=15, time_since=80ms, total_len=1085
+2025-11-24 10:19:03,959 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=93ms, total_len=1089
+2025-11-24 10:19:03,972 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=106ms, total_len=1091
+2025-11-24 10:19:03,985 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=119ms, total_len=1100
+2025-11-24 10:19:03,998 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=131ms, total_len=1102
+2025-11-24 10:19:04,015 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=35, time_since=148ms, total_len=1105
+2025-11-24 10:19:04,024 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=36, time_since=158ms, total_len=1106
+2025-11-24 10:19:04,024 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1106 chars
+2025-11-24 10:19:04,037 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=3, time_since=13ms, total_len=1109
+2025-11-24 10:19:04,050 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=26ms, total_len=1110
+2025-11-24 10:19:04,063 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=39ms, total_len=1118
+2025-11-24 10:19:04,077 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=53ms, total_len=1125
+2025-11-24 10:19:04,089 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=21, time_since=65ms, total_len=1127
+2025-11-24 10:19:04,102 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=23, time_since=78ms, total_len=1129
+2025-11-24 10:19:04,115 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=32, time_since=91ms, total_len=1138
+2025-11-24 10:19:04,130 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=42, time_since=106ms, total_len=1148
+2025-11-24 10:19:04,142 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=50, time_since=118ms, total_len=1156
+2025-11-24 10:19:04,155 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=60, time_since=130ms, total_len=1166
+2025-11-24 10:19:04,168 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=61, time_since=144ms, total_len=1167
+2025-11-24 10:19:04,181 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=65, time_since=157ms, total_len=1171
+2025-11-24 10:19:04,181 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1171 chars
+2025-11-24 10:19:04,196 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=4, time_since=15ms, total_len=1175
+2025-11-24 10:19:04,208 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=9, time_since=27ms, total_len=1180
+2025-11-24 10:19:04,222 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=12, time_since=41ms, total_len=1183
+2025-11-24 10:19:04,235 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=55ms, total_len=1187
+2025-11-24 10:19:04,248 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=19, time_since=68ms, total_len=1190
+2025-11-24 10:19:04,262 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=22, time_since=81ms, total_len=1193
+2025-11-24 10:19:04,276 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=26, time_since=95ms, total_len=1197
+2025-11-24 10:19:04,289 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=30, time_since=108ms, total_len=1201
+2025-11-24 10:19:04,302 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=33, time_since=121ms, total_len=1204
+2025-11-24 10:19:04,315 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=39, time_since=134ms, total_len=1210
+2025-11-24 10:19:04,328 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=45, time_since=148ms, total_len=1216
+2025-11-24 10:19:04,341 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=49, time_since=161ms, total_len=1220
+2025-11-24 10:19:04,341 - consoul.tui.widgets.streaming_response - DEBUG - Rendering full content as markdown: 1220 chars
+2025-11-24 10:19:04,354 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=2, time_since=13ms, total_len=1222
+2025-11-24 10:19:04,367 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=11, time_since=26ms, total_len=1231
+2025-11-24 10:19:04,380 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=16, time_since=39ms, total_len=1236
+2025-11-24 10:19:04,394 - consoul.tui.widgets.streaming_response - DEBUG - add_token: buffer_size=17, time_since=53ms, total_len=1237
+2025-11-24 10:19:04,407 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 450 chunks, exception=None
+2025-11-24 10:19:04,407 - consoul.tui.app - DEBUG - Found 0 tool_calls after merging chunks
+2025-11-24 10:19:04,407 - consoul.tui.app - DEBUG - Final tool_calls: []
+2025-11-24 10:19:04,407 - consoul.tui.app - DEBUG - Final message has 0 tool_calls
+2025-11-24 10:19:04,407 - consoul.tui.app - DEBUG - [TOOL_FLOW] About to send final_message to main thread
+2025-11-24 10:19:04,407 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=True
+2025-11-24 10:19:04,409 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: None
+2025-11-24 10:19:04,409 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got final_message from queue: type=AIMessage, is_none=False
+2025-11-24 10:19:04,409 - consoul.tui.app - DEBUG - [TOOL_FLOW] Response check: has_content=Here’s a quick inventory of the tools I can call:
 
-| Tool | Purpose (short description) |
-|------|-----------------------------|
-| **bash_execute** | Run a shell command (with security checks). |
-| **grep_search** | Search for regex patterns in files (ripgrep/grep). |
-| **code_search** | Find code symbols (functions, classes, methods) via AST parsing. |
-| **find_references** | Locate all references/usages of a symbol across the codebase. |
-| **read_file** | Read text files or PDFs with line‑number formatting. |
-| **create_file** | Create a new file (optionally overwriting) and return a checksum. |
-| **edit_file_lines** | Edit specific line ranges in a file atomically. |
-| **edit_file_search_replace** | Perform search‑and‑replace blocks with tolerant matching. |
-| **append_to_file** | Append content to the end of a file (creates file if requested). |
-| **delete_file** | Delete a file (always requires approval). |
-| **read_url** | Scrape a public web page and return markdown‑formatted content. |
-| **web_search** | Perform a web search via Jina, SearxNG, or DuckDuckGo. |
-| **wikipedia_search** | Pull Wikipedia article summaries for a query. |
+| Tool name | Purpose |
+|-----------|---------|
+| **bash_execute** | Run a shell command (safe‑mode, blocklist/whitelist checks). |
+| **grep_search** | Fast regex‑based text search across files (uses ripgrep/grep). |
+| **code_search** | Semantic search for symbols (functions, classes, methods) via AST parsing. |
+| **find_references** | Find all usages of a symbol (calls, imports, attribute accesses). |
+| **read_file** | Read a text file with line numbers or a PDF page range. |
+| **create_file** | Create a new file (or overwrite if allowed). |
+| **edit_file_lines** | Atomically replace specific line ranges in a file. |
+| **edit_file_search_replace** | Search‑and‑replace blocks with tolerance options (strict/whitespace/fuzzy). |
+| **append_to_file** | Append text to the end of a file, optionally creating it. |
+| **delete_file** | Delete a file (requires explicit approval). |
+| **read_url** | Fetch and convert a web page to Markdown (Jina AI, with fallback). |
+| **web_search** | Perform a web search (Jina → SearxNG → DuckDuckGo fallback). |
+| **wikipedia_search** | Retrieve Wikipedia article summaries. |
 
-Feel free to let me know which one you’d like to use or if you need more detail on any of them!, has_tool_calls_in_message=[], full_response_len=1260, cancelled=False
-2025-11-24 10:15:45,730 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
-2025-11-24 10:15:45,730 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
-2025-11-24 10:15:45,745 - consoul.tui.app - INFO - [TIMING] Worker complete: 5809.9ms, total: 5822.0ms
+Feel free to ask me to use any of these tools for a specific task!, has_tool_calls_in_message=[], full_response_len=1237, cancelled=False
+2025-11-24 10:19:04,413 - consoul.tui.app - DEBUG - [TOOL_FLOW] Checking final_message for tool calls: has_final_message=True
+2025-11-24 10:19:04,413 - consoul.tui.app - DEBUG - [TOOL_FLOW] Calling has_tool_calls()
+2025-11-24 10:19:04,425 - consoul.tui.app - INFO - [TIMING] Worker complete: 6159.1ms, total: 6170.8ms
