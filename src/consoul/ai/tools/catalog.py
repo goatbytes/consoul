@@ -20,8 +20,10 @@ from consoul.ai.tools.implementations.file_edit import (
 )
 from consoul.ai.tools.implementations.find_references import find_references
 from consoul.ai.tools.implementations.grep_search import grep_search
+from consoul.ai.tools.implementations.read import read_file
 from consoul.ai.tools.implementations.read_url import read_url
 from consoul.ai.tools.implementations.web_search import web_search
+from consoul.ai.tools.implementations.wikipedia import wikipedia_search
 
 if TYPE_CHECKING:
     from langchain_core.tools import BaseTool
@@ -33,6 +35,7 @@ TOOL_CATALOG: dict[str, tuple[BaseTool, RiskLevel, list[ToolCategory]]] = {
     "grep": (grep_search, RiskLevel.SAFE, [ToolCategory.SEARCH]),
     "code_search": (code_search, RiskLevel.SAFE, [ToolCategory.SEARCH]),
     "find_references": (find_references, RiskLevel.SAFE, [ToolCategory.SEARCH]),
+    "read": (read_file, RiskLevel.SAFE, [ToolCategory.SEARCH]),
     "create_file": (create_file, RiskLevel.CAUTION, [ToolCategory.FILE_EDIT]),
     "edit_lines": (edit_file_lines, RiskLevel.CAUTION, [ToolCategory.FILE_EDIT]),
     "edit_replace": (
@@ -44,6 +47,11 @@ TOOL_CATALOG: dict[str, tuple[BaseTool, RiskLevel, list[ToolCategory]]] = {
     "delete_file": (delete_file, RiskLevel.DANGEROUS, [ToolCategory.FILE_EDIT]),
     "read_url": (read_url, RiskLevel.SAFE, [ToolCategory.WEB]),
     "web_search": (web_search, RiskLevel.SAFE, [ToolCategory.WEB]),
+    "wikipedia": (
+        wikipedia_search,
+        RiskLevel.SAFE,
+        [ToolCategory.WEB, ToolCategory.SEARCH],
+    ),
 }
 
 # Alias mappings for convenience
@@ -51,8 +59,10 @@ TOOL_ALIASES: dict[str, str] = {
     "bash_execute": "bash",
     "grep_search": "grep",
     "find_refs": "find_references",
+    "read_file": "read",
     "edit_file_lines": "edit_lines",
     "edit_file_search_replace": "edit_replace",
+    "wikipedia_search": "wikipedia",
 }
 
 

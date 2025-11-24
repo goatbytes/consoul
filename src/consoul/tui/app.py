@@ -282,19 +282,13 @@ class ConsoulApp(App[None]):
 
                 # Initialize tool registry (approval handled via _request_tool_approval)
                 if consoul_config.tools and consoul_config.tools.enabled:
-                    from consoul.ai.tools import RiskLevel, ToolRegistry
+                    from consoul.ai.tools import ToolRegistry
+                    from consoul.ai.tools.catalog import (
+                        TOOL_CATALOG,
+                        get_all_tool_names,
+                        get_tool_by_name,
+                    )
                     from consoul.ai.tools.implementations import (
-                        append_to_file,
-                        bash_execute,
-                        code_search,
-                        create_file,
-                        delete_file,
-                        edit_file_lines,
-                        edit_file_search_replace,
-                        find_references,
-                        grep_search,
-                        read_file,
-                        read_url,
                         set_analyze_images_config,
                         set_bash_config,
                         set_code_search_config,
@@ -305,8 +299,6 @@ class ConsoulApp(App[None]):
                         set_read_url_config,
                         set_web_search_config,
                         set_wikipedia_config,
-                        web_search,
-                        wikipedia_search,
                     )
                     from consoul.ai.tools.providers import CliApprovalProvider
 
@@ -357,100 +349,42 @@ class ConsoulApp(App[None]):
                         approval_provider=CliApprovalProvider(),  # Required but unused
                     )
 
-                    # Register bash tool (risk level determined dynamically by CommandAnalyzer)
-                    self.tool_registry.register(bash_execute, enabled=True)
+                    # Determine which tools to register based on allowed_tools config
+                    if consoul_config.tools.allowed_tools:
+                        # Non-empty whitelist: only register specified tools
+                        tools_to_register = []
+                        invalid_tools = []
 
-                    # Register read tool (read-only, no side effects)
-                    self.tool_registry.register(
-                        read_file,
-                        risk_level=RiskLevel.SAFE,
-                        tags=["filesystem", "readonly"],
-                        enabled=True,
-                    )
+                        for tool_name in consoul_config.tools.allowed_tools:
+                            result = get_tool_by_name(tool_name)
+                            if result:
+                                tools_to_register.append(result)
+                            else:
+                                invalid_tools.append(tool_name)
 
-                    # Register grep_search tool (read-only text search)
-                    self.tool_registry.register(
-                        grep_search,
-                        risk_level=RiskLevel.SAFE,
-                        tags=["search", "readonly"],
-                        enabled=True,
-                    )
+                        # Error if any invalid tool names
+                        if invalid_tools:
+                            available = get_all_tool_names()
+                            raise ValueError(
+                                f"Invalid tool names in allowed_tools: {invalid_tools}. "
+                                f"Available tools: {available}"
+                            )
 
-                    # Register code_search tool (read-only AST search)
-                    self.tool_registry.register(
-                        code_search,
-                        risk_level=RiskLevel.SAFE,
-                        tags=["search", "readonly", "ast"],
-                        enabled=True,
-                    )
+                        self.log.info(
+                            f"Registering {len(tools_to_register)} tools from allowed_tools whitelist"
+                        )
+                    else:
+                        # Empty whitelist: register all tools (backward compatible)
+                        tools_to_register = list(TOOL_CATALOG.values())
+                        self.log.info(
+                            f"Registering all {len(tools_to_register)} available tools (allowed_tools is empty)"
+                        )
 
-                    # Register find_references tool (read-only reference finder)
-                    self.tool_registry.register(
-                        find_references,
-                        risk_level=RiskLevel.SAFE,
-                        tags=["search", "readonly", "ast"],
-                        enabled=True,
-                    )
-
-                    # Register web_search tool (read-only web search)
-                    self.tool_registry.register(
-                        web_search,
-                        risk_level=RiskLevel.SAFE,
-                        tags=["search", "readonly", "web"],
-                        enabled=True,
-                    )
-
-                    # Register wikipedia_search tool (read-only Wikipedia access)
-                    self.tool_registry.register(
-                        wikipedia_search,
-                        risk_level=RiskLevel.SAFE,
-                        tags=["search", "readonly", "wikipedia"],
-                        enabled=True,
-                    )
-
-                    # Register read_url tool (read-only URL fetching)
-                    self.tool_registry.register(
-                        read_url,
-                        risk_level=RiskLevel.SAFE,
-                        tags=["web", "readonly", "content"],
-                        enabled=True,
-                    )
-
-                    # Register file edit tools
-                    self.tool_registry.register(
-                        create_file,
-                        risk_level=RiskLevel.CAUTION,
-                        tags=["filesystem", "write"],
-                        enabled=True,
-                    )
-
-                    self.tool_registry.register(
-                        edit_file_lines,
-                        risk_level=RiskLevel.CAUTION,
-                        tags=["filesystem", "write", "edit"],
-                        enabled=True,
-                    )
-
-                    self.tool_registry.register(
-                        edit_file_search_replace,
-                        risk_level=RiskLevel.CAUTION,
-                        tags=["filesystem", "write", "edit"],
-                        enabled=True,
-                    )
-
-                    self.tool_registry.register(
-                        append_to_file,
-                        risk_level=RiskLevel.CAUTION,
-                        tags=["filesystem", "write"],
-                        enabled=True,
-                    )
-
-                    self.tool_registry.register(
-                        delete_file,
-                        risk_level=RiskLevel.DANGEROUS,
-                        tags=["filesystem", "delete"],
-                        enabled=True,
-                    )
+                    # Register filtered tools
+                    for tool, risk_level, _categories in tools_to_register:
+                        self.tool_registry.register(
+                            tool, risk_level=risk_level, enabled=True
+                        )
 
                     # NOTE: analyze_images tool registration disabled for SOUL-116
                     # The tool is meant for LLM-initiated image analysis, but for SOUL-116
@@ -464,7 +398,7 @@ class ConsoulApp(App[None]):
                     )
 
                     self.log.info(
-                        f"Initialized tool registry with {len(tool_metadata_list)} tools"
+                        f"Initialized tool registry with {len(tool_metadata_list)} enabled tools"
                     )
 
                     # Bind tools to model (extract BaseTool from metadata)
