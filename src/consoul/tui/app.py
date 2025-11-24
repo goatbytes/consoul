@@ -119,6 +119,7 @@ class ConsoulApp(App[None]):
         Binding("ctrl+b", "toggle_sidebar", "Sidebar", show=True),
         Binding("ctrl+comma", "settings", "Settings", show=False),
         Binding("ctrl+shift+p", "permissions", "Permissions", show=True),
+        Binding("ctrl+t", "tools", "Tools", show=True),
         Binding("f1", "help", "Help", show=False),
     ]
 
@@ -943,6 +944,42 @@ class ConsoulApp(App[None]):
 
         except Exception as e:
             logger.error(f"Error updating top bar state: {e}", exc_info=True)
+
+    def _rebind_tools(self) -> None:
+        """Rebind tools to chat model after registry changes.
+
+        Called after tool manager applies changes to refresh the model's
+        available tools based on current enabled state.
+        """
+        if not self.tool_registry or not self.chat_model:
+            return
+
+        try:
+            from consoul.ai.providers import supports_tool_calling
+
+            # Get currently enabled tools
+            enabled_tools = self.tool_registry.list_tools(enabled_only=True)
+
+            if enabled_tools and supports_tool_calling(self.chat_model):
+                # Extract BaseTool instances
+                tools = [meta.tool for meta in enabled_tools]
+
+                # Rebind tools to model
+                self.chat_model = self.chat_model.bind_tools(tools)  # type: ignore[assignment]
+
+                self.log.info(f"Rebound {len(tools)} tools to chat model")
+
+                # Update top bar to reflect changes
+                self._update_top_bar_state()
+            elif not enabled_tools:
+                # No tools enabled - unbind all
+                # TODO: Need to handle unbinding - may need to recreate model
+                self.log.info("No tools enabled")
+                self._update_top_bar_state()
+
+        except Exception as e:
+            self.log.error(f"Error rebinding tools: {e}", exc_info=True)
+            self.notify(f"Failed to rebind tools: {e!s}", severity="error")
 
     def _idle_gc(self) -> None:
         """Periodic garbage collection when not streaming.
@@ -2997,6 +3034,20 @@ class ConsoulApp(App[None]):
                 "Permission settings saved successfully", severity="information"
             )
 
+    async def action_tools(self) -> None:
+        """Show tool manager screen."""
+        from consoul.tui.widgets.tool_manager_screen import ToolManagerScreen
+
+        if not self.tool_registry:
+            self.notify("Tool registry not initialized", severity="error")
+            return
+
+        result = await self.push_screen(ToolManagerScreen(self.tool_registry))  # type: ignore[func-returns-value]
+        if result:
+            # Changes were applied - rebind tools to model
+            self._rebind_tools()
+            self.notify("Tool settings applied successfully", severity="information")
+
     async def action_help(self) -> None:
         """Show help modal."""
         from consoul.tui.widgets.help_modal import HelpModal
@@ -3365,6 +3416,12 @@ class ConsoulApp(App[None]):
             )
 
     # ContextualTopBar message handlers
+
+    async def on_contextual_top_bar_tools_requested(
+        self, event: ContextualTopBar.ToolsRequested
+    ) -> None:
+        """Handle tools button click from top bar."""
+        await self.action_tools()
 
     async def on_contextual_top_bar_settings_requested(
         self, event: ContextualTopBar.SettingsRequested

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-23T19:51:01.246742",
-  "updated_at": "2025-11-23T19:51:01.246750",
+  "updated_at": "2025-11-23T22:11:27.784532",
   "id": "SOUL-157",
   "uuid": "09f53ca1-1513-4009-828d-5a7ff76c6554",
   "title": "Add tool status indicator to TUI top bar",
@@ -14,14 +14,28 @@
     "ux-improvement"
   ],
   "reporter": "jared@goatbytes.io",
-  "epic": "EPIC-008",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-23T22:11:27.784392",
+      "updated_at": "2025-11-23T22:11:27.784393",
+      "id": "20251123221127-8ab48d08",
+      "ticket_id": "SOUL-157",
+      "author": "jared@goatbytes.io",
+      "content": "✅ Tool status icon button implemented (commit 201e124).\n\nIcon shows in top bar status zone alongside action buttons:\n- 🔒 = No tools (0 enabled)\n- 🛠️ = Safe tools only\n- 🟡 = Caution-level tools\n- 🔴 = Dangerous tools\n\nClick handler posts ToolsRequested message, ready for SOUL-158 implementation.\n\nNext: Implement tool manager screen (SOUL-158) to show details when icon is clicked.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 2,
   "order": 4,
-  "custom_fields": {}
+  "custom_fields": {},
+  "epic": "EPIC-008"
 }

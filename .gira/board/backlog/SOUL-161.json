@@ -1,0 +1,21 @@
+{
+  "created_at": "2025-11-23T22:10:25.371096",
+  "updated_at": "2025-11-23T22:10:25.371104",
+  "id": "SOUL-161",
+  "uuid": "01f3f6e9-bd2d-4bc8-b290-4a3c6447040a",
+  "title": "Fix profile switching not persisting to config file",
+  "description": "",
+  "status": "backlog",
+  "type": "bug",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

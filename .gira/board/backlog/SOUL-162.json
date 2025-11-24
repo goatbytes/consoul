@@ -1,0 +1,21 @@
+{
+  "created_at": "2025-11-23T22:10:37.396436",
+  "updated_at": "2025-11-23T22:10:37.396445",
+  "id": "SOUL-162",
+  "uuid": "4324f8a9-7d0c-404a-b1c5-e878f9009f7a",
+  "title": "Fix sidebar not appearing when switching from non-persist to persist profile",
+  "description": "",
+  "status": "backlog",
+  "type": "bug",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}
