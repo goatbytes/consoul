@@ -25,6 +25,12 @@ __all__ = ["tui"]
     "category names (search/file-edit/web/execute), "
     "or comma-separated tool names (bash,grep,code_search)",
 )
+@click.option(
+    "--preset",
+    type=str,
+    help="Tool preset: 'readonly', 'development', 'safe-research', 'power-user', or custom preset name. "
+    "Overrides --tools flag.",
+)
 @click.option("--test-mode", is_flag=True, hidden=True, help="Test mode (auto-exit)")
 @click.pass_context
 def tui(
@@ -33,6 +39,7 @@ def tui(
     debug: bool,
     log_file: str | None,
     tools: str | None,
+    preset: str | None,
     test_mode: bool,
 ) -> None:
     """Launch Consoul TUI.
@@ -48,6 +55,8 @@ def tui(
         $ consoul tui --tools bash,grep,code_search
         $ consoul tui --tools search,web
         $ consoul tui --tools none
+        $ consoul tui --preset readonly
+        $ consoul tui --preset development
     """
     # Apply macOS PyTorch fixes BEFORE any imports that might trigger torch/transformers
     # This must happen at the very start to prevent segfaults
@@ -108,7 +117,23 @@ def tui(
     else:
         consoul_config = load_config()
 
-    # Handle --tools CLI override
+    # Handle --preset CLI override (takes precedence over --tools)
+    if preset is not None:
+        from consoul.ai.tools.presets import resolve_preset
+
+        try:
+            # Resolve preset to tool specification
+            preset_tools = resolve_preset(preset, consoul_config.tool_presets)
+            # Join tools list into comma-separated string for parse_and_resolve_tools
+            tools = ",".join(preset_tools)
+        except ValueError as e:
+            # Show error and exit
+            import sys
+
+            click.echo(f"Error: {e}", err=True)
+            sys.exit(1)
+
+    # Handle --tools CLI override (or resolved from --preset)
     if tools is not None:
         from consoul.ai.tools.catalog import parse_and_resolve_tools
 

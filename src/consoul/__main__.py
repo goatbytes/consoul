@@ -787,6 +787,71 @@ def import_history(import_file: Path, dry_run: bool, db_path: Path | None) -> No
         sys.exit(1)
 
 
+@cli.group()
+@click.pass_context
+def preset(ctx: click.Context) -> None:
+    """Manage tool presets."""
+    pass
+
+
+@preset.command("list")
+@click.pass_context
+def list_presets(ctx: click.Context) -> None:
+    """List all available tool presets (built-in + custom).
+
+    Shows preset name, description, and tools included.
+
+    Examples:
+        consoul preset list
+    """
+    from consoul.ai.tools.presets import list_available_presets
+    from consoul.config import load_config
+
+    # Load config to get custom presets
+    config = load_config()
+
+    # Get all presets (built-in + custom)
+    all_presets = list_available_presets(config.tool_presets)
+
+    click.echo("\nAvailable Tool Presets:\n")
+
+    # Built-in presets
+    builtin_names = {"readonly", "development", "safe-research", "power-user"}
+    builtin_presets = {k: v for k, v in all_presets.items() if k in builtin_names}
+    custom_presets = {k: v for k, v in all_presets.items() if k not in builtin_names}
+
+    if builtin_presets:
+        click.echo("Built-in Presets:")
+        for name in sorted(builtin_presets.keys()):
+            preset_obj = builtin_presets[name]
+            tools_count = len(preset_obj.tools)
+            tools_display = ", ".join(preset_obj.tools[:5])
+            if tools_count > 5:
+                tools_display += f", ... ({tools_count - 5} more)"
+
+            click.echo(f"  {name}")
+            click.echo(f"    Description: {preset_obj.description}")
+            click.echo(f"    Tools: {tools_display}")
+            click.echo()
+
+    if custom_presets:
+        click.echo("Custom Presets:")
+        for name in sorted(custom_presets.keys()):
+            preset_obj = custom_presets[name]
+            tools_count = len(preset_obj.tools)
+            tools_display = ", ".join(preset_obj.tools[:5])
+            if tools_count > 5:
+                tools_display += f", ... ({tools_count - 5} more)"
+
+            click.echo(f"  {name}")
+            click.echo(f"    Description: {preset_obj.description}")
+            click.echo(f"    Tools: {tools_display}")
+            click.echo()
+
+    click.echo(f"Total: {len(all_presets)} presets available")
+    click.echo("\nUse with: consoul tui --preset <preset-name>")
+
+
 def main() -> None:
     """Main entry point for Consoul CLI."""
     # Register TUI command if Textual is available

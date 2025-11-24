@@ -1156,6 +1156,54 @@ class FileEditToolConfig(BaseModel):
     )
 
 
+class ToolPreset(BaseModel):
+    """Tool preset configuration for quick workflow switching.
+
+    Defines a named collection of tools that can be activated via CLI or config.
+    Tools can be specified using the same flexible syntax as the --tools flag:
+    - "all" for all tools
+    - "none" for no tools
+    - Risk levels: "safe", "caution", "dangerous"
+    - Categories: "search", "file-edit", "web", "execute"
+    - Comma-separated tool names: "bash,grep,code_search"
+
+    Example:
+        >>> preset = ToolPreset(
+        ...     name="readonly",
+        ...     description="Read-only tools for code review",
+        ...     tools=["grep", "code_search", "read", "web_search"]
+        ... )
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+    name: str = Field(
+        description="Preset name (e.g., 'readonly', 'development')",
+    )
+    description: str = Field(
+        description="Human-readable description of what this preset is for",
+    )
+    tools: list[str] = Field(
+        description="Tool specification (tool names, categories, risk levels, or 'all'/'none')",
+    )
+
+    @field_validator("name")
+    @classmethod
+    def validate_preset_name(cls, v: str) -> str:
+        """Validate preset name is valid identifier."""
+        if not v or not v.strip():
+            raise ValueError("Preset name cannot be empty")
+        # Allow alphanumeric, hyphens, underscores
+        if not v.replace("-", "_").replace("_", "").isalnum():
+            raise ValueError(
+                "Preset name must contain only alphanumeric characters, hyphens, or underscores"
+            )
+        return v.strip().lower()
+
+
 class ToolConfig(BaseModel):
     """Configuration for tool calling system.
 
@@ -1424,6 +1472,10 @@ class ConsoulConfig(BaseModel):
     tools: ToolConfig = Field(
         default_factory=ToolConfig,
         description="Tool calling configuration (SDK-level, not TUI-specific)",
+    )
+    tool_presets: dict[str, ToolPreset] = Field(
+        default_factory=dict,
+        description="Custom tool presets (in addition to built-in presets: readonly, development, safe-research, power-user)",
     )
     show_thinking: Literal["always", "auto", "never", "collapsed"] = Field(
         default="auto",
