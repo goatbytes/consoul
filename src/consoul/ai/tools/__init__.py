@@ -36,12 +36,15 @@ from consoul.ai.tools.audit import (
     FileAuditLogger,
     NullAuditLogger,
 )
-from consoul.ai.tools.base import RiskLevel, ToolMetadata
+from consoul.ai.tools.base import RiskLevel, ToolCategory, ToolMetadata
 from consoul.ai.tools.cache import CACHE_VERSION, CacheStats, CodeSearchCache
 from consoul.ai.tools.catalog import (
+    get_all_category_names,
     get_all_tool_names,
     get_tool_by_name,
+    get_tools_by_category,
     get_tools_by_risk_level,
+    validate_category_name,
     validate_tool_name,
 )
 from consoul.ai.tools.discovery import discover_tools_from_directory
@@ -100,6 +103,7 @@ __all__ = [
     "RiskLevel",
     "ToolApprovalRequest",
     "ToolApprovalResponse",
+    "ToolCategory",
     "ToolError",
     "ToolExecutionError",
     "ToolMetadata",
@@ -118,13 +122,16 @@ __all__ = [
     "edit_file_lines",
     "edit_file_search_replace",
     "find_references",
+    "get_all_category_names",
     "get_all_tool_names",
     "get_tool_by_name",
+    "get_tools_by_category",
     "get_tools_by_risk_level",
     "grep_search",
     "has_tool_calls",
     "parse_tool_calls",
     "read_url",
+    "validate_category_name",
     "validate_tool_name",
     "web_search",
 ]

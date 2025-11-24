@@ -37,6 +37,29 @@ class RiskLevel(str, Enum):
         return self.value
 
 
+class ToolCategory(str, Enum):
+    """Functional categories for tool classification.
+
+    Used to group tools by their primary purpose, enabling category-based
+    tool filtering in the SDK.
+
+    Attributes:
+        SEARCH: Search and lookup tools (grep, code_search, find_references)
+        FILE_EDIT: File manipulation tools (create, edit, delete, append)
+        WEB: Web-based tools (read_url, web_search)
+        EXECUTE: Command execution tools (bash_execute)
+    """
+
+    SEARCH = "search"
+    FILE_EDIT = "file-edit"
+    WEB = "web"
+    EXECUTE = "execute"
+
+    def __str__(self) -> str:
+        """Return string representation of category."""
+        return self.value
+
+
 @dataclass
 class ToolMetadata:
     """Metadata for a registered tool.
@@ -52,6 +75,7 @@ class ToolMetadata:
         schema: JSON schema for tool arguments (auto-generated from tool)
         enabled: Whether this tool is currently enabled
         tags: Optional tags for categorization (e.g., ["filesystem", "readonly"])
+        categories: Optional functional categories for grouping tools
     """
 
     name: str
@@ -61,6 +85,7 @@ class ToolMetadata:
     schema: dict[str, Any]
     enabled: bool = True
     tags: list[str] | None = None
+    categories: list[ToolCategory] | None = None
 
     def __post_init__(self) -> None:
         """Validate metadata after initialization."""

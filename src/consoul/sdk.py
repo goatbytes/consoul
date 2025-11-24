@@ -22,11 +22,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from consoul.ai import ConversationHistory, get_chat_model
-from consoul.ai.tools import RiskLevel, ToolRegistry
+from consoul.ai.tools import RiskLevel, ToolCategory, ToolRegistry
 from consoul.ai.tools.catalog import (
+    get_all_category_names,
     get_all_tool_names,
     get_tool_by_name,
+    get_tools_by_category,
     get_tools_by_risk_level,
+    validate_category_name,
 )
 from consoul.ai.tools.discovery import discover_tools_from_directory
 from consoul.ai.tools.permissions import PermissionPolicy
@@ -120,11 +123,12 @@ class Consoul:
             tools: Tool specification. Supports multiple formats:
                    - True: Enable all built-in tools (default)
                    - False/None: Disable all tools
-                   - "safe": Only safe (read-only) tools
-                   - "caution": Safe + caution tools (file writes, bash)
-                   - "dangerous": All tools including delete operations
+                   - "safe"/"caution"/"dangerous": Risk level filtering
+                   - "search"/"file-edit"/"web"/"execute": Category filtering
                    - ["bash", "grep"]: Specific tools by name
-                   - [custom_tool, "bash"]: Mix of custom and built-in tools
+                   - ["search", "web"]: Multiple categories
+                   - ["search", "bash"]: Mix categories and tools
+                   - [custom_tool, "bash"]: Mix custom and built-in tools
             temperature: Override temperature (0.0-2.0)
             system_prompt: Override system prompt
             persist: Save conversation history (default: True)
@@ -157,6 +161,19 @@ class Consoul:
                 ...     return "result"
                 >>> console = Consoul(tools=[my_tool, "bash"])
 
+            Category-based specification:
+                >>> # All search tools
+                >>> console = Consoul(tools="search")
+
+                >>> # All file editing tools
+                >>> console = Consoul(tools="file-edit")
+
+                >>> # Multiple categories
+                >>> console = Consoul(tools=["search", "web"])
+
+                >>> # Mix categories and specific tools
+                >>> console = Consoul(tools=["search", "bash"])
+
             Tool discovery:
                 >>> # Auto-discover tools from .consoul/tools/
                 >>> console = Consoul(discover_tools=True)
@@ -167,9 +184,13 @@ class Consoul:
                 >>> # Only discovered tools (no built-in)
                 >>> console = Consoul(tools=False, discover_tools=True)
 
+        Available tool categories:
+            search, file-edit, web, execute
+
         Available tool names:
             bash, grep, code_search, find_references, create_file,
-            edit_lines, edit_replace, append_file, delete_file
+            edit_lines, edit_replace, append_file, delete_file,
+            read_url, web_search
 
         Tool discovery:
             When discover_tools=True, Consoul will scan .consoul/tools/ for
@@ -292,11 +313,11 @@ class Consoul:
 
     def _validate_and_resolve_tools(
         self,
-    ) -> list[tuple[BaseTool, RiskLevel]]:
-        """Validate and resolve tool specification to list of (tool, risk_level).
+    ) -> list[tuple[BaseTool, RiskLevel, list[ToolCategory]]]:
+        """Validate and resolve tool specification to list of (tool, risk_level, categories).
 
         Returns:
-            List of (tool, risk_level) tuples to register
+            List of (tool, risk_level, categories) tuples to register
 
         Raises:
             ValueError: If tool specification is invalid
@@ -312,44 +333,60 @@ class Consoul:
             # No tools
             return []
 
-        # Handle risk level strings
+        # Handle strings (risk level, category, or tool name)
         if isinstance(tools_spec, str):
             risk_levels = {"safe", "caution", "dangerous"}
+
+            # Check if it's a risk level
             if tools_spec.lower() in risk_levels:
                 return list(get_tools_by_risk_level(tools_spec.lower()))
 
-            # Single tool name
+            # Check if it's a category
+            if validate_category_name(tools_spec):
+                return list(get_tools_by_category(tools_spec))
+
+            # Check if it's a tool name
             result = get_tool_by_name(tools_spec)
             if result is None:
-                available = get_all_tool_names()
+                available_categories = get_all_category_names()
+                available_tools = get_all_tool_names()
                 raise ValueError(
-                    f"Unknown tool '{tools_spec}'. "
-                    f"Available tools: {', '.join(available)}"
+                    f"Unknown tool or category '{tools_spec}'. "
+                    f"Categories: {', '.join(available_categories)}. "
+                    f"Tools: {', '.join(available_tools)}"
                 )
             return [result]
 
-        # Handle list of tools
+        # Handle list of tools and/or categories
         if isinstance(tools_spec, list):
             if not tools_spec:
                 return []  # Empty list = no tools
 
-            resolved_tools: list[tuple[BaseTool, RiskLevel]] = []
+            resolved_tools: list[tuple[BaseTool, RiskLevel, list[ToolCategory]]] = []
 
             for tool_spec in tools_spec:
                 if isinstance(tool_spec, str):
-                    # Tool name lookup
-                    result = get_tool_by_name(tool_spec)
-                    if result is None:
-                        available = get_all_tool_names()
-                        raise ValueError(
-                            f"Unknown tool '{tool_spec}'. "
-                            f"Available tools: {', '.join(available)}"
-                        )
-                    resolved_tools.append(result)
+                    # Check if it's a category first
+                    if validate_category_name(tool_spec):
+                        # Add all tools from this category
+                        category_tools = get_tools_by_category(tool_spec)
+                        resolved_tools.extend(category_tools)
+                    else:
+                        # Tool name lookup
+                        result = get_tool_by_name(tool_spec)
+                        if result is None:
+                            available_categories = get_all_category_names()
+                            available_tools = get_all_tool_names()
+                            raise ValueError(
+                                f"Unknown tool or category '{tool_spec}'. "
+                                f"Categories: {', '.join(available_categories)}. "
+                                f"Tools: {', '.join(available_tools)}"
+                            )
+                        resolved_tools.append(result)
                 elif hasattr(tool_spec, "name") and hasattr(tool_spec, "run"):
                     # Check if it's a BaseTool instance (custom tool)
                     # Assume custom tools are CAUTION level by default
-                    resolved_tools.append((tool_spec, RiskLevel.CAUTION))
+                    resolved_tools.append((tool_spec, RiskLevel.CAUTION, []))
                 else:
                     raise ValueError(
                         f"Invalid tool specification: {tool_spec}. "
@@ -373,7 +410,10 @@ class Consoul:
         if self.discover_tools:
             tools_dir = Path.cwd() / ".consoul" / "tools"
             discovered_tools = discover_tools_from_directory(tools_dir, recursive=True)
-            tools_to_register.extend(discovered_tools)
+            # Convert (tool, risk) to (tool, risk, []) for discovered tools
+            tools_to_register.extend(
+                [(tool, risk, []) for tool, risk in discovered_tools]
+            )
 
         if not tools_to_register:
             # No tools to register
@@ -395,7 +435,7 @@ class Consoul:
         )
 
         # Register all resolved tools
-        for tool, risk_level in tools_to_register:
+        for tool, risk_level, _categories in tools_to_register:
             self.registry.register(
                 tool=tool,
                 risk_level=risk_level,
