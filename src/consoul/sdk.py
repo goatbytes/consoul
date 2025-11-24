@@ -122,18 +122,27 @@ class Consoul:
             profile: Profile name to use (default: "default")
             tools: Tool specification. Supports multiple formats:
                    - True: Enable all built-in tools (default)
-                   - False/None: Disable all tools
+                   - False/None: Disable all tools (chat-only mode)
                    - "safe"/"caution"/"dangerous": Risk level filtering
                    - "search"/"file-edit"/"web"/"execute": Category filtering
                    - ["bash", "grep"]: Specific tools by name
                    - ["search", "web"]: Multiple categories
                    - ["search", "bash"]: Mix categories and tools
                    - [custom_tool, "bash"]: Mix custom and built-in tools
+
+                   Security guidelines:
+                   - SAFE: Read-only operations (grep, code_search, web_search)
+                   - CAUTION: File operations and command execution (requires oversight)
+                   - Start with tools="safe" for untrusted AI interactions
+                   - Use principle of least privilege (only grant needed tools)
+                   - Always use version control (git) when enabling file operations
+
             temperature: Override temperature (0.0-2.0)
             system_prompt: Override system prompt
             persist: Save conversation history (default: True)
             api_key: Override API key (falls back to environment)
             discover_tools: Auto-discover tools from .consoul/tools/ (default: False)
+                            Discovered tools default to CAUTION risk level.
 
         Raises:
             ValueError: If profile not found or invalid parameters
@@ -414,6 +423,14 @@ class Consoul:
             tools_to_register.extend(
                 [(tool, risk, []) for tool, risk in discovered_tools]
             )
+
+        # Deduplicate tools by name (last occurrence wins)
+        # This allows mixing categories with specific tools (e.g., tools=["search", "grep"])
+        # without raising ToolValidationError for duplicates
+        seen_names: dict[str, tuple[BaseTool, RiskLevel, list[ToolCategory]]] = {}
+        for tool, risk_level, categories in tools_to_register:
+            seen_names[tool.name] = (tool, risk_level, categories)
+        tools_to_register = list(seen_names.values())
 
         if not tools_to_register:
             # No tools to register
