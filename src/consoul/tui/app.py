@@ -345,8 +345,9 @@ class ConsoulApp(App[None]):
 
                     # Determine which tools to register based on config
                     # Precedence: allowed_tools > risk_filter > all tools (default)
-                    if consoul_config.tools.allowed_tools:
-                        # Explicit whitelist takes precedence
+                    # Note: allowed_tools=None means "not set", [] means "no tools" (explicit)
+                    if consoul_config.tools.allowed_tools is not None:
+                        # Explicit whitelist takes precedence (even if empty)
                         tools_to_register = []
                         normalized_tool_names = []  # Actual tool.name values for registry
                         invalid_tools = []
@@ -375,7 +376,8 @@ class ConsoulApp(App[None]):
                         consoul_config.tools.allowed_tools = normalized_tool_names
 
                         self.log.info(
-                            f"Registering {len(tools_to_register)} tools from allowed_tools whitelist"
+                            f"Registering {len(tools_to_register)} tools from allowed_tools "
+                            f"{'(chat-only mode)' if len(tools_to_register) == 0 else 'whitelist'}"
                         )
 
                     elif consoul_config.tools.risk_filter:

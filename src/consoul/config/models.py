@@ -1201,9 +1201,12 @@ class ToolConfig(BaseModel):
         description="DANGEROUS: Auto-approve all tool executions (NEVER set to True in production). "
         "Ignored if permission_policy is set.",
     )
-    allowed_tools: list[str] = Field(
-        default_factory=list,
-        description="Whitelist of allowed tools (empty = all tools allowed with approval)",
+    allowed_tools: list[str] | None = Field(
+        default=None,
+        description="Whitelist of allowed tools. "
+        "None = use risk_filter or all tools (default). "
+        "[] = no tools (chat-only mode). "
+        "[tool names] = only specified tools.",
     )
     risk_filter: Literal["safe", "caution", "dangerous"] | None = Field(
         default=None,

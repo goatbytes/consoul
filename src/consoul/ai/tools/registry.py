@@ -374,6 +374,9 @@ class ToolRegistry:
 
         # Whitelist mode: only require approval for non-whitelisted tools
         if self.config.approval_mode == "whitelist":
+            # If no whitelist configured, require approval for all tools
+            if self.config.allowed_tools is None:
+                return True
             return tool_name not in self.config.allowed_tools
 
         # Risk-based mode (manual config)
