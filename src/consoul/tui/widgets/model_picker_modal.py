@@ -1660,6 +1660,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 "google",
                 "huggingface",
                 "local",
+                "ollama-library",
             ]:
                 self.active_provider = provider
                 log.info(f"ModelPickerModal: Switched to provider '{provider}'")
