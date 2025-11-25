@@ -184,6 +184,9 @@ class ContextualTopBar(Static):
     class ToolsRequested(Message):
         """Message sent when tools button is clicked."""
 
+    class SidebarToggleRequested(Message):
+        """Message sent when conversation count is clicked to toggle sidebar."""
+
     def on_mount(self) -> None:
         """Initialize the top bar when mounted."""
         # Update terminal width for responsive design
@@ -247,13 +250,19 @@ class ContextualTopBar(Static):
         # Consoul logo
         yield Label("🤖 Consoul", classes="brand-logo", id="brand-logo")
 
-        # Conversation count indicator
+        # Conversation count indicator (clickable to toggle sidebar)
         count_text = (
             f"{self.conversation_count} conversations"
             if self.conversation_count
             else "No conversations"
         )
-        yield Label(count_text, classes="conversation-info", id="conversation-info")
+        conv_label = Label(
+            count_text,
+            classes="conversation-info action-button",
+            id="conversation-info",
+        )
+        conv_label.can_focus = True
+        yield conv_label
 
     def _compose_action_zone(self) -> ComposeResult:
         """Compose the action/search zone."""
@@ -428,7 +437,9 @@ class ContextualTopBar(Static):
             else None
         )
 
-        if target_id == "tools-btn":
+        if target_id == "conversation-info":
+            self.post_message(self.SidebarToggleRequested())
+        elif target_id == "tools-btn":
             self.post_message(self.ToolsRequested())
         elif target_id == "settings-btn":
             self.post_message(self.SettingsRequested())

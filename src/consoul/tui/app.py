@@ -3744,6 +3744,12 @@ class ConsoulApp(App[None]):
         )
         self.push_screen(modal, on_model_selected)
 
+    async def on_contextual_top_bar_sidebar_toggle_requested(
+        self, event: ContextualTopBar.SidebarToggleRequested
+    ) -> None:
+        """Handle sidebar toggle request from top bar."""
+        self.action_toggle_sidebar()
+
     async def on_contextual_top_bar_profile_selection_requested(
         self, event: ContextualTopBar.ProfileSelectionRequested
     ) -> None:
