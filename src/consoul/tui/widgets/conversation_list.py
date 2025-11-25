@@ -76,6 +76,16 @@ class ConversationList(Container):
     conversation_count: reactive[int] = reactive(0)
     selected_id: reactive[str | None] = reactive(None)
 
+    def watch_conversation_count(self, count: int) -> None:
+        """Update top bar when conversation count changes."""
+        try:
+            from consoul.tui.widgets.contextual_top_bar import ContextualTopBar
+
+            top_bar = self.app.query_one(ContextualTopBar)
+            top_bar.conversation_count = count
+        except Exception:
+            pass  # Top bar might not be mounted yet
+
     # Key bindings
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("ctrl+r", "rename_conversation", "Rename", show=True),
