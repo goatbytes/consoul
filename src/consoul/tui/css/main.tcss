@@ -30,8 +30,6 @@ Header {
 Footer {
     dock: bottom;
     height: 1;
-    background: $surface-darken-1;
-    color: $text-muted;
 }
 
 /* ============================================================================

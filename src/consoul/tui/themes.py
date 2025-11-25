@@ -51,6 +51,7 @@ CONSOUL_LIGHT = Theme(
         "button-color-foreground": "#FFFFFF",
         "footer-background": "#0085CC",
         "footer-key-foreground": "#FFFFFF",
+        "footer-description-foreground": "#FFFFFF",
         "block-cursor-foreground": "#FFFFFF",
         "block-cursor-background": "#0085CC",
         "input-selection-background": "#0085CC 35%",
