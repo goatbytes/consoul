@@ -733,9 +733,9 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 cursor_type="row",
                 classes="local-table",
             )
-            table.add_column("Model", width=35)
+            table.add_column("Model", width=40)
             table.add_column("Context", width=12)
-            table.add_column("Cost", width=12)
+            table.add_column("Description", width=35)
             container.mount(table)
             table.focus()
             self._table = table
@@ -744,9 +744,9 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             self._table = DataTable(
                 id="provider-models-table", zebra_stripes=True, cursor_type="row"
             )
-            self._table.add_column("Model", width=35)
+            self._table.add_column("Model", width=40)
             self._table.add_column("Context", width=12)
-            self._table.add_column("Cost", width=12)
+            self._table.add_column("Description", width=35)
             container.mount(self._table)
             self._table.focus()
 
@@ -967,9 +967,11 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 display_name = info.get("display_name", name)
                 model_col = f"✓ {display_name}" if is_current else f"  {display_name}"
                 context_col = info["context"]
-                cost_col = info["cost"].title()
+                description_col = info["description"]
 
-                self._table.add_row(model_col, context_col, cost_col, key=row_key)
+                self._table.add_row(
+                    model_col, context_col, description_col, key=row_key
+                )
 
                 # Highlight current model row
                 if is_current:
@@ -1460,9 +1462,9 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         display_name = info.get("display_name", key)
         model_col = f"✓ {display_name}" if is_current else f"  {display_name}"
         context_col = info["context"]
-        cost_col = info["cost"].title()
+        description_col = info["description"]
 
-        table.add_row(model_col, context_col, cost_col, key=key)
+        table.add_row(model_col, context_col, description_col, key=key)
 
         # Highlight current model row
         if is_current:
