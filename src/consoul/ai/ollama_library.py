@@ -124,7 +124,7 @@ def fetch_library_models(
                 "name": name,
                 "description": p.text.strip(),
                 "model_url": a["href"],
-                "url": f"{url}{a['href']}",
+                "url": f"https://ollama.com{a['href']}",
                 "num_pulls": "",
                 "num_tags": "",
                 "updated": "",

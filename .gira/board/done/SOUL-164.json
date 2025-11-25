@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-24T23:32:56.113891",
-  "updated_at": "2025-11-24T23:50:31.676182",
+  "updated_at": "2025-11-25T12:02:25.579930",
   "id": "SOUL-164",
   "uuid": "3e4bf424-52c8-4a94-86a5-0031aa72d7cb",
   "title": "Add Ollama model discovery from ollama.com",
@@ -25,11 +25,24 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-25T12:02:25.579846",
+      "updated_at": "2025-11-25T12:02:25.579846",
+      "id": "20251125120225-b58c250c",
+      "ticket_id": "SOUL-164",
+      "author": "jared@goatbytes.io",
+      "content": "Redesigned as beautiful standalone modal with card-based UI. Press Ctrl+O to open the Ollama Library browser. Click any model card to view it on ollama.com. Features search/filter, 24-hour caching, and keyboard shortcuts (Escape=close, Ctrl+R=refresh, /=search).",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 1,
+  "comment_count": 2,
   "order": 0,
   "custom_fields": {}
 }
