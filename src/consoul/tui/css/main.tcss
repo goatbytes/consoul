@@ -92,8 +92,8 @@ ChatView:focus {
 
 .message-assistant {
     color: $text;
-    border: round $success;
-    border-title-color: $success;
+    border: round $secondary;
+    border-title-color: $secondary;
     border-title-align: left;
 }
 
