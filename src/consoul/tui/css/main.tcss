@@ -635,18 +635,10 @@ ConversationList {
     padding: 0 1;
 }
 
-ConversationList DataTable {
+ConversationList #cards-container {
     background: $surface-darken-1;
     height: 100%;
-}
-
-ConversationList DataTable > .datatable--cursor {
-    background: $primary;
-    color: $text;
-}
-
-ConversationList DataTable > .datatable--hover {
-    background: $surface-lighten-1;
+    padding: 1;
 }
 
 /* Empty state for conversation list */

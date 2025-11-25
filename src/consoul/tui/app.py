@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.coordinate import Coordinate
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Footer, Input
@@ -3410,14 +3409,14 @@ class ConsoulApp(App[None]):
 
             # Update UI if conversation list is visible
             if hasattr(self, "conversation_list"):
-                # Find and update the row in conversation list
-                for row_index, row_key in enumerate(
-                    self.conversation_list.table.rows.keys()
+                # Find and update the card in conversation list
+                from consoul.tui.widgets.conversation_card import ConversationCard
+
+                for card in self.conversation_list.cards_container.query(
+                    ConversationCard
                 ):
-                    if str(row_key.value) == session_id:
-                        self.conversation_list.table.update_cell_at(
-                            Coordinate(row_index, 0), title
-                        )
+                    if card.conversation_id == session_id:
+                        card.update_title(title)
                         self.log.debug("Updated conversation list UI with title")
                         break
 
@@ -3801,7 +3800,11 @@ class ConsoulApp(App[None]):
                 if current_query:
                     await self.conversation_list.search(current_query)
                     # Update match count in search bar (only when searching)
-                    result_count = len(self.conversation_list.table.rows)
+                    from consoul.tui.widgets.conversation_card import ConversationCard
+
+                    result_count = len(
+                        self.conversation_list.cards_container.query(ConversationCard)
+                    )
                     search_bar.update_match_count(result_count)
                     self.log.info(
                         f"Search query='{current_query}', results={result_count}"

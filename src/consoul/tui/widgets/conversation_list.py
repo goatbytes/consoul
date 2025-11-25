@@ -10,12 +10,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar
 
 from textual.binding import Binding, BindingType
-from textual.containers import Container, Vertical
-from textual.coordinate import Coordinate
+from textual.containers import Container, Vertical, VerticalScroll
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import ModalScreen
-from textual.widgets import Button, DataTable, Input, Label
+from textual.widgets import Button, Input, Label
+
+from consoul.tui.widgets.conversation_card import ConversationCard
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
@@ -101,31 +102,26 @@ class ConversationList(Container):
         """Compose conversation list widgets.
 
         Yields:
-            DataTable widget for displaying conversations and empty state label
+            VerticalScroll container with conversation cards and empty state label
         """
         # Empty state message (shown when no conversations exist)
-        # Don't use CenterMiddle here - it blocks the hatch pattern
         yield Vertical(
             Label("[dim i]No conversations yet[/]"),
             id="empty-conversation-label",
             classes="empty-state-content",
         )
 
-        # Conversation table
-        self.table: DataTable[str] = DataTable(cursor_type="row", zebra_stripes=True)
-        yield self.table
+        # Conversation cards container
+        self.cards_container: VerticalScroll = VerticalScroll(id="cards-container")
+        yield self.cards_container
 
     def on_mount(self) -> None:
         """Initialize conversation list on mount.
 
-        Sets up table columns, styling, and loads initial conversations.
+        Sets up styling and loads initial conversations.
         """
         self.border_title = "Conversations"
         self.add_class("conversation-list")
-
-        # Setup table columns (single column, no headers)
-        self.table.add_column("Title", key="title")
-        self.table.show_header = False
 
         # Show empty state initially (will be hidden if conversations are loaded)
         self._update_empty_state()
@@ -152,23 +148,44 @@ class ConversationList(Container):
             self.loaded_count,
         )
 
-        # Add rows to table
-        # Safety check: ensure table exists (should be created in compose())
-        if not hasattr(self, "table") or self.table is None:
+        # Add conversation cards
+        # Safety check: ensure container exists
+        if not hasattr(self, "cards_container") or self.cards_container is None:
             return
 
+        # Get existing card IDs to avoid duplicates
+        existing_ids = {
+            card.conversation_id
+            for card in self.cards_container.query(ConversationCard)
+        }
+
         for conv in conversations:
+            session_id = conv["session_id"]
+            if session_id in existing_ids:
+                continue
+
             # Get title from first user message or use "Untitled"
             title = self._get_conversation_title(conv)
 
-            # Check if row already exists (avoid duplicate key error)
-            session_id = conv["session_id"]
-            if session_id not in [str(key.value) for key in self.table.rows]:
-                self.table.add_row(
-                    title,
-                    key=session_id,
-                )
-                self.loaded_count += 1
+            # Format date if available
+            date_str = ""
+            if "created_at" in conv:
+                from datetime import datetime
+
+                try:
+                    dt = datetime.fromisoformat(conv["created_at"])
+                    date_str = dt.strftime("%b %d, %Y")
+                except (ValueError, TypeError):
+                    pass
+
+            # Create and mount card
+            card = ConversationCard(
+                conversation_id=session_id,
+                title=title,
+                date_str=date_str,
+            )
+            await self.cards_container.mount(card)
+            self.loaded_count += 1
 
         self.conversation_count = self.loaded_count
         self._update_title()
@@ -180,7 +197,8 @@ class ConversationList(Container):
         Clears current list and reloads from the beginning.
         Useful when a new conversation is created.
         """
-        self.table.clear()
+        # Remove all cards
+        await self.cards_container.remove_children()
         self.loaded_count = 0
         self._is_searching = False
         self._update_empty_state()  # Update after clearing
@@ -225,24 +243,31 @@ class ConversationList(Container):
 
     def _update_empty_state(self) -> None:
         """Update visibility of empty state label based on conversation count."""
-        is_empty = self.table.row_count == 0
+        is_empty = len(self.cards_container.query(ConversationCard)) == 0
 
         # Add/remove "empty" class which triggers CSS to show/hide empty state
         self.set_class(is_empty, "empty")
 
-        # Hide table when empty to make room for empty state
-        self.table.display = not is_empty
+        # Hide cards container when empty to make room for empty state
+        self.cards_container.display = not is_empty
 
-    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
-        """Handle conversation selection.
+    async def on_conversation_card_card_clicked(
+        self,
+        event: ConversationCard.CardClicked,
+    ) -> None:
+        """Handle conversation card selection.
 
         Args:
-            event: Row selection event from DataTable
+            event: Card click event from ConversationCard
         """
-        if event.row_key is not None:
-            conversation_id = str(event.row_key.value)
-            self.selected_id = conversation_id
-            self.post_message(self.ConversationSelected(conversation_id))
+        conversation_id = event.conversation_id
+
+        # Update selection state on all cards
+        for card in self.cards_container.query(ConversationCard):
+            card.is_selected = card.conversation_id == conversation_id
+
+        self.selected_id = conversation_id
+        self.post_message(self.ConversationSelected(conversation_id))
 
     async def search(self, query: str) -> None:
         """Search conversations using FTS5.
@@ -255,7 +280,7 @@ class ConversationList(Container):
         """
         if not query.strip():
             # Empty query - reload all conversations
-            self.table.clear()
+            await self.cards_container.remove_children()
             self.loaded_count = 0
             self._is_searching = False
             await self.load_conversations()
@@ -275,51 +300,54 @@ class ConversationList(Container):
         )
 
         # Clear and populate with results
-        self.table.clear()
+        await self.cards_container.remove_children()
         self.loaded_count = 0
 
         for conv in results:
-            # Get title
+            # Get title and date
             title = self._get_conversation_title(conv)
+            date_str = ""
+            if "created_at" in conv:
+                from datetime import datetime
 
-            self.table.add_row(
-                title,
-                key=conv["session_id"],
+                try:
+                    dt = datetime.fromisoformat(conv["created_at"])
+                    date_str = dt.strftime("%b %d, %Y")
+                except (ValueError, TypeError):
+                    pass
+
+            # Create and mount card
+            card = ConversationCard(
+                conversation_id=conv["session_id"],
+                title=title,
+                date_str=date_str,
             )
+            await self.cards_container.mount(card)
 
         self.conversation_count = len(results)
         self._update_title()
+        self._update_empty_state()
 
-    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
-        """Handle row highlighting to trigger lazy load.
-
-        Args:
-            event: Row highlighting event from DataTable
-        """
-        # Don't lazy load during search
-        if self._is_searching:
-            return
-
-        # Check if near bottom (within LAZY_LOAD_THRESHOLD rows)
-        if event.cursor_row >= self.table.row_count - self.LAZY_LOAD_THRESHOLD:
-            # Load next batch asynchronously
-            self.run_worker(
-                self.load_conversations(limit=self.INITIAL_LOAD), exclusive=True
-            )
+    # Note: Lazy loading for cards can be implemented with scroll events
+    # For now, we load all conversations initially for simplicity
 
     async def action_rename_conversation(self) -> None:
         """Prompt to rename the currently selected conversation."""
-        if self.table.cursor_row is None:
+        if not self.selected_id:
             return
 
-        # Get row key from cursor coordinate
-        cursor_coord = Coordinate(self.table.cursor_row, 0)
-        cell_key = self.table.coordinate_to_cell_key(cursor_coord)
-        if cell_key is None or cell_key.row_key is None:
+        # Find the selected card
+        selected_card = None
+        for card in self.cards_container.query(ConversationCard):
+            if card.conversation_id == self.selected_id:
+                selected_card = card
+                break
+
+        if not selected_card:
             return
 
-        conversation_id = str(cell_key.row_key.value)
-        current_title = str(self.table.get_cell_at(cursor_coord))
+        conversation_id = selected_card.conversation_id
+        current_title = selected_card.title_text
 
         # Prompt for new title using app's built-in input
         self.app.push_screen(
@@ -338,27 +366,29 @@ class ConversationList(Container):
 
         conversation_id, new_title = result
 
-        # Update the table row
-        for row_index, row_key in enumerate(self.table.rows.keys()):
-            if str(row_key.value) == conversation_id:
-                # Update row
-                self.table.update_cell_at(Coordinate(row_index, 0), new_title)
-                self._update_title()
+        # Update the card title
+        for card in self.cards_container.query(ConversationCard):
+            if card.conversation_id == conversation_id:
+                card.update_title(new_title)
                 break
 
     async def action_delete_conversation(self) -> None:
         """Prompt to delete the currently selected conversation."""
-        if self.table.cursor_row is None:
+        if not self.selected_id:
             return
 
-        # Get row key from cursor coordinate
-        cursor_coord = Coordinate(self.table.cursor_row, 0)
-        cell_key = self.table.coordinate_to_cell_key(cursor_coord)
-        if cell_key is None or cell_key.row_key is None:
+        # Find the selected card
+        selected_card = None
+        for card in self.cards_container.query(ConversationCard):
+            if card.conversation_id == self.selected_id:
+                selected_card = card
+                break
+
+        if not selected_card:
             return
 
-        conversation_id = str(cell_key.row_key.value)
-        conversation_title = str(self.table.get_cell_at(cursor_coord))
+        conversation_id = selected_card.conversation_id
+        conversation_title = selected_card.title_text
 
         # Show confirmation modal
         self.app.push_screen(
@@ -385,13 +415,14 @@ class ConversationList(Container):
             # Delete from database
             self.db.delete_conversation(conversation_id)
 
-            # Remove from table and update UI
-            for _row_index, row_key in enumerate(self.table.rows.keys()):
-                if str(row_key.value) == conversation_id:
-                    # Remove the row
-                    self.table.remove_row(row_key)
+            # Remove card from UI
+            for card in self.cards_container.query(ConversationCard):
+                if card.conversation_id == conversation_id:
+                    # Remove the card
+                    await card.remove()
                     self.conversation_count -= 1
                     self._update_title()
+                    self._update_empty_state()
 
                     # Emit deletion message for ConsoulApp to handle
                     self.post_message(
