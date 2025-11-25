@@ -3813,6 +3813,10 @@ class ConsoulApp(App[None]):
 
                 # Perform search
                 if current_query:
+                    # Show sidebar if hidden (so user can see search results)
+                    if not self.conversation_list.display:
+                        self.conversation_list.display = True
+
                     await self.conversation_list.search(current_query)
                     # Update match count in search bar (only when searching)
                     from consoul.tui.widgets.conversation_card import ConversationCard
