@@ -515,9 +515,28 @@ class SettingsScreen(ModalScreen[bool]):
         Args:
             theme: Theme name to preview
         """
+        custom_themes = [
+            "consoul-dark",
+            "consoul-light",
+            "monokai",
+            "dracula",
+            "nord",
+            "gruvbox",
+        ]
+
         with suppress(Exception):
-            # Set app theme (Textual built-in themes)
-            self.app.theme = theme
+            if theme in custom_themes:
+                # Load and apply custom TCSS theme
+                from consoul.tui.css.themes import load_theme
+
+                theme_css = load_theme(theme)  # type: ignore[arg-type]
+                # Remove previous theme sources
+                self.app.stylesheet.reparse()
+                # Add new theme CSS
+                self.app.stylesheet.add_source(theme_css)
+            else:
+                # Set app theme (Textual built-in themes)
+                self.app.theme = theme
 
     async def _apply_sidebar_preview(self, show: bool) -> None:
         """Apply sidebar visibility change as live preview.
@@ -541,7 +560,7 @@ class SettingsScreen(ModalScreen[bool]):
         """Revert any live preview changes."""
         try:
             # Revert theme
-            self.app.theme = self._original_config.theme
+            await self._apply_theme_preview(self._original_config.theme)
 
             # Revert sidebar
             from consoul.tui.widgets.conversation_list import ConversationList

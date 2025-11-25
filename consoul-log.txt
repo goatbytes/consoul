@@ -1,14 +1,21 @@
-2025-11-25 12:12:08,601 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
-2025-11-25 12:12:10,245 - consoul.tui.app - INFO - [MOUNT] on_mount() called, adding system prompt
-2025-11-25 12:12:10,245 - consoul.tui.app - WARNING - [MOUNT] Conversation not initialized, creating now
-2025-11-25 12:12:11,581 - consoul.tui.app - INFO - [MOUNT] Successfully created conversation during on_mount()
-2025-11-25 12:12:11,581 - consoul.tui.app - INFO - [SYSPROMPT] Adding initial system prompt to conversation (conversation exists: True, message count: 0, active_profile exists: True, tool_registry exists: True)
-2025-11-25 12:12:11,581 - consoul.tui.app - INFO - [SYSPROMPT] Built prompt: 19038 chars
-2025-11-25 12:12:11,582 - consoul.tui.app - INFO - [SYSPROMPT] Adding system message to conversation
-2025-11-25 12:12:11,582 - consoul.tui.app - INFO - [SYSPROMPT] Added. Total messages: 1
-2025-11-25 12:12:11,582 - consoul.tui.app - INFO - [SYSPROMPT] Storing metadata (tools: 12)
-2025-11-25 12:12:11,582 - consoul.tui.app - INFO - [SYSPROMPT] SUCCESS: Added system prompt (12 tools, 19038 chars)
-2025-11-25 12:12:11,582 - consoul.tui.app - INFO - [MOUNT] on_mount() completed system prompt initialization
-2025-11-25 12:13:31,623 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Initialized with current_model=gpt-oss:20b, current_provider=Provider.OLLAMA, active_provider=local, ollama_available=True, huggingface_available=True
-2025-11-25 12:13:31,629 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: on_mount called, building tables and populating models
-2025-11-25 12:13:42,676 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Cancel action
+2025-11-25 14:21:34,970 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
+2025-11-25 14:21:36,733 - consoul.tui.app - INFO - [MOUNT] on_mount() called, adding system prompt
+2025-11-25 14:21:36,734 - consoul.tui.app - WARNING - [MOUNT] Conversation not initialized, creating now
+2025-11-25 14:21:38,093 - consoul.tui.app - INFO - [MOUNT] Successfully created conversation during on_mount()
+2025-11-25 14:21:38,093 - consoul.tui.app - INFO - [SYSPROMPT] Adding initial system prompt to conversation (conversation exists: True, message count: 0, active_profile exists: True, tool_registry exists: True)
+2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [SYSPROMPT] Built prompt: 19038 chars
+2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [SYSPROMPT] Adding system message to conversation
+2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [SYSPROMPT] Added. Total messages: 1
+2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [SYSPROMPT] Storing metadata (tools: 12)
+2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [SYSPROMPT] SUCCESS: Added system prompt (12 tools, 19038 chars)
+2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [MOUNT] on_mount() completed system prompt initialization
+2025-11-25 14:21:49,863 - consoul.tui.app - INFO - [TOOL_MANAGER] About to push tool manager screen
+2025-11-25 14:21:49,902 - consoul.tui.app - INFO - [TOOL_MANAGER] Tool manager closed, result=None, type=<class 'NoneType'>
+2025-11-25 14:21:49,902 - consoul.tui.app - INFO - [TOOL_MANAGER] No changes applied
+2025-11-25 14:21:51,327 - consoul.tui.widgets.tool_manager_screen - INFO - [TOOL_MGR] action_cancel called
+2025-11-25 14:21:54,404 - consoul.tui.app - INFO - [TOOL_MANAGER] About to push tool manager screen
+2025-11-25 14:21:54,434 - consoul.tui.app - INFO - [TOOL_MANAGER] Tool manager closed, result=None, type=<class 'NoneType'>
+2025-11-25 14:21:54,434 - consoul.tui.app - INFO - [TOOL_MANAGER] No changes applied
+2025-11-25 14:21:55,007 - consoul.tui.widgets.tool_manager_screen - INFO - [TOOL_MGR] action_cancel called
+2025-11-25 14:22:15,802 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Initialized with current_model=gpt-oss:20b, current_provider=Provider.OLLAMA, active_provider=local, ollama_available=True, huggingface_available=True
+2025-11-25 14:22:15,809 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: on_mount called, building tables and populating models

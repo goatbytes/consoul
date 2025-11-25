@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-24T23:32:56.113891",
-  "updated_at": "2025-11-25T12:13:25.433741",
+  "updated_at": "2025-11-25T12:30:32.168702",
   "id": "SOUL-164",
   "uuid": "3e4bf424-52c8-4a94-86a5-0031aa72d7cb",
   "title": "Add Ollama model discovery from ollama.com",
@@ -51,11 +51,37 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-25T12:20:33.819346",
+      "updated_at": "2025-11-25T12:20:33.819348",
+      "id": "20251125122033-834faa5c",
+      "ticket_id": "SOUL-164",
+      "author": "jared@goatbytes.io",
+      "content": "Made beautifulsoup4 an optional dependency to keep SDK lightweight. Install with: pip install consoul[ollama-library]. Without it, Ctrl+O shows helpful installation message.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-25T12:30:32.168621",
+      "updated_at": "2025-11-25T12:30:32.168622",
+      "id": "20251125123032-3a54202e",
+      "ticket_id": "SOUL-164",
+      "author": "jared@goatbytes.io",
+      "content": "Made TUI dependencies optional for SDK users. Install options: 'pip install consoul' (SDK only), 'pip install consoul[tui]' (with TUI), or 'pip install consoul[all]' (all features). This allows other projects to use Consoul as an SDK without installing textual, click, pyperclip, and pillow.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 3,
+  "comment_count": 5,
   "order": 0,
   "custom_fields": {}
 }

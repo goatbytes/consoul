@@ -601,23 +601,38 @@ class ConsoulApp(App[None]):
         logger.info("[MOUNT] on_mount() completed system prompt initialization")
 
         # Apply theme from config
-        # Custom themes (TCSS files): monokai, dracula, nord, gruvbox
+        # Custom themes (TCSS files): consoul-dark, consoul-light, monokai, dracula, nord, gruvbox
         # Built-in themes: textual-dark, textual-light, textual-ansi, tokyo-night, etc.
-        custom_themes = ["monokai", "dracula", "nord", "gruvbox"]
+        custom_themes = [
+            "consoul-dark",
+            "consoul-light",
+            "monokai",
+            "dracula",
+            "nord",
+            "gruvbox",
+        ]
 
         if self.config.theme in custom_themes:
-            # Load custom TCSS theme
+            # Load custom TCSS theme (CSS variables only, not a Textual Theme object)
             try:
-                _ = load_theme(self.config.theme)  # type: ignore[arg-type]
-                self.theme = self.config.theme
+                theme_css = load_theme(self.config.theme)  # type: ignore[arg-type]
+                # Inject the CSS variables into the app's stylesheet
+                self.stylesheet.add_source(theme_css)
+                logger.info(f"Loaded custom theme: {self.config.theme}")
             except FileNotFoundError:
                 self.notify(
                     f"Theme '{self.config.theme}' not found, using default",
                     severity="warning",
                 )
+            except Exception as e:
+                logger.warning(f"Failed to load theme '{self.config.theme}': {e}")
         else:
             # Use Textual built-in theme
-            self.theme = self.config.theme
+            try:
+                self.theme = self.config.theme
+            except Exception as e:
+                logger.warning(f"Failed to set theme '{self.config.theme}': {e}")
+                self.theme = "textual-dark"
 
         # Set up GC management (streaming-aware mode from research)
         if self.config.gc_mode == "streaming-aware":
