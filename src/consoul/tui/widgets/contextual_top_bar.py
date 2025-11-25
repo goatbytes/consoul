@@ -178,9 +178,6 @@ class ContextualTopBar(Static):
     class ProfileSelectionRequested(Message):
         """Message sent when profile selector is clicked."""
 
-    class ThemeSwitchRequested(Message):
-        """Message sent when theme switch is requested."""
-
     class ToolsRequested(Message):
         """Message sent when tools button is clicked."""
 
@@ -314,10 +311,6 @@ class ContextualTopBar(Static):
         help_btn.can_focus = True
         yield help_btn
 
-        theme_btn = Label("🎨", classes="action-button", id="theme-btn")
-        theme_btn.can_focus = True
-        yield theme_btn
-
     def watch_conversation_count(self, count: int) -> None:
         """React to conversation count changes."""
         try:
@@ -445,8 +438,6 @@ class ContextualTopBar(Static):
             self.post_message(self.SettingsRequested())
         elif target_id == "help-btn":
             self.post_message(self.HelpRequested())
-        elif target_id == "theme-btn":
-            self.post_message(self.ThemeSwitchRequested())
         elif target_id == "model-label":
             self.post_message(self.ModelSelectionRequested())
         elif target_id == "profile-label":

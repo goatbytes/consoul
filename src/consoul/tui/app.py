@@ -3713,12 +3713,6 @@ class ConsoulApp(App[None]):
         """Handle help button click from top bar."""
         await self.action_help()
 
-    async def on_contextual_top_bar_theme_switch_requested(
-        self, event: ContextualTopBar.ThemeSwitchRequested
-    ) -> None:
-        """Handle theme switch request from top bar."""
-        self.notify("Theme switching - Coming in SOUL-49", severity="information")
-
     async def on_contextual_top_bar_model_selection_requested(
         self, event: ContextualTopBar.ModelSelectionRequested
     ) -> None:
