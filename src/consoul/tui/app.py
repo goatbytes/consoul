@@ -3412,13 +3412,22 @@ class ConsoulApp(App[None]):
                 # Find and update the card in conversation list
                 from consoul.tui.widgets.conversation_card import ConversationCard
 
+                found = False
                 for card in self.conversation_list.cards_container.query(
                     ConversationCard
                 ):
                     if card.conversation_id == session_id:
                         card.update_title(title)
-                        self.log.debug("Updated conversation list UI with title")
+                        self.log.debug(f"Updated card title to: {title}")
+                        found = True
                         break
+
+                if not found:
+                    self.log.warning(
+                        f"Card not found for session {session_id}, reloading list"
+                    )
+                    # Reload conversation list if card wasn't found
+                    await self.conversation_list.reload_conversations()
 
         except Exception as e:
             self.log.warning(f"Failed to generate title: {e}")
