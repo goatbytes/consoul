@@ -36,297 +36,250 @@ MODEL_INFO = {
     "gpt-5": {
         "provider": "openai",
         "context": "1M",
-        "cost": "expensive",
         "description": "Flagship reasoning model",
     },
     "gpt-5-mini": {
         "provider": "openai",
         "context": "1M",
-        "cost": "moderate",
         "description": "Fast & affordable reasoning",
     },
     "gpt-5-nano": {
         "provider": "openai",
         "context": "1M",
-        "cost": "cheap",
         "description": "Fastest, most affordable",
     },
     "gpt-5-pro": {
         "provider": "openai",
         "context": "1M",
-        "cost": "expensive",
         "description": "Pro-tier flagship model",
     },
     "gpt-5.1": {
         "provider": "openai",
         "context": "1M",
-        "cost": "expensive",
         "description": "Latest GPT-5 series iteration",
     },
     # OpenAI Codex Models (Specialized Coding)
     "gpt-5-codex": {
         "provider": "openai",
         "context": "1M",
-        "cost": "expensive",
         "description": "Agentic coding optimized",
     },
     "gpt-5.1-codex": {
         "provider": "openai",
         "context": "1M",
-        "cost": "expensive",
         "description": "Latest codex iteration",
     },
     "gpt-5.1-codex-mini": {
         "provider": "openai",
         "context": "1M",
-        "cost": "moderate",
         "description": "Efficient coding assistant",
     },
     "codex-mini-latest": {
         "provider": "openai",
         "context": "128K",
-        "cost": "cheap",
         "description": "Latest mini codex",
     },
     # OpenAI Search API
     "gpt-5-search-api": {
         "provider": "openai",
         "context": "128K",
-        "cost": "moderate",
         "description": "Web search integration",
     },
     # OpenAI GPT-4.1 Series (1M context)
     "gpt-4.1": {
         "provider": "openai",
         "context": "1M",
-        "cost": "expensive",
         "description": "Improved coding & long context",
     },
     "gpt-4.1-mini": {
         "provider": "openai",
         "context": "1M",
-        "cost": "moderate",
         "description": "Fast with 1M context",
     },
     "gpt-4.1-nano": {
         "provider": "openai",
         "context": "1M",
-        "cost": "cheap",
         "description": "Smallest GPT-4.1 variant",
     },
     # OpenAI GPT-4o Series (Multimodal)
     "gpt-4o": {
         "provider": "openai",
         "context": "128K",
-        "cost": "$2.50/$10",
         "description": "Multimodal flagship",
     },
     "gpt-4o-mini": {
         "provider": "openai",
         "context": "128K",
-        "cost": "$0.15/$0.60",
         "description": "Cost-efficient multimodal",
     },
     "chatgpt-4o-latest": {
         "provider": "openai",
         "context": "128K",
-        "cost": "$5/$15",
         "description": "ChatGPT 4o latest snapshot",
     },
     "gpt-4o-search-preview": {
         "provider": "openai",
         "context": "128K",
-        "cost": "$2.50/$10",
         "description": "Search preview (latest)",
     },
     "gpt-4o-search-preview-2025-03-11": {
         "provider": "openai",
         "context": "128K",
-        "cost": "$2.50/$10",
         "description": "Search preview (dated)",
     },
     # OpenAI GPT-4 Series (Legacy)
     "gpt-4": {
         "provider": "openai",
         "context": "8K",
-        "cost": "$30/$60",
         "description": "Original GPT-4",
     },
     "gpt-4-turbo": {
         "provider": "openai",
         "context": "128K",
-        "cost": "$10/$30",
         "description": "GPT-4 with 128K context",
     },
     # OpenAI GPT-3.5 Series (Legacy)
     "gpt-3.5-turbo": {
         "provider": "openai",
         "context": "16K",
-        "cost": "$0.50/$1.50",
         "description": "Legacy fast model",
     },
     "gpt-3.5-turbo-instruct": {
         "provider": "openai",
         "context": "4K",
-        "cost": "$1.50/$2",
         "description": "Completion model (not chat)",
     },
     # OpenAI o-Series (Deep Reasoning)
     "o1": {
         "provider": "openai",
         "context": "200K",
-        "cost": "$15/$60",
         "description": "Reasoning model series 1",
     },
     "o1-pro": {
         "provider": "openai",
         "context": "128K",
-        "cost": "pro tier",
         "description": "Pro-tier reasoning",
     },
     "o3": {
         "provider": "openai",
         "context": "200K",
-        "cost": "TBA",
         "description": "Advanced reasoning (preview)",
     },
     "o3-mini": {
         "provider": "openai",
         "context": "128K",
-        "cost": "$1.10/$4.40",
         "description": "Efficient reasoning",
     },
     "o4-mini": {
         "provider": "openai",
         "context": "128K",
-        "cost": "moderate",
         "description": "Fast reasoning with vision",
     },
     "o4-mini-deep-research": {
         "provider": "openai",
         "context": "128K",
-        "cost": "expensive",
         "description": "Multi-step research",
     },
     # OpenAI Realtime Models (Audio/Voice)
     "gpt-realtime-mini": {
         "provider": "openai",
         "context": "128K",
-        "cost": "moderate",
         "description": "Real-time voice (mini)",
     },
     "gpt-realtime": {
         "provider": "openai",
         "context": "128K",
-        "cost": "expensive",
         "description": "Real-time voice (full)",
     },
     # Anthropic Claude 4.5 Models (Latest - Sep/Oct/Nov 2025)
     "claude-opus-4-5-20251101": {
         "provider": "anthropic",
         "context": "200K",
-        "cost": "$5/$25",
         "description": "Premium intelligence + performance",
     },
     "claude-sonnet-4-5-20250929": {
         "provider": "anthropic",
         "context": "200K",
-        "cost": "$3/$15",
         "description": "Smartest for complex agents + coding",
     },
     "claude-haiku-4-5-20251001": {
         "provider": "anthropic",
         "context": "200K",
-        "cost": "$1/$5",
         "description": "Fastest near-frontier intelligence",
     },
     # Anthropic Claude 4.x Models (Legacy)
     "claude-opus-4-1-20250805": {
         "provider": "anthropic",
         "context": "200K",
-        "cost": "$15/$75",
         "description": "Exceptional specialized reasoning",
     },
     "claude-opus-4-20250514": {
         "provider": "anthropic",
         "context": "200K",
-        "cost": "$15/$75",
         "description": "Legacy model (use Opus 4.5)",
     },
     "claude-sonnet-4-20250514": {
         "provider": "anthropic",
         "context": "200K",
-        "cost": "$3/$15",
         "description": "Legacy model (use Sonnet 4.5)",
     },
     # Anthropic Claude 3.x Models (Legacy)
     "claude-3-7-sonnet-20250219": {
         "provider": "anthropic",
         "context": "200K",
-        "cost": "$3/$15",
         "description": "Legacy model (use Sonnet 4.5)",
     },
     "claude-3-5-haiku-20241022": {
         "provider": "anthropic",
         "context": "200K",
-        "cost": "$0.80/$4",
         "description": "Legacy model (use Haiku 4.5)",
     },
     "claude-3-haiku-20240307": {
         "provider": "anthropic",
         "context": "200K",
-        "cost": "$0.25/$1.25",
         "description": "Legacy model (use Haiku 4.5)",
     },
     "claude-3-opus-20240229": {
         "provider": "anthropic",
         "context": "200K",
-        "cost": "$15/$75",
         "description": "Legacy model (use Opus 4.5)",
     },
     # Google Gemini 2.5 Models (Latest - Stable)
     "gemini-2.5-pro": {
         "provider": "google",
         "context": "1M",
-        "cost": "expensive",
         "description": "Most powerful with thinking",
     },
     "gemini-2.5-flash": {
         "provider": "google",
         "context": "1M",
-        "cost": "moderate",
         "description": "Fast multimodal",
     },
     "gemini-2.5-flash-lite": {
         "provider": "google",
         "context": "1M",
-        "cost": "cheap",
         "description": "Speed & cost optimized",
     },
     "gemini-2.5-flash-image": {
         "provider": "google",
         "context": "64K",
-        "cost": "moderate",
         "description": "Native image generation",
     },
     # Google Gemini 2.0 Models
     "gemini-2.0-flash": {
         "provider": "google",
         "context": "1M",
-        "cost": "moderate",
         "description": "Latest stable flash",
     },
     # Google Gemini 1.5 Models (Legacy)
     "gemini-1.5-pro": {
         "provider": "google",
         "context": "2M",
-        "cost": "expensive",
         "description": "Legacy 2M context",
     },
     "gemini-1.5-flash": {
         "provider": "google",
         "context": "1M",
-        "cost": "moderate",
         "description": "Legacy flash model",
     },
     # HuggingFace Models (Serverless Inference via Inference Providers)
@@ -335,19 +288,16 @@ MODEL_INFO = {
     "meta-llama/Llama-3.1-8B-Instruct": {
         "provider": "huggingface",
         "context": "128K",
-        "cost": "free",
         "description": "Llama 3.1 8B (via Novita provider)",
     },
     "meta-llama/Llama-3.2-3B-Instruct": {
         "provider": "huggingface",
         "context": "128K",
-        "cost": "free",
         "description": "Llama 3.2 3B (check provider availability)",
     },
     "mistralai/Mistral-7B-Instruct-v0.3": {
         "provider": "huggingface",
         "context": "32K",
-        "cost": "free",
         "description": "Mistral 7B (check provider availability)",
     },
     # NOTE: Models below may NOT work with serverless API - they lack Inference Providers
@@ -815,7 +765,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                         provider_models[model_name] = {
                             "provider": "ollama",
                             "context": context_str,
-                            "cost": "free",
                             "description": "Local Ollama model",
                         }
 
@@ -844,7 +793,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                         model_entry: dict[str, Any] = {
                             "provider": "huggingface",
                             "context": "?",
-                            "cost": "free",
                             "description": f"🔄 Convert to MLX ({size_str})",
                             "convertible": True,
                             "display_name": model_name,
@@ -856,7 +804,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                         provider_models[model_name] = {
                             "provider": "huggingface",
                             "context": "?",
-                            "cost": "free",
                             "description": f"Local model ({size_str})",
                         }
 
@@ -870,7 +817,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 provider_models["_loading"] = {
                     "provider": "llamacpp",
                     "context": "-",
-                    "cost": "-",
                     "description": "Loading GGUF models...",
                     "display_name": "⏳ Scanning cache directories...",
                 }
@@ -883,7 +829,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 provider_models["_loading"] = {
                     "provider": "llamacpp",
                     "context": "-",
-                    "cost": "-",
                     "description": "Loading GGUF models...",
                     "display_name": "⏳ Scanning cache directories...",
                 }
@@ -914,7 +859,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                     provider_models[model_name] = {
                         "provider": "llamacpp",
                         "context": "4K-128K",
-                        "cost": "free",
                         "description": f"{quant}, {size_str}",
                         "display_name": file_name,  # Just the filename for display
                     }
@@ -945,7 +889,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             provider_models[self.current_model] = {
                 "provider": provider_value,
                 "context": "?",
-                "cost": "?",
                 "rating": "?",
                 "description": "Custom model",
             }
@@ -1034,6 +977,89 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 info = provider_models[key]
                 self._add_model_row_to_table(self._table, key, info)
 
+    def _get_ollama_model_description(self, model_name: str) -> str:
+        """Generate a helpful description for an Ollama model based on its name.
+
+        Args:
+            model_name: The Ollama model name (e.g., "llama3.2:3b", "qwen2.5-coder:7b")
+
+        Returns:
+            A descriptive string about the model
+        """
+        name_lower = model_name.lower()
+
+        # Extract size from model name if present
+        size_match = ""
+        for size in ["0.5b", "1b", "3b", "7b", "8b", "14b", "32b", "70b", "405b"]:
+            if size in name_lower:
+                size_match = size.upper()
+                break
+
+        # Identify model family and provide specific descriptions
+        if "llama3.3" in name_lower or "llama-3.3" in name_lower:
+            return f"Meta Llama 3.3 {size_match}".strip() or "Meta Llama 3.3"
+        elif "llama3.2" in name_lower or "llama-3.2" in name_lower:
+            if "vision" in name_lower:
+                return f"Meta Llama 3.2 Vision {size_match}".strip()
+            return f"Meta Llama 3.2 {size_match}".strip() or "Meta Llama 3.2"
+        elif "llama3.1" in name_lower or "llama-3.1" in name_lower:
+            return f"Meta Llama 3.1 {size_match}".strip() or "Meta Llama 3.1"
+        elif "llama3" in name_lower or "llama-3" in name_lower:
+            return f"Meta Llama 3 {size_match}".strip() or "Meta Llama 3"
+        elif "llama2" in name_lower:
+            return f"Meta Llama 2 {size_match}".strip() or "Meta Llama 2 (legacy)"
+        elif "qwen2.5-coder" in name_lower:
+            return f"Qwen 2.5 Coder {size_match}".strip() or "Qwen 2.5 Coder"
+        elif "qwen2.5" in name_lower:
+            return f"Qwen 2.5 {size_match}".strip() or "Qwen 2.5"
+        elif "qwen2" in name_lower:
+            return f"Qwen 2 {size_match}".strip() or "Qwen 2"
+        elif "mistral" in name_lower and "nemo" in name_lower:
+            return "Mistral Nemo 12B"
+        elif "mistral" in name_lower:
+            return f"Mistral {size_match}".strip() or "Mistral"
+        elif "mixtral" in name_lower:
+            return "Mixtral MoE" if not size_match else f"Mixtral {size_match} MoE"
+        elif "gemma2" in name_lower:
+            return f"Google Gemma 2 {size_match}".strip() or "Google Gemma 2"
+        elif "gemma" in name_lower:
+            return f"Google Gemma {size_match}".strip() or "Google Gemma"
+        elif "phi3" in name_lower or "phi-3" in name_lower:
+            return f"Microsoft Phi-3 {size_match}".strip() or "Microsoft Phi-3"
+        elif "codestral" in name_lower:
+            return "Mistral Codestral (coding)"
+        elif "codegemma" in name_lower:
+            return f"Google CodeGemma {size_match}".strip() or "Google CodeGemma"
+        elif "deepseek-coder" in name_lower:
+            return f"DeepSeek Coder {size_match}".strip() or "DeepSeek Coder"
+        elif "deepseek" in name_lower:
+            return f"DeepSeek {size_match}".strip() or "DeepSeek"
+        elif "dolphin" in name_lower:
+            return "Dolphin (uncensored)"
+        elif "yi" in name_lower:
+            return f"01.AI Yi {size_match}".strip() or "01.AI Yi"
+        elif "granite" in name_lower and "code" in name_lower:
+            return f"IBM Granite Code {size_match}".strip() or "IBM Granite Code"
+        elif "granite" in name_lower:
+            return f"IBM Granite {size_match}".strip() or "IBM Granite"
+        elif "solar" in name_lower:
+            return "Upstage SOLAR"
+        elif "nous" in name_lower or "hermes" in name_lower:
+            return "Nous Hermes"
+        elif "orca" in name_lower:
+            return "Microsoft Orca"
+        elif "vicuna" in name_lower:
+            return "Vicuna"
+        elif "falcon" in name_lower:
+            return f"TII Falcon {size_match}".strip() or "TII Falcon"
+        elif "starcoder" in name_lower:
+            return "StarCoder (coding)"
+        elif "wizardcoder" in name_lower:
+            return "WizardCoder (coding)"
+
+        # Default fallback
+        return "Local Ollama model"
+
     def _populate_ollama_models(
         self, provider_models: dict[str, dict[str, Any]], search_query: str = ""
     ) -> None:
@@ -1066,12 +1092,14 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 else:
                     context_str = "?"
 
+                # Generate helpful description based on model name
+                description = self._get_ollama_model_description(model_name)
+
                 key = f"ollama:{model_name}"
                 provider_models[key] = {
                     "provider": "ollama",
                     "context": context_str,
-                    "cost": "free",
-                    "description": "Ollama model",
+                    "description": description,
                     "display_name": model_name,
                     "actual_model": model_name,
                 }
@@ -1097,7 +1125,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             provider_models[loading_key] = {
                 "provider": "llamacpp",
                 "context": "-",
-                "cost": "-",
                 "description": "Scanning cache directories...",
                 "display_name": "⏳ Loading GGUF models...",
                 "loading": True,
@@ -1122,7 +1149,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 provider_models[key] = {
                     "provider": "llamacpp",
                     "context": "4K-128K",
-                    "cost": "free",
                     "description": f"{quant}, {size_str}",
                     "display_name": file_name,
                     "actual_model": file_path,
@@ -1162,7 +1188,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 provider_models[key] = {
                     "provider": "mlx",
                     "context": "?",
-                    "cost": "free",
                     "description": f"✓ MLX, {size_str}",
                     "display_name": model_name,
                     "actual_model": model_path,
@@ -1188,7 +1213,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 provider_models[key] = {
                     "provider": "mlx",
                     "context": "?",
-                    "cost": "free",
                     "description": f"🔄 Convert ({size_str})",
                     "display_name": model_name,
                     "actual_model": model_name,
@@ -1226,13 +1250,15 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                         else:
                             context_str = "?"
 
+                        # Generate helpful description based on model name
+                        description = self._get_ollama_model_description(model_name)
+
                         key = f"ollama:{model_name}"
                         provider_models[key] = {
                             "provider": "ollama",
                             "section": "ollama",
                             "context": context_str,
-                            "cost": "free",
-                            "description": "Ollama model",
+                            "description": description,
                             "display_name": model_name,
                             "actual_model": model_name,
                         }
@@ -1265,7 +1291,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                     "provider": "llamacpp",
                     "section": "gguf",
                     "context": "4K-128K",
-                    "cost": "free",
                     "description": f"{quant}, {size_str}",
                     "display_name": file_name,
                     "actual_model": file_path,
@@ -1298,7 +1323,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                         "provider": "mlx",
                         "section": "mlx",
                         "context": "?",  # Could extract from config.json in future
-                        "cost": "free",
                         "description": f"Local, {size_str}",
                         "display_name": model_name,
                         "actual_model": model_path,
@@ -1337,7 +1361,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                         "provider": "mlx",
                         "section": "mlx",
                         "context": info["context"],
-                        "cost": "free",
                         "description": info["description"],
                         "display_name": model_id,
                         "actual_model": model_id,
