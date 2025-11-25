@@ -257,9 +257,10 @@ yaml = ["PyYAML"]
 name = "beautifulsoup4"
 version = "4.14.2"
 description = "Screen-scraping library"
-optional = false
+optional = true
 python-versions = ">=3.7.0"
 groups = ["main"]
+markers = "extra == \"ollama-library\""
 files = [
     {file = "beautifulsoup4-4.14.2-py3-none-any.whl", hash = "sha256:5ef6fa3a8cbece8488d66985560f97ed091e22bbc4e9c2338508a9d5de6d4515"},
     {file = "beautifulsoup4-4.14.2.tar.gz", hash = "sha256:2a98ab9f944a11acee9cc848508ec28d9228abfd522ef0fad6a02a72e0ded69e"},
@@ -4807,9 +4808,10 @@ files = [
 name = "soupsieve"
 version = "2.8"
 description = "A modern CSS selector implementation for Beautiful Soup."
-optional = false
+optional = true
 python-versions = ">=3.9"
 groups = ["main"]
+markers = "extra == \"ollama-library\""
 files = [
     {file = "soupsieve-2.8-py3-none-any.whl", hash = "sha256:0cc76456a30e20f5d7f2e14a98a4ae2ee4e5abdc7c5ea0aafe795f344bc7984c"},
     {file = "soupsieve-2.8.tar.gz", hash = "sha256:e2dd4a40a628cb5f28f6d4b0db8800b8f581b65bb380b97de22ba5ca8d72572f"},
@@ -6008,9 +6010,10 @@ huggingface-local = ["accelerate", "torch", "transformers"]
 huggingface-quantization = ["accelerate", "bitsandbytes", "torch", "transformers"]
 llamacpp = ["llama-cpp-python"]
 mlx = ["mlx-lm"]
+ollama-library = ["beautifulsoup4"]
 pdf = ["pypdf"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "fddc938fcd146da61209caf76346a66caada2de5e9ba318b06899673bb372443"
+content-hash = "fad9a8f7695c079f2d97219c5a63e8d7c5f7b4b187bccf2a875544c86c474ee0"

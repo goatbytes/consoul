@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-24T23:32:56.113891",
-  "updated_at": "2025-11-25T12:02:25.579930",
+  "updated_at": "2025-11-25T12:13:25.433741",
   "id": "SOUL-164",
   "uuid": "3e4bf424-52c8-4a94-86a5-0031aa72d7cb",
   "title": "Add Ollama model discovery from ollama.com",
@@ -38,11 +38,24 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-25T12:13:25.433658",
+      "updated_at": "2025-11-25T12:13:25.433658",
+      "id": "20251125121325-2c1e8949",
+      "ticket_id": "SOUL-164",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed duplicate /library in URLs. If you see wrong URLs, clear cache with: rm ~/.consoul/cache/ollama_library_*.json",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 2,
+  "comment_count": 3,
   "order": 0,
   "custom_fields": {}
 }

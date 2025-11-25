@@ -3325,9 +3325,17 @@ class ConsoulApp(App[None]):
 
     async def action_browse_ollama_library(self) -> None:
         """Show Ollama Library browser modal."""
-        from consoul.tui.widgets.ollama_library_modal import OllamaLibraryModal
+        try:
+            from consoul.tui.widgets.ollama_library_modal import OllamaLibraryModal
 
-        await self.push_screen(OllamaLibraryModal())
+            await self.push_screen(OllamaLibraryModal())
+        except ImportError:
+            self.notify(
+                "Ollama Library browser requires beautifulsoup4.\n"
+                "Install with: pip install consoul[ollama-library]",
+                severity="warning",
+                timeout=10,
+            )
 
     def action_toggle_sidebar(self) -> None:
         """Toggle conversation list sidebar visibility."""
