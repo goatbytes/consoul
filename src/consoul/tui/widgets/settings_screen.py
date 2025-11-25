@@ -221,6 +221,8 @@ class SettingsScreen(ModalScreen[bool]):
             with Vertical(classes="setting-control"):
                 yield Select(
                     options=[
+                        ("Consoul Dark", "consoul-dark"),
+                        ("Consoul Light", "consoul-light"),
                         ("Monokai", "monokai"),
                         ("Dracula", "dracula"),
                         ("Nord", "nord"),
