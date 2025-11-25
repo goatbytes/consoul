@@ -6,7 +6,15 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import click
+try:
+    import click
+except ImportError:
+    print(
+        "Error: CLI dependencies not installed.\n"
+        "Install with: pip install consoul[tui]",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 from consoul.config.loader import load_config
 from consoul.config.profiles import get_builtin_profiles, get_profile_description
