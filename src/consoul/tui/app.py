@@ -3820,17 +3820,25 @@ class ConsoulApp(App[None]):
             return
 
         try:
-            # Get old database path before switching
+            # Get old database path and persist setting before switching
             old_db_path = (
                 self.active_profile.conversation.db_path
                 if self.active_profile
                 else None
+            )
+            old_persist = (
+                self.active_profile.conversation.persist
+                if self.active_profile
+                else True
             )
 
             # Update active profile in config
             self.consoul_config.active_profile = profile_name
             self.active_profile = self.consoul_config.get_active_profile()
             self.current_profile = profile_name
+
+            # Get new persist setting
+            new_persist = self.active_profile.conversation.persist
 
             # Persist profile selection to config file
             from pathlib import Path
@@ -3859,9 +3867,44 @@ class ConsoulApp(App[None]):
 
             # NOTE: Model/provider remain unchanged - profiles are separate from models
 
-            # Check if database path changed
+            # Handle sidebar visibility based on persist setting changes
             new_db_path = self.active_profile.conversation.db_path
-            if old_db_path != new_db_path:
+
+            # Case 1: Switching from non-persist to persist profile
+            if not old_persist and new_persist:
+                # Need to mount sidebar if show_sidebar is enabled
+                if self.config.show_sidebar and not hasattr(self, "conversation_list"):
+                    from consoul.ai.database import ConversationDatabase
+                    from consoul.tui.widgets.conversation_list import ConversationList
+
+                    db = ConversationDatabase(new_db_path)
+                    self.conversation_list = ConversationList(db=db)
+
+                    # Mount sidebar in main-container before content-area
+                    main_container = self.query_one(".main-container")
+                    main_container.mount(self.conversation_list, before=0)
+
+                    self.log.info(
+                        f"Mounted conversation sidebar for persist-enabled profile '{profile_name}'"
+                    )
+
+            # Case 2: Switching from persist to non-persist profile
+            elif old_persist and not new_persist:
+                # Need to unmount sidebar
+                if hasattr(self, "conversation_list"):
+                    self.conversation_list.remove()
+                    delattr(self, "conversation_list")
+                    self.log.info(
+                        f"Unmounted conversation sidebar for non-persist profile '{profile_name}'"
+                    )
+
+            # Case 3: Both profiles have persist=True - check if database path changed
+            elif (
+                old_persist
+                and new_persist
+                and old_db_path != new_db_path
+                and hasattr(self, "conversation_list")
+            ):
                 # Database path changed - update conversation list database
                 from consoul.ai.database import ConversationDatabase
 
