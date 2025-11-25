@@ -21,7 +21,7 @@ class TuiConfig(BaseModel):
     """
 
     # Theme and Appearance
-    theme: str = Field(default="monokai", description="TUI color theme")
+    theme: str = Field(default="consoul-dark", description="TUI color theme")
     show_sidebar: bool = Field(
         default=True, description="Show conversation list sidebar"
     )

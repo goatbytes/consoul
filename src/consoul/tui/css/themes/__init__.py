@@ -17,7 +17,14 @@ __all__ = [
 ]
 
 # Available theme names
-ThemeName = Literal["monokai", "dracula", "nord", "gruvbox"]
+ThemeName = Literal[
+    "monokai",
+    "dracula",
+    "nord",
+    "gruvbox",
+    "consoul-light",
+    "consoul-dark",
+]
 
 
 def get_theme_path(theme: ThemeName) -> Path:
@@ -75,4 +82,4 @@ def get_available_themes() -> list[str]:
         >>> len(themes) >= 4
         True
     """
-    return ["monokai", "dracula", "nord", "gruvbox"]
+    return ["monokai", "dracula", "nord", "gruvbox", "consoul-light", "consoul-dark"]

@@ -1,0 +1,21 @@
+/* Consoul TUI - Sky Blue Light Theme
+ * Official Consoul light theme based on brand color palette
+ * Colors: Binary Slate (#3D3D3D), Sky Blue (#0085CC), Pure White (#FFFFFF)
+ */
+
+/* Color palette */
+$surface: #FFFFFF;         /* Pure White - base background */
+$surface-lighten-1: #F5F5F5; /* Slightly off-white for contrast */
+$surface-darken-1: #E8E8E8;  /* Light gray for depth */
+
+$primary: #0085CC;         /* Sky Blue - innovation and trust */
+$secondary: #3D3D3D;       /* Binary Slate - professional foundation */
+$accent: #0085CC;          /* Sky Blue - highlights */
+$success: #28A745;         /* Green - success states */
+$warning: #FFC107;         /* Amber - warnings */
+$error: #DC3545;           /* Red - errors */
+
+$text: #3D3D3D;            /* Binary Slate - main text */
+$text-muted: #6C757D;      /* Gray - secondary text */
+
+$panel: #F8F9FA;           /* Very light gray - panels */
