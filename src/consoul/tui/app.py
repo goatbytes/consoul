@@ -3832,6 +3832,31 @@ class ConsoulApp(App[None]):
             self.active_profile = self.consoul_config.get_active_profile()
             self.current_profile = profile_name
 
+            # Persist profile selection to config file
+            from pathlib import Path
+
+            from consoul.config.loader import find_config_files, save_config
+
+            try:
+                # Determine config file path (prefer project, fallback to global)
+                global_config, project_config = find_config_files()
+                config_path = project_config or global_config
+
+                # If no config exists, create global config
+                if not config_path:
+                    config_path = Path.home() / ".consoul" / "config.yaml"
+
+                # Save updated config
+                save_config(self.consoul_config, config_path)
+                self.log.info(
+                    f"Profile selection saved to {config_path}: {profile_name}"
+                )
+            except Exception as save_error:
+                # Log but don't fail the profile switch - it's already applied in memory
+                self.log.warning(
+                    f"Failed to persist profile selection: {save_error}", exc_info=True
+                )
+
             # NOTE: Model/provider remain unchanged - profiles are separate from models
 
             # Check if database path changed
@@ -3873,11 +3898,11 @@ class ConsoulApp(App[None]):
             self._update_top_bar_state()
 
             self.notify(
-                f"Switched to profile '{profile_name}' (model unchanged: {self.current_model})",
+                f"Switched to profile '{profile_name}' and saved to config (model unchanged: {self.current_model})",
                 severity="information",
             )
             self.log.info(
-                f"Profile switched: {profile_name}, model preserved: {self.current_model}"
+                f"Profile switched and saved: {profile_name}, model preserved: {self.current_model}"
             )
 
         except Exception as e:
