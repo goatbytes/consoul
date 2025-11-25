@@ -514,21 +514,13 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                     providers.append("huggingface")
                 # Add consolidated "Local" tab for Ollama, LlamaCpp, MLX
                 providers.append("local")
-                # Add Ollama Library tab for discovering models
-                if self._ollama_available:
-                    providers.append("ollama-library")
 
                 for provider in providers:
                     tab_classes = "provider-tab"
                     if provider == self.active_provider:
                         tab_classes += " -active"
-                    # Custom label for ollama-library
-                    if provider == "ollama-library":
-                        tab_text = "Ollama Library"
-                    else:
-                        tab_text = provider.title()
                     tab_label = Label(
-                        tab_text,
+                        provider.title(),
                         classes=tab_classes,
                         id=f"tab-{provider}",
                     )
@@ -577,7 +569,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             "tab-google",
             "tab-huggingface",
             "tab-local",
-            "tab-ollama-library",
         ]:
             try:
                 tab = self.query_one(f"#{tab_id}", Label)
@@ -745,11 +736,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         if provider_value == "local":
             provider_models = {}
             self._populate_local_models_for_active_subtab(provider_models, search_query)
-            return
-
-        # For Ollama Library, fetch models from ollama.com
-        if provider_value == "ollama-library":
-            self._populate_ollama_library_models(search_query)
             return
 
         # For Ollama, fetch dynamic models from the service
@@ -991,71 +977,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 info = provider_models[key]
                 self._add_model_row_to_table(self._table, key, info)
 
-    def _populate_ollama_library_models(self, search_query: str = "") -> None:
-        """Populate models from ollama.com library.
-
-        Args:
-            search_query: Optional search query to filter models
-        """
-        from consoul.ai.ollama_library import fetch_library_models
-
-        try:
-            # Fetch models from ollama.com (uses 24-hour cache)
-            library_models = fetch_library_models(
-                namespace="library", category=None, force_refresh=False
-            )
-
-            # Convert to provider_models format
-            provider_models: dict[str, dict[str, Any]] = {}
-            for model in library_models:
-                model_name = model.name
-                # Apply search filter
-                if search_query:
-                    query_lower = search_query.lower()
-                    if (
-                        query_lower not in model_name.lower()
-                        and query_lower not in model.description.lower()
-                    ):
-                        continue
-
-                key = f"library:{model_name}"
-                provider_models[key] = {
-                    "provider": "ollama-library",
-                    "context": "?",  # Context not available from library
-                    "description": f"{model.num_pulls} · {model.description[:40]}..."
-                    if len(model.description) > 40
-                    else f"{model.num_pulls} · {model.description}",
-                    "display_name": model_name,
-                    "actual_model": model_name,
-                    "library_url": model.url,
-                    "tags": model.tags,
-                    "num_tags": model.num_tags,
-                    "updated": model.updated,
-                }
-
-            # Add models to the table
-            if self._table:
-                for key in sorted(
-                    provider_models.keys(),
-                    key=lambda k: provider_models[k].get("display_name", ""),
-                ):
-                    info = provider_models[key]
-                    self._add_model_row_to_table(self._table, key, info)
-
-                    # Store in model map
-                    self._model_map[key] = info
-
-        except Exception as e:
-            log.error(f"Failed to fetch Ollama Library models: {e}")
-            # Show error message in table
-            if self._table:
-                self._table.add_row(
-                    "Error loading library",
-                    "N/A",
-                    f"Failed to fetch: {e!s}",
-                    key="error",
-                )
-
     def _get_ollama_model_description(self, model_name: str) -> str:
         """Generate a helpful description for an Ollama model based on its name.
 
@@ -1069,19 +990,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
 
         # Extract size from model name if present
         size_match = ""
-        for size in [
-            "0.5b",
-            "1b",
-            "3b",
-            "7b",
-            "8b",
-            "12b",
-            "14b",
-            "30b",
-            "32b",
-            "70b",
-            "405b",
-        ]:
+        for size in ["0.5b", "1b", "3b", "7b", "8b", "14b", "32b", "70b", "405b"]:
             if size in name_lower:
                 size_match = size.upper()
                 break
@@ -1660,7 +1569,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 "google",
                 "huggingface",
                 "local",
-                "ollama-library",
             ]:
                 self.active_provider = provider
                 log.info(f"ModelPickerModal: Switched to provider '{provider}'")
@@ -1845,16 +1753,6 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             if model_info.get("loading"):
                 return
 
-            # For Ollama Library, initiate pull instead of selecting
-            if self.active_provider == "ollama-library":
-                if row_key.startswith("library:"):
-                    model_name = row_key.split(":", 1)[1]
-                    log.info(
-                        f"ModelPickerModal: Pulling model from library: {model_name}"
-                    )
-                    self._pull_ollama_model(model_name)
-                return
-
             # For local tab, extract actual provider and model from the key
             if self.active_provider == "local":
                 if ":" in row_key:
@@ -1885,75 +1783,3 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
             self.action_select()
         elif event.button.id == "cancel-btn":
             self.action_cancel()
-
-    def _pull_ollama_model(self, model_name: str) -> None:
-        """Pull a model from Ollama library.
-
-        Args:
-            model_name: Name of the model to pull (e.g., "llama3.2:3b")
-        """
-        from consoul.ai.providers import is_ollama_running
-
-        # Check if Ollama is running
-        if not is_ollama_running():
-            self.app.notify(
-                "Ollama is not running. Please start Ollama first.", severity="error"
-            )
-            return
-
-        # Notify user that pull is starting
-        self.app.notify(f"Pulling model: {model_name}...", timeout=3)
-
-        # Run pull in worker thread
-        self.run_worker(self._pull_model_worker(model_name), exclusive=False)
-
-    async def _pull_model_worker(self, model_name: str) -> None:
-        """Worker to pull model in background.
-
-        Args:
-            model_name: Name of the model to pull
-        """
-        import subprocess
-
-        try:
-            log.info(f"Starting pull for model: {model_name}")
-
-            # Use subprocess to run ollama pull
-            process = subprocess.Popen(
-                ["ollama", "pull", model_name],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-
-            # Wait for completion
-            stdout, stderr = process.communicate()
-
-            if process.returncode == 0:
-                log.info(f"Successfully pulled model: {model_name}")
-                self.app.notify(f"✓ Model pulled: {model_name}", timeout=5)
-
-                # Switch to Local tab and Ollama sub-tab to show the new model
-                self.active_provider = "local"
-                self.active_local_provider = "ollama"
-            else:
-                error_msg = stderr or stdout or "Unknown error"
-                log.error(f"Failed to pull model {model_name}: {error_msg}")
-                self.app.notify(
-                    f"Failed to pull {model_name}: {error_msg[:50]}...",
-                    severity="error",
-                    timeout=10,
-                )
-
-        except FileNotFoundError:
-            log.error("ollama command not found")
-            self.app.notify(
-                "ollama command not found. Is Ollama installed?",
-                severity="error",
-                timeout=10,
-            )
-        except Exception as e:
-            log.error(f"Error pulling model {model_name}: {e}")
-            self.app.notify(
-                f"Error pulling model: {str(e)[:50]}...", severity="error", timeout=10
-            )

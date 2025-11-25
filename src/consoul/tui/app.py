@@ -111,6 +111,7 @@ class ConsoulApp(App[None]):
         # Navigation
         Binding("ctrl+p", "switch_profile", "Profile", show=False),
         Binding("ctrl+m", "switch_model", "Model", show=False),
+        Binding("ctrl+o", "browse_ollama_library", "Ollama Library", show=False),
         Binding("ctrl+e", "export_conversation", "Export", show=True),
         Binding("ctrl+i", "import_conversation", "Import", show=False),
         Binding("ctrl+s", "search_history", "Search", show=False),
@@ -3321,6 +3322,12 @@ class ConsoulApp(App[None]):
                 model=self.current_model,
             )
         )
+
+    async def action_browse_ollama_library(self) -> None:
+        """Show Ollama Library browser modal."""
+        from consoul.tui.widgets.ollama_library_modal import OllamaLibraryModal
+
+        await self.push_screen(OllamaLibraryModal())
 
     def action_toggle_sidebar(self) -> None:
         """Toggle conversation list sidebar visibility."""
