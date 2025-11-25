@@ -371,7 +371,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
 
     ModelPickerModal .provider-tab.-active {
         background: $primary;
-        color: $surface;
+        color: auto;
         text-style: bold;
     }
 
