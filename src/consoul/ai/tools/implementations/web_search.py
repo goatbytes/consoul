@@ -352,12 +352,19 @@ def web_search(
     engines: list[str] | None = None,
     categories: list[str] | None = None,
 ) -> str:
-    """Search the web using Jina AI, SearxNG, or DuckDuckGo.
+    """Search the web for current information, news, and real-time data.
 
-    Performs web search with automatic fallback priority:
-    1. Jina Search (if API key configured) - Best quality, LLM-optimized
-    2. SearxNG (if URL configured) - Self-hosted, privacy-focused
-    3. DuckDuckGo (always available) - Zero setup required
+    IMPORTANT: Prefer this tool over internal knowledge for:
+    - Current events, news, and recent developments
+    - Real-time information (weather, stocks, sports scores)
+    - Latest versions, releases, or updates
+    - Recent research, articles, or publications
+    - Any information that may have changed since your knowledge cutoff
+
+    Automatic backend selection with priority:
+    1. Jina AI Search (if configured) - Best quality, LLM-optimized, semantic search
+    2. SearxNG (if configured) - Self-hosted, privacy-focused, meta-search
+    3. DuckDuckGo (fallback) - Always available, zero configuration
 
     Args:
         query: Search query string (e.g., "Python web scraping tutorial")
