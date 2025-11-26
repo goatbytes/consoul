@@ -337,9 +337,9 @@ def chat(
                 logger.debug(f"Response received: {response[:100]}...")
 
             except KeyboardInterrupt:
-                # Ctrl+C during input or streaming - cancel and re-prompt
-                console.print("\n[yellow]Cancelled[/yellow]\n")
-                continue
+                # Ctrl+C - exit gracefully
+                console.print("\n[yellow]Cancelled[/yellow]")
+                break
 
             except Exception as e:
                 # API errors, rate limits, network issues
