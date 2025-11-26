@@ -376,10 +376,15 @@ class ChatSession:
         """Get conversation statistics.
 
         Returns:
-            Dictionary with message_count and token_count
+            Dictionary with message_count (excluding system messages) and token_count
         """
+        # Count only user and assistant messages, exclude system messages
+        user_and_assistant_messages = [
+            msg for msg in self.history.messages if msg.type in ("human", "ai")
+        ]
+
         return {
-            "message_count": len(self.history),
+            "message_count": len(user_and_assistant_messages),
             "token_count": self.history.count_tokens(),
         }
 
