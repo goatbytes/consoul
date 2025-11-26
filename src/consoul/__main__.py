@@ -180,9 +180,20 @@ def chat(
 
     # Override model if specified
     if model:
+        from consoul.ai.providers import get_provider_from_model
+
         config.current_model = model
         # Auto-detect provider from model name
-        logger.info(f"Model override: {model}")
+        detected_provider = get_provider_from_model(model)
+        if detected_provider:
+            config.current_provider = detected_provider
+            logger.info(
+                f"Model override: {model} (provider: {detected_provider.value})"
+            )
+        else:
+            logger.warning(
+                f"Could not detect provider for model '{model}', using current provider: {config.current_provider.value}"
+            )
 
     # Display welcome panel
     console.print()
