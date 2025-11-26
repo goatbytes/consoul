@@ -219,15 +219,12 @@ attrs = "^25.4.0"
 types-pyyaml = "^6.0.12.20250915"
 types-requests = "^2.32.4.20250913"
 types-pyperclip = "^1.9.0.20250801"
-mkdocs-glightbox = "^0.5.2"
-mkdocstrings = "^0.30.1"
-mkdocstrings-python = "^1.19.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.6.1"
 mkdocs-material = "^9.6.23"
-mkdocstrings = {extras = ["python"], version = "^0.30.1"}
 mkdocs-glightbox = "^0.5.2"
+mkdocstrings = {extras = ["python"], version = "^0.30.1"}
 
 [tool.poetry.group.security.dependencies]
 safety = "^3.7.0"
