@@ -58,7 +58,7 @@ print(f"Last cost: {console.last_cost}")
 For the full interactive TUI:
 
 ```bash
-consoul                                        # Launch interactive mode
+consoul tui                                    # Launch interactive mode
 consoul chat "Explain quantum computing"      # One-off question
 consoul chat --model gpt-4o "Your question"  # Use specific model
 consoul --profile creative chat "Write a poem" # Use specific profile

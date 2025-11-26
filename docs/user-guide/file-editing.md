@@ -12,7 +12,7 @@ Comprehensive guide to Consoul's AI-powered file editing capabilities with safet
   - [delete_file](#delete_file)
   - [append_to_file](#append_to_file)
 - [Configuration](#configuration)
-- [Security & Permissions](#security--permissions)
+- [Security & Permissions](#security-permissions)
 - [Progressive Matching](#progressive-matching)
 - [Common Workflows](#common-workflows)
 - [Troubleshooting](#troubleshooting)
@@ -1135,6 +1135,6 @@ edit_file_lines.invoke({
 ## See Also
 
 - [Tool Calling](../tools.md) - Complete tool calling documentation
-- [Security](../../SECURITY.md) - Security best practices
+- [Security](../SECURITY.md) - Security best practices
 - [Configuration](configuration.md) - Profile configuration reference
-- [Examples](../../examples/file-editing/) - Working code examples
+- [Examples](../examples/file-editing/README.md) - Working code examples

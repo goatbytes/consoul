@@ -13,7 +13,7 @@ consoul chat "How do I reverse a string in Python?"
 ### Interactive Mode
 
 ```bash
-consoul
+consoul tui
 ```
 
 ## File Context

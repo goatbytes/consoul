@@ -1129,7 +1129,7 @@ profiles:
 
 **See Also:**
 - [File Editing Guide](user-guide/file-editing.md) - Comprehensive documentation
-- [Examples](../examples/file-editing/) - Working code examples
+- [Examples](examples/file-editing/README.md) - Working code examples
 
 ---
 
@@ -1284,7 +1284,7 @@ See [Permission Policies](#permission-policies) for details.
 
 ```bash
 # TUI mode (interactive approval)
-consoul
+consoul tui
 
 # Ask the AI to run a command
 > "What files are in the current directory?"
@@ -1657,7 +1657,7 @@ overrides) directly when changing tool policies, audit paths, or bash timeouts.
 
 ### In TUI (Interactive Mode)
 
-When running `consoul` in TUI mode:
+When running `consoul tui` in TUI mode:
 
 1. **AI requests tool**: The AI determines it needs to execute a command
 2. **Security validation**: Command is analyzed for risk level
@@ -2578,7 +2578,7 @@ EOF
 > ~/.consoul/tool_audit.jsonl
 
 # 3. Run problematic command
-consoul
+consoul tui
 
 # 4. Check audit log for details
 cat ~/.consoul/tool_audit.jsonl | jq
@@ -2826,8 +2826,7 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
 ## See Also
 
 - [Configuration Guide](user-guide/configuration.md) - Complete configuration reference
-- [Security Policy](../SECURITY.md) - Security best practices
+- [Security Policy](SECURITY.md) - Security best practices
 - [API Documentation](api/index.md) - Full API reference
-- [Examples](../examples/) - Working code examples
 - [Tool Calling Config Examples](examples/tool-calling-config.yaml) - Configuration templates
 - [Custom Tool Example](examples/custom-tool-example.py) - Complete custom tool implementation

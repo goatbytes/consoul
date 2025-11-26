@@ -13,7 +13,7 @@ Make sure you've [installed Consoul](installation.md) and configured your API ke
 Launch Consoul's terminal UI:
 
 ```bash
-consoul
+consoul tui
 ```
 
 This opens an interactive interface where you can:

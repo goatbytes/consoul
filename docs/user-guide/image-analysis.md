@@ -475,7 +475,7 @@ Describe each numbered element in this annotated screenshot: ui_guide.png
 - [Configuration Guide](configuration.md) - Detailed config options
 - [File Editing](file-editing.md) - Combine vision with file operations
 - [Tools Overview](../tools.md) - All available tools
-- [SDK Reference](../sdk/README.md) - Programmatic usage
+- [SDK Tool Calling](../sdk/tool-calling-integration.md) - Programmatic usage
 
 ## FAQs
 

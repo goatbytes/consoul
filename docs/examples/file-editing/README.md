@@ -216,7 +216,7 @@ tools:
 
 - [File Editing Guide](../../user-guide/file-editing.md) - Comprehensive documentation
 - [Tool Calling](../../tools.md) - Complete tool reference
-- [Security](../../../SECURITY.md) - Security best practices
+- [Security](../../SECURITY.md) - Security best practices
 - [Configuration](../../user-guide/configuration.md) - Profile configuration
 
 ## Feedback

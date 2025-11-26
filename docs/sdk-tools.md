@@ -779,8 +779,8 @@ Custom tool raises errors when called.
 ## See Also
 
 - **[Complete Tool Documentation](tools.md)** - Detailed docs for all 11 built-in tools
-- **[SDK Examples](../examples/sdk/)** - Runnable code examples
-- **[Tool Specification Examples](../examples/sdk/tool_specification/)** - All specification patterns
+- **[SDK Examples](https://github.com/goatbytes/consoul/tree/main/examples/sdk)** - Runnable code examples
+- **[Tool Specification Examples](https://github.com/goatbytes/consoul/tree/main/examples/sdk/tool_specification)** - All specification patterns
 - **[Configuration Guide](user-guide/configuration.md)** - Security policies and settings
 - **[API Reference](api/index.md)** - Complete API documentation
 

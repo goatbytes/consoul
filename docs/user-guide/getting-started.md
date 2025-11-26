@@ -41,7 +41,7 @@ You can provide context to Consoul in several ways:
 The Terminal UI provides a rich, interactive experience:
 
 ```bash
-consoul
+consoul tui
 ```
 
 **Features:**

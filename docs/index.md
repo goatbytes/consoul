@@ -24,7 +24,7 @@ In the age of AI-assisted development, switching between your terminal and brows
 pip install consoul
 
 # Run the interactive TUI
-consoul
+consoul tui
 
 # Or use the CLI directly
 consoul chat "How do I reverse a string in Python?"

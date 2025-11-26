@@ -78,6 +78,17 @@ plugins:
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
       lang: en
+  - glightbox:
+      touchNavigation: true
+      loop: false
+      effect: zoom
+      slide_effect: slide
+      width: 100%
+      height: auto
+      zoomable: true
+      draggable: true
+      skip_classes:
+        - skip-lightbox
   - mkdocstrings:
       handlers:
         python:
@@ -166,6 +177,16 @@ nav:
     - Getting Started: user-guide/getting-started.md
     - Configuration: user-guide/configuration.md
     - Usage: user-guide/usage.md
+    - Terminal UI (TUI):
+      - Overview: user-guide/tui.md
+      - Interface Guide: user-guide/tui/interface.md
+      - Features: user-guide/tui/features.md
+      - Keyboard Shortcuts: user-guide/tui/keyboard-shortcuts.md
+      - Modals & Dialogs: user-guide/tui/modals.md
+      - Themes: user-guide/tui/themes.md
+      - Configuration: user-guide/tui/configuration.md
+  - CLI Reference:
+    - Commands: cli-reference/index.md
   - Development:
     - Setup: development.md
     - Contributing: contributing.md

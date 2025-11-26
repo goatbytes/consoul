@@ -802,6 +802,140 @@ def preset(ctx: click.Context) -> None:
     pass
 
 
+def _create_describe_command() -> click.Command:
+    """Factory function to create the describe command with proper CLI access."""
+
+    @click.command(name="describe")
+    @click.argument("command_path", nargs=-1)
+    @click.option(
+        "--format",
+        "-f",
+        type=click.Choice(["json", "markdown"], case_sensitive=False),
+        default="json",
+        help="Output format (default: json)",
+    )
+    @click.option(
+        "--output",
+        "-o",
+        type=click.Path(path_type=Path),
+        help="Write output to file instead of stdout",
+    )
+    @click.option(
+        "--indent",
+        type=int,
+        default=2,
+        help="JSON indentation spaces (default: 2)",
+    )
+    @click.option(
+        "--compact",
+        is_flag=True,
+        help="Compact JSON output (no indentation)",
+    )
+    @click.pass_context
+    def describe_cmd(
+        ctx: click.Context,
+        command_path: tuple[str, ...],
+        format: str,
+        output: Path | None,
+        indent: int,
+        compact: bool,
+    ) -> None:
+        """Describe Consoul CLI commands and their schemas.
+
+        By default, outputs CLI structure as JSON for compatibility with
+        documentation generators and AI agents.
+
+        Examples:
+
+            \b
+            # Show all commands structure
+            consoul describe
+
+            \b
+            # Describe specific command
+            consoul describe tui
+
+            \b
+            # Output to file
+            consoul describe --output cli-schema.json
+
+            \b
+            # Markdown format
+            consoul describe --format markdown
+        """
+        from consoul.commands.describe import get_app_schema, get_command_info
+
+        # Walk up the context chain to find the root CLI group
+        root_ctx = ctx
+        while root_ctx.parent is not None:
+            root_ctx = root_ctx.parent
+
+        cli_app = root_ctx.command
+        if not isinstance(cli_app, click.Group):
+            click.echo("Error: Could not access CLI application", err=True)
+            sys.exit(1)
+
+        # Get schema for specific command or entire app
+        if command_path:
+            # Navigate to specific command
+            current = cli_app
+            full_path = "consoul"
+
+            for cmd_name in command_path:
+                if not isinstance(current, click.Group):
+                    click.echo(f"Error: '{full_path}' is not a group command", err=True)
+                    sys.exit(1)
+
+                cmd = current.get_command(click.Context(current), cmd_name)
+                if not cmd:
+                    click.echo(
+                        f"Error: Command '{cmd_name}' not found in '{full_path}'",
+                        err=True,
+                    )
+                    sys.exit(1)
+
+                current = cmd
+                full_path = f"{full_path} {cmd_name}"
+
+            schema = get_command_info(
+                current,
+                " ".join(["consoul", *command_path[:-1]])
+                if len(command_path) > 1
+                else "",
+            )
+        else:
+            schema = get_app_schema(cli_app)
+
+        # Format output
+        import json
+
+        if format.lower() == "json":
+            if compact:
+                json_str = json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
+            else:
+                json_str = json.dumps(schema, indent=indent, ensure_ascii=False)
+
+            if output:
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_text(json_str, encoding="utf-8")
+                click.echo(f"Schema written to: {output}")
+            else:
+                click.echo(json_str)
+
+        elif format.lower() == "markdown":
+            # Basic markdown output (will be enhanced with templates later)
+            click.echo("Markdown format coming soon - use JSON for now")
+            click.echo(
+                "Run: consoul describe --format json | python scripts/generate_docs.py"
+            )
+
+    return describe_cmd
+
+
+# Add the describe command to CLI
+cli.add_command(_create_describe_command())
+
+
 @preset.command("list")
 @click.pass_context
 def list_presets(ctx: click.Context) -> None:
