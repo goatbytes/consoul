@@ -791,12 +791,45 @@ def get_provider_from_model(model_name: str) -> Provider | None:
         Provider.OPENAI
         >>> get_provider_from_model("claude-3-5-sonnet-20241022")
         Provider.ANTHROPIC
+        >>> get_provider_from_model("granite4:3b")
+        Provider.OLLAMA
     """
     model_lower = model_name.lower()
 
+    # Check explicit patterns first (OpenAI, Anthropic, Google, HuggingFace)
     for provider, patterns in PROVIDER_PATTERNS.items():
+        if provider == Provider.OLLAMA:
+            continue  # Handle Ollama separately
         if any(model_lower.startswith(pattern) for pattern in patterns):
             return provider
+
+    # Check if it's an Ollama model by:
+    # 1. Has a colon (tag format like "llama3:latest" or "granite4:3b")
+    # 2. Matches known Ollama model prefixes
+    # 3. Is in the list of installed Ollama models (if Ollama is running)
+    if ":" in model_name:
+        return Provider.OLLAMA
+
+    # Check known Ollama model prefixes
+    ollama_patterns = PROVIDER_PATTERNS.get(Provider.OLLAMA, [])
+    if any(model_lower.startswith(pattern) for pattern in ollama_patterns):
+        return Provider.OLLAMA
+
+    # If still not detected, check if it's an installed Ollama model
+    if is_ollama_running():
+        try:
+            ollama_models = get_ollama_models()
+            ollama_model_names = [m.get("name", "") for m in ollama_models]
+            # Check exact match or match without tag
+            if model_name in ollama_model_names:
+                return Provider.OLLAMA
+            # Check if it matches any model name without the tag
+            base_name = model_name.split(":")[0] if ":" in model_name else model_name
+            if any(m.startswith(base_name) for m in ollama_model_names):
+                return Provider.OLLAMA
+        except Exception:
+            # If we can't fetch Ollama models, continue with other detection
+            pass
 
     return None
 
