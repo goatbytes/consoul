@@ -297,13 +297,14 @@ def chat(
             tool_registry = None
             approval_provider = None
 
-    # Create chat session
+    # Create chat session (this may take a moment for model initialization)
     try:
-        session = ChatSession(
-            config=config,
-            tool_registry=tool_registry,
-            approval_provider=approval_provider,
-        )
+        with console.status("[cyan]Initializing chat model...[/cyan]", spinner="dots"):
+            session = ChatSession(
+                config=config,
+                tool_registry=tool_registry,
+                approval_provider=approval_provider,
+            )
     except Exception as e:
         console.print(f"[red]Error initializing chat session: {e}[/red]")
         logger.error(f"Failed to initialize ChatSession: {e}", exc_info=True)
