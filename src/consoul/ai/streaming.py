@@ -208,21 +208,18 @@ def stream_response(
                     )
                     collected_tokens.append(token)
 
-                    # Update live display with accumulated response (plain text during streaming)
-                    # We'll render markdown after streaming completes
-                    response_text = Text()
-                    if prefix and collected_tokens and not render_markdown:
-                        # Only show prefix during streaming if not rendering markdown
-                        # (markdown will show it after)
-                        response_text.append(prefix, style="bold cyan")
-                    response_text.append("".join(collected_tokens))
-
-                    live.update(response_text, refresh=True)
+                    # If rendering markdown, just show spinner (no text accumulation)
+                    # Otherwise show accumulated text during streaming
+                    if not render_markdown:
+                        response_text = Text()
+                        if prefix and collected_tokens:
+                            response_text.append(prefix, style="bold cyan")
+                        response_text.append("".join(collected_tokens))
+                        live.update(response_text, refresh=True)
 
             # After live display ends, render as markdown if enabled
             if render_markdown and collected_tokens:
-                # Live display has ended, now show the final markdown-rendered version
-                console.print()  # Clear line after live display
+                # Live display showed only spinner, now show the markdown-rendered version
                 if show_prefix:
                     console.print("[bold cyan]Assistant:[/bold cyan]")
                 md = Markdown("".join(collected_tokens))

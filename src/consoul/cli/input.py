@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.styles import Style
 
 if TYPE_CHECKING:
@@ -104,12 +105,21 @@ def get_user_input(
     # Create styled prompt
     formatted_prompt = FormattedText([("class:prompt", prompt_text)])
 
+    # Create key bindings for custom behavior
+    kb = KeyBindings()
+
+    @kb.add("escape")
+    def _(event):  # type: ignore[no-untyped-def]
+        """Clear current input on Escape key."""
+        event.current_buffer.reset()
+
     # Create prompt session (reusable across multiple prompt() calls)
     session: PromptSession[str] = PromptSession(
         message=formatted_prompt,
         style=_CONSOUL_STYLE,
         history=history,
         multiline=multiline,
+        key_bindings=kb,
     )
 
     try:

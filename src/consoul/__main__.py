@@ -211,7 +211,7 @@ def chat(
         f"[bold]Profile:[/bold] {active_profile.name}\n"
         f"[bold]Model:[/bold] {config.current_provider.value}/{config.current_model}"
         f"{tool_info}\n\n"
-        f"[dim]Type 'exit' to quit | Ctrl+C cancels current input[/dim]"
+        f"[dim]Type 'exit' or press Ctrl+C to quit | Escape clears input[/dim]"
     )
 
     console.print(
