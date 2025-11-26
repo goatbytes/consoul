@@ -116,14 +116,242 @@ def cli(
 
 
 @cli.command()
+@click.option(
+    "--no-stream",
+    is_flag=True,
+    help="Disable streaming responses (show complete response at once)",
+)
+@click.option(
+    "--no-markdown",
+    is_flag=True,
+    help="Disable markdown rendering (show plain text)",
+)
+@click.option(
+    "--tools/--no-tools",
+    default=None,
+    help="Enable/disable tool execution (overrides config)",
+)
+@click.option(
+    "--multiline",
+    is_flag=True,
+    help="Enable multi-line input mode (use Alt+Enter to submit)",
+)
 @click.pass_context
-def chat(ctx: click.Context) -> None:
-    """Start an interactive chat session."""
-    click.echo("Chat functionality - Coming Soon!")
+def chat(
+    ctx: click.Context,
+    no_stream: bool,
+    no_markdown: bool,
+    tools: bool | None,
+    multiline: bool,
+) -> None:
+    """Start an interactive chat session with streaming responses.
+
+    Features:
+    - Streaming token-by-token responses
+    - Rich markdown rendering
+    - Conversation history with context
+    - History navigation (up/down arrows)
+    - Tool execution with approval (if enabled)
+    - Session persistence
+
+    Controls:
+    - Enter: Send message
+    - Ctrl+C: Cancel current message
+    - Ctrl+D or 'exit': Quit session
+    - Up/Down: Navigate input history
+    """
+    import logging
+
+    from rich.console import Console
+    from rich.panel import Panel
+
+    from consoul.cli import ChatSession, CliToolApprovalProvider, get_user_input
+
+    logger = logging.getLogger(__name__)
+    console = Console()
     config = ctx.obj["config"]
     active_profile = config.get_active_profile()
-    click.echo(f"Using profile: {active_profile.name}")
-    click.echo(f"Model: {config.current_provider.value} - {config.current_model}")
+
+    # Display welcome panel
+    console.print()
+    tool_info = ""
+    tools_enabled = (
+        tools
+        if tools is not None
+        else (config.tools.enabled if hasattr(config, "tools") else False)
+    )
+
+    if tools_enabled:
+        tool_info = "\nTools: enabled"
+
+    welcome_text = (
+        f"[bold]Profile:[/bold] {active_profile.name}\n"
+        f"[bold]Model:[/bold] {config.current_provider.value}/{config.current_model}"
+        f"{tool_info}\n\n"
+        f"[dim]Type 'exit' or press Ctrl+D to quit\n"
+        f"Press Ctrl+C to cancel current message[/dim]"
+    )
+
+    console.print(
+        Panel(
+            welcome_text,
+            title="[bold cyan]Consoul Chat[/bold cyan]",
+            border_style="cyan",
+        )
+    )
+    console.print()
+
+    # Setup tool registry if tools enabled
+    tool_registry = None
+    approval_provider = None
+
+    if tools_enabled:
+        try:
+            from consoul.ai.tools import ToolRegistry
+            from consoul.ai.tools.catalog import get_all_tool_names, get_tool_by_name
+
+            # Create approval provider first
+            approval_provider = CliToolApprovalProvider(console=console)
+
+            # Create registry with config settings
+            tool_config = config.tools if hasattr(config, "tools") else None
+            if tool_config:
+                tool_registry = ToolRegistry(
+                    config=tool_config,
+                    approval_provider=approval_provider,
+                )
+
+                # Register available tools based on config filters
+                # Respect allowed_tools (whitelist) and risk_filter
+                allowed = tool_config.allowed_tools
+                if allowed is not None:
+                    # Explicit whitelist (may be empty list = no tools)
+                    tools_to_register: list[str] = list(allowed)
+                else:
+                    # No whitelist - use all tools subject to risk filter
+                    tools_to_register = get_all_tool_names()
+
+                for tool_name in tools_to_register:
+                    try:
+                        result = get_tool_by_name(tool_name)
+                        if result is None:
+                            logger.warning(f"Tool {tool_name} not found in catalog")
+                            continue
+
+                        tool, risk_level, _ = result
+
+                        # Apply risk filter if configured
+                        if (
+                            hasattr(tool_config, "risk_filter")
+                            and tool_config.risk_filter
+                        ):
+                            from consoul.ai.tools import RiskLevel
+
+                            # Map risk levels to numeric values for comparison
+                            risk_order = {
+                                RiskLevel.SAFE: 0,
+                                RiskLevel.CAUTION: 1,
+                                RiskLevel.DANGEROUS: 2,
+                                RiskLevel.BLOCKED: 3,
+                            }
+
+                            max_risk = risk_order.get(tool_config.risk_filter, 0)
+                            current_risk = risk_order.get(risk_level, 3)
+
+                            if current_risk > max_risk:
+                                logger.debug(
+                                    f"Skipping {tool_name}: {risk_level.value} > {tool_config.risk_filter.value}"
+                                )
+                                continue
+
+                        tool_registry.register(tool, risk_level=risk_level)
+                    except Exception as e:
+                        logger.warning(f"Could not register tool {tool_name}: {e}")
+
+                logger.info(f"Registered {len(tool_registry)} tools")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not enable tools: {e}[/yellow]")
+            tool_registry = None
+            approval_provider = None
+
+    # Create chat session
+    try:
+        session = ChatSession(
+            config=config,
+            tool_registry=tool_registry,
+            approval_provider=approval_provider,
+        )
+    except Exception as e:
+        console.print(f"[red]Error initializing chat session: {e}[/red]")
+        logger.error(f"Failed to initialize ChatSession: {e}", exc_info=True)
+        ctx.exit(1)
+
+    # Main chat loop
+    with session:
+        while True:
+            try:
+                # Get user input with history
+                user_input = get_user_input(
+                    prompt_text="You: ",
+                    multiline=multiline,
+                )
+
+                # Handle exit (Ctrl+D or 'exit' command)
+                if user_input is None:
+                    break
+
+                # Skip empty input (re-prompt)
+                if not user_input:
+                    continue
+
+                # Send message and get response
+                response = session.send(
+                    user_input,
+                    stream=not no_stream,
+                    render_markdown=not no_markdown,
+                )
+
+                logger.debug(f"Response received: {response[:100]}...")
+
+            except KeyboardInterrupt:
+                # Ctrl+C during input or streaming - cancel and re-prompt
+                console.print("\n[yellow]Cancelled[/yellow]\n")
+                continue
+
+            except Exception as e:
+                # API errors, rate limits, network issues
+                console.print(f"\n[red]Error: {e}[/red]\n")
+                logger.error(f"Chat error: {e}", exc_info=True)
+                # Continue loop, don't exit on errors
+                continue
+
+        # Display session stats on exit
+        console.print()
+        stats = session.get_stats()
+
+        stats_text = (
+            f"[bold]Messages:[/bold] {stats['message_count']}\n"
+            f"[bold]Tokens:[/bold] {stats['token_count']:,}"
+        )
+
+        # Check if session was persisted
+        if (
+            hasattr(active_profile, "conversation")
+            and active_profile.conversation.persist
+        ):
+            stats_text += (
+                f"\n\n[dim]Session saved (ID: {session.history.session_id})[/dim]"
+            )
+
+        console.print(
+            Panel(
+                stats_text,
+                title="[bold cyan]Session Summary[/bold cyan]",
+                border_style="cyan",
+            )
+        )
+
+        console.print("\n[dim]Goodbye![/dim]\n")
 
 
 @cli.command()

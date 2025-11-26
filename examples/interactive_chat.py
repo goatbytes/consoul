@@ -30,7 +30,7 @@ from typing import Any
 
 from consoul.ai import get_chat_model, stream_response
 from consoul.ai.exceptions import StreamingError
-from consoul.ai.history import ConversationHistory, to_dict_message
+from consoul.ai.history import ConversationHistory
 from consoul.config import load_config
 
 
@@ -258,17 +258,16 @@ def interactive_chat(
 
                 # Get trimmed messages (intelligent context window management)
                 # This ensures we stay within the model's context limits
+                # stream_response expects BaseMessage objects, not dicts
                 trimmed_messages = history.get_trimmed_messages(reserve_tokens=1000)
-
-                # Convert trimmed messages to dict format for streaming
-                # Uses to_dict_message() to properly map roles (ai→assistant, human→user)
-                messages_dict = [to_dict_message(msg) for msg in trimmed_messages]
 
                 # Stream AI response
                 print()  # Newline before streaming starts
 
                 try:
-                    assistant_message = stream_response(chat_model, messages_dict)
+                    # stream_response now returns (text, ai_message) tuple
+                    # Pass BaseMessage objects directly (not dicts)
+                    assistant_message, _ = stream_response(chat_model, trimmed_messages)
 
                     # Add assistant message to history
                     history.add_assistant_message(assistant_message)

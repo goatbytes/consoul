@@ -54,8 +54,8 @@ class TestHistoryStreamingIntegration:
             for msg in trimmed_messages
         ]
 
-        # Stream response
-        response = stream_response(mock_model, messages_dict)
+        # Stream response (returns tuple of text and AIMessage)
+        response, _ = stream_response(mock_model, messages_dict)
 
         # Add response to history
         history.add_assistant_message(response)

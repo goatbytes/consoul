@@ -64,7 +64,7 @@ class StreamingError(ConsoulAIError):
 
     Example:
         >>> try:
-        ...     response = stream_response(model, messages)
+        ...     response_text, ai_message = stream_response(model, messages)
         ... except StreamingError as e:
         ...     print(f"Failed after: {e.partial_response}")
     """

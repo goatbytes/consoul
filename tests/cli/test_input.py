@@ -60,16 +60,22 @@ def test_get_user_input_exit_command(mock_prompt_session_class: Mock) -> None:
 
 
 @patch("consoul.cli.input.PromptSession")
-def test_get_user_input_empty_returns_none(mock_prompt_session_class: Mock) -> None:
-    """Test that empty input returns None."""
+def test_get_user_input_empty_returns_empty_string(
+    mock_prompt_session_class: Mock,
+) -> None:
+    """Test that empty input returns empty string (not None).
+
+    This is standard REPL behavior - empty input should re-prompt,
+    not exit the session. Only explicit exit commands or Ctrl+D should return None.
+    """
     mock_session = Mock()
     mock_prompt_session_class.return_value = mock_session
 
-    # Test empty string and whitespace-only
+    # Test empty string and whitespace-only - should return "", not None
     for empty_input in ["", "  ", "\n", "\t"]:
         mock_session.prompt.return_value = empty_input
         result = get_user_input()
-        assert result is None, f"'{empty_input}' should return None"
+        assert result == "", f"'{empty_input}' should return empty string, not None"
 
 
 @patch("consoul.cli.input.PromptSession")
@@ -86,14 +92,19 @@ def test_get_user_input_eof_error(mock_prompt_session_class: Mock) -> None:
 
 @patch("consoul.cli.input.PromptSession")
 def test_get_user_input_keyboard_interrupt(mock_prompt_session_class: Mock) -> None:
-    """Test that KeyboardInterrupt (Ctrl+C) returns None."""
+    """Test that KeyboardInterrupt (Ctrl+C) propagates.
+
+    Ctrl+C should cancel the current input line and allow the caller
+    to handle it (typically re-prompt). This is standard REPL behavior.
+    It should NOT exit the session like Ctrl+D does.
+    """
     mock_session = Mock()
     mock_session.prompt.side_effect = KeyboardInterrupt()
     mock_prompt_session_class.return_value = mock_session
 
-    result = get_user_input()
-
-    assert result is None
+    # KeyboardInterrupt should propagate, not return None
+    with pytest.raises(KeyboardInterrupt):
+        get_user_input()
 
 
 @patch("consoul.cli.input.PromptSession")

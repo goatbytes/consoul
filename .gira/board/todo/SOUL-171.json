@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-26T00:53:08.300387",
-  "updated_at": "2025-11-26T00:53:08.300401",
+  "updated_at": "2025-11-26T17:52:57.774549Z",
   "id": "SOUL-171",
   "uuid": "548f19d0-bdd5-4142-a889-e2eb2f9ec957",
   "title": "Add chat command slash commands for session control",
@@ -13,6 +13,7 @@
     "ux-improvement",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

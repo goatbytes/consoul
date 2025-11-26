@@ -48,6 +48,7 @@ def mock_chat_model():
         for chunk in chunks:
             mock_chunk = Mock()
             mock_chunk.content = chunk
+            mock_chunk.tool_call_chunks = []  # No tool calls
             yield mock_chunk
 
     model.stream = Mock(side_effect=mock_stream)

@@ -33,6 +33,7 @@ def mock_chat_model_with_markdown():
         for chunk in markdown_chunks:
             mock_chunk = Mock()
             mock_chunk.content = chunk
+            mock_chunk.tool_call_chunks = []  # No tool calls
             yield mock_chunk
 
     model.stream = Mock(side_effect=mock_stream_markdown)
@@ -63,6 +64,7 @@ def mock_chat_model_with_lists():
         for chunk in list_chunks:
             mock_chunk = Mock()
             mock_chunk.content = chunk
+            mock_chunk.tool_call_chunks = []  # No tool calls
             yield mock_chunk
 
     model.stream = Mock(side_effect=mock_stream_lists)
@@ -87,6 +89,7 @@ def mock_chat_model_with_headers():
         for chunk in header_chunks:
             mock_chunk = Mock()
             mock_chunk.content = chunk
+            mock_chunk.tool_call_chunks = []  # No tool calls
             yield mock_chunk
 
     model.stream = Mock(side_effect=mock_stream_headers)
@@ -102,7 +105,7 @@ def test_stream_response_renders_code_blocks(
     mock_markdown_class.return_value = mock_md
 
     messages = [{"role": "user", "content": "Show me code"}]
-    response = stream_response(
+    response, _ = stream_response(
         mock_chat_model_with_markdown,
         messages,
         console=None,  # Let it create its own console
@@ -129,7 +132,7 @@ def test_stream_response_renders_lists(mock_markdown_class, mock_chat_model_with
     mock_markdown_class.return_value = mock_md
 
     messages = [{"role": "user", "content": "Give me a list"}]
-    response = stream_response(
+    response, _ = stream_response(
         mock_chat_model_with_lists,
         messages,
         console=None,  # Let it create its own console
@@ -157,7 +160,7 @@ def test_stream_response_renders_headers(
     mock_markdown_class.return_value = mock_md
 
     messages = [{"role": "user", "content": "Give me sections"}]
-    response = stream_response(
+    response, _ = stream_response(
         mock_chat_model_with_headers,
         messages,
         console=None,  # Let it create its own console
@@ -183,7 +186,7 @@ def test_stream_response_plain_text_when_disabled(
 ):
     """Test that markdown rendering can be disabled."""
     messages = [{"role": "user", "content": "Show me code"}]
-    response = stream_response(
+    response, _ = stream_response(
         mock_chat_model_with_markdown,
         messages,
         console=None,  # Let it create its own console
@@ -215,7 +218,7 @@ def test_stream_response_empty_content(mock_markdown_class):
     model.stream = Mock(side_effect=mock_stream_empty)
 
     messages = [{"role": "user", "content": "Empty response"}]
-    response = stream_response(
+    response, _ = stream_response(
         model,
         messages,
         console=None,  # Let it create its own console
@@ -239,7 +242,7 @@ def test_stream_response_no_spinner_with_markdown(
     mock_markdown_class.return_value = mock_md
 
     messages = [{"role": "user", "content": "Show me code"}]
-    response = stream_response(
+    response, _ = stream_response(
         mock_chat_model_with_markdown,
         messages,
         console=None,  # Let it create its own console

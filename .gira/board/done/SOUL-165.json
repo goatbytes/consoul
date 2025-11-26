@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-26T00:50:26.595060",
-  "updated_at": "2025-11-26T08:57:30.924873Z",
+  "updated_at": "2025-11-26T17:52:57.777316Z",
   "id": "SOUL-165",
   "uuid": "7667b755-a358-4a6a-a638-a6340cd51ccd",
   "title": "Add prompt_toolkit dependency for enhanced CLI input",
@@ -13,6 +13,7 @@
     "enhancement",
     "dependency"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

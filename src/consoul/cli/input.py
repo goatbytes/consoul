@@ -65,18 +65,27 @@ def get_user_input(
                   If True, use Alt+Enter to submit.
 
     Returns:
-        User input string, or None if user wants to exit (Ctrl+D, Ctrl+C,
-        or exit command like 'exit', 'quit', '/quit').
+        User input string (may be empty), or None if user wants to exit
+        (Ctrl+D or explicit exit commands like 'exit', 'quit', '/quit').
+        Empty input returns empty string "", not None.
 
     Raises:
+        KeyboardInterrupt: If user presses Ctrl+C (allows caller to cancel
+            current operation and re-prompt, standard REPL behavior)
         OSError: If history file cannot be created or written to.
 
     Example:
-        >>> user_input = get_user_input("Ask me: ")
-        >>> if user_input:
-        ...     print(f"Processing: {user_input}")
-        ... elif user_input is None:
-        ...     print("User exited")
+        >>> while True:
+        ...     try:
+        ...         user_input = get_user_input("Ask me: ")
+        ...         if user_input is None:  # Ctrl+D or 'exit'
+        ...             print("Goodbye!")
+        ...             break
+        ...         if not user_input:  # Empty line (just Enter)
+        ...             continue  # Re-prompt
+        ...         print(f"Processing: {user_input}")
+        ...     except KeyboardInterrupt:
+        ...         print("\nCancelled")  # Cancel current input, continue loop
     """
     # Setup history
     history: History
@@ -110,14 +119,21 @@ def get_user_input(
         # Strip whitespace
         user_input = user_input.strip()
 
-        # Check for exit commands
-        if not user_input or user_input.lower() in _EXIT_COMMANDS:
-            logger.debug(f"Exit command detected: {user_input or '(empty)'}")
+        # Check for explicit exit commands (but not empty input!)
+        if user_input.lower() in _EXIT_COMMANDS:
+            logger.debug(f"Exit command detected: {user_input}")
             return None
 
+        # Return input (may be empty string, which is valid - caller decides what to do)
         return user_input
 
-    except (EOFError, KeyboardInterrupt):
-        # User pressed Ctrl+D or Ctrl+C
-        logger.debug("User interrupted input (EOF or Ctrl+C)")
+    except EOFError:
+        # User pressed Ctrl+D - signals desire to exit
+        logger.debug("User pressed Ctrl+D (EOF)")
         return None
+
+    except KeyboardInterrupt:
+        # User pressed Ctrl+C - propagate to caller so they can cancel/re-prompt
+        # This is standard REPL behavior (cancel current line, don't exit session)
+        logger.debug("User pressed Ctrl+C (KeyboardInterrupt)")
+        raise

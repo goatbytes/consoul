@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-26T00:51:19.425852",
-  "updated_at": "2025-11-26T16:48:46.721398Z",
+  "updated_at": "2025-11-26T17:52:57.775299Z",
   "id": "SOUL-167",
   "uuid": "f9daf23a-c446-432f-b0a7-2ec524af8b85",
   "title": "Implement rich markdown rendering for chat responses",
@@ -13,6 +13,7 @@
     "ux-improvement",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

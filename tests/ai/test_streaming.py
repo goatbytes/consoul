@@ -17,10 +17,11 @@ def create_mock_chunk(content: str) -> MagicMock:
         content: Token content for the chunk.
 
     Returns:
-        Mock chunk object with content attribute.
+        Mock chunk object with content attribute and empty tool_call_chunks.
     """
     chunk = MagicMock()
     chunk.content = content
+    chunk.tool_call_chunks = []  # No tool calls by default
     return chunk
 
 
@@ -54,9 +55,11 @@ class TestStreamResponse:
         mock_model.stream.return_value = create_mock_chunks(["Hello", " ", "world"])
 
         messages = [{"role": "user", "content": "Hi"}]
-        result = stream_response(mock_model, messages)
+        result_text, ai_message = stream_response(mock_model, messages)
 
-        assert result == "Hello world"
+        assert result_text == "Hello world"
+        assert ai_message.content == "Hello world"
+        assert ai_message.tool_calls == []
         mock_model.stream.assert_called_once_with(messages)
 
         # Verify Live display was used
@@ -75,9 +78,12 @@ class TestStreamResponse:
         mock_model.stream.return_value = create_mock_chunks(["Hello", " ", "world"])
 
         messages = [{"role": "user", "content": "Hi"}]
-        result = stream_response(mock_model, messages, show_spinner=False)
+        result_text, ai_message = stream_response(
+            mock_model, messages, show_spinner=False
+        )
 
-        assert result == "Hello world"
+        assert result_text == "Hello world"
+        assert ai_message.content == "Hello world"
         mock_model.stream.assert_called_once_with(messages)
 
         # Verify console output calls
@@ -108,9 +114,12 @@ class TestStreamResponse:
         mock_model.stream.return_value = chunks
 
         messages = [{"role": "user", "content": "Hi"}]
-        result = stream_response(mock_model, messages, show_spinner=False)
+        result_text, ai_message = stream_response(
+            mock_model, messages, show_spinner=False
+        )
 
-        assert result == "Hello world"
+        assert result_text == "Hello world"
+        assert ai_message.content == "Hello world"
         # Empty chunks should not affect output
         mock_model.stream.assert_called_once_with(messages)
 
@@ -180,11 +189,12 @@ class TestStreamResponse:
         mock_model.stream.return_value = create_mock_chunks(["Hello"])
 
         messages = [{"role": "user", "content": "Hi"}]
-        result = stream_response(
+        result_text, ai_message = stream_response(
             mock_model, messages, show_prefix=False, show_spinner=False
         )
 
-        assert result == "Hello"
+        assert result_text == "Hello"
+        assert ai_message.content == "Hello"
 
         # Verify "Assistant: " was not printed
         printed_text = "".join(
@@ -202,11 +212,12 @@ class TestStreamResponse:
         mock_model.stream.return_value = create_mock_chunks(["Test"])
 
         messages = [{"role": "user", "content": "Hi"}]
-        result = stream_response(
+        result_text, ai_message = stream_response(
             mock_model, messages, console=custom_console, show_spinner=False
         )
 
-        assert result == "Test"
+        assert result_text == "Test"
+        assert ai_message.content == "Test"
         # Should use custom console, not create new one
         mock_console_class.assert_not_called()
         assert custom_console.print.called
@@ -224,9 +235,12 @@ class TestStreamResponse:
         ]
 
         messages = [{"role": "user", "content": "Hi"}]
-        result = stream_response(mock_model, messages, show_spinner=False)
+        result_text, ai_message = stream_response(
+            mock_model, messages, show_spinner=False
+        )
 
-        assert result == ""
+        assert result_text == ""
+        assert ai_message.content == ""
         # Should not print prefix if no content
         printed_text = "".join(
             str(call.args[0]) if call.args else ""
@@ -246,9 +260,12 @@ class TestStreamResponse:
         mock_model.stream.return_value = create_mock_chunks(tokens)
 
         messages = [{"role": "user", "content": "Tell me something"}]
-        result = stream_response(mock_model, messages, show_spinner=False)
+        result_text, ai_message = stream_response(
+            mock_model, messages, show_spinner=False
+        )
 
-        assert result == "The quick brown fox"
+        assert result_text == "The quick brown fox"
+        assert ai_message.content == "The quick brown fox"
         mock_model.stream.assert_called_once()
 
     @patch("consoul.ai.streaming.Console")
@@ -262,10 +279,13 @@ class TestStreamResponse:
         mock_model.stream.return_value = create_mock_chunks(tokens)
 
         messages = [{"role": "user", "content": "Multiple lines"}]
-        result = stream_response(mock_model, messages, show_spinner=False)
+        result_text, ai_message = stream_response(
+            mock_model, messages, show_spinner=False
+        )
 
-        assert result == "Line 1\nLine 2\nLine 3"
-        assert result.count("\n") == 2
+        assert result_text == "Line 1\nLine 2\nLine 3"
+        assert result_text.count("\n") == 2
+        assert ai_message.content == result_text
 
     @patch("consoul.ai.streaming.Console")
     def test_stream_response_special_characters(self, mock_console_class):
@@ -278,11 +298,14 @@ class TestStreamResponse:
         mock_model.stream.return_value = create_mock_chunks(tokens)
 
         messages = [{"role": "user", "content": "Emoji test"}]
-        result = stream_response(mock_model, messages, show_spinner=False)
+        result_text, ai_message = stream_response(
+            mock_model, messages, show_spinner=False
+        )
 
-        assert result == "Hello 👋 world 🌍"
-        assert "👋" in result
-        assert "🌍" in result
+        assert result_text == "Hello 👋 world 🌍"
+        assert "👋" in result_text
+        assert "🌍" in result_text
+        assert ai_message.content == result_text
 
 
 class TestStreamingErrorPreservation:
@@ -357,9 +380,12 @@ class TestStreamingSpinner:
         mock_model.stream.return_value = create_mock_chunks(["Hello", " ", "world"])
 
         messages = [{"role": "user", "content": "Hi"}]
-        result = stream_response(mock_model, messages, show_spinner=True)
+        result_text, ai_message = stream_response(
+            mock_model, messages, show_spinner=True
+        )
 
-        assert result == "Hello world"
+        assert result_text == "Hello world"
+        assert ai_message.content == "Hello world"
 
         # Verify spinner was created
         mock_spinner_class.assert_called_once_with(
@@ -386,9 +412,12 @@ class TestStreamingSpinner:
         mock_model.stream.return_value = create_mock_chunks(["Test"])
 
         messages = [{"role": "user", "content": "Hi"}]
-        result = stream_response(mock_model, messages, show_spinner=False)
+        result_text, ai_message = stream_response(
+            mock_model, messages, show_spinner=False
+        )
 
-        assert result == "Test"
+        assert result_text == "Test"
+        assert ai_message.content == "Test"
         # Should use console.print directly, not Live
         assert mock_console.print.called
 
@@ -413,9 +442,12 @@ class TestStreamingSpinner:
         mock_model.stream.return_value = chunks
 
         messages = [{"role": "user", "content": "Hi"}]
-        result = stream_response(mock_model, messages, show_spinner=True)
+        result_text, ai_message = stream_response(
+            mock_model, messages, show_spinner=True
+        )
 
-        assert result == "Hello world"
+        assert result_text == "Hello world"
+        assert ai_message.content == "Hello world"
         # Should only update twice (for non-empty chunks)
         assert mock_live.update.call_count == 2
 
@@ -434,11 +466,12 @@ class TestStreamingSpinner:
         mock_model.stream.return_value = create_mock_chunks(["Test"])
 
         messages = [{"role": "user", "content": "Hi"}]
-        result = stream_response(
+        result_text, ai_message = stream_response(
             mock_model, messages, show_prefix=False, show_spinner=True
         )
 
-        assert result == "Test"
+        assert result_text == "Test"
+        assert ai_message.content == "Test"
         # Verify update was called
         assert mock_live.update.called
         # Check that update was called with Text object (not containing prefix)

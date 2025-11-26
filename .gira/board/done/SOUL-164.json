@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-24T23:32:56.113891",
-  "updated_at": "2025-11-25T12:30:32.168702",
+  "updated_at": "2025-11-26T17:52:57.776734Z",
   "id": "SOUL-164",
   "uuid": "3e4bf424-52c8-4a94-86a5-0031aa72d7cb",
   "title": "Add Ollama model discovery from ollama.com",
@@ -9,6 +9,7 @@
   "type": "feature",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

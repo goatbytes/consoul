@@ -37,6 +37,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import argparse
 
+from langchain_core.messages import AIMessage, HumanMessage
+
 from consoul.ai import get_chat_model, stream_response
 from consoul.ai.exceptions import OllamaServiceError, StreamingError
 from consoul.ai.providers import is_ollama_running
@@ -172,8 +174,8 @@ def ollama_chat(
         print("💾 Running locally - no internet required!")
         print()
 
-        # Conversation history
-        messages: list[dict[str, str]] = []
+        # Conversation history (use LangChain BaseMessage objects)
+        messages: list[HumanMessage | AIMessage] = []
 
         # Main chat loop
         while True:
@@ -207,16 +209,18 @@ def ollama_chat(
                     continue
 
                 # Add user message to history
-                messages.append({"role": "user", "content": user_input})
+                messages.append(HumanMessage(content=user_input))
 
                 # Stream AI response
                 print()  # Newline before streaming starts
 
                 try:
-                    assistant_message = stream_response(chat_model, messages)
+                    # stream_response now returns (text, ai_message) tuple
+                    # Pass BaseMessage objects directly (not dicts)
+                    _, ai_message = stream_response(chat_model, messages)
 
                     # Add assistant message to history
-                    messages.append({"role": "assistant", "content": assistant_message})
+                    messages.append(ai_message)
 
                 except StreamingError as e:
                     # Handle both interrupts and errors - partial response is always available
@@ -229,18 +233,16 @@ def ollama_chat(
 
                     # Always save partial response if available
                     if e.partial_response:
-                        messages.append(
-                            {"role": "assistant", "content": e.partial_response}
-                        )
+                        messages.append(AIMessage(content=e.partial_response))
                     else:
                         # Remove user message if we got no response at all
-                        if messages and messages[-1]["role"] == "user":
+                        if messages and isinstance(messages[-1], HumanMessage):
                             messages.pop()
 
                 except Exception as e:
                     print(f"\n❌ Unexpected error: {e}\n")
                     # Remove the user message since we couldn't get a response
-                    if messages and messages[-1]["role"] == "user":
+                    if messages and isinstance(messages[-1], HumanMessage):
                         messages.pop()
 
             except KeyboardInterrupt:
