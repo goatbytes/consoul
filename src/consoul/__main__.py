@@ -117,6 +117,11 @@ def cli(
 
 @cli.command()
 @click.option(
+    "--model",
+    "-m",
+    help="Model to use (e.g., gpt-4o, claude-3-5-sonnet-20241022, llama3)",
+)
+@click.option(
     "--no-stream",
     is_flag=True,
     help="Disable streaming responses (show complete response at once)",
@@ -139,6 +144,7 @@ def cli(
 @click.pass_context
 def chat(
     ctx: click.Context,
+    model: str | None,
     no_stream: bool,
     no_markdown: bool,
     tools: bool | None,
@@ -171,6 +177,12 @@ def chat(
     console = Console()
     config = ctx.obj["config"]
     active_profile = config.get_active_profile()
+
+    # Override model if specified
+    if model:
+        config.current_model = model
+        # Auto-detect provider from model name
+        logger.info(f"Model override: {model}")
 
     # Display welcome panel
     console.print()
