@@ -15,6 +15,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from consoul.ai import ConversationHistory, get_chat_model
+from consoul.ai.exceptions import StreamingError
 from consoul.ai.streaming import stream_response
 
 if TYPE_CHECKING:
@@ -111,8 +112,8 @@ class ChatSession:
         self.history.add_user_message(message)
         logger.debug(f"Added user message: {message[:50]}...")
 
-        # Get messages for API call
-        messages = self.history.get_messages_as_dicts()
+        # Get messages for API call (use BaseMessage objects, not dicts)
+        messages = self.history.get_messages()
 
         try:
             if stream:
@@ -148,15 +149,26 @@ class ChatSession:
 
             return response_text
 
+        except StreamingError as e:
+            # User interrupted during streaming (Ctrl+C) - not an error
+            self.console.print("\n\n[yellow]Interrupted[/yellow]")
+            logger.info("User interrupted during streaming")
+            self._interrupted = True
+            # Add partial response to history if available
+            if e.partial_response:
+                self.history.add_assistant_message(e.partial_response)
+                logger.debug(f"Saved partial response: {e.partial_response[:50]}...")
+            raise KeyboardInterrupt() from e
+
         except KeyboardInterrupt:
-            # Graceful interrupt handling
+            # Direct keyboard interrupt (non-streaming path)
             self.console.print("\n\n[yellow]Interrupted[/yellow]")
             logger.info("User interrupted during response")
             self._interrupted = True
             raise
 
         except Exception as e:
-            # Log and re-raise errors
+            # Log and re-raise actual errors
             logger.error(f"Error during send: {e}", exc_info=True)
             self.console.print(f"\n[red]Error: {e}[/red]")
             raise

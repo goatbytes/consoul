@@ -5,8 +5,9 @@ from __future__ import annotations
 from unittest.mock import Mock, patch
 
 import pytest
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
+from consoul.ai.exceptions import StreamingError
 from consoul.cli import ChatSession
 
 
@@ -90,9 +91,7 @@ def test_chat_session_send_non_streaming(
     """Test sending a message without streaming."""
     mock_get_chat_model.return_value = mock_chat_model
     mock_history = Mock()
-    mock_history.get_messages_as_dicts = Mock(
-        return_value=[{"role": "user", "content": "Hello"}]
-    )
+    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
     mock_history_class.return_value = mock_history
 
     session = ChatSession(mock_config)
@@ -120,9 +119,7 @@ def test_chat_session_send_streaming(
     """Test sending a message with streaming."""
     mock_get_chat_model.return_value = mock_chat_model
     mock_history = Mock()
-    mock_history.get_messages_as_dicts = Mock(
-        return_value=[{"role": "user", "content": "Hello"}]
-    )
+    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
     mock_history_class.return_value = mock_history
 
     # Mock stream_response to return complete text
@@ -218,8 +215,8 @@ def test_chat_session_markdown_rendering_non_streaming(
     """Test markdown rendering for non-streaming responses."""
     mock_get_chat_model.return_value = mock_chat_model
     mock_history = Mock()
-    mock_history.get_messages_as_dicts = Mock(
-        return_value=[{"role": "user", "content": "Show me code"}]
+    mock_history.get_messages = Mock(
+        return_value=[HumanMessage(content="Show me code")]
     )
     mock_history_class.return_value = mock_history
 
@@ -256,9 +253,7 @@ def test_chat_session_plain_text_non_streaming(
     """Test plain text rendering when markdown is disabled."""
     mock_get_chat_model.return_value = mock_chat_model
     mock_history = Mock()
-    mock_history.get_messages_as_dicts = Mock(
-        return_value=[{"role": "user", "content": "Hello"}]
-    )
+    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
     mock_history_class.return_value = mock_history
 
     session = ChatSession(mock_config)
@@ -283,8 +278,8 @@ def test_chat_session_markdown_rendering_streaming(
     """Test markdown rendering is passed to stream_response."""
     mock_get_chat_model.return_value = mock_chat_model
     mock_history = Mock()
-    mock_history.get_messages_as_dicts = Mock(
-        return_value=[{"role": "user", "content": "Show me code"}]
+    mock_history.get_messages = Mock(
+        return_value=[HumanMessage(content="Show me code")]
     )
     mock_history_class.return_value = mock_history
 
@@ -315,9 +310,7 @@ def test_chat_session_plain_text_streaming(
     """Test plain text streaming when markdown is disabled."""
     mock_get_chat_model.return_value = mock_chat_model
     mock_history = Mock()
-    mock_history.get_messages_as_dicts = Mock(
-        return_value=[{"role": "user", "content": "Hello"}]
-    )
+    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
     mock_history_class.return_value = mock_history
 
     mock_stream_response.return_value = "Hello! How can I help you?"
@@ -330,3 +323,72 @@ def test_chat_session_plain_text_streaming(
     # Verify stream_response was called with render_markdown=False
     call_kwargs = mock_stream_response.call_args[1]
     assert call_kwargs["render_markdown"] is False
+
+
+@patch("consoul.cli.chat_session.get_chat_model")
+@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.stream_response")
+def test_chat_session_streaming_error_handling(
+    mock_stream_response,
+    mock_history_class,
+    mock_get_chat_model,
+    mock_config,
+    mock_chat_model,
+):
+    """Test that StreamingError is properly caught and handled."""
+    mock_get_chat_model.return_value = mock_chat_model
+    mock_history = Mock()
+    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
+    mock_history_class.return_value = mock_history
+
+    # Mock stream_response to raise StreamingError with partial response
+    partial_text = "Hello! How can I"
+    mock_stream_response.side_effect = StreamingError(
+        "Streaming interrupted by user", partial_response=partial_text
+    )
+
+    session = ChatSession(mock_config)
+
+    # Should raise KeyboardInterrupt (not StreamingError)
+    with pytest.raises(KeyboardInterrupt):
+        session.send("Hello", stream=True)
+
+    # Verify _interrupted flag was set
+    assert session._interrupted is True
+
+    # Verify partial response was saved to history
+    mock_history.add_assistant_message.assert_called_once_with(partial_text)
+
+
+@patch("consoul.cli.chat_session.get_chat_model")
+@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.stream_response")
+def test_chat_session_streaming_error_no_partial(
+    mock_stream_response,
+    mock_history_class,
+    mock_get_chat_model,
+    mock_config,
+    mock_chat_model,
+):
+    """Test StreamingError without partial response."""
+    mock_get_chat_model.return_value = mock_chat_model
+    mock_history = Mock()
+    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
+    mock_history_class.return_value = mock_history
+
+    # Mock stream_response to raise StreamingError with no partial response
+    mock_stream_response.side_effect = StreamingError(
+        "Streaming interrupted by user", partial_response=""
+    )
+
+    session = ChatSession(mock_config)
+
+    # Should raise KeyboardInterrupt
+    with pytest.raises(KeyboardInterrupt):
+        session.send("Hello", stream=True)
+
+    # Verify _interrupted flag was set
+    assert session._interrupted is True
+
+    # Verify no partial response was saved (empty string)
+    mock_history.add_assistant_message.assert_not_called()

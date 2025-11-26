@@ -28,11 +28,12 @@ from consoul.ai.exceptions import StreamingError
 
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
+    from langchain_core.messages import BaseMessage
 
 
 def stream_response(
     model: BaseChatModel,
-    messages: list[dict[str, str]],
+    messages: list[BaseMessage],
     console: Console | None = None,
     show_prefix: bool = True,
     show_spinner: bool = True,
@@ -46,7 +47,7 @@ def stream_response(
 
     Args:
         model: LangChain chat model with .stream() support.
-        messages: Conversation messages in LangChain format.
+        messages: Conversation messages as LangChain BaseMessage objects.
         console: Rich console for output. Creates default if None.
         show_prefix: Whether to print "Assistant: " prefix.
         show_spinner: Whether to show spinner progress indicator during streaming.
