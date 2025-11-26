@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-26T00:50:26.595060",
+  "updated_at": "2025-11-26T08:57:30.924873Z",
+  "id": "SOUL-165",
+  "uuid": "7667b755-a358-4a6a-a638-a6340cd51ccd",
+  "title": "Add prompt_toolkit dependency for enhanced CLI input",
+  "description": "**As a** developer implementing the chat command\n**I want** prompt_toolkit available as a dependency\n**So that** we can provide multi-line input, history, and better UX in CLI chat mode\n\n**Context:**\nprompt_toolkit is a Python library for building powerful command-line applications with features like:\n- Multi-line editing with syntax highlighting\n- Command history (up/down arrows)\n- Auto-completion\n- Key bindings customization\n- Cross-platform support\n\nThis is needed for the upcoming consoul chat implementation to provide a better input experience than basic input().\n\n**Technical Notes:**\n- Add to pyproject.toml: prompt-toolkit = \"^3.0.43\"\n- Already indirectly available via textual dependency\n- Used by many CLI tools: ipython, ptpython, httpie\n- Compatible with Rich for output formatting\n- Lightweight and well-maintained\n\n**Acceptance Criteria:**\n\n**Given** prompt_toolkit is added to pyproject.toml\n**When** poetry install is run\n**Then** prompt_toolkit is available for import\n\n**Given** prompt_toolkit is installed\n**When** running poetry show prompt-toolkit\n**Then** version 3.0.43 or higher is shown\n\n**Testing Considerations:**\n- Verify import works: python -c \"from prompt_toolkit import PromptSession\"\n- Check compatibility with existing dependencies\n- Test on macOS, Linux, Windows\n\n**Implementation Hints:**\n- Add to [tool.poetry.dependencies] section\n- Run poetry add prompt-toolkit\n- Update poetry.lock\n- Document in requirements or dependency list if needed",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "cli",
+    "enhancement",
+    "dependency"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 1,
+  "order": 0,
+  "custom_fields": {}
+}

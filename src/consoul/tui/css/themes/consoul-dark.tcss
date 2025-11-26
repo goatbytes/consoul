@@ -10,7 +10,7 @@ $surface-darken-1: #1E1E1E;  /* Very dark gray - depth */
 
 $primary: #0085CC;         /* Sky Blue - innovation and trust */
 $secondary: #5A9FD4;       /* Lighter Sky Blue - secondary actions */
-$accent: #0085CC;          /* Sky Blue - highlights */
+$accent: #44385E;          /* Sky Blue - highlights */
 $success: #28A745;         /* Green - success states */
 $warning: #FFC107;         /* Amber - warnings */
 $error: #DC3545;           /* Red - errors */

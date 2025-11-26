@@ -15,7 +15,7 @@ copyright: Copyright &copy; 2025 GoatBytes.IO
 theme:
   name: material
   favicon: assets/img/favicon.png
-  logo: assets/img/logo.svg
+  logo: assets/img/consoul-top-bar.svg
 
   # Color scheme and branding
   palette:

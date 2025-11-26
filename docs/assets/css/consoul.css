@@ -28,15 +28,27 @@
   --md-accent-fg-color--transparent: #00d9ff1a;
 }
 
-/* Logo styling */
+/* Logo styling - using custom top bar SVG */
 .md-header__button.md-logo {
-  padding: 0.2rem;
+  padding: 0.4rem 0.2rem;
 }
 
 .md-header__button.md-logo img {
-  height: 2rem;
+  height: 2.4rem;
   width: auto;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Hide site name text - logo SVG contains text */
+.md-header__topic {
+  display: none;
+}
+
+/* Ensure header stays sticky/fixed at top */
+.md-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
 }
 
 /* Enhanced navigation styling */
