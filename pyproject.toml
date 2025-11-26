@@ -61,6 +61,7 @@ dependencies = [
     "tree-sitter-language-pack>=0.11.0",
     "diskcache>=5.6.3",
     "duckduckgo-search>=8.1.1",
+    "ddgs>=9.9.0",  # Required by langchain-community's DuckDuckGoSearchAPIWrapper
     "prompt-toolkit (>=3.0.52,<4.0.0)",
 ]
 
