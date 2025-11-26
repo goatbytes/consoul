@@ -203,3 +203,130 @@ def test_chat_session_context_manager(
         assert session.model == mock_chat_model
 
     # Context manager should exit cleanly
+
+
+@patch("consoul.cli.chat_session.get_chat_model")
+@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.Markdown")
+def test_chat_session_markdown_rendering_non_streaming(
+    mock_markdown_class,
+    mock_history_class,
+    mock_get_chat_model,
+    mock_config,
+    mock_chat_model,
+):
+    """Test markdown rendering for non-streaming responses."""
+    mock_get_chat_model.return_value = mock_chat_model
+    mock_history = Mock()
+    mock_history.get_messages_as_dicts = Mock(
+        return_value=[{"role": "user", "content": "Show me code"}]
+    )
+    mock_history_class.return_value = mock_history
+
+    # Mock response with markdown
+    response_text = "Here's some code:\n```python\nprint('Hello')\n```"
+    mock_chat_model.invoke.return_value = AIMessage(content=response_text)
+
+    # Mock Markdown instance
+    mock_md = Mock()
+    mock_markdown_class.return_value = mock_md
+
+    session = ChatSession(mock_config)
+
+    # Mock the console.print to verify it was called
+    with patch.object(session.console, "print") as mock_print:
+        response = session.send("Show me code", stream=False, render_markdown=True)
+
+    assert response == response_text
+
+    # Verify Markdown was created with response text
+    mock_markdown_class.assert_called_once_with(response_text)
+
+    # Verify markdown object was printed
+    assert any(
+        call[0][0] == mock_md for call in mock_print.call_args_list if call[0]
+    ), "Markdown object should be printed"
+
+
+@patch("consoul.cli.chat_session.get_chat_model")
+@patch("consoul.cli.chat_session.ConversationHistory")
+def test_chat_session_plain_text_non_streaming(
+    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+):
+    """Test plain text rendering when markdown is disabled."""
+    mock_get_chat_model.return_value = mock_chat_model
+    mock_history = Mock()
+    mock_history.get_messages_as_dicts = Mock(
+        return_value=[{"role": "user", "content": "Hello"}]
+    )
+    mock_history_class.return_value = mock_history
+
+    session = ChatSession(mock_config)
+    response = session.send("Hello", stream=False, render_markdown=False)
+
+    assert response == "Hello! How can I help you?"
+
+    # Verify plain text was printed (not Markdown)
+    assert mock_history.add_assistant_message.called
+
+
+@patch("consoul.cli.chat_session.get_chat_model")
+@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.stream_response")
+def test_chat_session_markdown_rendering_streaming(
+    mock_stream_response,
+    mock_history_class,
+    mock_get_chat_model,
+    mock_config,
+    mock_chat_model,
+):
+    """Test markdown rendering is passed to stream_response."""
+    mock_get_chat_model.return_value = mock_chat_model
+    mock_history = Mock()
+    mock_history.get_messages_as_dicts = Mock(
+        return_value=[{"role": "user", "content": "Show me code"}]
+    )
+    mock_history_class.return_value = mock_history
+
+    # Mock stream_response to return markdown content
+    response_text = "```python\nprint('test')\n```"
+    mock_stream_response.return_value = response_text
+
+    session = ChatSession(mock_config)
+    response = session.send("Show me code", stream=True, render_markdown=True)
+
+    assert response == response_text
+
+    # Verify stream_response was called with render_markdown=True
+    call_kwargs = mock_stream_response.call_args[1]
+    assert call_kwargs["render_markdown"] is True
+
+
+@patch("consoul.cli.chat_session.get_chat_model")
+@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.stream_response")
+def test_chat_session_plain_text_streaming(
+    mock_stream_response,
+    mock_history_class,
+    mock_get_chat_model,
+    mock_config,
+    mock_chat_model,
+):
+    """Test plain text streaming when markdown is disabled."""
+    mock_get_chat_model.return_value = mock_chat_model
+    mock_history = Mock()
+    mock_history.get_messages_as_dicts = Mock(
+        return_value=[{"role": "user", "content": "Hello"}]
+    )
+    mock_history_class.return_value = mock_history
+
+    mock_stream_response.return_value = "Hello! How can I help you?"
+
+    session = ChatSession(mock_config)
+    response = session.send("Hello", stream=True, render_markdown=False)
+
+    assert response == "Hello! How can I help you?"
+
+    # Verify stream_response was called with render_markdown=False
+    call_kwargs = mock_stream_response.call_args[1]
+    assert call_kwargs["render_markdown"] is False

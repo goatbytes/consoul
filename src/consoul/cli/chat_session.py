@@ -12,6 +12,7 @@ import signal
 from typing import TYPE_CHECKING
 
 from rich.console import Console
+from rich.markdown import Markdown
 
 from consoul.ai import ConversationHistory, get_chat_model
 from consoul.ai.streaming import stream_response
@@ -89,6 +90,7 @@ class ChatSession:
         message: str,
         stream: bool = True,
         show_prefix: bool = True,
+        render_markdown: bool = True,
     ) -> str:
         """Send a message and get AI response.
 
@@ -96,6 +98,7 @@ class ChatSession:
             message: User message text
             stream: Whether to stream response token-by-token (default: True)
             show_prefix: Whether to show "Assistant: " prefix (default: True)
+            render_markdown: Whether to render response as markdown (default: True)
 
         Returns:
             Complete AI response text
@@ -120,15 +123,24 @@ class ChatSession:
                     console=self.console,
                     show_prefix=show_prefix,
                     show_spinner=True,
+                    render_markdown=render_markdown,
                 )
             else:
                 # Non-streaming response
-                if show_prefix:
-                    self.console.print("\n[bold green]Assistant:[/bold green] ", end="")
-
                 response = self.model.invoke(messages)
                 response_text = str(response.content)
-                self.console.print(response_text)
+
+                if render_markdown:
+                    if show_prefix:
+                        self.console.print("\n[bold cyan]Assistant:[/bold cyan]")
+                    md = Markdown(response_text)
+                    self.console.print(md)
+                else:
+                    if show_prefix:
+                        self.console.print(
+                            "\n[bold green]Assistant:[/bold green] ", end=""
+                        )
+                    self.console.print(response_text)
 
             # Add assistant response to history
             self.history.add_assistant_message(response_text)

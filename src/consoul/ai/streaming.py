@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 
 from rich.console import Console
 from rich.live import Live
+from rich.markdown import Markdown
 from rich.spinner import Spinner
 from rich.text import Text
 
@@ -35,6 +36,7 @@ def stream_response(
     console: Console | None = None,
     show_prefix: bool = True,
     show_spinner: bool = True,
+    render_markdown: bool = True,
 ) -> str:
     """Stream AI response with real-time token-by-token display and progress indicator.
 
@@ -48,6 +50,7 @@ def stream_response(
         console: Rich console for output. Creates default if None.
         show_prefix: Whether to print "Assistant: " prefix.
         show_spinner: Whether to show spinner progress indicator during streaming.
+        render_markdown: Whether to render response as markdown with syntax highlighting.
 
     Returns:
         Complete response text from the model.
@@ -101,8 +104,16 @@ def stream_response(
 
                     live.update(response_text, refresh=True)
 
-            # Print final newline after live display ends
-            console.print()
+            # Render accumulated response as markdown if enabled
+            if render_markdown and collected_tokens:
+                console.print()  # Clear the live display
+                if show_prefix:
+                    console.print("[bold cyan]Assistant:[/bold cyan]")
+                md = Markdown("".join(collected_tokens))
+                console.print(md)
+            else:
+                # Print final newline after live display ends
+                console.print()
         else:
             # Fallback to simple token-by-token printing without spinner
             first_token = True
@@ -125,9 +136,17 @@ def stream_response(
                 collected_tokens.append(token)
                 console.print(token, end="")
 
-            # Final newline after complete response
-            if collected_tokens:
-                console.print()
+            # Render accumulated response as markdown if enabled
+            if render_markdown and collected_tokens:
+                console.print("\n")  # Add spacing
+                if show_prefix:
+                    console.print("[bold cyan]Assistant:[/bold cyan]")
+                md = Markdown("".join(collected_tokens))
+                console.print(md)
+            else:
+                # Final newline after complete response
+                if collected_tokens:
+                    console.print()
 
         return "".join(collected_tokens)
 
