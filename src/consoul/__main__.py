@@ -211,7 +211,7 @@ def chat(
         f"[bold]Profile:[/bold] {active_profile.name}\n"
         f"[bold]Model:[/bold] {config.current_provider.value}/{config.current_model}"
         f"{tool_info}\n\n"
-        f"[dim]Type 'exit' or press Ctrl+C to quit | Escape clears input[/dim]"
+        f"[dim]Type /help for commands | exit or Ctrl+C to quit | Escape clears input[/dim]"
     )
 
     console.print(
@@ -325,6 +325,14 @@ def chat(
 
                 # Skip empty input (re-prompt)
                 if not user_input:
+                    continue
+
+                # Check for slash commands
+                if session.process_command(user_input):
+                    # Command was handled, check if exit was requested
+                    if session._should_exit:
+                        break
+                    # Otherwise continue to next prompt
                     continue
 
                 # Send message and get response

@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import logging
 import signal
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.table import Table
 
 from consoul.ai import ConversationHistory, get_chat_model
 from consoul.ai.exceptions import StreamingError
@@ -25,6 +27,7 @@ if TYPE_CHECKING:
     from consoul.ai.tools.registry import ToolRegistry
     from consoul.cli.approval import CliToolApprovalProvider
     from consoul.config import ConsoulConfig
+    from consoul.formatters.base import ExportFormatter
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +76,7 @@ class ChatSession:
         self.console = Console()
         self._interrupted = False
         self._original_sigint_handler = None
+        self._should_exit = False  # Flag for /exit command
         self.max_tool_iterations = max_tool_iterations
 
         # Tool execution support
@@ -387,6 +391,360 @@ class ChatSession:
             "message_count": len(user_and_assistant_messages),
             "token_count": self.history.count_tokens(),
         }
+
+    def process_command(self, cmd: str) -> bool:
+        """Process slash command.
+
+        Args:
+            cmd: User input string to check for slash commands
+
+        Returns:
+            True if input was a command and was handled, False otherwise
+
+        Example:
+            >>> session.process_command("/help")
+            True
+            >>> session.process_command("regular message")
+            False
+        """
+        # Not a command if doesn't start with /
+        if not cmd.startswith("/"):
+            return False
+
+        # Parse command and arguments
+        parts = cmd[1:].split(maxsplit=1)
+        command = parts[0].lower()
+        args = parts[1] if len(parts) > 1 else ""
+
+        # Command routing table
+        handlers = {
+            "help": self._cmd_help,
+            "?": self._cmd_help,  # Alias
+            "clear": self._cmd_clear,
+            "tokens": self._cmd_tokens,
+            "exit": self._cmd_exit,
+            "quit": self._cmd_exit,  # Alias
+            "model": self._cmd_model,
+            "tools": self._cmd_tools,
+            "export": self._cmd_export,
+            "stats": self._cmd_stats,
+        }
+
+        # Execute command or show error
+        if command in handlers:
+            handlers[command](args)
+        else:
+            self.console.print(
+                f"[red]Unknown command:[/red] /{command}\n"
+                f"[dim]Type /help for available commands[/dim]"
+            )
+
+        return True
+
+    def _cmd_help(self, args: str) -> None:
+        """Show available slash commands."""
+        table = Table(
+            title="Available Slash Commands",
+            show_header=True,
+            header_style="bold cyan",
+        )
+        table.add_column("Command", style="cyan", no_wrap=True)
+        table.add_column("Arguments", style="yellow")
+        table.add_column("Description")
+
+        commands = [
+            ("/help", "", "Show this help message"),
+            ("/clear", "", "Clear conversation history (keeps system prompt)"),
+            ("/tokens", "", "Show token usage and message count"),
+            ("/stats", "", "Show detailed session statistics"),
+            ("/exit", "", "Exit the chat session"),
+            ("/model", "<model_name>", "Switch to a different model"),
+            (
+                "/tools",
+                "<on|off>",
+                "Enable or disable tool execution",
+            ),
+            (
+                "/export",
+                "<filename>",
+                "Export conversation to file (.md or .json)",
+            ),
+        ]
+
+        for cmd, args_str, desc in commands:
+            table.add_row(cmd, args_str, desc)
+
+        self.console.print()
+        self.console.print(table)
+        self.console.print()
+
+    def _cmd_clear(self, args: str) -> None:
+        """Clear conversation history."""
+        self.clear_history()
+        self.console.print(
+            "[green]✓[/green] Conversation history cleared (system prompt preserved)\n"
+        )
+
+    def _cmd_tokens(self, args: str) -> None:
+        """Show token usage statistics."""
+        stats = self.get_stats()
+
+        # Get model token limit
+        from consoul.ai.context import get_model_token_limit
+
+        max_tokens = get_model_token_limit(self.history.model_name)
+        token_count = stats["token_count"]
+        percentage = (token_count / max_tokens * 100) if max_tokens > 0 else 0
+
+        self.console.print()
+        self.console.print(
+            Panel(
+                f"[bold]Messages:[/bold] {stats['message_count']}\n"
+                f"[bold]Tokens:[/bold] {token_count:,} / {max_tokens:,} ({percentage:.1f}%)\n"
+                f"[bold]Model:[/bold] {self.history.model_name}",
+                title="[bold cyan]Token Usage[/bold cyan]",
+                border_style="cyan",
+            )
+        )
+        self.console.print()
+
+    def _cmd_exit(self, args: str) -> None:
+        """Exit the chat session."""
+        self._should_exit = True
+        self.console.print("[dim]Exiting...[/dim]\n")
+
+    def _cmd_model(self, args: str) -> None:
+        """Switch to a different model."""
+        if not args:
+            self.console.print(
+                "[red]Error:[/red] Model name required\n"
+                "[dim]Usage: /model <model_name>[/dim]\n"
+                "[dim]Example: /model gpt-4o[/dim]\n"
+            )
+            return
+
+        model_name = args.strip()
+
+        try:
+            # Auto-detect provider from model name
+            from consoul.ai.providers import get_provider_from_model
+
+            detected_provider = get_provider_from_model(model_name)
+
+            if detected_provider:
+                self.config.current_provider = detected_provider
+                logger.info(
+                    f"Auto-detected provider: {detected_provider.value} for model: {model_name}"
+                )
+
+            # Update config
+            self.config.current_model = model_name
+
+            # Reinitialize model
+            model_config = self.config.get_current_model_config()
+            new_model = get_chat_model(model_config, config=self.config)
+
+            # Bind tools if registry exists
+            if self.tool_registry:
+                new_model = self.tool_registry.bind_to_model(new_model)
+
+            self.model = new_model
+
+            # Update history model reference
+            self.history.model_name = model_name
+            self.history._model = new_model
+
+            self.console.print(
+                f"[green]✓[/green] Switched to model: [cyan]{self.config.current_provider.value}/{model_name}[/cyan]\n"
+            )
+
+        except Exception as e:
+            self.console.print(f"[red]Error switching model:[/red] {e}\n")
+            logger.error(f"Failed to switch model to {model_name}: {e}", exc_info=True)
+
+    def _cmd_tools(self, args: str) -> None:
+        """Enable or disable tool execution."""
+        if not args:
+            # Show current status
+            status = "enabled" if self.tool_registry else "disabled"
+            tool_count = len(self.tool_registry) if self.tool_registry else 0
+            self.console.print(
+                f"[bold]Tools:[/bold] {status} ({tool_count} tools available)\n"
+                f"[dim]Usage: /tools <on|off>[/dim]\n"
+            )
+            return
+
+        arg_lower = args.strip().lower()
+
+        if arg_lower == "off":
+            if not self.tool_registry:
+                self.console.print("[yellow]Tools are already disabled[/yellow]\n")
+            else:
+                # Store reference for re-enabling
+                if not hasattr(self, "_saved_tool_registry"):
+                    self._saved_tool_registry = self.tool_registry
+
+                self.tool_registry = None
+                # Re-bind model without tools
+                model_config = self.config.get_current_model_config()
+                self.model = get_chat_model(model_config, config=self.config)
+
+                self.console.print("[green]✓[/green] Tools disabled\n")
+
+        elif arg_lower == "on":
+            if self.tool_registry:
+                self.console.print("[yellow]Tools are already enabled[/yellow]\n")
+            else:
+                # Restore saved registry if available
+                if hasattr(self, "_saved_tool_registry"):
+                    self.tool_registry = self._saved_tool_registry
+                    # Re-bind tools to model
+                    self.model = self.tool_registry.bind_to_model(self.model)
+                    tool_count = len(self.tool_registry)
+                    self.console.print(
+                        f"[green]✓[/green] Tools enabled ({tool_count} tools available)\n"
+                    )
+                else:
+                    self.console.print(
+                        "[red]Error:[/red] No tool registry available\n"
+                        "[dim]Tools were not initialized at session start[/dim]\n"
+                    )
+        else:
+            self.console.print(
+                f"[red]Error:[/red] Invalid argument '{args}'\n"
+                f"[dim]Usage: /tools <on|off>[/dim]\n"
+            )
+
+    def _cmd_export(self, args: str) -> None:
+        """Export conversation to file."""
+        if not args:
+            self.console.print(
+                "[red]Error:[/red] Filename required\n"
+                "[dim]Usage: /export <filename>[/dim]\n"
+                "[dim]Supported formats: .md (markdown), .json[/dim]\n"
+            )
+            return
+
+        filename = args.strip()
+
+        try:
+            self.export_conversation(filename)
+        except Exception as e:
+            self.console.print(f"[red]Error exporting conversation:[/red] {e}\n")
+            logger.error(f"Failed to export to {filename}: {e}", exc_info=True)
+
+    def _cmd_stats(self, args: str) -> None:
+        """Show detailed session statistics."""
+        stats = self.get_stats()
+
+        # Get model info
+        from consoul.ai.context import get_model_token_limit
+
+        max_tokens = get_model_token_limit(self.history.model_name)
+        token_count = stats["token_count"]
+        percentage = (token_count / max_tokens * 100) if max_tokens > 0 else 0
+
+        # Count messages by type
+        message_counts = {"user": 0, "assistant": 0, "system": 0, "tool": 0}
+        for msg in self.history.messages:
+            msg_type = msg.type
+            if msg_type == "human":
+                message_counts["user"] += 1
+            elif msg_type == "ai":
+                message_counts["assistant"] += 1
+            elif msg_type == "system":
+                message_counts["system"] += 1
+            elif msg_type == "tool":
+                message_counts["tool"] += 1
+
+        # Tool status
+        tools_status = "enabled" if self.tool_registry else "disabled"
+        tool_count = len(self.tool_registry) if self.tool_registry else 0
+
+        stats_text = (
+            f"[bold]Model:[/bold] {self.config.current_provider.value}/{self.history.model_name}\n"
+            f"[bold]Session ID:[/bold] {self.history.session_id}\n\n"
+            f"[bold]Messages:[/bold]\n"
+            f"  User: {message_counts['user']}\n"
+            f"  Assistant: {message_counts['assistant']}\n"
+            f"  System: {message_counts['system']}\n"
+            f"  Tool: {message_counts['tool']}\n"
+            f"  Total: {sum(message_counts.values())}\n\n"
+            f"[bold]Tokens:[/bold] {token_count:,} / {max_tokens:,} ({percentage:.1f}%)\n\n"
+            f"[bold]Tools:[/bold] {tools_status} ({tool_count} available)"
+        )
+
+        self.console.print()
+        self.console.print(
+            Panel(
+                stats_text,
+                title="[bold cyan]Session Statistics[/bold cyan]",
+                border_style="cyan",
+            )
+        )
+        self.console.print()
+
+    def export_conversation(self, filepath: str) -> None:
+        """Export conversation to file.
+
+        Args:
+            filepath: Path to output file. Format auto-detected from extension.
+                     Supported: .md (markdown), .json
+
+        Raises:
+            ValueError: If file format is not supported
+            IOError: If file cannot be written
+
+        Example:
+            >>> session.export_conversation("chat.md")
+            >>> session.export_conversation("conversation.json")
+        """
+        from pathlib import Path
+
+        from consoul.formatters.json_formatter import JSONFormatter
+        from consoul.formatters.markdown import MarkdownFormatter
+
+        output_path = Path(filepath)
+
+        # Auto-detect format from extension
+        extension = output_path.suffix.lower()
+
+        formatter: ExportFormatter
+        if extension == ".md":
+            formatter = MarkdownFormatter()
+        elif extension == ".json":
+            formatter = JSONFormatter()
+        else:
+            raise ValueError(
+                f"Unsupported format: {extension}. "
+                "Supported formats: .md (markdown), .json"
+            )
+
+        # Build metadata
+        metadata = {
+            "session_id": self.history.session_id,
+            "model": self.history.model_name,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "message_count": len(self.history.messages),
+        }
+
+        # Convert messages to dict format
+        from consoul.ai.history import to_dict_message
+
+        messages = []
+        for msg in self.history.messages:
+            msg_dict = to_dict_message(msg)
+            msg_dict["timestamp"] = datetime.now().isoformat()
+            msg_dict["tokens"] = 0  # Could calculate per-message if needed
+            messages.append(msg_dict)
+
+        # Export using formatter
+        formatter.export_to_file(metadata, messages, output_path)
+
+        self.console.print(
+            f"[green]✓[/green] Conversation exported to: [cyan]{filepath}[/cyan]\n"
+        )
 
     def __enter__(self) -> ChatSession:
         """Context manager entry - setup interrupt handling."""
