@@ -30,213 +30,302 @@ This opens an interactive interface where you can:
 - `↑/↓` – Navigate history
 - `Tab` – Auto-complete commands
 
-### Using the CLI
+### Using CLI Chat Mode
 
-For quick one-off questions:
+Launch an interactive chat session:
 
 ```bash
-consoul chat "How do I list all Python files in a directory?"
+consoul chat
+```
+
+Once in the session, you can have a conversation:
+
+```
+You: How do I list all Python files in a directory?
+Assistant: You can use several methods...
+
+You: /tokens
+[Shows token usage]
+
+You: /exit
 ```
 
 ## Common Use Cases
 
 ### Getting Code Help
 
-Ask for coding assistance:
+Use CLI chat for coding assistance:
 
 ```bash
-consoul chat "Write a Python function to merge two sorted lists"
+$ consoul chat
+
+You: Write a Python function to merge two sorted lists
+Assistant: [Provides solution with explanation]
+
+You: Can you show me how to test this?
+Assistant: [Provides testing examples]
 ```
 
-### Explaining Code
+### Code Exploration
 
-Include a file in your conversation:
+Use the TUI mode for exploring code:
 
 ```bash
-consoul chat --file main.py "Explain what this code does"
+$ consoul tui
+
+# In TUI, enable tools and ask:
+You: Find all TODO comments in Python files
+# AI uses grep_search tool with approval
+
+You: Show me the User class definition
+# AI uses code_search tool
 ```
 
-### Debugging Errors
+### Debugging Sessions
 
-Pipe error output directly:
+Use slash commands during debugging:
 
 ```bash
-python script.py 2>&1 | consoul chat --stdin "What's causing this error?"
+$ consoul chat --model gpt-4o
+
+You: I'm getting a KeyError in my dictionary access. How do I debug this?
+Assistant: [Provides debugging strategies]
+
+You: /model claude-3-5-sonnet-20241022
+# Switch to Claude for a second opinion
+
+You: Same question - what's your approach?
+Assistant: [Provides alternative perspective]
+
+You: /export debug-session.md
+# Save the conversation for reference
 ```
 
-### Learning Commands
+### Quick Command Help
 
-Get help with shell commands:
+Fast answers to shell questions:
 
 ```bash
-consoul chat "How do I find all files larger than 100MB?"
+$ consoul chat
+
+You: How do I find all files larger than 100MB?
+Assistant: You can use the find command: `find . -type f -size +100M`
+
+You: /exit
 ```
 
 ## Working with Context
 
-### Include Files
+### TUI Mode Features
+
+The TUI mode supports rich context management:
+
+- **File attachments** - Click the 📎 button to attach files to your message
+- **Image analysis** - Attach screenshots and images for visual analysis
+- **Multiple conversations** - Manage separate conversation tabs
 
 ```bash
-# Single file
-consoul chat --file app.py "Review this code"
-
-# Multiple files
-consoul chat --file app.py --file utils.py "How do these modules work together?"
+consoul tui
 ```
 
-### Include Directory Context
+### CLI Chat Mode
 
-```bash
-# Include all Python files in current directory
-consoul chat --glob "*.py" "What does this project do?"
-```
-
-### Pipe Terminal Output
-
-```bash
-# Include command output
-git status | consoul chat --stdin "Explain these changes"
-
-# Include error logs
-cat error.log | consoul chat --stdin "Help me debug this"
-```
+CLI chat mode is focused on conversational interactions. For file analysis and complex workflows, use the TUI mode.
 
 ## Conversation Management
 
-### Save Conversations
+Conversations are automatically persisted to a local SQLite database when enabled in your configuration.
 
-Conversations are automatically saved (if enabled in config):
+### Managing History
 
 ```bash
-# List saved conversations
+# List recent conversations
 consoul history list
 
-# Resume a conversation
-consoul history resume <conversation-id>
+# Show a specific conversation
+consoul history show <session-id>
 
 # Export a conversation
-consoul history export <conversation-id> --format markdown
+consoul history export <session-id> output.md --format markdown
+
+# Search conversation history
+consoul history search "python decorators"
+
+# Clear all history
+consoul history clear
 ```
 
-### Start a New Conversation
+### Session Controls
+
+Within CLI chat mode, use slash commands:
 
 ```bash
-# Start fresh
-consoul chat --new "Let's discuss Python decorators"
+You: /export my-session.md    # Export current conversation
+You: /clear                    # Clear history, start fresh
+You: /tokens                   # Check usage
 ```
 
 ## Configuration
 
-### Quick Config Changes
+Configuration is managed through YAML files. See the [Configuration Guide](user-guide/configuration.md) for details.
+
+### Profile Selection
 
 ```bash
-# Switch AI provider
-consoul config set provider openai
+# Use a specific profile
+consoul --profile creative chat
 
-# Change model
-consoul config set model gpt-4
-
-# Set theme
-consoul config set theme light
+# List available profiles
+consoul --list-profiles
 ```
 
-### View Current Config
+### Quick Overrides
 
 ```bash
-consoul config show
+# Override model
+consoul chat --model gpt-4o
+
+# Override temperature
+consoul --temperature 0.2 chat
+
+# Combine options
+consoul --profile code-assistant --temperature 0.1 chat
 ```
 
 ## Advanced Usage
 
-### System Prompts
+### Model Switching Mid-Session
 
-Set a custom system prompt for the session:
+Switch models during a conversation using the `/model` slash command:
 
 ```bash
-consoul chat --system "You are a Python expert" "Explain list comprehensions"
+$ consoul chat
+
+You: Explain Python decorators
+Assistant: [GPT-4o response]
+
+You: /model claude-3-5-sonnet-20241022
+✓ Switched to model: anthropic/claude-3-5-sonnet-20241022
+
+You: Now explain the same concept
+Assistant: [Claude response with different perspective]
 ```
 
 ### Temperature Control
 
-Adjust response creativity:
+Adjust response creativity via global options:
 
 ```bash
-# More deterministic (0.0 - 1.0)
-consoul chat --temperature 0.2 "Write a sorting function"
+# More deterministic (good for code)
+consoul --temperature 0.2 chat
 
-# More creative
-consoul chat --temperature 0.9 "Write a creative story"
+# More creative (good for writing)
+consoul --temperature 0.9 chat
+
+# Change mid-session using profile switch
+You: /model gpt-4o
 ```
 
-### Token Limits
+### Export and Share
 
-Control response length:
+Export conversations for documentation or sharing:
 
 ```bash
-consoul chat --max-tokens 500 "Summarize Python decorators briefly"
+You: /export session-2025-01-15.md
+✓ Conversation exported to: session-2025-01-15.md
+
+You: /export debug-notes.json
+✓ Conversation exported to: debug-notes.json
 ```
 
 ## Interactive Commands
 
-Within the TUI, you can use commands:
+### TUI Mode Commands
+
+Within the TUI mode (`consoul tui`), use menu-driven interface:
+
+- **Ctrl+N** - New conversation
+- **Ctrl+S** - Save conversation
+- **Ctrl+O** - Open/switch conversations
+- **Ctrl+Q** or `/quit` - Exit
+
+See [TUI Guide](user-guide/tui.md) for complete keyboard shortcuts.
+
+### CLI Chat Mode Slash Commands
+
+Within CLI chat sessions (`consoul chat`), use slash commands:
 
 ```
-/help              Show available commands
-/clear             Clear the screen
-/new               Start a new conversation
-/save              Save current conversation
-/config            View configuration
-/provider <name>   Switch AI provider
-/model <name>      Switch model
-/quit              Exit Consoul
+/help                   Show available commands
+/clear                  Clear conversation history
+/tokens                 Show token usage
+/stats                  Session statistics
+/exit, /quit            Exit session
+/model <name>           Switch model
+/tools <on|off>         Toggle tools
+/export <filename>      Export conversation
 ```
+
+See [CLI Chat Guide](user-guide/cli-chat.md) for complete documentation.
 
 ## Tips and Tricks
 
 ### Use Aliases
 
-Add shell aliases for common tasks:
+Add shell aliases for quick access:
 
 ```bash
 # Add to ~/.zshrc or ~/.bashrc
 alias ask="consoul chat"
-alias explain="consoul chat --stdin"
-alias code-review="consoul chat --file"
+alias tui="consoul tui"
 ```
 
 Then use them:
 
 ```bash
-ask "What's the difference between lists and tuples?"
-git diff | explain "Review these changes"
-code-review main.py "Any improvements?"
+ask            # Launch CLI chat
+tui            # Launch TUI mode
 ```
 
-### Context-Aware Development
+### Efficient Workflows
 
+**Quick questions:**
 ```bash
-# Get project overview
-consoul chat --glob "**/*.py" "Summarize this Python project"
-
-# Code review
-git diff main | consoul chat --stdin "Review this change"
-
-# Generate tests
-consoul chat --file app.py "Write pytest tests for this module"
+# Launch, ask, exit
+$ consoul chat
+You: What's the difference between lists and tuples?
+Assistant: [Answer]
+You: /exit
 ```
 
-### Workflow Integration
+**Code exploration (use TUI):**
+```bash
+$ consoul tui
+# Use rich interface with file attachments and tools
+```
+
+**Compare models:**
+```bash
+$ consoul chat
+You: Explain decorators
+Assistant: [GPT-4o answer]
+
+You: /model claude-3-5-sonnet-20241022
+Assistant: [Claude answer]
+
+You: /export model-comparison.md
+```
+
+### Session Management
 
 ```bash
-# Git commit messages
-git diff --staged | consoul chat --stdin "Generate a conventional commit message" \
-  | git commit -F -
+# Save and review later
+$ consoul chat
+You: [Long debugging session]
+You: /export debug-2025-01-15.md
 
-# Code documentation
-consoul chat --file api.py "Generate docstrings" > docs/api.md
-
-# Error investigation
-pytest 2>&1 | consoul chat --stdin "Why are these tests failing?"
+# Search history later
+$ consoul history search "decorator"
 ```
 
 ## Keyboard Shortcuts

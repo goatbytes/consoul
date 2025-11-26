@@ -51,11 +51,76 @@ These options can be used with any command:
 
 ### `consoul chat`
 
-Start an interactive chat session.
+Start an interactive chat session with streaming responses.
+
+**Usage:**
 
 ```bash
-consoul chat
+consoul chat [OPTIONS]
 ```
+
+**Description:**
+
+The chat command launches an interactive CLI session for conversing with AI models. Features include streaming token-by-token responses, rich markdown rendering, conversation history with context retention, history navigation (up/down arrows), and optional tool execution with approval.
+
+Unlike the TUI mode, CLI chat provides a lightweight, single-session interface focused on quick interactions.
+
+**Options:**
+
+- `-m, --model TEXT` - Model to use (e.g., gpt-4o, claude-3-5-sonnet-20241022, llama3)
+- `--no-stream` - Disable streaming responses (show complete response at once)
+- `--no-markdown` - Disable markdown rendering (show plain text)
+- `--tools / --no-tools` - Enable/disable tool execution (overrides config)
+- `--multiline` - Enable multi-line input mode (use Alt+Enter to submit)
+
+**Global Options:**
+
+- `--profile TEXT` - Configuration profile to use
+- `--temperature FLOAT` - Override model temperature (0.0-2.0)
+- `--max-tokens INT` - Override maximum tokens to generate
+
+**Examples:**
+
+```bash
+# Basic usage with default profile
+consoul chat
+
+# Use specific model
+consoul chat --model gpt-4o
+
+# Use specific profile
+consoul --profile creative chat
+
+# Disable tools and markdown
+consoul chat --no-tools --no-markdown
+
+# Multi-line mode for code blocks
+consoul chat --multiline
+```
+
+**In-Session Controls:**
+
+- **Enter** - Send message
+- **Ctrl+C** or **Ctrl+D** - Quit session
+- **Up/Down arrows** - Navigate input history
+- **Escape** - Clear current input line
+
+**Slash Commands:**
+
+Type `/help` during the session to see available slash commands:
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show available commands |
+| `/clear` | Clear conversation history |
+| `/tokens` | Show token usage and limits |
+| `/stats` | Show detailed session statistics |
+| `/exit`, `/quit` | Exit the chat session |
+| `/model <name>` | Switch to different model mid-session |
+| `/tools <on\|off>` | Toggle tool execution |
+| `/export <file>` | Export conversation to .md or .json |
+
+See [CLI Chat Guide](../user-guide/cli-chat.md) for comprehensive documentation.
 
 ---
 

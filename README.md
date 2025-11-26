@@ -55,13 +55,20 @@ print(f"Last cost: {console.last_cost}")
 
 ### Terminal Interface
 
-For the full interactive TUI:
+For interactive terminal sessions:
 
 ```bash
-consoul tui                                    # Launch interactive mode
-consoul chat "Explain quantum computing"      # One-off question
-consoul chat --model gpt-4o "Your question"  # Use specific model
-consoul --profile creative chat "Write a poem" # Use specific profile
+# Full-featured TUI with rich visuals
+consoul tui
+
+# Lightweight CLI chat session
+consoul chat
+
+# Use specific model
+consoul chat --model gpt-4o
+
+# Use specific profile
+consoul --profile creative chat
 ```
 
 ## ✨ Features
