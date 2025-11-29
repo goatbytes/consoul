@@ -1,0 +1,8 @@
+{
+  "prompt": "Create a function to debounce API calls in JavaScript",
+  "response": "Here's a concise implementation of a debouncing function for API calls in JavaScript:\n\n```javascript\nfunction debounce(callback, delay) {\n  let timeout;\n  \n  return function() {\n    clearTimeout(timeout);\n    const args = arguments;\n    timeout = setTimeout(() => callback.apply(null, args), delay);\n  };\n}\n```\n\nTo use it with an API call:\n\n```javascript\nconst debouncedFetch = debounce(fetchData, 500);\n\nfunction fetchData(params) {\n  // Make the API request using params\n}\n\n// Call the debounced function\ndebouncedFetch();\n```\n\nThe `debounce` function takes a callback and a delay (in milliseconds) as arguments. It returns an inner function that clears any existing timeout and sets a new one after the specified delay, invoking the original callback with the provided arguments when the delay expires. This ensures that only the latest API call is made within the given time frame.",
+  "error": null,
+  "timestamp": "2025-11-28T23:13:26.105775",
+  "model": "granite4:3b",
+  "success": true
+}

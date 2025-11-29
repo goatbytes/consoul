@@ -1,0 +1,8 @@
+{
+  "prompt": "Convert this datetime to ISO format: December 25, 2024 3:30 PM EST",
+  "response": "The given date and time is December 25, 2024 at 15:30 (24-hour format). The ISO format for this would be 2024-12-25T15:30:00Z.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:24.333911",
+  "model": "granite4:3b",
+  "success": true
+}

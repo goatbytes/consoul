@@ -1,0 +1,52 @@
+[
+  {
+    "prompt": "Write a Python function to check if a number is prime",
+    "category": "algorithms",
+    "difficulty": "beginner"
+  },
+  {
+    "prompt": "Explain the difference between abstract classes and interfaces in Java",
+    "category": "programming",
+    "difficulty": "intermediate"
+  },
+  {
+    "prompt": "Create a responsive CSS grid with 3 columns that collapses to 1 on mobile",
+    "category": "css",
+    "difficulty": "intermediate"
+  },
+  {
+    "prompt": "What's the time complexity of quicksort and why?",
+    "category": "algorithms",
+    "difficulty": "intermediate"
+  },
+  {
+    "prompt": "Write a bash one-liner to find all files larger than 100MB",
+    "category": "bash",
+    "difficulty": "beginner"
+  },
+  {
+    "prompt": "Explain the CAP theorem in distributed systems",
+    "category": "system-design",
+    "difficulty": "advanced"
+  },
+  {
+    "prompt": "Create a Python decorator to measure function execution time",
+    "category": "python",
+    "difficulty": "intermediate"
+  },
+  {
+    "prompt": "What are the main differences between git merge and git rebase?",
+    "category": "git",
+    "difficulty": "intermediate"
+  },
+  {
+    "prompt": "Write a SQL query to find the 2nd highest salary from an employees table",
+    "category": "sql",
+    "difficulty": "intermediate"
+  },
+  {
+    "prompt": "Explain what a closure is in JavaScript with a practical example",
+    "category": "javascript",
+    "difficulty": "intermediate"
+  }
+]

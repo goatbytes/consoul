@@ -1,0 +1,8 @@
+{
+  "prompt": "Create a function to debounce API calls in JavaScript",
+  "response": "Debouncing is a technique that ensures an event handler is only called after a certain period of inactivity. In JavaScript, you can implement debouncing by using setTimeout() and clearTimeout(). Here's a simple example:\n\n```javascript\nfunction debounce(func, wait) {\n  let timeout;\n  \n  return function (...args) {\n    const context = this;\n    \n    clearTimeout(timeout);\n    \n    timeout = setTimeout(function () {\n      func.apply(context, args);\n    }, wait);\n  };\n}\n```\nThis code snippet creates a debounced version of the provided `func`. The debounced function waits for `wait` milliseconds of inactivity before executing.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:38.313541",
+  "model": "granite4:3b",
+  "success": true
+}

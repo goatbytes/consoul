@@ -1,0 +1,8 @@
+{
+  "prompt": "Explain the MVC architecture pattern",
+  "response": "MVC (Model-View-Controller) is an architectural pattern that separates an application into three interconnected components: Model, View, and Controller. This separation allows for efficient management of data flow, user interface design, and business logic respectively.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:39.273606",
+  "model": "granite4:3b",
+  "success": true
+}

@@ -34,6 +34,9 @@
 
 > Imagine you could have a one-hour conversation with your future self 20 years from now. Write out the dialogue, focusing on the lessons, regrets, and advice your future self might share.
 
+3c53a4
+6700df 21 80% transparent
+0085cc
 ----
 
 ### Coding Prompts

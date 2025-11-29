@@ -1,0 +1,8 @@
+{
+  "prompt": "Create a regex to validate email addresses",
+  "response": "A simple regular expression for validating email addresses is `\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b`.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:21.129756",
+  "model": "granite4:3b",
+  "success": true
+}

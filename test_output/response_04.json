@@ -1,0 +1,8 @@
+{
+  "prompt": "What's the time complexity of quicksort?",
+  "response": "The time complexity of Quicksort algorithm is as follows:\n\n- **Best Case:** `O(n log n)`\n- **Average Case:** `O(n log n)`\n- **Worst Case:** `O(n^2)`\n\nThis worst case scenario occurs when the pivot selection always picks the smallest or largest element in the list, leading to highly unbalanced partitions. However, this can be mitigated by using strategies like randomizing the pivot selection or choosing a median-of-three approach.\n\nHere's an example of how you might implement Quicksort in Python:\n\n```python\ndef quicksort(arr):\n    if len(arr) <= 1:\n        return arr\n    else:\n        pivot = arr[0]\n        less = [x for x in arr[1:] if x <= pivot]\n        greater = [x for x in arr[1:] if x > pivot]\n        return quicksort(less) + [pivot] + quicksort(greater)\n\n# Test the function\nprint(quicksort([3,6,8,10,1,2,1]))  # Output: [1, 1, 2, 3, 6, 8, 10]\n```",
+  "error": null,
+  "timestamp": "2025-11-28T22:27:22.309981",
+  "model": "granite4:3b",
+  "success": true
+}

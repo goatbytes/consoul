@@ -90,8 +90,8 @@ ChatView:focus {
 
 .message-assistant {
     color: $text;
-    border: round $accent;
-    border-title-color: $accent;
+    border: round $secondary;
+    border-title-color: $secondary;
     border-title-align: left;
 }
 
@@ -285,8 +285,7 @@ InputArea {
     dock: bottom;
     height: auto;
     layout: vertical;
-    background: $surface-lighten-1;
-    padding: 1;
+    padding: 1 1 0 1;
     border: round $accent;
 }
 
@@ -326,7 +325,6 @@ InputArea SendableTextArea {
     height: auto;
     min-height: 3;
     max-height: 10;
-    background: $panel;
     color: $text;
     border: round $primary;
 }

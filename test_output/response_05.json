@@ -1,0 +1,8 @@
+{
+  "prompt": "Write a bash command to find and delete all .log files older than 7 days",
+  "response": "```bash\nfind /path/to/directory -name \"*.log\" -mtime +7 -exec rm {} \\;\n```\nThis command will recursively search the specified directory for `.log` files that are older than 7 days, then execute the `rm` command to delete them. Make sure to replace `/path/to/directory` with the actual path where you want to perform this operation.",
+  "error": null,
+  "timestamp": "2025-11-28T22:27:23.662540",
+  "model": "granite4:3b",
+  "success": true
+}

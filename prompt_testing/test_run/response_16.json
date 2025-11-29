@@ -1,0 +1,8 @@
+{
+  "prompt": "Write a git command to undo the last commit but keep changes",
+  "response": "To undo the last commit without losing any changes, use:\n\ngit reset --hard HEAD~1\n\nThis command discards the latest commit while keeping all subsequent changes in your working directory.",
+  "error": null,
+  "timestamp": "2025-11-28T23:13:22.356159",
+  "model": "granite4:3b",
+  "success": true
+}

@@ -1,0 +1,8 @@
+{
+  "prompt": "Explain the difference between == and === in JavaScript",
+  "response": "`==` performs type coercion before comparison, while `===` does not allow implicit conversion and requires both value and type to be identical for equality.\n\nIn other words, `a == b` checks if `a` is equal to `b` after converting their types, whereas `a === b` only returns true if `a` and `b` are strictly the same value and of the same type.",
+  "error": null,
+  "timestamp": "2025-11-28T23:13:06.653418",
+  "model": "granite4:3b",
+  "success": true
+}

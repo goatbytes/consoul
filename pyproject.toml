@@ -63,6 +63,7 @@ dependencies = [
     "duckduckgo-search>=8.1.1",
     "ddgs>=9.9.0",  # Required by langchain-community's DuckDuckGoSearchAPIWrapper
     "prompt-toolkit (>=3.0.52,<4.0.0)",
+    "trafilatura (>=2.0.0,<3.0.0)",
 ]
 
 # https://pypi.org/project/textual

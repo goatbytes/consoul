@@ -1,0 +1,8 @@
+{
+  "prompt": "Write a SQL query to find duplicate records in a table",
+  "response": "To find duplicate records, you can use the following SQL query:\n\n```sql\nSELECT column1, column2, ..., COUNT(*)\nFROM your_table\nGROUP BY column1, column2, ...\nHAVING COUNT(*) > 1;\n```\nReplace `your_table` with the actual name of your table and specify all columns that are part of a unique record.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:23.388556",
+  "model": "granite4:3b",
+  "success": true
+}

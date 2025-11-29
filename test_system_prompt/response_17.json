@@ -1,0 +1,8 @@
+{
+  "prompt": "What are the differences between SQL and NoSQL databases?",
+  "response": "SQL (Structured Query Language) databases store data in tables with predefined schemas, supporting complex queries using structured query language. On the other hand, NoSQL databases are designed to handle unstructured data and offer flexibility through dynamic schemas, often supporting document-based, key-value or wide-column storage models.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:36.326789",
+  "model": "granite4:3b",
+  "success": true
+}

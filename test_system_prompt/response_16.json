@@ -1,0 +1,8 @@
+{
+  "prompt": "Write a git command to undo the last commit but keep changes",
+  "response": "To undo the last Git commit without losing your changes, use `git reset --hard HEAD~`. This will discard the most recent commit and revert any changes it made.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:35.186065",
+  "model": "granite4:3b",
+  "success": true
+}

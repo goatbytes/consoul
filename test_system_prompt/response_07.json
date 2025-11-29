@@ -1,0 +1,8 @@
+{
+  "prompt": "Explain REST API status codes: 200, 201, 400, 401, 403, 404, 500",
+  "response": "A 200 OK status indicates successful request completion; 201 Created signals resource creation; 400 Bad Request denotes invalid input; 401 Unauthorized requires authentication; 403 Forbidden prohibits access; 404 Not Found means the requested resource is missing. A 500 Internal Server Error signifies server-side issues, while 503 Service Unavailable implies temporary overload or downtime.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:25.610168",
+  "model": "granite4:3b",
+  "success": true
+}

@@ -1,0 +1,8 @@
+{
+  "prompt": "What's the difference between var, let, and const in JavaScript?",
+  "response": "`var` is function-scoped, allowing redeclaration and hoisting; `let` and `const` are block-scoped, do not allow redeclaration, but `let` allows reassessment. `const` is used for values that don't change.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:32.595266",
+  "model": "granite4:3b",
+  "success": true
+}

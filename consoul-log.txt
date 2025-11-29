@@ -1,21 +1,73 @@
-2025-11-25 14:21:34,970 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
-2025-11-25 14:21:36,733 - consoul.tui.app - INFO - [MOUNT] on_mount() called, adding system prompt
-2025-11-25 14:21:36,734 - consoul.tui.app - WARNING - [MOUNT] Conversation not initialized, creating now
-2025-11-25 14:21:38,093 - consoul.tui.app - INFO - [MOUNT] Successfully created conversation during on_mount()
-2025-11-25 14:21:38,093 - consoul.tui.app - INFO - [SYSPROMPT] Adding initial system prompt to conversation (conversation exists: True, message count: 0, active_profile exists: True, tool_registry exists: True)
-2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [SYSPROMPT] Built prompt: 19038 chars
-2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [SYSPROMPT] Adding system message to conversation
-2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [SYSPROMPT] Added. Total messages: 1
-2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [SYSPROMPT] Storing metadata (tools: 12)
-2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [SYSPROMPT] SUCCESS: Added system prompt (12 tools, 19038 chars)
-2025-11-25 14:21:38,094 - consoul.tui.app - INFO - [MOUNT] on_mount() completed system prompt initialization
-2025-11-25 14:21:49,863 - consoul.tui.app - INFO - [TOOL_MANAGER] About to push tool manager screen
-2025-11-25 14:21:49,902 - consoul.tui.app - INFO - [TOOL_MANAGER] Tool manager closed, result=None, type=<class 'NoneType'>
-2025-11-25 14:21:49,902 - consoul.tui.app - INFO - [TOOL_MANAGER] No changes applied
-2025-11-25 14:21:51,327 - consoul.tui.widgets.tool_manager_screen - INFO - [TOOL_MGR] action_cancel called
-2025-11-25 14:21:54,404 - consoul.tui.app - INFO - [TOOL_MANAGER] About to push tool manager screen
-2025-11-25 14:21:54,434 - consoul.tui.app - INFO - [TOOL_MANAGER] Tool manager closed, result=None, type=<class 'NoneType'>
-2025-11-25 14:21:54,434 - consoul.tui.app - INFO - [TOOL_MANAGER] No changes applied
-2025-11-25 14:21:55,007 - consoul.tui.widgets.tool_manager_screen - INFO - [TOOL_MGR] action_cancel called
-2025-11-25 14:22:15,802 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: Initialized with current_model=gpt-oss:20b, current_provider=Provider.OLLAMA, active_provider=local, ollama_available=True, huggingface_available=True
-2025-11-25 14:22:15,809 - consoul.tui.widgets.model_picker_modal - INFO - ModelPickerModal: on_mount called, building tables and populating models
+2025-11-29 11:17:22,197 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
+2025-11-29 11:17:22,469 - consoul.tui.app - INFO - [MOUNT] on_mount() called, adding system prompt
+2025-11-29 11:17:22,469 - consoul.tui.app - WARNING - [MOUNT] Conversation not initialized, creating now
+2025-11-29 11:17:22,469 - consoul.tui.app - INFO - [MOUNT] Successfully created conversation during on_mount()
+2025-11-29 11:17:22,469 - consoul.tui.app - INFO - [SYSPROMPT] Adding initial system prompt to conversation (conversation exists: True, message count: 0, active_profile exists: True, tool_registry exists: True)
+2025-11-29 11:17:22,470 - consoul.tui.app - INFO - [SYSPROMPT] Built prompt: 19409 chars
+2025-11-29 11:17:22,470 - consoul.tui.app - INFO - [SYSPROMPT] Adding system message to conversation
+2025-11-29 11:17:22,470 - consoul.tui.app - INFO - [SYSPROMPT] Added. Total messages: 1
+2025-11-29 11:17:22,470 - consoul.tui.app - INFO - [SYSPROMPT] Storing metadata (tools: 12)
+2025-11-29 11:17:22,470 - consoul.tui.app - INFO - [SYSPROMPT] SUCCESS: Added system prompt (12 tools, 19409 chars)
+2025-11-29 11:17:22,470 - consoul.tui.app - INFO - [MOUNT] on_mount() completed system prompt initialization
+2025-11-29 11:17:22,470 - consoul.tui.app - INFO - Applied theme: consoul-dark
+2025-11-29 11:17:25,092 - consoul.tui.app - INFO - [TIMING] Model check complete: 0.0ms
+2025-11-29 11:17:25,093 - consoul.tui.app - INFO - [TIMING] Reset tracking: 0.1ms
+2025-11-29 11:17:25,101 - consoul.tui.app - INFO - [TIMING] Added message bubble: 8.8ms
+2025-11-29 11:17:25,104 - consoul.tui.app - INFO - [TIMING] Added typing indicator: 2.5ms
+2025-11-29 11:17:25,104 - consoul.tui.app - INFO - [TIMING] Starting background processing: 0.0ms
+2025-11-29 11:17:25,104 - consoul.tui.app - INFO - [IMAGE_DETECTION] Auto-detect enabled: True, Attached images: 0, Auto-detected: 0, Total (deduplicated): 0
+2025-11-29 11:17:25,104 - consoul.tui.app - INFO - [IMAGE_DETECTION] Checking vision support for model: claude-opus-4-5-20251101
+2025-11-29 11:17:25,104 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model 'claude-opus-4-5-20251101' has vision: False
+2025-11-29 11:17:25,104 - consoul.tui.app - INFO - [IMAGE_DETECTION] Model supports vision: False
+2025-11-29 11:17:25,104 - consoul.tui.app - INFO - [IMAGE_DETECTION] Condition check: image_paths=False, model_supports_vision=False, combined=False
+2025-11-29 11:17:25,104 - consoul.tui.app - INFO - [TIMING] Worker started: 12.0ms from submit
+2025-11-29 11:17:25,105 - consoul.tui.app - INFO - [TIMING] Message handler exiting, worker launched: 12.1ms
+2025-11-29 11:17:25,106 - consoul.tui.app - INFO - Created conversation session: 15738991-02cc-4a82-847e-d41f8c4f25e1
+2025-11-29 11:17:25,107 - consoul.tui.app - DEBUG - Persisted user message with ID: 486
+2025-11-29 11:17:25,160 - consoul.tui.app - INFO - [TIMING] DB persist complete: 56.0ms
+2025-11-29 11:17:25,160 - consoul.tui.app - DEBUG - [TOOL_FLOW] _stream_ai_response ENTRY - iteration 0/5
+2025-11-29 11:17:25,161 - consoul.tui.app - INFO - [TIMING] Updated streaming state: 0.5ms
+2025-11-29 11:17:25,161 - consoul.tui.app - INFO - [TIMING] Got model config: 0.0ms
+2025-11-29 11:17:25,161 - consoul.tui.app - DEBUG - [MESSAGES] Before trimming: conversation has 2 messages
+2025-11-29 11:17:25,161 - consoul.tui.app - DEBUG - [MESSAGES]   Message 0: type=system, content_len=19409
+2025-11-29 11:17:25,161 - consoul.tui.app - DEBUG - [MESSAGES]   Message 1: type=human, content_len=14
+2025-11-29 11:17:25,786 - consoul.tui.app - INFO - [TIMING] Got trimmed messages: 625.3ms
+2025-11-29 11:17:25,787 - consoul.tui.app - DEBUG - [MESSAGES] Sending 1 messages to model
+2025-11-29 11:17:25,787 - consoul.tui.app - INFO - [IMAGE_DETECTION] Last message has multimodal content: False
+2025-11-29 11:17:25,787 - consoul.tui.app - DEBUG - [MESSAGES] Converted 1 messages to 1 dict messages
+2025-11-29 11:17:25,787 - consoul.tui.app - INFO - [TIMING] Converted to dict: 0.7ms, total prep: 626.6ms
+2025-11-29 11:17:26,017 - consoul.tui.app - ERROR - [TOOL_FLOW] Exception in stream loop: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'messages: at least one message is required'}, 'request_id': 'req_011CVcid5vk9BCgsQ4eCfkSM'}
+Traceback (most recent call last):
+  File "/Users/jaredrummler/Development/github/goatbytes/consoul/src/consoul/tui/app.py", line 1738, in sync_stream_producer
+    for chunk in model_to_use.stream(messages_to_send):  # type: ignore[union-attr]
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/langchain_core/runnables/base.py", line 5711, in stream
+    yield from self.bound.stream(
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/langchain_core/language_models/chat_models.py", line 520, in stream
+    for chunk in self._stream(input_messages, stop=stop, **kwargs):
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/langchain_anthropic/chat_models.py", line 1769, in _stream
+    _handle_anthropic_bad_request(e)
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/langchain_anthropic/chat_models.py", line 567, in _handle_anthropic_bad_request
+    raise e
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/langchain_anthropic/chat_models.py", line 1749, in _stream
+    stream = self._create(payload)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/langchain_anthropic/chat_models.py", line 1728, in _create
+    return self._client.messages.create(**payload)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/anthropic/_utils/_utils.py", line 282, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/anthropic/resources/messages/messages.py", line 927, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/anthropic/_base_client.py", line 1326, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/anthropic/_base_client.py", line 1114, in request
+    raise self._make_status_error_from_response(err.response) from None
+anthropic.BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'messages: at least one message is required'}, 'request_id': 'req_011CVcid5vk9BCgsQ4eCfkSM'}
+2025-11-29 11:17:26,021 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream loop finished. Collected 0 chunks, exception=Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'messages: at least one message is required'}, 'request_id': 'req_011CVcid5vk9BCgsQ4eCfkSM'}
+2025-11-29 11:17:26,021 - consoul.tui.app - DEBUG - [TOOL_FLOW] Sending final_message to queue: has_message=False
+2025-11-29 11:17:26,022 - consoul.tui.app - DEBUG - [TOOL_FLOW] Got first_token: is_none=True, value=None, ttft=0.233s
+2025-11-29 11:17:26,025 - consoul.tui.app - DEBUG - [TOOL_FLOW] Stream exception: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'messages: at least one message is required'}, 'request_id': 'req_011CVcid5vk9BCgsQ4eCfkSM'}
+2025-11-29 11:17:26,034 - consoul.tui.app - INFO - [TIMING] Worker complete: 929.1ms, total: 941.1ms

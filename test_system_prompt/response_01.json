@@ -1,0 +1,8 @@
+{
+  "prompt": "Write a Python function to check if a number is prime",
+  "response": "Here's a concise Python function that checks if a given number `n` is prime:\n\n```python\ndef is_prime(n):\n    return n > 1 and all(n % i for i in range(2, int(n**0.5) + 1))\n```\n\nThis function returns True if the input number is prime and False otherwise.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:19.215630",
+  "model": "granite4:3b",
+  "success": true
+}

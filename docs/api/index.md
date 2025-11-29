@@ -1,251 +1,456 @@
-# API Reference
+# SDK Overview
 
-API documentation for the Consoul package.
+Build AI-powered applications with the Consoul SDK - a simple, powerful Python library for integrating language models and tool calling into your projects.
 
-## Package Overview
+## Why Consoul SDK?
 
-Consoul provides a Python API for integrating AI-powered terminal assistance into your own applications.
+**🚀 Simple**: 3 lines to add AI chat to any Python app
+**🛠️ Powerful**: 13 built-in tools for file operations, web search, and command execution
+**🔧 Flexible**: Support for OpenAI, Anthropic, Google, and local Ollama models
+**🔒 Secure**: Risk-based tool approval and permission system
+**📦 Batteries Included**: Conversation history, token tracking, cost estimation
 
-## Installation
+## Quick Start
+
+### Installation
+
+Install Consoul in your Python project:
 
 ```bash
+# Basic installation
 pip install consoul
+
+# With all features (MLX, Ollama support)
+pip install consoul[all]
+
+# For development
+pip install consoul[dev]
 ```
 
-## Quick Example
+**Requirements:**
+- Python 3.10+
+- API keys for your chosen provider (OpenAI, Anthropic, Google, or Ollama)
 
-```python
-# Example code will be added once the implementation is complete
-# This is a placeholder for the API documentation structure
+**Setup API Keys:**
+
+```bash
+# Set via environment variables
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+export GOOGLE_API_KEY="..."
+
+# Or initialize configuration file
+consoul init
 ```
 
-## Core Modules
-
-The Consoul package will provide the following modules:
-
-### Main Interface
-
-- **consoul.Consoul** - Main class for interacting with AI providers
-- **consoul.Provider** - Enumeration of supported AI providers
-
-### Configuration
-
-- **consoul.config** - Configuration management and settings
-
-### AI Integration
-
-- **consoul.ai** - AI provider integrations via LangChain
-
-### Terminal UI
-
-- **consoul.tui** - Textual-based terminal UI components
-
-### Utilities
-
-- **consoul.utils** - Helper functions and utilities
-
-*Full API documentation will be auto-generated once the implementation is complete.*
-
-## Usage Examples
-
-### Basic Chat
+### Your First Chat (3 Lines)
 
 ```python
-from consoul import Consoul, Provider
-
-# Initialize
-consoul = Consoul(provider=Provider.ANTHROPIC)
-
-# Single message
-response = consoul.chat("What is Python?")
-print(response.content)
-```
-
-### With Context
-
-```python
-# Include file context
-response = consoul.chat(
-    message="Review this code",
-    files=["app.py", "utils.py"]
-)
-
-# Include text context
-response = consoul.chat(
-    message="Explain this error",
-    context="KeyError: 'username' on line 42"
-)
-```
-
-### Streaming Responses
-
-```python
-# Stream response chunks
-for chunk in consoul.chat_stream("Write a haiku about Python"):
-    print(chunk.content, end="", flush=True)
-print()  # Newline at end
-```
-
-### Conversation History
-
-```python
-# Multi-turn conversation
-consoul.chat("My name is Alice")
-consoul.chat("What programming language should I learn?")
-response = consoul.chat("What's my name?")
-# Response: "Your name is Alice."
-
-# Clear history
-consoul.clear_history()
-```
-
-### Custom Configuration
-
-```python
-from consoul import Consoul, Provider, Config
-
-# Custom config
-config = Config(
-    provider=Provider.OPENAI,
-    model="gpt-4",
-    temperature=0.7,
-    max_tokens=2048
-)
-
-consoul = Consoul(config=config)
-```
-
-### Error Handling
-
-```python
-from consoul import Consoul, ConsoulError, RateLimitError
-
-try:
-    response = consoul.chat("Hello")
-except RateLimitError:
-    print("Rate limit exceeded, try again later")
-except ConsoulError as e:
-    print(f"Error: {e}")
-```
-
-## Advanced Usage
-
-### Custom System Prompts
-
-```python
-response = consoul.chat(
-    message="Review this code",
-    system="You are a senior Python developer specializing in code review",
-    files=["app.py"]
-)
-```
-
-### Provider-Specific Options
-
-```python
-# Anthropic-specific
-response = consoul.chat(
-    "Hello",
-    provider_options={
-        "top_p": 0.9,
-        "top_k": 40
-    }
-)
-```
-
-### Async Support
-
-```python
-import asyncio
-from consoul import AsyncConsoul
-
-async def main():
-    consoul = AsyncConsoul(provider=Provider.ANTHROPIC)
-    response = await consoul.chat("Hello")
-    print(response.content)
-
-asyncio.run(main())
-```
-
-### Conversation Management
-
-```python
-# Save conversation
-conversation_id = consoul.save_conversation("My first chat")
-
-# Load conversation
-consoul.load_conversation(conversation_id)
-
-# List conversations
-conversations = consoul.list_conversations()
-for conv in conversations:
-    print(f"{conv.id}: {conv.title}")
-```
-
-## Type Hints
-
-Consoul is fully typed with mypy support:
-
-```python
-from consoul import Consoul, Response
-from typing import Iterator
-
-def chat_with_files(
-    consoul: Consoul,
-    message: str,
-    files: list[str]
-) -> Response:
-    return consoul.chat(message, files=files)
-
-def stream_response(
-    consoul: Consoul,
-    message: str
-) -> Iterator[Response]:
-    return consoul.chat_stream(message)
-```
-
-## CLI Integration
-
-Use Consoul programmatically from the CLI:
-
-```python
-import sys
 from consoul import Consoul
 
-def main():
-    consoul = Consoul()
-    message = " ".join(sys.argv[1:])
-    response = consoul.chat(message)
-    print(response.content)
-
-if __name__ == "__main__":
-    main()
+console = Consoul()
+print(console.chat("What is 2+2?"))  # → "4"
 ```
 
-## Testing
+Done! Consoul automatically:
+- Loads your configuration
+- Handles API authentication
+- Manages conversation history
 
-Mock Consoul for testing:
+### Add Tools (File Operations, Web Search, etc.)
 
 ```python
-from unittest.mock import Mock, patch
-from consoul import Consoul, Response
+from consoul import Consoul
 
-def test_chat():
-    with patch('consoul.Consoul.chat') as mock_chat:
-        mock_chat.return_value = Response(
-            content="Mocked response",
-            model="test-model"
-        )
-
-        consoul = Consoul()
-        response = consoul.chat("test")
-
-        assert response.content == "Mocked response"
-        mock_chat.assert_called_once_with("test")
+console = Consoul(tools=True)  # Enable all built-in tools
+console.chat("List Python files in the current directory")
 ```
 
-## Next Steps
+The AI can now use tools to interact with your system.
 
-- [User Guide](../user-guide/getting-started.md) – Learn to use Consoul
-- [Configuration](../user-guide/configuration.md) – Configure Consoul
-- [GitHub](https://github.com/goatbytes/consoul) – Source code and examples
+### Build an Agent
+
+Agents combine AI reasoning with tools to accomplish complex tasks:
+
+```python
+from consoul import Consoul
+
+code_analyzer = Consoul(
+    tools=["grep", "code_search", "read"],
+    system_prompt="You are a code analysis expert. Help find and explain code."
+)
+
+code_analyzer.chat("Find all database queries in this project")
+code_analyzer.chat("Are there any security vulnerabilities?")
+code_analyzer.chat("Where should I add rate limiting?")
+```
+
+The AI will use tools to search code, read files, and provide analysis.
+
+## Core Concepts
+
+### 1. Models
+
+Consoul supports multiple AI providers with automatic provider detection:
+
+```python
+from consoul import Consoul
+
+# OpenAI
+console = Consoul(model="gpt-4o")
+
+# Anthropic
+console = Consoul(model="claude-3-5-sonnet-20241022")
+
+# Google
+console = Consoul(model="gemini-2.0-flash-exp")
+
+# Local Ollama
+console = Consoul(model="llama3.2")
+```
+
+### 2. Tools
+
+Tools let the AI perform actions beyond text generation:
+
+| Tool Category | Examples | Risk Level |
+|---------------|----------|------------|
+| **Search** | `grep`, `code_search`, `find_references` | SAFE |
+| **File Edit** | `create_file`, `edit_lines`, `delete_file` | CAUTION-DANGEROUS |
+| **Web** | `web_search`, `read_url`, `wikipedia` | SAFE |
+| **Execute** | `bash` | CAUTION-DANGEROUS |
+
+Enable tools by category, risk level, or name:
+
+```python
+# Safe tools only (read-only)
+console = Consoul(tools="safe")
+
+# Specific category
+console = Consoul(tools="search")
+
+# Specific tools
+console = Consoul(tools=["bash", "grep", "code_search"])
+
+# Risk-based filtering
+console = Consoul(tools="caution")  # SAFE + CAUTION tools
+```
+
+### 3. Conversation History
+
+Consoul maintains conversation context automatically:
+
+```python
+console = Consoul()
+
+console.chat("My name is Alice")
+console.chat("What programming language should I learn?")
+response = console.chat("What's my name?")  # → "Your name is Alice."
+
+# Start fresh
+console.clear()
+```
+
+### 4. Custom Tools
+
+Extend functionality with your own tools:
+
+```python
+from consoul import Consoul
+from langchain_core.tools import tool
+
+@tool
+def calculate_fibonacci(n: int) -> int:
+    """Calculate the nth Fibonacci number."""
+    if n <= 1:
+        return n
+    a, b = 0, 1
+    for _ in range(2, n + 1):
+        a, b = b, a + b
+    return b
+
+console = Consoul(tools=[calculate_fibonacci, "bash"])
+console.chat("What's the 15th Fibonacci number?")  # Uses your tool
+```
+
+### 5. Introspection
+
+Monitor usage, costs, and configuration:
+
+```python
+console = Consoul(tools=True)
+console.chat("Hello!")
+
+# View settings
+console.settings
+# {'model': 'claude-3-5-sonnet-20241022', 'tools_enabled': True, ...}
+
+# Estimate costs (approximation based on total tokens)
+console.last_cost
+# {'input_tokens': 87, 'output_tokens': 12, 'estimated_cost': 0.000441}
+# Note: This is a rough estimate. Use provider dashboards for exact costs.
+
+# Last request details
+console.last_request
+# {'message': 'Hello!', 'model': 'claude-...', 'tokens_before': 0}
+```
+
+## Built-in Tools Catalog
+
+### Search Tools (SAFE)
+- **`grep`** - Search file contents with patterns
+- **`code_search`** - Find code patterns (classes, functions)
+- **`find_references`** - Find symbol references
+- **`read`** - Read file contents
+
+### File Edit Tools (CAUTION-DANGEROUS)
+- **`create_file`** - Create new files
+- **`edit_lines`** - Edit specific line ranges
+- **`edit_replace`** - Search and replace in files
+- **`append_file`** - Append content to files
+- **`delete_file`** - Delete files (DANGEROUS)
+
+### Web Tools (SAFE)
+- **`web_search`** - Search the web
+- **`read_url`** - Fetch and parse web pages
+- **`wikipedia`** - Search Wikipedia
+
+### Execute Tools (CAUTION)
+- **`bash`** - Execute shell commands
+
+See [Tools Deep Dive](tools.md) for detailed documentation.
+
+## Security & Safety
+
+### Risk Levels
+
+Every tool has a risk classification:
+
+- **SAFE**: Read-only operations (grep, web_search, read)
+- **CAUTION**: File operations and safe commands (create_file, bash ls)
+- **DANGEROUS**: Destructive operations (delete_file, bash rm)
+
+Filter tools by risk:
+
+```python
+# Only safe, read-only tools
+console = Consoul(tools="safe")
+
+# Safe + caution (file operations)
+console = Consoul(tools="caution")
+
+# All tools (be careful!)
+console = Consoul(tools="dangerous")
+```
+
+### Best Practices
+
+1. **Start with `tools="safe"`** for untrusted AI interactions
+2. **Use version control (git)** when enabling file-edit tools
+3. **Principle of least privilege**: Only grant necessary tools
+4. **Review tool approvals**: Check what the AI wants to do
+5. **Monitor usage**: Track `console.last_cost` for token estimates (use provider dashboards for exact costs)
+
+## Common Use Cases
+
+### Code Analysis
+
+```python
+analyzer = Consoul(
+    tools=["grep", "code_search", "read"],
+    system_prompt="You are a code reviewer. Find issues and suggest improvements."
+)
+
+analyzer.chat("Find all TODO comments")
+analyzer.chat("Are there security vulnerabilities?")
+analyzer.chat("Check for code duplication")
+```
+
+### File Management
+
+```python
+file_manager = Consoul(
+    tools=["bash", "create_file", "edit_lines"],
+    system_prompt="You are a file organization assistant."
+)
+
+file_manager.chat("Create a Python project structure")
+file_manager.chat("Add type hints to all functions")
+file_manager.chat("Organize imports according to PEP 8")
+```
+
+### Web Research
+
+```python
+researcher = Consoul(
+    tools=["web_search", "read_url", "wikipedia"],
+    system_prompt="You are a research assistant. Cite your sources."
+)
+
+researcher.chat("What's new in Python 3.13?")
+researcher.chat("Compare FastAPI vs Flask")
+researcher.chat("Explain quantum computing")
+```
+
+### DevOps Automation
+
+```python
+devops = Consoul(
+    tools=["bash", "create_file", "edit_lines"],
+    system_prompt="You are a DevOps expert. Follow best practices."
+)
+
+devops.chat("Create a Dockerfile for this app")
+devops.chat("Set up GitHub Actions CI/CD")
+devops.chat("Configure Docker Compose")
+```
+
+## API Reference
+
+### Consoul Class
+
+```python
+Consoul(
+    model: str | None = None,
+    profile: str = "default",
+    tools: bool | str | list = True,
+    temperature: float | None = None,
+    system_prompt: str | None = None,
+    persist: bool = True,
+    api_key: str | None = None,
+    discover_tools: bool = False
+)
+```
+
+**Methods:**
+
+- **`chat(message: str) -> str`**: Send a message, get a response
+- **`ask(message: str, show_tokens: bool) -> ConsoulResponse`**: Get structured response with metadata
+- **`clear() -> None`**: Clear conversation history
+
+**Properties:**
+
+- **`settings`**: Current configuration
+- **`last_request`**: Last API request details
+- **`last_cost`**: Token usage and cost estimate
+
+### ConsoulResponse Class
+
+```python
+class ConsoulResponse:
+    content: str    # Response text
+    tokens: int     # Token count (if show_tokens=True)
+    model: str      # Model name
+```
+
+See [API Reference](reference.md) for complete documentation.
+
+## Configuration
+
+Consoul uses profiles stored in `~/.config/consoul/config.yaml`:
+
+```yaml
+profiles:
+  default:
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.7
+    system_prompt: "You are a helpful AI assistant."
+
+  code-expert:
+    model: gpt-4o
+    temperature: 0.3
+    system_prompt: "You are a senior software engineer."
+```
+
+Use profiles:
+
+```python
+# Use default profile
+console = Consoul()
+
+# Use specific profile
+console = Consoul(profile="code-expert")
+
+# Override profile settings
+console = Consoul(profile="default", temperature=0.9)
+```
+
+Initialize configuration:
+
+```bash
+consoul init  # Create config file
+```
+
+## Learning Path
+
+1. **[Tutorial](tutorial.md)** - Learn SDK fundamentals step-by-step
+2. **[Tools](tools.md)** - Master all 13 built-in tools
+3. **[Building Agents](agents.md)** - Create specialized AI agents
+4. **[API Reference](reference.md)** - Complete API documentation
+
+## Examples
+
+### Minimal Chat (3 Lines)
+
+```python
+from consoul import Consoul
+
+console = Consoul()
+print(console.chat("Hello!"))
+```
+
+### Multi-Turn Conversation
+
+```python
+from consoul import Consoul
+
+console = Consoul()
+console.chat("My name is Alice")
+console.chat("I'm learning Python")
+response = console.chat("What's my name and what am I learning?")
+# → "Your name is Alice and you're learning Python."
+```
+
+### Custom Tool Example
+
+```python
+from consoul import Consoul
+from langchain_core.tools import tool
+
+@tool
+def get_weather(city: str) -> str:
+    """Get weather for a city."""
+    return f"The weather in {city} is sunny, 72°F"
+
+console = Consoul(tools=[get_weather])
+print(console.chat("What's the weather in San Francisco?"))
+# → "The weather in San Francisco is sunny, 72°F"
+```
+
+### Cost Tracking
+
+```python
+from consoul import Consoul
+
+console = Consoul(model="gpt-4o")
+console.chat("Explain quantum computing")
+
+cost = console.last_cost
+print(f"Tokens: {cost['total_tokens']}")
+print(f"Estimated cost: ${cost['estimated_cost']:.4f}")
+# Note: This is a rough approximation. Check provider dashboards for exact costs.
+```
+
+## Support
+
+- **[GitHub Issues](https://github.com/goatbytes/consoul/issues)** - Report bugs
+- **[Discussions](https://github.com/goatbytes/consoul/discussions)** - Ask questions
+- **[Documentation](https://goatbytes.github.io/consoul/)** - Full docs
+
+## License
+
+MIT License - see [LICENSE](https://github.com/goatbytes/consoul/blob/main/LICENSE)
+
+---
+
+**Ready to build?** Start with the [Tutorial](tutorial.md) →

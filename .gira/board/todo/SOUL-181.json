@@ -1,0 +1,23 @@
+{
+  "created_at": "2025-11-26T14:57:08.327379",
+  "updated_at": "2025-11-29T16:40:37.007627Z",
+  "id": "SOUL-181",
+  "uuid": "43bb0fb4-5989-4d8b-9aec-9a8f1c097507",
+  "title": "Add Material Design icons and visual elements throughout docs",
+  "description": "Add Material Design icons and visual elements to enhance documentation scanability. Use pymdownx.emoji (already configured) to add icons for features, tools, and sections. Reference .local/mkdocs-material for icon patterns. Apply to: homepage (feature cards), navigation sections, feature lists, tool categories, status badges. Story Points: 2. Dependencies: SOUL-174 (Homepage needs icons).",
+  "status": "todo",
+  "type": "task",
+  "priority": "low",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-009",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

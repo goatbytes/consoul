@@ -1,0 +1,15 @@
+# Test output directories
+llm_responses/
+test_output/
+results/
+*_responses/
+prompt-results/
+output/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# System files
+.DS_Store

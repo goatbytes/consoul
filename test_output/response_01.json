@@ -1,0 +1,8 @@
+{
+  "prompt": "Write a Python function to check if a string is a palindrome",
+  "response": "```python\ndef is_palindrome(s: str) -> bool:\n    \"\"\"\n    Check if a given string is a palindrome.\n    \n    Args:\n        s (str): The string to check.\n        \n    Returns:\n        bool: True if the string is a palindrome, False otherwise.\n    \"\"\"\n    # Remove non-alphanumeric characters and convert to lowercase\n    cleaned = ''.join(c.lower() for c in s if c.isalnum())\n    \n    # Check if the cleaned string is equal to its reverse\n    return cleaned == cleaned[::-1]\n\n# Example usage:\nprint(is_palindrome(\"A man, a plan, a canal: Panama\"))  # Output: True\nprint(is_palindrome(\"race a car\"))                      # Output: False\n```",
+  "error": null,
+  "timestamp": "2025-11-28T22:27:06.203172",
+  "model": "granite4:3b",
+  "success": true
+}

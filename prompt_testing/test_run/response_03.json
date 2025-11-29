@@ -1,0 +1,8 @@
+{
+  "prompt": "Create a regex to validate email addresses",
+  "response": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$\n\nThis regular expression validates standard email formats, allowing letters, numbers, and special characters before the @ symbol, followed by domain names and top-level domains. It ensures a valid structure for most common email addresses.",
+  "error": null,
+  "timestamp": "2025-11-28T23:13:07.918163",
+  "model": "granite4:3b",
+  "success": true
+}

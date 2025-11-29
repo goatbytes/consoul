@@ -12,8 +12,12 @@ edit_uri: edit/main/docs/
 copyright: Copyright &copy; 2025 GoatBytes.IO
 
 # Configuration
+watch:
+  - docs/overrides
+
 theme:
   name: material
+  custom_dir: docs/overrides
   favicon: assets/img/favicon.png
   logo: assets/img/consoul-top-bar.svg
 
@@ -22,25 +26,22 @@ theme:
     # Palette toggle for light mode (default)
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: custom
-      accent: cyan
+      primary: white
+      accent: blue
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     # Palette toggle for dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: custom
-      accent: cyan
+      primary: black
+      accent: blue
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
 
-  # Typography
-  font:
-    heading: 'Inter'
-    text: 'Inter'
-    code: 'JetBrains Mono'
+  # Typography - use system fonts for better performance
+  font: false
 
   # Features
   features:
@@ -108,6 +109,12 @@ plugins:
 # Customization
 extra_css:
   - assets/css/consoul.css
+  - assets/css/termynal.css
+  - assets/css/copilot-style.css
+
+extra_javascript:
+  - assets/js/termynal.js
+  - assets/js/custom.js
 
 extra:
   homepage: https://goatbytes.io
@@ -169,27 +176,31 @@ markdown_extensions:
 
 # Page tree
 nav:
-  - Home:
-    - Overview: index.md
+  - Home: index.md
+  - Introduction:
+    - Getting Started: user-guide/getting-started.md
     - Installation: installation.md
     - Quick Start: quickstart.md
-  - User Guide:
-    - Getting Started: user-guide/getting-started.md
     - Configuration: user-guide/configuration.md
-    - Usage: user-guide/usage.md
-    - CLI Chat Mode: user-guide/cli-chat.md
-    - Terminal UI (TUI):
-      - Overview: user-guide/tui.md
-      - Interface Guide: user-guide/tui/interface.md
-      - Features: user-guide/tui/features.md
-      - Keyboard Shortcuts: user-guide/tui/keyboard-shortcuts.md
-      - Modals & Dialogs: user-guide/tui/modals.md
-      - Themes: user-guide/tui/themes.md
-      - Configuration: user-guide/tui/configuration.md
-  - CLI Reference:
-    - Commands: cli-reference/index.md
+  - TUI:
+    - Overview: user-guide/tui.md
+    - Interface Guide: user-guide/tui/interface.md
+    - Features: user-guide/tui/features.md
+    - Keyboard Shortcuts: user-guide/tui/keyboard-shortcuts.md
+    - Modals & Dialogs: user-guide/tui/modals.md
+    - Themes: user-guide/tui/themes.md
+    - Configuration: user-guide/tui/configuration.md
+  - SDK:
+    - Overview: api/index.md
+    - Tutorial: api/tutorial.md
+    - Tools: api/tools.md
+    - Building Agents: api/agents.md
+    - API Reference: api/reference.md
+  - CLI:
+    - Overview: cli-reference/index.md
+    - Commands: user-guide/usage.md
+    - Chat Mode: user-guide/cli-chat.md
   - Development:
     - Setup: development.md
     - Contributing: contributing.md
-  - API Reference:
-    - Overview: api/index.md
+  - FAQs: faqs.md

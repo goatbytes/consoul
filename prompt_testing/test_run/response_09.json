@@ -1,0 +1,8 @@
+{
+  "prompt": "What are the SOLID principles in software development?",
+  "response": "The SOLID principles are five design guidelines for creating maintainable, flexible, and scalable object-oriented software: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segmentation, and Dependency Inversion.\n\nThese principles promote writing clean code with minimal dependencies between components, making it easier to modify or extend functionality without breaking existing features.",
+  "error": null,
+  "timestamp": "2025-11-28T23:13:14.895944",
+  "model": "granite4:3b",
+  "success": true
+}

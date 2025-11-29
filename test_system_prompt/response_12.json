@@ -1,0 +1,8 @@
+{
+  "prompt": "Write a Docker command to run a container with port mapping",
+  "response": "To run a Docker container with port mapping, use the following command: `docker run -p <host_port>:<container_port> <image_name>` Replace `<host_port>` and `<container_port>` with your desired ports, and `<image_name>` with the name of the image you want to run.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:31.549490",
+  "model": "granite4:3b",
+  "success": true
+}

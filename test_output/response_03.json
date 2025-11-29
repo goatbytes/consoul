@@ -1,0 +1,8 @@
+{
+  "prompt": "Create a CSS flexbox layout with centered content",
+  "response": "Here's how you can create a CSS flexbox layout with centered content:\n\n```css\n.container {\n  display: flex;\n  justify-content: center; /* Center horizontally */\n  align-items: center; /* Center vertically */\n  height: 100vh; /* Full viewport height */\n}\n```\n\nAnd here's an example of how to use this in HTML:\n\n```html\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>CSS Flexbox Centered Content</title>\n<style>\n  .container {\n    display: flex;\n    justify-content: center; /* Center horizontally */\n    align-items: center; /* Center vertically */\n    height: 100vh;\n  }\n</style>\n</head>\n<body>\n\n<div class=\"container\">\n  <h1>Hello, World!</h1>\n</div>\n\n</body>\n</html>\n```\n\nIn this example:\n- The `.container` class is applied to a `div`.\n- It uses flexbox properties to center its content both horizontally and vertically.\n- The `height: 100vh;` ensures the container takes up the full height of the viewport, making it easier to see the centered effect.",
+  "error": null,
+  "timestamp": "2025-11-28T22:27:18.954696",
+  "model": "granite4:3b",
+  "success": true
+}

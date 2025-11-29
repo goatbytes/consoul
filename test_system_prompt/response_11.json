@@ -1,0 +1,8 @@
+{
+  "prompt": "Explain Big O notation with examples",
+  "response": "Big O notation describes the limiting behavior of a function when the argument tends towards a particular value or infinity, often used to characterize algorithms' efficiency. For example, an algorithm with O(n) time complexity is linear because its execution time increases directly proportional to the input size n.\n\nIn contrast, an algorithm with O(n^2) time complexity is quadratic since its execution time grows quadratically as the input size increases.",
+  "error": null,
+  "timestamp": "2025-11-28T22:33:30.412286",
+  "model": "granite4:3b",
+  "success": true
+}
