@@ -18,47 +18,54 @@ from __future__ import annotations
 from typing import Any
 
 # Anthropic Claude pricing (as of November 2024)
-# Source: https://claude.com/pricing
+# Source: https://docs.anthropic.com/en/docs/about-claude/pricing
+# Note: Anthropic now uses naming like "Claude Sonnet 4.5" but API still uses "claude-3-5-sonnet-*"
 ANTHROPIC_PRICING = {
-    # Claude 3.5 Sonnet (latest)
+    # Claude Sonnet 4.5 (marketed as Claude 3.5 Sonnet in API)
     "claude-3-5-sonnet-20241022": {
         "input": 3.00,  # $3 per MTok
         "output": 15.00,  # $15 per MTok
-        "cache_write": 3.75,  # $3.75 per MTok
-        "cache_read": 0.30,  # $0.30 per MTok
+        "cache_write_5m": 3.75,  # $3.75 per MTok (5min TTL)
+        "cache_write_1h": 6.00,  # $6.00 per MTok (1hr TTL)
+        "cache_read": 0.30,  # $0.30 per MTok (cache hits)
     },
     "claude-3-5-sonnet-20240620": {
         "input": 3.00,
         "output": 15.00,
-        "cache_write": 3.75,
+        "cache_write_5m": 3.75,
+        "cache_write_1h": 6.00,
         "cache_read": 0.30,
     },
-    # Claude 3.5 Haiku
+    # Claude Haiku 4.5 (marketed as Claude 3.5 Haiku in API)
     "claude-3-5-haiku-20241022": {
         "input": 1.00,  # $1 per MTok
         "output": 5.00,  # $5 per MTok
-        "cache_write": 1.25,  # $1.25 per MTok
+        "cache_write_5m": 1.25,  # $1.25 per MTok (5min TTL)
+        "cache_write_1h": 2.00,  # $2.00 per MTok (1hr TTL)
         "cache_read": 0.10,  # $0.10 per MTok
     },
-    # Claude 3 Opus
+    # Claude Opus 4.1/4 (marketed as Claude 3 Opus in API)
     "claude-3-opus-20240229": {
         "input": 15.00,  # $15 per MTok
         "output": 75.00,  # $75 per MTok
-        "cache_write": 18.75,  # $18.75 per MTok
+        "cache_write_5m": 18.75,  # $18.75 per MTok (5min TTL)
+        "cache_write_1h": 30.00,  # $30.00 per MTok (1hr TTL)
         "cache_read": 1.50,  # $1.50 per MTok
     },
-    # Claude 3 Sonnet
+    # Claude Sonnet 4 (API: claude-3-sonnet)
     "claude-3-sonnet-20240229": {
         "input": 3.00,
         "output": 15.00,
-        "cache_write": 3.75,
+        "cache_write_5m": 3.75,
+        "cache_write_1h": 6.00,
         "cache_read": 0.30,
     },
-    # Claude 3 Haiku
+    # Claude Haiku 3.5/3
     "claude-3-haiku-20240307": {
         "input": 0.25,  # $0.25 per MTok
         "output": 1.25,  # $1.25 per MTok
-        "cache_write": 0.30,  # $0.30 per MTok
+        "cache_write_5m": 0.30,  # $0.30 per MTok (5min TTL)
+        "cache_write_1h": 0.50,  # $0.50 per MTok (1hr TTL)
         "cache_read": 0.03,  # $0.03 per MTok
     },
 }

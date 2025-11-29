@@ -14,7 +14,7 @@ This guide shows how to keep `src/consoul/pricing.py` up-to-date with official p
 
 1. Visit the official pricing page:
    - OpenAI: https://openai.com/api/pricing/
-   - Anthropic: https://claude.com/pricing
+   - Anthropic: https://docs.anthropic.com/en/docs/about-claude/pricing
    - Google: https://ai.google.dev/gemini-api/docs/pricing
 
 2. Use browser's "Copy page" feature or copy the pricing table
@@ -162,6 +162,6 @@ To add a new provider:
 ## Resources
 
 - OpenAI Pricing: https://openai.com/api/pricing/
-- Anthropic Pricing: https://claude.com/pricing
+- Anthropic Pricing: https://docs.anthropic.com/en/docs/about-claude/pricing
 - Google Gemini Pricing: https://ai.google.dev/gemini-api/docs/pricing
 - LangChain Pricing Data: https://github.com/langchain-ai/langchain/blob/master/libs/community/langchain_community/callbacks/openai_info.py
