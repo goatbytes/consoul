@@ -165,439 +165,674 @@ class ConsoulApp(App[None]):
 
         self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="consoul")
 
-        # Load Consoul configuration for AI providers
-        if consoul_config is None:
-            from consoul.config import load_config
+        # Store configs (defer loading to async init)
+        self._consoul_config_provided = consoul_config
+        self._needs_config_load = consoul_config is None
+        self.consoul_config: ConsoulConfig | None = consoul_config
 
-            try:
-                consoul_config = load_config()
-            except Exception as e:
-                self.log.error(f"Failed to load configuration: {e}")
-                consoul_config = None
-
-        self.consoul_config = consoul_config
-
-        # Initialize AI components
+        # Initialize AI components to None (populated by async init)
         self.chat_model: BaseChatModel | None = None
         self.conversation: ConversationHistory | None = None
         self.active_profile = None
-        self.tool_registry = None
-
-        if consoul_config is not None:
-            try:
-                self.active_profile = consoul_config.get_active_profile()
-                self.current_profile = self.active_profile.name
-                self.current_model = consoul_config.current_model
-
-                # Initialize chat model using current provider/model from config
-                from consoul.ai import get_chat_model
-
-                model_config = consoul_config.get_current_model_config()
-                self.chat_model = get_chat_model(model_config, config=consoul_config)
-
-                # Note: Tools will be bound after registry is initialized (below)
-
-                # Initialize conversation history with profile settings
-                from consoul.ai import ConversationHistory
-
-                conv_kwargs = self._get_conversation_config()
-                self.conversation = ConversationHistory(
-                    model_name=consoul_config.current_model,
-                    model=self.chat_model,
-                    **conv_kwargs,
-                )
-
-                # NOTE: System prompt will be added after tool registry is initialized
-                # (see tool binding section below where we add the prompt with correct tools)
-
-                # Set conversation ID for tracking
-                self.conversation_id = self.conversation.session_id
-
-                self.log.info(
-                    f"Initialized AI model: {consoul_config.current_model}, "
-                    f"session: {self.conversation_id}"
-                )
-
-                # Handle auto_resume if enabled in profile
-                if (
-                    self.active_profile
-                    and hasattr(self.active_profile, "conversation")
-                    and self.active_profile.conversation.auto_resume
-                    and self.active_profile.conversation.persist
-                ):
-                    try:
-                        from consoul.ai.database import ConversationDatabase
-
-                        db = ConversationDatabase(
-                            self.active_profile.conversation.db_path
-                        )
-                        recent_conversations = db.list_conversations(limit=1)
-
-                        if recent_conversations:
-                            latest_session_id = recent_conversations[0]["session_id"]
-                            # Only resume if it's not the session we just created
-                            if latest_session_id != self.conversation_id:
-                                self.log.info(
-                                    f"Auto-resuming last conversation: {latest_session_id}"
-                                )
-                                # Reload conversation with the latest session
-                                conv_kwargs = self._get_conversation_config()
-                                conv_kwargs["session_id"] = latest_session_id
-                                self.conversation = ConversationHistory(
-                                    model_name=consoul_config.current_model,
-                                    model=self.chat_model,
-                                    **conv_kwargs,
-                                )
-                                self.conversation_id = latest_session_id
-                    except Exception as e:
-                        self.log.warning(f"Failed to auto-resume conversation: {e}")
-
-                # Handle retention_days cleanup if configured
-                if (
-                    self.active_profile
-                    and hasattr(self.active_profile, "conversation")
-                    and self.active_profile.conversation.retention_days > 0
-                    and self.active_profile.conversation.persist
-                ):
-                    try:
-                        from consoul.ai.database import ConversationDatabase
-
-                        db = ConversationDatabase(
-                            self.active_profile.conversation.db_path
-                        )
-                        deleted_count = db.delete_conversations_older_than(
-                            self.active_profile.conversation.retention_days
-                        )
-                        if deleted_count > 0:
-                            self.log.info(
-                                f"Retention cleanup: deleted {deleted_count} conversations "
-                                f"older than {self.active_profile.conversation.retention_days} days"
-                            )
-                    except Exception as e:
-                        self.log.warning(f"Failed to cleanup old conversations: {e}")
-
-                # Initialize tool registry (approval handled via _request_tool_approval)
-                if consoul_config.tools and consoul_config.tools.enabled:
-                    from consoul.ai.tools import ToolRegistry
-                    from consoul.ai.tools.catalog import (
-                        TOOL_CATALOG,
-                        get_all_tool_names,
-                        get_tool_by_name,
-                        get_tools_by_risk_level,
-                    )
-                    from consoul.ai.tools.implementations import (
-                        set_analyze_images_config,
-                        set_bash_config,
-                        set_code_search_config,
-                        set_file_edit_config,
-                        set_find_references_config,
-                        set_grep_search_config,
-                        set_read_config,
-                        set_read_url_config,
-                        set_web_search_config,
-                        set_wikipedia_config,
-                    )
-                    from consoul.ai.tools.providers import CliApprovalProvider
-
-                    # Configure bash tool with profile settings
-                    if consoul_config.tools.bash:
-                        set_bash_config(consoul_config.tools.bash)
-
-                    # Configure read tool with profile settings
-                    if consoul_config.tools.read:
-                        set_read_config(consoul_config.tools.read)
-
-                    # Configure grep_search tool with profile settings
-                    if consoul_config.tools.grep_search:
-                        set_grep_search_config(consoul_config.tools.grep_search)
-
-                    # Configure code_search tool with profile settings
-                    if consoul_config.tools.code_search:
-                        set_code_search_config(consoul_config.tools.code_search)
-
-                    # Configure find_references tool with profile settings
-                    if consoul_config.tools.find_references:
-                        set_find_references_config(consoul_config.tools.find_references)
-
-                    # Configure web_search tool with profile settings
-                    if consoul_config.tools.web_search:
-                        set_web_search_config(consoul_config.tools.web_search)
-
-                    # Configure wikipedia_search tool with profile settings
-                    if consoul_config.tools.wikipedia:
-                        set_wikipedia_config(consoul_config.tools.wikipedia)
-
-                    # Configure read_url tool with profile settings
-                    if consoul_config.tools.read_url:
-                        set_read_url_config(consoul_config.tools.read_url)
-
-                    # Configure file_edit tool with profile settings
-                    if consoul_config.tools.file_edit:
-                        set_file_edit_config(consoul_config.tools.file_edit)
-
-                    # Configure image_analysis tool with profile settings
-                    if consoul_config.tools.image_analysis:
-                        set_analyze_images_config(consoul_config.tools.image_analysis)
-
-                    # Determine which tools to register based on config
-                    # Note: We always register ALL tools in the registry so Tool Manager can show them all
-                    # The enabled/disabled state is set based on config (allowed_tools, risk_filter, or default)
-
-                    # Get all available tools
-                    all_tools = list(TOOL_CATALOG.values())
-
-                    # Determine which tools should be ENABLED based on config
-                    # Precedence: allowed_tools > risk_filter > all tools (default)
-                    enabled_tool_names = (
-                        set()
-                    )  # Set of tool.name values that should be enabled
-
-                    if consoul_config.tools.allowed_tools is not None:
-                        # Explicit whitelist takes precedence (even if empty)
-                        normalized_tool_names = []  # Actual tool.name values for registry
-                        invalid_tools = []
-
-                        for tool_name in consoul_config.tools.allowed_tools:
-                            result = get_tool_by_name(tool_name)
-                            if result:
-                                tool, risk_level, _categories = result
-                                # Store the actual tool.name for execution whitelist
-                                normalized_tool_names.append(tool.name)
-                                enabled_tool_names.add(tool.name)
-                            else:
-                                invalid_tools.append(tool_name)
-
-                        # Error if any invalid tool names
-                        if invalid_tools:
-                            available = get_all_tool_names()
-                            raise ValueError(
-                                f"Invalid tool names in allowed_tools: {invalid_tools}. "
-                                f"Available tools: {available}"
-                            )
-
-                        # Normalize allowed_tools to actual tool.name values for execution checks
-                        # This ensures friendly names like "bash" work with ToolRegistry.is_allowed()
-                        # which checks against tool.name like "bash_execute"
-                        consoul_config.tools.allowed_tools = normalized_tool_names
-
-                        self.log.info(
-                            f"Enabled {len(enabled_tool_names)} tools from allowed_tools "
-                            f"{'(chat-only mode)' if len(enabled_tool_names) == 0 else 'whitelist'}"
-                        )
-
-                    elif consoul_config.tools.risk_filter:
-                        # Risk-based filtering: enable tools up to specified risk level
-                        tools_by_risk = get_tools_by_risk_level(
-                            consoul_config.tools.risk_filter
-                        )
-
-                        # Enable tools that match risk filter
-                        for tool, _risk_level, _categories in tools_by_risk:
-                            enabled_tool_names.add(tool.name)
-
-                        # DO NOT populate allowed_tools - leave empty for risk_filter.
-                        #
-                        # Why: Populating allowed_tools would bypass risk-based approval workflow.
-                        # The approval flow checks _is_whitelisted() BEFORE checking risk levels,
-                        # so adding all filtered tools to allowed_tools would auto-approve them
-                        # regardless of permission_policy settings (src/consoul/ai/tools/permissions/policy.py:307).
-                        #
-                        # Security model:
-                        # - risk_filter controls which tools are ENABLED
-                        # - permission_policy controls APPROVAL (which tools need confirmation)
-                        # - Both work together: risk_filter limits capabilities, policy controls UX
-                        #
-                        # Example: risk_filter="caution" + permission_policy="balanced"
-                        # - Enables: SAFE + CAUTION tools (12 total)
-                        # - Auto-approves: SAFE tools only
-                        # - Prompts for: CAUTION tools (file edits, bash, etc.)
-                        #
-                        # Note: risk_filter is incompatible with approval_mode="whitelist".
-                        # Use permission_policy (BALANCED/TRUSTING/etc) instead.
-
-                        self.log.info(
-                            f"Enabled {len(enabled_tool_names)} tools with "
-                            f"risk_filter='{consoul_config.tools.risk_filter}'"
-                        )
-
-                    else:
-                        # Default: enable all tools (backward compatible)
-                        for tool, _risk_level, _categories in all_tools:
-                            enabled_tool_names.add(tool.name)
-
-                        self.log.info(
-                            f"Enabled all {len(enabled_tool_names)} available tools (no filters specified)"
-                        )
-
-                    # Create registry with CLI provider (we override approval in _request_tool_approval)
-                    # The provider is required by registry but we don't use it - we show our own modal
-                    # NOTE: If allowed_tools was specified, it has been normalized to actual tool names
-                    self.tool_registry = ToolRegistry(
-                        config=consoul_config.tools,
-                        approval_provider=CliApprovalProvider(),  # Required but unused
-                    )
-
-                    # Register ALL tools with appropriate enabled state
-                    # This ensures Tool Manager shows all available tools (not just enabled ones)
-                    for tool, risk_level, _categories in all_tools:
-                        # Tool is enabled if its name is in the enabled_tool_names set
-                        is_enabled = tool.name in enabled_tool_names
-                        self.tool_registry.register(
-                            tool, risk_level=risk_level, enabled=is_enabled
-                        )
-
-                    # NOTE: analyze_images tool registration disabled for SOUL-116
-                    # The tool is meant for LLM-initiated image analysis, but for SOUL-116
-                    # we handle image references directly by creating multimodal messages.
-                    # Re-enable this when implementing SOUL-115 use case.
-                    # self._sync_vision_tool_registration()
-
-                    # Get tool metadata list
-                    tool_metadata_list = self.tool_registry.list_tools(
-                        enabled_only=True
-                    )
-
-                    self.log.info(
-                        f"Initialized tool registry with {len(tool_metadata_list)} enabled tools"
-                    )
-
-                    # Set tools_total for top bar display (total registered tools)
-                    if hasattr(self, "top_bar"):
-                        self.top_bar.tools_total = len(all_tools)
-
-                    # Bind tools to model (extract BaseTool from metadata)
-                    if tool_metadata_list:
-                        # Check if model supports tool calling
-                        from consoul.ai.providers import supports_tool_calling
-
-                        if supports_tool_calling(self.chat_model):
-                            tools = [meta.tool for meta in tool_metadata_list]
-                            self.chat_model = self.chat_model.bind_tools(tools)  # type: ignore[assignment]
-                            self.log.info(f"Bound {len(tools)} tools to chat model")
-
-                            # Update conversation's model reference
-                            if self.conversation:
-                                self.conversation._model = self.chat_model
-                        else:
-                            self.log.warning(
-                                f"Model {self.current_model} does not support tool calling. "
-                                "Tools are disabled for this model."
-                            )
-
-                # NOTE: System prompt will be added in on_mount() after logging is set up
-                # This ensures logs are captured and the system prompt is properly initialized
-
-            except Exception as e:
-                # Log error but allow app to start (graceful degradation)
-                import traceback
-
-                self.log.error(
-                    f"Failed to initialize AI model: {e}\n{traceback.format_exc()}"
-                )
-                self.chat_model = None
-                self.conversation = None
-
-        # Initialize title generator if enabled
-        self.title_generator = None
-        if self.config.auto_generate_titles:
-            from consoul.ai.title_generator import (
-                TitleGenerator,
-                auto_detect_title_config,
-            )
-
-            try:
-                # Determine provider and model
-                provider = self.config.auto_title_provider
-                model = self.config.auto_title_model
-
-                # Auto-detect if not specified
-                if provider is None or model is None:
-                    detected = auto_detect_title_config(consoul_config)
-                    if detected:
-                        provider = provider or detected["provider"]
-                        model = model or detected["model"]
-                    else:
-                        # No suitable model available, disable feature
-                        self.log.info(
-                            "Auto-title generation disabled: no suitable model found"
-                        )
-                        provider = None
-
-                if provider and model:
-                    self.title_generator = TitleGenerator(
-                        provider=provider,
-                        model_name=model,
-                        prompt_template=self.config.auto_title_prompt,
-                        max_tokens=self.config.auto_title_max_tokens,
-                        temperature=self.config.auto_title_temperature,
-                        api_key=self.config.auto_title_api_key,
-                        config=consoul_config,
-                    )
-                    self.log.info(f"Title generator initialized: {provider}/{model}")
-
-            except Exception as e:
-                self.log.warning(f"Failed to initialize title generator: {e}")
-                self.title_generator = None
+        self.current_profile: str | None = None
+        self.current_model: str | None = None
+        self.tool_registry: ToolRegistry | None = None
+        self.title_generator: TitleGenerator | None = None
+        self.conversation_id: str | None = None
 
         # Streaming state
         self._current_stream: StreamingResponse | None = None
         self._stream_cancelled = False
 
-        # Tool execution state (for tracking pending tool approvals)
+        # Tool execution state
         self._pending_tool_calls: list[ParsedToolCall] = []
-        self._tool_results: dict[str, ToolMessage] = {}  # Map tool_call_id -> result
-        self._tool_call_data: dict[
-            str, dict[str, Any]
-        ] = {}  # Map tool_call_id -> display data
-        self._tool_call_iterations = (
-            0  # Track tool calling rounds to prevent infinite loops
-        )
-        self._max_tool_iterations = (
-            5  # Maximum rounds of tool calls before forcing stop
-        )
-        # Track current assistant message ID for linking tool calls in database
+        self._tool_results: dict[str, ToolMessage] = {}
+        self._tool_call_data: dict[str, dict[str, Any]] = {}
+        self._tool_call_iterations = 0
+        self._max_tool_iterations = 5
         self._current_assistant_message_id: int | None = None
 
-    def on_mount(self) -> None:
-        """Initialize app after mounting (message pump is running).
+        # Initialization state flag
+        self._initialization_complete = False
 
-        Sets up GC management and validates theme.
+    async def _run_in_thread(self, func, *args, **kwargs):
+        """Run a blocking function in a thread pool.
+
+        This is a helper to run blocking I/O operations without freezing the UI.
         """
+        import asyncio
+        return await asyncio.to_thread(func, *args, **kwargs)
+
+    def _load_config(self) -> ConsoulConfig:
+        """Load Consoul configuration from file.
+
+        Returns:
+            Loaded ConsoulConfig instance
+
+        Raises:
+            Exception: If config loading fails
+        """
+        from consoul.config import load_config
+
+        return load_config()
+
+    def _initialize_ai_model(self, config: ConsoulConfig) -> BaseChatModel:
+        """Initialize AI chat model from config.
+
+        Args:
+            config: ConsoulConfig with provider/model settings
+
+        Returns:
+            Initialized BaseChatModel instance
+
+        Raises:
+            Exception: If model initialization fails
+        """
+        from consoul.ai import get_chat_model
+
+        model_config = config.get_current_model_config()
+        return get_chat_model(model_config, config=config)
+
+    def _initialize_conversation(
+        self, config: ConsoulConfig, model: BaseChatModel
+    ) -> ConversationHistory:
+        """Create conversation history with model.
+
+        Args:
+            config: ConsoulConfig for conversation settings
+            model: Initialized chat model
+
+        Returns:
+            ConversationHistory instance
+        """
+        import time
+        import logging
         logger = logging.getLogger(__name__)
-        logger.info("[MOUNT] on_mount() called, adding system prompt")
 
-        # If conversation doesn't exist (initialization failed), create it now
-        if not self.conversation and self.consoul_config:
-            logger.warning("[MOUNT] Conversation not initialized, creating now")
-            try:
-                from consoul.ai import ConversationHistory, get_chat_model
+        from consoul.ai import ConversationHistory
 
-                # Initialize chat model if needed
-                if not self.chat_model:
-                    model_config = self.consoul_config.get_current_model_config()
-                    self.chat_model = get_chat_model(
-                        model_config, config=self.consoul_config
+        step_start = time.time()
+        conv_kwargs = self._get_conversation_config()
+        logger.info(f"[PERF-CONV] Get conversation config: {(time.time() - step_start)*1000:.1f}ms")
+
+        step_start = time.time()
+        conversation = ConversationHistory(
+            model_name=config.current_model,
+            model=model,
+            **conv_kwargs,
+        )
+        logger.info(f"[PERF-CONV] ConversationHistory.__init__: {(time.time() - step_start)*1000:.1f}ms")
+
+        return conversation
+
+    def _initialize_tool_registry(self, config: ConsoulConfig) -> ToolRegistry | None:
+        """Initialize tool registry with configured tools.
+
+        Args:
+            config: ConsoulConfig with tool settings
+
+        Returns:
+            Initialized ToolRegistry or None if tools disabled
+        """
+        # Check if tools are enabled
+        if not config.tools or not config.tools.enabled:
+            return None
+
+        # Import all tool modules
+        from consoul.ai.tools import ToolRegistry
+        from consoul.ai.tools.catalog import (
+            TOOL_CATALOG,
+            get_all_tool_names,
+            get_tool_by_name,
+            get_tools_by_risk_level,
+        )
+        from consoul.ai.tools.implementations import (
+            set_analyze_images_config,
+            set_bash_config,
+            set_code_search_config,
+            set_file_edit_config,
+            set_find_references_config,
+            set_grep_search_config,
+            set_read_config,
+            set_read_url_config,
+            set_web_search_config,
+            set_wikipedia_config,
+        )
+        from consoul.ai.tools.providers import CliApprovalProvider
+
+        # Configure bash tool with profile settings
+        if config.tools.bash:
+            set_bash_config(config.tools.bash)
+
+        # Configure read tool with profile settings
+        if config.tools.read:
+            set_read_config(config.tools.read)
+
+        # Configure grep_search tool with profile settings
+        if config.tools.grep_search:
+            set_grep_search_config(config.tools.grep_search)
+
+        # Configure code_search tool with profile settings
+        if config.tools.code_search:
+            set_code_search_config(config.tools.code_search)
+
+        # Configure find_references tool with profile settings
+        if config.tools.find_references:
+            set_find_references_config(config.tools.find_references)
+
+        # Configure web_search tool with profile settings
+        if config.tools.web_search:
+            set_web_search_config(config.tools.web_search)
+
+        # Configure wikipedia_search tool with profile settings
+        if config.tools.wikipedia:
+            set_wikipedia_config(config.tools.wikipedia)
+
+        # Configure read_url tool with profile settings
+        if config.tools.read_url:
+            set_read_url_config(config.tools.read_url)
+
+        # Configure file_edit tool with profile settings
+        if config.tools.file_edit:
+            set_file_edit_config(config.tools.file_edit)
+
+        # Configure image_analysis tool with profile settings
+        if config.tools.image_analysis:
+            set_analyze_images_config(config.tools.image_analysis)
+
+        # Determine which tools to register based on config
+        # Note: We always register ALL tools in the registry so Tool Manager can show them all
+        # The enabled/disabled state is set based on config (allowed_tools, risk_filter, or default)
+
+        # Get all available tools
+        all_tools = list(TOOL_CATALOG.values())
+
+        # Determine which tools should be ENABLED based on config
+        # Precedence: allowed_tools > risk_filter > all tools (default)
+        enabled_tool_names = set()  # Set of tool.name values that should be enabled
+
+        if config.tools.allowed_tools is not None:
+            # Explicit whitelist takes precedence (even if empty)
+            normalized_tool_names = []  # Actual tool.name values for registry
+            invalid_tools = []
+
+            for tool_name in config.tools.allowed_tools:
+                result = get_tool_by_name(tool_name)
+                if result:
+                    tool, risk_level, _categories = result
+                    # Store the actual tool.name for execution whitelist
+                    normalized_tool_names.append(tool.name)
+                    enabled_tool_names.add(tool.name)
+                else:
+                    invalid_tools.append(tool_name)
+
+            # Error if any invalid tool names
+            if invalid_tools:
+                available = get_all_tool_names()
+                raise ValueError(
+                    f"Invalid tool names in allowed_tools: {invalid_tools}. "
+                    f"Available tools: {available}"
+                )
+
+            # Normalize allowed_tools to actual tool.name values for execution checks
+            # This ensures friendly names like "bash" work with ToolRegistry.is_allowed()
+            # which checks against tool.name like "bash_execute"
+            config.tools.allowed_tools = normalized_tool_names
+
+            self.log.info(
+                f"Enabled {len(enabled_tool_names)} tools from allowed_tools "
+                f"{'(chat-only mode)' if len(enabled_tool_names) == 0 else 'whitelist'}"
+            )
+
+        elif config.tools.risk_filter:
+            # Risk-based filtering: enable tools up to specified risk level
+            tools_by_risk = get_tools_by_risk_level(config.tools.risk_filter)
+
+            # Enable tools that match risk filter
+            for tool, _risk_level, _categories in tools_by_risk:
+                enabled_tool_names.add(tool.name)
+
+            # DO NOT populate allowed_tools - leave empty for risk_filter.
+            #
+            # Why: Populating allowed_tools would bypass risk-based approval workflow.
+            # The approval flow checks _is_whitelisted() BEFORE checking risk levels,
+            # so adding all filtered tools to allowed_tools would auto-approve them
+            # regardless of permission_policy settings (src/consoul/ai/tools/permissions/policy.py:307).
+            #
+            # Security model:
+            # - risk_filter controls which tools are ENABLED
+            # - permission_policy controls APPROVAL (which tools need confirmation)
+            # - Both work together: risk_filter limits capabilities, policy controls UX
+            #
+            # Example: risk_filter="caution" + permission_policy="balanced"
+            # - Enables: SAFE + CAUTION tools (12 total)
+            # - Auto-approves: SAFE tools only
+            # - Prompts for: CAUTION tools (file edits, bash, etc.)
+            #
+            # Note: risk_filter is incompatible with approval_mode="whitelist".
+            # Use permission_policy (BALANCED/TRUSTING/etc) instead.
+
+            self.log.info(
+                f"Enabled {len(enabled_tool_names)} tools with "
+                f"risk_filter='{config.tools.risk_filter}'"
+            )
+
+        else:
+            # Default: enable all tools (backward compatible)
+            for tool, _risk_level, _categories in all_tools:
+                enabled_tool_names.add(tool.name)
+
+            self.log.info(
+                f"Enabled all {len(enabled_tool_names)} available tools (no filters specified)"
+            )
+
+        # Create registry with CLI provider (we override approval in _request_tool_approval)
+        # The provider is required by registry but we don't use it - we show our own modal
+        # NOTE: If allowed_tools was specified, it has been normalized to actual tool names
+        tool_registry = ToolRegistry(
+            config=config.tools,
+            approval_provider=CliApprovalProvider(),  # Required but unused
+        )
+
+        # Register ALL tools with appropriate enabled state
+        # This ensures Tool Manager shows all available tools (not just enabled ones)
+        for tool, risk_level, _categories in all_tools:
+            # Tool is enabled if its name is in the enabled_tool_names set
+            is_enabled = tool.name in enabled_tool_names
+            tool_registry.register(tool, risk_level=risk_level, enabled=is_enabled)
+
+        # NOTE: analyze_images tool registration disabled for SOUL-116
+        # The tool is meant for LLM-initiated image analysis, but for SOUL-116
+        # we handle image references directly by creating multimodal messages.
+        # Re-enable this when implementing SOUL-115 use case.
+        # self._sync_vision_tool_registration()
+
+        # Get tool metadata list
+        tool_metadata_list = tool_registry.list_tools(enabled_only=True)
+
+        self.log.info(
+            f"Initialized tool registry with {len(tool_metadata_list)} enabled tools"
+        )
+
+        # Set tools_total for top bar display (total registered tools)
+        if hasattr(self, "top_bar"):
+            self.top_bar.tools_total = len(all_tools)
+
+        return tool_registry
+
+    def _auto_resume_if_enabled(
+        self, conversation: ConversationHistory, profile
+    ) -> ConversationHistory:
+        """Auto-resume last conversation if enabled in profile.
+
+        Args:
+            conversation: Current conversation instance
+            profile: Active profile with auto_resume settings
+
+        Returns:
+            Updated conversation (same instance or resumed one)
+        """
+        # Check if auto-resume is enabled
+        if not (
+            hasattr(profile, "conversation")
+            and profile.conversation.auto_resume
+            and profile.conversation.persist
+        ):
+            return conversation
+
+        try:
+            # Query database for latest conversation
+            from consoul.ai.database import ConversationDatabase
+
+            db = ConversationDatabase(profile.conversation.db_path)
+            recent_conversations = db.list_conversations(limit=1)
+
+            if not recent_conversations:
+                return conversation
+
+            latest_session_id = recent_conversations[0]["session_id"]
+
+            # Only resume if it's not the session we just created
+            if latest_session_id == conversation.session_id:
+                return conversation
+
+            self.log.info(f"Auto-resuming last conversation: {latest_session_id}")
+
+            # Reload conversation with latest session
+            from consoul.ai import ConversationHistory
+
+            conv_kwargs = self._get_conversation_config()
+            conv_kwargs["session_id"] = latest_session_id
+
+            return ConversationHistory(
+                model_name=self.consoul_config.current_model,
+                model=conversation._model,  # Reuse same model
+                **conv_kwargs,
+            )
+        except Exception as e:
+            self.log.warning(f"Failed to auto-resume conversation: {e}")
+            return conversation
+
+    def _bind_tools_to_model(
+        self, model: BaseChatModel, tool_registry: ToolRegistry
+    ) -> BaseChatModel:
+        """Bind tools to chat model if supported.
+
+        Args:
+            model: Chat model to bind tools to
+            tool_registry: Registry with enabled tools
+
+        Returns:
+            Model with tools bound (or original if not supported)
+        """
+        from consoul.ai.providers import supports_tool_calling
+
+        # Get enabled tools
+        tool_metadata_list = tool_registry.list_tools(enabled_only=True)
+
+        if not tool_metadata_list:
+            return model
+
+        # Check if model supports tool calling
+        if not supports_tool_calling(model):
+            self.log.warning(
+                f"Model {self.current_model} does not support tool calling. "
+                "Tools are disabled for this model."
+            )
+            return model
+
+        # Bind tools
+        tools = [meta.tool for meta in tool_metadata_list]
+        bound_model = model.bind_tools(tools)  # type: ignore[assignment]
+        self.log.info(f"Bound {len(tools)} tools to chat model")
+
+        # Update conversation's model reference if conversation exists
+        if self.conversation:
+            self.conversation._model = bound_model
+
+        return bound_model
+
+    def _initialize_title_generator(
+        self, config: ConsoulConfig
+    ) -> TitleGenerator | None:
+        """Initialize title generator if enabled.
+
+        Args:
+            config: ConsoulConfig with title generator settings
+
+        Returns:
+            TitleGenerator instance or None if disabled/failed
+        """
+        if not self.config.auto_generate_titles:
+            return None
+
+        from consoul.ai.title_generator import (
+            TitleGenerator,
+            auto_detect_title_config,
+        )
+
+        try:
+            # Determine provider and model
+            provider = self.config.auto_title_provider
+            model = self.config.auto_title_model
+
+            # Auto-detect if not specified
+            if provider is None or model is None:
+                detected = auto_detect_title_config(config)
+                if detected:
+                    provider = provider or detected["provider"]
+                    model = model or detected["model"]
+                else:
+                    self.log.info(
+                        "Auto-title generation disabled: no suitable model found"
                     )
+                    return None
 
-                # Create conversation
-                conv_kwargs = self._get_conversation_config()
-                self.conversation = ConversationHistory(
-                    model_name=self.consoul_config.current_model,
-                    model=self.chat_model,
-                    **conv_kwargs,
-                )
-                logger.info(
-                    "[MOUNT] Successfully created conversation during on_mount()"
-                )
-            except Exception as e:
-                logger.error(
-                    f"[MOUNT] Failed to create conversation: {e}", exc_info=True
-                )
+            if not (provider and model):
+                return None
 
-        # Add system prompt to conversation (now that logging is set up)
-        self._add_initial_system_prompt()
+            title_gen = TitleGenerator(
+                provider=provider,
+                model_name=model,
+                prompt_template=self.config.auto_title_prompt,
+                max_tokens=self.config.auto_title_max_tokens,
+                temperature=self.config.auto_title_temperature,
+                api_key=self.config.auto_title_api_key,
+                config=config,
+            )
+            self.log.info(f"Title generator initialized: {provider}/{model}")
+            return title_gen
 
-        logger.info("[MOUNT] on_mount() completed system prompt initialization")
+        except Exception as e:
+            self.log.warning(f"Failed to initialize title generator: {e}")
+            return None
+
+    def _cleanup_old_conversations(self, profile) -> None:
+        """Clean up old conversations based on retention policy.
+
+        Args:
+            profile: Active profile with retention settings
+        """
+        if not (
+            hasattr(profile, "conversation")
+            and profile.conversation.retention_days > 0
+            and profile.conversation.persist
+        ):
+            return
+
+        try:
+            from consoul.ai.database import ConversationDatabase
+
+            db = ConversationDatabase(profile.conversation.db_path)
+            deleted_count = db.delete_conversations_older_than(
+                profile.conversation.retention_days
+            )
+
+            if deleted_count > 0:
+                self.log.info(
+                    f"Retention cleanup: deleted {deleted_count} conversations "
+                    f"older than {profile.conversation.retention_days} days"
+                )
+        except Exception as e:
+            self.log.warning(f"Failed to cleanup old conversations: {e}")
+
+    async def _async_initialize(self) -> None:
+        """Initialize app components asynchronously with progress updates.
+
+        This method orchestrates the entire initialization sequence, calling
+        each extracted initialization method in order while updating the
+        loading screen with progress.
+
+        Progress stages:
+            10% - Loading configuration
+            40% - Connecting to AI provider
+            50% - Initializing conversation
+            60% - Loading tools
+            80% - Binding tools to model
+            90% - Restoring conversation (if auto-resume enabled)
+            100% - Complete
+
+        Raises:
+            Exception: Any initialization error (caught and shown in error screen)
+        """
+        import asyncio
+        import time
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Track initialization start time for minimum display duration
+        start_time = time.time()
+
+        # Get reference to the loading screen (already pushed by caller)
+        loading_screen = self.screen
+
+        # Give the screen a moment to render
+        await asyncio.sleep(0.05)
+
+        try:
+            # Step 1: Load config (10%)
+            step_start = time.time()
+            loading_screen.update_progress("Loading configuration...", 10)
+            await asyncio.sleep(0.1)  # Ensure loading screen is visible
+            if self._needs_config_load:
+                consoul_config = await self._run_in_thread(self._load_config)
+                self.consoul_config = consoul_config
+            else:
+                consoul_config = self.consoul_config
+            logger.info(f"[PERF] Step 1 (Load config): {(time.time() - step_start)*1000:.1f}ms")
+
+            # If no config, skip initialization
+            if not consoul_config:
+                logger.warning("No configuration available, skipping AI initialization")
+                loading_screen.update_progress("Ready!", 100)
+                await asyncio.sleep(0.5)
+                await loading_screen.fade_out(duration=0.5)
+                self.pop_screen()
+                self._initialization_complete = True
+                # Still do post-init setup
+                await self._post_initialization_setup()
+                return
+
+            # Set active profile
+            self.active_profile = consoul_config.get_active_profile()
+            self.current_profile = self.active_profile.name
+            self.current_model = consoul_config.current_model
+
+            # Step 2: Initialize AI model (40%)
+            step_start = time.time()
+            loading_screen.update_progress("Connecting to AI provider...", 40)
+            self.chat_model = await self._run_in_thread(
+                self._initialize_ai_model, consoul_config
+            )
+            logger.info(f"[PERF] Step 2 (Initialize AI model): {(time.time() - step_start)*1000:.1f}ms")
+
+            # Step 3: Create conversation (50%)
+            step_start = time.time()
+            loading_screen.update_progress("Initializing conversation...", 50)
+
+            # Add detailed profiling to understand what's slow
+            import logging as log_module
+            conv_logger = log_module.getLogger("consoul.ai.history")
+            original_level = conv_logger.level
+            conv_logger.setLevel(log_module.DEBUG)
+
+            self.conversation = await self._run_in_thread(
+                self._initialize_conversation, consoul_config, self.chat_model
+            )
+
+            conv_logger.setLevel(original_level)
+            logger.info(f"[PERF] Step 3 (Create conversation): {(time.time() - step_start)*1000:.1f}ms")
+
+            # Set conversation ID for tracking
+            self.conversation_id = self.conversation.session_id
+            logger.info(
+                f"Initialized AI model: {consoul_config.current_model}, "
+                f"session: {self.conversation_id}"
+            )
+
+            # Step 4: Load tools (60%)
+            step_start = time.time()
+            loading_screen.update_progress("Loading tools...", 60)
+            self.tool_registry = await self._run_in_thread(
+                self._initialize_tool_registry, consoul_config
+            )
+            logger.info(f"[PERF] Step 4 (Load tools): {(time.time() - step_start)*1000:.1f}ms")
+
+            # Step 5: Bind tools (80%)
+            if self.tool_registry:
+                step_start = time.time()
+                loading_screen.update_progress("Binding tools to model...", 80)
+                self.chat_model = await self._run_in_thread(
+                    self._bind_tools_to_model, self.chat_model, self.tool_registry
+                )
+                logger.info(f"[PERF] Step 5 (Bind tools): {(time.time() - step_start)*1000:.1f}ms")
+
+            # Step 6: Auto-resume if enabled (90%)
+            if (
+                self.active_profile
+                and hasattr(self.active_profile, "conversation")
+                and self.active_profile.conversation.auto_resume
+                and self.active_profile.conversation.persist
+            ):
+                step_start = time.time()
+                loading_screen.update_progress("Restoring conversation...", 90)
+                self.conversation = await self._run_in_thread(
+                    self._auto_resume_if_enabled, self.conversation, self.active_profile
+                )
+                self.conversation_id = self.conversation.session_id
+                logger.info(f"[PERF] Step 6 (Auto-resume): {(time.time() - step_start)*1000:.1f}ms")
+
+            # Cleanup old conversations (retention policy)
+            if self.active_profile:
+                step_start = time.time()
+                await self._run_in_thread(
+                    self._cleanup_old_conversations, self.active_profile
+                )
+                logger.info(f"[PERF] Cleanup old conversations: {(time.time() - step_start)*1000:.1f}ms")
+
+            # Initialize title generator
+            step_start = time.time()
+            self.title_generator = await self._run_in_thread(
+                self._initialize_title_generator, consoul_config
+            )
+            logger.info(f"[PERF] Initialize title generator: {(time.time() - step_start)*1000:.1f}ms")
+
+            # Step 7: Complete (100%)
+            loading_screen.update_progress("Ready!", 100)
+
+            # Ensure minimum display time of 1.5 seconds for visibility
+            elapsed = time.time() - start_time
+            # if elapsed < 1:
+            #     await asyncio.sleep(1.5 - elapsed)
+            # else:
+            #     await asyncio.sleep(0.5)
+
+            # Fade out and show main UI
+            await loading_screen.fade_out(duration=0.5)
+            self.pop_screen()
+
+            self._initialization_complete = True
+
+            # Post-initialization setup
+            await self._post_initialization_setup()
+
+        except Exception as e:
+            # Log error and show error screen
+            import traceback
+
+            logger.error(
+                f"[LOADING] Initialization failed: {e}\n{traceback.format_exc()}"
+            )
+
+            # Remove loading screen
+            try:
+                logger.info("[LOADING] Exception caught, popping loading screen")
+                self.pop_screen()
+            except Exception as pop_err:
+                logger.error(f"[LOADING] Failed to pop screen: {pop_err}")
+
+            # Show error screen (will be created in Phase 5)
+            # For now, log the error and allow app to start with degraded functionality
+            logger.info("[LOADING] Setting degraded mode (no AI functionality)")
+            self.chat_model = None
+            self.conversation = None
+            self._initialization_complete = False
+
+    async def _post_initialization_setup(self) -> None:
+        """Setup that must happen after initialization completes.
+
+        This includes adding system prompt, registering themes, and starting
+        background tasks like GC and polling timers.
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Add system prompt to conversation (if conversation exists)
+        if self.conversation:
+            self._add_initial_system_prompt()
+            logger.info("[POST-INIT] Added initial system prompt")
 
         # Register Consoul brand themes
         self.register_theme(CONSOUL_DARK)
@@ -606,9 +841,9 @@ class ConsoulApp(App[None]):
         # Apply theme from config
         try:
             self.theme = self.config.theme
-            logger.info(f"Applied theme: {self.config.theme}")
+            logger.info(f"[POST-INIT] Applied theme: {self.config.theme}")
         except Exception as e:
-            logger.warning(f"Failed to set theme '{self.config.theme}': {e}")
+            logger.warning(f"[POST-INIT] Failed to set theme '{self.config.theme}': {e}")
             self.theme = "textual-dark"
 
         # Set up GC management (streaming-aware mode from research)
@@ -623,6 +858,49 @@ class ConsoulApp(App[None]):
 
         # Update top bar with initial state
         self._update_top_bar_state()
+
+        # Warm up tokenizer in background (if using lazy loading)
+        # This ensures tokenizer is loaded before first message
+        if self.conversation and hasattr(self.conversation, '_token_counter'):
+            async def warm_up_tokenizer():
+                try:
+                    # Trigger tokenizer loading by counting tokens on empty message
+                    from langchain_core.messages import HumanMessage
+                    _ = self.conversation._token_counter([HumanMessage(content="")])
+                    logger.info("[POST-INIT] Tokenizer warmed up in background")
+                except Exception as e:
+                    logger.debug(f"[POST-INIT] Tokenizer warmup failed (non-critical): {e}")
+
+            # Run in background without blocking
+            import asyncio
+            asyncio.create_task(warm_up_tokenizer())
+
+        logger.info("[POST-INIT] Post-initialization setup complete")
+
+    def on_mount(self) -> None:
+        """Mount the app and show loading screen immediately.
+
+        Shows the loading screen and triggers async initialization. This ensures
+        the user sees visual feedback immediately instead of a frozen terminal.
+        """
+        from consoul.tui.animations import AnimationStyle
+        from consoul.tui.loading import ConsoulLoadingScreen
+
+        # Push loading screen immediately
+        loading_screen = ConsoulLoadingScreen(
+            animation_style=AnimationStyle.CODE_STREAM,
+            show_progress=True,
+        )
+        self.push_screen(loading_screen)
+
+        # Use set_timer to schedule initialization after a brief delay
+        # This ensures the loading screen renders before we start heavy work
+        self.set_timer(0.1, self._start_initialization)
+
+    def _start_initialization(self) -> None:
+        """Callback to start async initialization."""
+        # Use call_next to schedule the coroutine
+        self.call_next(self._async_initialize)
 
     def on_unmount(self) -> None:
         """Cleanup when app unmounts (library-first design).

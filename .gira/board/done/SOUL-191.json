@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-29T13:26:26.816742",
+  "updated_at": "2025-11-29T21:36:10.239222Z",
+  "id": "SOUL-191",
+  "uuid": "8af7c297-8efb-437d-a480-b0c40d443176",
+  "title": "Update on_mount() to show loading screen immediately",
+  "description": "**As a** Consoul user\n**I want** the loading screen to appear immediately when I launch Consoul\n**So that** I see visual feedback instead of a frozen terminal during initialization\n\n**Context:**\nWith the async initialization method ready (Phase 3), we need to update on_mount() to show the LoadingScreen immediately and trigger async initialization. This is the user-facing integration that makes the loading screen visible.\n\nCurrently, on_mount() (lines 561-626) does fallback initialization and theme setup. We need to:\n- Push ConsoulLoadingScreen as the first action\n- Trigger _async_initialize() via @work decorator or call_later()\n- Move theme registration to after initialization completes\n- Ensure compose() is only called after initialization\n\n**Technical Notes:**\n- File: src/consoul/tui/app.py (on_mount method, lines 561-626)\n- Push ConsoulLoadingScreen(show_progress=True) immediately\n- Use @work decorator for _async_initialize() or call via self.call_later()\n- Move theme registration to post-init callback\n- Update compose() to handle pre-initialized state gracefully\n- Ensure _add_initial_system_prompt() runs after conversation is ready\n\n**Acceptance Criteria:**\n\n**Given** ConsoulApp starts up\n**When** on_mount() is called\n**Then** LoadingScreen appears within 50ms\n\n**Given** LoadingScreen is visible\n**When** initialization progresses\n**Then** progress bar and messages update in real-time\n\n**Given** initialization completes successfully\n**When** progress reaches 100%\n**Then** LoadingScreen fades out and main chat UI appears\n\n**Testing Considerations:**\n- Test startup time perception (should feel instant)\n- Verify theme switching works after init\n- Test that compose() doesn't fail if called early\n- Verify system prompt is added at correct time\n- Test multiple start/stop cycles\n- Verify GC and polling timers start at correct time\n\n**Implementation Hints:**\n```python\ndef on_mount(self) -> None:\n    \"\"\"Mount the app and show loading screen.\"\"\"\n    # Show loading screen immediately\n    self.push_screen(\n        ConsoulLoadingScreen(\n            animation_style=AnimationStyle.CODE_STREAM,\n            show_progress=True\n        )\n    )\n\n    # Start async initialization\n    self.call_later(self._async_initialize)\n\nasync def _async_initialize(self) -> None:\n    \"\"\"Initialize app components with progress updates.\"\"\"\n    # ... initialization logic from Phase 3 ...\n\n    # After successful init, do post-init setup\n    await self._post_initialization_setup()\n\nasync def _post_initialization_setup(self) -> None:\n    \"\"\"Setup that must happen after initialization.\"\"\"\n    # Add system prompt\n    self._add_initial_system_prompt()\n\n    # Register themes\n    self.register_theme(CONSOUL_DARK)\n    self.register_theme(CONSOUL_LIGHT)\n    self.theme = self.config.theme\n\n    # Start background tasks\n    self._start_gc_timer()\n    self._start_search_polling()\n    self._update_top_bar()\n```\n\n**Alternative approach using @work:**\n```python\ndef on_mount(self) -> None:\n    \"\"\"Mount the app and show loading screen.\"\"\"\n    self.push_screen(\n        ConsoulLoadingScreen(\n            animation_style=AnimationStyle.CODE_STREAM,\n            show_progress=True\n        )\n    )\n    self._initialize_async()\n\n@work\nasync def _initialize_async(self) -> None:\n    \"\"\"Worker that runs async initialization.\"\"\"\n    await self._async_initialize()\n```\n\n**Dependencies:**\n- Requires Phase 3 completion (_async_initialize method)\n- May reveal issues with compose() timing",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "tui",
+    "ui"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

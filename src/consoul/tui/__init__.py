@@ -9,7 +9,17 @@ library (e.g., in Gira). Core AI functionality is in consoul.ai.
 
 from __future__ import annotations
 
+from consoul.tui.animations import AnimationStyle, BinaryAnimator
 from consoul.tui.app import ConsoulApp
 from consoul.tui.config import TuiConfig
+from consoul.tui.loading import BinaryCanvas, ConsoulLoadingScreen, LoadingScreen
 
-__all__ = ["ConsoulApp", "TuiConfig"]
+__all__ = [
+    "AnimationStyle",
+    "BinaryAnimator",
+    "BinaryCanvas",
+    "ConsoulApp",
+    "ConsoulLoadingScreen",
+    "LoadingScreen",
+    "TuiConfig",
+]
