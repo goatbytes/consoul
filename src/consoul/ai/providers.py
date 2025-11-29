@@ -881,6 +881,8 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
             params["response_format"] = model_config.response_format
         if model_config.service_tier is not None:
             params["service_tier"] = model_config.service_tier
+        # Enable streaming usage metadata for cost calculation
+        params["stream_usage"] = True
 
     elif isinstance(model_config, AnthropicModelConfig):
         if model_config.top_p is not None:
@@ -893,6 +895,8 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
             params["betas"] = model_config.betas
         if model_config.metadata is not None:
             params["metadata"] = model_config.metadata
+        # Enable streaming usage metadata for cost calculation (enabled by default)
+        params["stream_usage"] = True
 
     elif isinstance(model_config, GoogleModelConfig):
         if model_config.top_p is not None:

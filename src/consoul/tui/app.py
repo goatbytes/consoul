@@ -1830,10 +1830,19 @@ class ConsoulApp(App[None]):
                                 if normalized:
                                     content_parts.append(normalized)
 
-                            # Create final message with all content and tool_calls
+                            # Extract usage_metadata from last chunk (if available)
+                            # Usage metadata is typically only in the final streaming chunk
+                            usage_metadata = None
+                            if collected_chunks:
+                                last_chunk = collected_chunks[-1]
+                                if hasattr(last_chunk, "usage_metadata"):
+                                    usage_metadata = last_chunk.usage_metadata
+
+                            # Create final message with all content, tool_calls, and usage_metadata
                             final_message = AIMessage(
                                 content="".join(content_parts),
                                 tool_calls=tool_calls if tool_calls else [],
+                                usage_metadata=usage_metadata,
                             )
                             logger.debug(
                                 f"Final message has {len(final_message.tool_calls) if final_message.tool_calls else 0} tool_calls"
@@ -2252,6 +2261,15 @@ class ConsoulApp(App[None]):
 
                     # Calculate estimated cost for non-local providers
                     estimated_cost = None
+
+                    # Debug: Log usage_metadata availability
+                    logger.debug(
+                        f"[COST] Checking cost calculation: "
+                        f"has_final_message={final_message is not None}, "
+                        f"has_usage_metadata={hasattr(final_message, 'usage_metadata') if final_message else False}, "
+                        f"usage_metadata_value={getattr(final_message, 'usage_metadata', None) if final_message else None}"
+                    )
+
                     if (
                         final_message
                         and hasattr(final_message, "usage_metadata")
@@ -2271,6 +2289,11 @@ class ConsoulApp(App[None]):
                             (OllamaModelConfig, LlamaCppModelConfig, MLXModelConfig),
                         )
 
+                        logger.debug(
+                            f"[COST] Provider check: is_local={is_local}, "
+                            f"model_config_type={type(model_config).__name__}"
+                        )
+
                         if not is_local:
                             try:
                                 from consoul.pricing import calculate_cost
@@ -2278,6 +2301,10 @@ class ConsoulApp(App[None]):
                                 usage = final_message.usage_metadata
                                 input_tokens = usage.get("input_tokens", 0)
                                 output_tokens = usage.get("output_tokens", 0)
+
+                                logger.debug(
+                                    f"[COST] Token usage: input={input_tokens}, output={output_tokens}"
+                                )
 
                                 # Extract cached tokens if available
                                 cached_tokens = 0
@@ -2304,10 +2331,22 @@ class ConsoulApp(App[None]):
                                     service_tier=service_tier,
                                 )
 
+                                logger.debug(
+                                    f"[COST] Calculation result: "
+                                    f"pricing_available={cost_info['pricing_available']}, "
+                                    f"total_cost={cost_info['total_cost']}"
+                                )
+
                                 if cost_info["pricing_available"]:
                                     estimated_cost = cost_info["total_cost"]
+                                    logger.info(
+                                        f"[COST] Estimated cost for message: ${estimated_cost:.6f}"
+                                    )
                             except Exception as e:
-                                logger.warning(f"Failed to calculate cost: {e}")
+                                logger.warning(
+                                    f"[COST] Failed to calculate cost: {e}",
+                                    exc_info=True,
+                                )
 
                     assistant_bubble = MessageBubble(
                         response_text,
