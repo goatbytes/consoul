@@ -600,6 +600,9 @@ class Consoul:
             messages = self.history.get_trimmed_messages(reserve_tokens=1000)
             response = self.model.invoke(messages)
 
+            # Track the latest response for accurate token usage
+            self._track_response(response)
+
         return response
 
     def ask(self, message: str, show_tokens: bool = False) -> ConsoulResponse:
@@ -686,24 +689,58 @@ class Consoul:
 
     @property
     def last_cost(self) -> dict[str, Any]:
-        """Get estimated cost of last request.
+        """Get token usage and estimated cost of last request.
 
         Returns:
-            Dictionary with input_tokens, output_tokens, and estimated cost
+            Dictionary with input_tokens, output_tokens, total_tokens, and estimated cost
 
         Examples:
             >>> console.chat("Hello")
             >>> console.last_cost
-            {'input_tokens': 10, 'output_tokens': 15, 'total_cost': 0.00025}
+            {'input_tokens': 87, 'output_tokens': 12, 'total_tokens': 99, ...}
 
         Note:
-            Cost estimates are approximate and based on standard pricing.
-            Actual costs may vary.
+            Token counts are accurate when available from the model provider.
+            Falls back to conversation history token counting if unavailable.
+            Cost estimates use hard-coded pricing and may not reflect actual costs.
         """
         if not self._last_request:
-            return {"input_tokens": 0, "output_tokens": 0, "total_cost": 0.0}
+            return {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "estimated_cost": 0.0,
+                "model": self.model_name,
+                "source": "none",
+            }
 
-        # Calculate token delta
+        # Try to get actual usage metadata from response
+        if self._last_response and hasattr(self._last_response, "usage_metadata"):
+            metadata = self._last_response.usage_metadata
+            if metadata:
+                input_tokens = metadata.get("input_tokens", 0)
+                output_tokens = metadata.get("output_tokens", 0)
+                total_tokens = metadata.get(
+                    "total_tokens", input_tokens + output_tokens
+                )
+
+                # Cost calculation (still uses hard-coded pricing - SOUL-185 will fix this)
+                cost_per_input = 0.000003  # $3 per 1M tokens
+                cost_per_output = 0.000015  # $15 per 1M tokens
+                estimated_cost = (input_tokens * cost_per_input) + (
+                    output_tokens * cost_per_output
+                )
+
+                return {
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "total_tokens": total_tokens,
+                    "estimated_cost": round(estimated_cost, 6),
+                    "model": self.model_name,
+                    "source": "usage_metadata",  # Indicates accurate token counts
+                }
+
+        # Fallback: Calculate from conversation history (approximation)
         tokens_before = self._last_request.get("tokens_before", 0)
         tokens_after = self.history.count_tokens()
         tokens_used = tokens_after - tokens_before
@@ -716,12 +753,15 @@ class Consoul:
         # Using approximate Claude pricing: $3/$15 per M tokens
         cost_per_input = 0.000003  # $3 per 1M tokens
         cost_per_output = 0.000015  # $15 per 1M tokens
-        total_cost = (input_tokens * cost_per_input) + (output_tokens * cost_per_output)
+        estimated_cost = (input_tokens * cost_per_input) + (
+            output_tokens * cost_per_output
+        )
 
         return {
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "total_tokens": tokens_used,
-            "estimated_cost": round(total_cost, 6),
+            "estimated_cost": round(estimated_cost, 6),
             "model": self.model_name,
+            "source": "approximation",  # Indicates fallback was used
         }

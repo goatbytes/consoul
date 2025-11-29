@@ -360,6 +360,136 @@ class TestConsoulToolSpecification:
         assert settings_no_tools["tools_enabled"] is False
 
 
+class TestConsoulTokenUsage:
+    """Test token usage tracking from usage_metadata."""
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_last_cost_with_usage_metadata(self, mock_get_model: Mock) -> None:
+        """Test that last_cost extracts usage_metadata when available."""
+        from langchain_core.messages import AIMessage
+
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        # Create mock response with usage_metadata
+        mock_response = AIMessage(
+            content="Test response",
+            usage_metadata={
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "total_tokens": 150,
+            },
+        )
+        mock_model.invoke.return_value = mock_response
+
+        console = Consoul(tools=False, persist=False)
+        console.chat("Test message")
+
+        cost = console.last_cost
+        assert cost["input_tokens"] == 100
+        assert cost["output_tokens"] == 50
+        assert cost["total_tokens"] == 150
+        assert cost["source"] == "usage_metadata"
+        assert cost["estimated_cost"] > 0
+        assert cost["model"] == console.model_name
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_last_cost_fallback_without_metadata(self, mock_get_model: Mock) -> None:
+        """Test that last_cost falls back when usage_metadata unavailable."""
+        from langchain_core.messages import AIMessage
+
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        # Create response WITHOUT usage_metadata
+        mock_response = AIMessage(content="Test response")
+        mock_model.invoke.return_value = mock_response
+
+        console = Consoul(tools=False, persist=False)
+
+        # Mock history.count_tokens() for fallback calculation
+        console.history.count_tokens = Mock(side_effect=[0, 100])  # before, after
+
+        console.chat("Test message")
+
+        cost = console.last_cost
+        assert cost["source"] == "approximation"
+        assert cost["input_tokens"] > 0  # Fallback calculation
+        assert cost["output_tokens"] > 0
+        assert cost["total_tokens"] > 0
+        assert cost["estimated_cost"] > 0
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_last_cost_before_any_requests(self, mock_get_model: Mock) -> None:
+        """Test last_cost returns zeros before any chat."""
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        console = Consoul(tools=False, persist=False)
+        cost = console.last_cost
+
+        assert cost["input_tokens"] == 0
+        assert cost["output_tokens"] == 0
+        assert cost["total_tokens"] == 0
+        assert cost["estimated_cost"] == 0.0
+        assert cost["source"] == "none"
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_last_cost_uses_metadata_total_tokens(self, mock_get_model: Mock) -> None:
+        """Test that total_tokens from metadata is used directly."""
+        from langchain_core.messages import AIMessage
+
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        # Metadata with all fields
+        mock_response = AIMessage(
+            content="Test",
+            usage_metadata={
+                "input_tokens": 75,
+                "output_tokens": 25,
+                "total_tokens": 100,
+            },
+        )
+        mock_model.invoke.return_value = mock_response
+
+        console = Consoul(tools=False, persist=False)
+
+        # Mock history.count_tokens() (not used in this path but needs to be callable)
+        console.history.count_tokens = Mock(return_value=0)
+
+        console.chat("Test")
+
+        cost = console.last_cost
+        assert cost["input_tokens"] == 75
+        assert cost["output_tokens"] == 25
+        assert cost["total_tokens"] == 100
+        assert cost["source"] == "usage_metadata"
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_last_cost_handles_none_metadata(self, mock_get_model: Mock) -> None:
+        """Test that last_cost handles None usage_metadata gracefully."""
+        from langchain_core.messages import AIMessage
+
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        # Response with usage_metadata = None
+        mock_response = AIMessage(content="Test", usage_metadata=None)
+        mock_model.invoke.return_value = mock_response
+
+        console = Consoul(tools=False, persist=False)
+
+        # Mock history.count_tokens() for fallback calculation
+        console.history.count_tokens = Mock(side_effect=[0, 50])  # before, after
+
+        console.chat("Test")
+
+        cost = console.last_cost
+        assert cost["source"] == "approximation"  # Falls back
+        assert cost["total_tokens"] > 0
+
+
 class TestConsoulToolDiscovery:
     """Test tool discovery functionality."""
 
