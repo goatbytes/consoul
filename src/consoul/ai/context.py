@@ -189,6 +189,16 @@ def get_model_token_limit(model_name: str) -> int:
         if ollama_context:
             return ollama_context
 
+    # Warn about unknown model using conservative default
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        f"Unknown model '{model_name}' - using conservative {DEFAULT_TOKEN_LIMIT} token limit. "
+        f"This may cause message trimming issues. Please add this model to MODEL_TOKEN_LIMITS "
+        f"in consoul/ai/context.py for proper support."
+    )
+
     # Return conservative default
     return DEFAULT_TOKEN_LIMIT
 
