@@ -1502,6 +1502,20 @@ class ConsoulApp(App[None]):
                 # Just take the last few messages to keep context manageable
                 messages = list(self.conversation.messages[-10:])  # type: ignore
             else:
+                # Debug: log message count before trimming
+                conv_msg_count = (
+                    len(self.conversation.messages) if self.conversation else 0
+                )
+                logger.debug(
+                    f"[MESSAGES] Before trimming: conversation has {conv_msg_count} messages"
+                )
+                if self.conversation and conv_msg_count > 0 and conv_msg_count <= 5:
+                    for i, msg in enumerate(self.conversation.messages):
+                        logger.debug(
+                            f"[MESSAGES]   Message {i}: type={msg.type}, "
+                            f"content_len={len(str(msg.content)) if msg.content else 0}"
+                        )
+
                 try:
                     # Add timeout to prevent hanging on token counting
                     messages = await asyncio.wait_for(
