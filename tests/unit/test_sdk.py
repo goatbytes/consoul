@@ -382,7 +382,7 @@ class TestConsoulTokenUsage:
         )
         mock_model.invoke.return_value = mock_response
 
-        console = Consoul(tools=False, persist=False)
+        console = Consoul(model="claude-3-5-haiku-20241022", tools=False, persist=False)
         console.chat("Test message")
 
         cost = console.last_cost
@@ -390,8 +390,8 @@ class TestConsoulTokenUsage:
         assert cost["output_tokens"] == 50
         assert cost["total_tokens"] == 150
         assert cost["source"] == "usage_metadata"
-        assert cost["estimated_cost"] > 0
-        assert cost["model"] == console.model_name
+        assert cost["estimated_cost"] > 0  # Should use accurate pricing
+        assert cost["model"] == "claude-3-5-haiku-20241022"
 
     @patch("consoul.sdk.get_chat_model")
     def test_last_cost_fallback_without_metadata(self, mock_get_model: Mock) -> None:
@@ -405,7 +405,7 @@ class TestConsoulTokenUsage:
         mock_response = AIMessage(content="Test response")
         mock_model.invoke.return_value = mock_response
 
-        console = Consoul(tools=False, persist=False)
+        console = Consoul(model="claude-3-5-haiku-20241022", tools=False, persist=False)
 
         # Mock history.count_tokens() for fallback calculation
         console.history.count_tokens = Mock(side_effect=[0, 100])  # before, after
@@ -417,7 +417,9 @@ class TestConsoulTokenUsage:
         assert cost["input_tokens"] > 0  # Fallback calculation
         assert cost["output_tokens"] > 0
         assert cost["total_tokens"] > 0
-        assert cost["estimated_cost"] > 0
+        assert (
+            cost["estimated_cost"] > 0
+        )  # Should use accurate pricing even with approximated tokens
 
     @patch("consoul.sdk.get_chat_model")
     def test_last_cost_before_any_requests(self, mock_get_model: Mock) -> None:

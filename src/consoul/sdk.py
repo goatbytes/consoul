@@ -689,7 +689,7 @@ class Consoul:
 
     @property
     def last_cost(self) -> dict[str, Any]:
-        """Get token usage and estimated cost of last request.
+        """Get token usage and accurate cost of last request.
 
         Returns:
             Dictionary with input_tokens, output_tokens, total_tokens, and estimated cost
@@ -700,9 +700,10 @@ class Consoul:
             {'input_tokens': 87, 'output_tokens': 12, 'total_tokens': 99, ...}
 
         Note:
-            Token counts are accurate when available from the model provider.
+            Token counts are accurate when available from the model provider's usage_metadata.
             Falls back to conversation history token counting if unavailable.
-            Cost estimates use hard-coded pricing and may not reflect actual costs.
+            Cost calculations use model-specific pricing data from major providers
+            (OpenAI, Anthropic, Google). Includes support for prompt caching costs.
         """
         if not self._last_request:
             return {
@@ -724,12 +725,16 @@ class Consoul:
                     "total_tokens", input_tokens + output_tokens
                 )
 
-                # Cost calculation (still uses hard-coded pricing - SOUL-185 will fix this)
-                cost_per_input = 0.000003  # $3 per 1M tokens
-                cost_per_output = 0.000015  # $15 per 1M tokens
-                estimated_cost = (input_tokens * cost_per_input) + (
-                    output_tokens * cost_per_output
+                # Calculate accurate cost using pricing data
+                from consoul.pricing import calculate_cost
+
+                cost_info = calculate_cost(
+                    self.model_name,
+                    input_tokens,
+                    output_tokens,
+                    cached_tokens=metadata.get("cache_read_input_tokens", 0),
                 )
+                estimated_cost = cost_info["total_cost"]
 
                 return {
                     "input_tokens": input_tokens,
@@ -749,13 +754,11 @@ class Consoul:
         input_tokens = int(tokens_used * 0.6)
         output_tokens = int(tokens_used * 0.4)
 
-        # Rough cost estimate (varies by model)
-        # Using approximate Claude pricing: $3/$15 per M tokens
-        cost_per_input = 0.000003  # $3 per 1M tokens
-        cost_per_output = 0.000015  # $15 per 1M tokens
-        estimated_cost = (input_tokens * cost_per_input) + (
-            output_tokens * cost_per_output
-        )
+        # Calculate cost using pricing data (fallback: approximated token split)
+        from consoul.pricing import calculate_cost
+
+        cost_info = calculate_cost(self.model_name, input_tokens, output_tokens)
+        estimated_cost = cost_info["total_cost"]
 
         return {
             "input_tokens": input_tokens,
