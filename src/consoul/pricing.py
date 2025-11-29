@@ -64,36 +64,51 @@ ANTHROPIC_PRICING = {
 }
 
 # Google Gemini pricing (as of November 2024)
-# Source: https://ai.google.dev/pricing
+# Source: https://ai.google.dev/gemini-api/docs/pricing
+# Note: Prices vary by context size (<=200k vs >200k tokens)
+# We use base pricing (<=200k tokens) here
 GOOGLE_PRICING = {
-    # Gemini 2.0 Flash
-    "gemini-2.0-flash-exp": {
-        "input": 0.10,  # $0.10 per MTok (text/image/video)
-        "output": 0.40,  # $0.40 per MTok
-        "cache_read": 0.025,  # $0.025 per MTok
-        "cache_storage": 1.00,  # $1.00 per MTok per hour
+    # Gemini 2.5 Pro
+    "gemini-2.5-pro": {
+        "input": 1.25,  # $1.25 per MTok (prompts ≤200k)
+        "output": 10.00,  # $10.00 per MTok
+        "cache_read": 0.125,  # $0.125 per MTok
     },
-    # Gemini 1.5 Pro
-    "gemini-1.5-pro": {
-        "input": 1.25,  # $1.25 per MTok (≤128K tokens)
+    # Gemini 2.5 Flash
+    "gemini-2.5-flash": {
+        "input": 0.625,  # $0.625 per MTok (prompts ≤200k)
         "output": 5.00,  # $5.00 per MTok
-        "cache_read": 0.3125,  # $0.3125 per MTok
+        "cache_read": 0.125,  # $0.125 per MTok
     },
-    "gemini-1.5-pro-latest": {
-        "input": 1.25,
-        "output": 5.00,
-        "cache_read": 0.3125,
+    # Gemini 2.5 Flash-Lite
+    "gemini-2.5-flash-lite": {
+        "input": 0.15,  # $0.15 per MTok (text/image/video)
+        "output": 1.25,  # $1.25 per MTok
+        "cache_read": 0.03,  # $0.03 per MTok
     },
-    # Gemini 1.5 Flash
-    "gemini-1.5-flash": {
-        "input": 0.075,  # $0.075 per MTok (≤128K tokens)
-        "output": 0.30,  # $0.30 per MTok
-        "cache_read": 0.01875,  # $0.01875 per MTok
+    # Gemini 2.0 Flash (Free tier for up to 10 RPM)
+    "gemini-2.0-flash": {
+        "input": 0.30,  # $0.30 per MTok (text/image/video)
+        "output": 2.50,  # $2.50 per MTok
+        "cache_read": 0.03,  # $0.03 per MTok
     },
-    "gemini-1.5-flash-latest": {
-        "input": 0.075,
-        "output": 0.30,
-        "cache_read": 0.01875,
+    # Gemini 2.0 Flash-Lite
+    "gemini-2.0-flash-lite": {
+        "input": 0.15,  # $0.15 per MTok (text/image/video)
+        "output": 1.25,  # $1.25 per MTok
+        "cache_read": 0.03,  # $0.03 per MTok
+    },
+    # Gemini 3 Pro Preview (Thinking model)
+    "gemini-3-pro-preview": {
+        "input": 2.00,  # $2.00 per MTok (prompts ≤200k)
+        "output": 12.00,  # $12.00 per MTok (includes thinking tokens)
+        "cache_read": 0.20,  # $0.20 per MTok
+    },
+    # Gemini 3 Pro Image Preview
+    "gemini-3-pro-image-preview": {
+        "input": 1.00,  # $1.00 per MTok (prompts ≤200k)
+        "output": 6.00,  # $6.00 per MTok (includes thinking tokens)
+        "cache_read": 0.20,  # $0.20 per MTok
     },
 }
 
