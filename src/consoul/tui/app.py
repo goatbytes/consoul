@@ -1533,6 +1533,19 @@ class ConsoulApp(App[None]):
                 f"trimmed_messages={len(messages)}"
             )
 
+            # Debug: log message details if empty
+            if not messages or len(messages) == 0:
+                logger.error(
+                    f"[MESSAGES] Empty message list! "
+                    f"conversation.messages count: {len(self.conversation.messages) if self.conversation else 0}"
+                )
+                if self.conversation and self.conversation.messages:
+                    logger.error(
+                        f"[MESSAGES] First few messages: {self.conversation.messages[:3]}"
+                    )
+            else:
+                logger.debug(f"[MESSAGES] Sending {len(messages)} messages to model")
+
             # Check if the last user message is multimodal (contains images)
             has_multimodal_content = False
             if messages and len(messages) > 0:
@@ -1623,11 +1636,25 @@ class ConsoulApp(App[None]):
                 messages_to_send = await loop.run_in_executor(
                     self._executor, lambda: [to_dict_message(msg) for msg in messages]
                 )
+                logger.debug(
+                    f"[MESSAGES] Converted {len(messages)} messages to {len(messages_to_send)} dict messages"
+                )
+                if len(messages_to_send) == 0:
+                    logger.error(
+                        f"[MESSAGES] Conversion resulted in empty list! Original had {len(messages)} messages"
+                    )
 
             s4 = time.time()
             logger.info(
                 f"[TIMING] Converted to dict: {(s4 - s3) * 1000:.1f}ms, total prep: {(s4 - s0) * 1000:.1f}ms"
             )
+
+            # Final check before sending to model
+            if not messages_to_send or len(messages_to_send) == 0:
+                logger.error(
+                    f"[MESSAGES] About to send EMPTY message list to model! "
+                    f"This will cause an error. Original messages: {len(messages)}"
+                )
 
             # Stream tokens in background worker to avoid blocking UI
             collected_tokens: list[str] = []
