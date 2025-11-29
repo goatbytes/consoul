@@ -1830,20 +1830,63 @@ class ConsoulApp(App[None]):
                                 if normalized:
                                     content_parts.append(normalized)
 
-                            # Extract usage_metadata from last chunk (if available)
-                            # Usage metadata is typically only in the final streaming chunk
+                            # Extract usage_metadata from chunks
+                            # OpenAI may send usage in a separate chunk or in response_metadata
                             usage_metadata = None
                             if collected_chunks:
-                                last_chunk = collected_chunks[-1]
+                                # Check all chunks from the end, looking for usage_metadata
                                 logger.debug(
-                                    f"[COST] Last chunk type: {type(last_chunk).__name__}, "
-                                    f"has_usage_metadata: {hasattr(last_chunk, 'usage_metadata')}, "
-                                    f"chunk_attrs: {[a for a in dir(last_chunk) if not a.startswith('_')][:15]}"
+                                    f"[COST] Checking {len(collected_chunks)} chunks for usage data"
                                 )
-                                if hasattr(last_chunk, "usage_metadata"):
-                                    usage_metadata = last_chunk.usage_metadata
+
+                                for i, chunk in enumerate(
+                                    reversed(collected_chunks[-5:])
+                                ):  # Check last 5 chunks
+                                    chunk_idx = len(collected_chunks) - i - 1
+
+                                    # Check usage_metadata attribute
+                                    if (
+                                        hasattr(chunk, "usage_metadata")
+                                        and chunk.usage_metadata
+                                    ):
+                                        usage_metadata = chunk.usage_metadata
+                                        logger.debug(
+                                            f"[COST] Found usage_metadata in chunk {chunk_idx}: {usage_metadata}"
+                                        )
+                                        break
+
+                                    # Check response_metadata for usage info
+                                    if (
+                                        hasattr(chunk, "response_metadata")
+                                        and chunk.response_metadata
+                                    ):
+                                        resp_meta = chunk.response_metadata
+                                        if (
+                                            "usage" in resp_meta
+                                            or "token_usage" in resp_meta
+                                        ):
+                                            logger.debug(
+                                                f"[COST] Found usage in chunk {chunk_idx} response_metadata: {resp_meta}"
+                                            )
+                                            # Convert to usage_metadata format if needed
+                                            if "usage" in resp_meta:
+                                                usage_dict = resp_meta["usage"]
+                                                usage_metadata = {
+                                                    "input_tokens": usage_dict.get(
+                                                        "prompt_tokens", 0
+                                                    ),
+                                                    "output_tokens": usage_dict.get(
+                                                        "completion_tokens", 0
+                                                    ),
+                                                    "total_tokens": usage_dict.get(
+                                                        "total_tokens", 0
+                                                    ),
+                                                }
+                                                break
+
+                                if not usage_metadata:
                                     logger.debug(
-                                        f"[COST] Extracted usage_metadata from last chunk: {usage_metadata}"
+                                        "[COST] No usage_metadata found in any chunks"
                                     )
 
                             # Create final message with all content, tool_calls, and usage_metadata
