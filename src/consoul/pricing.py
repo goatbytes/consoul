@@ -119,117 +119,118 @@ GOOGLE_PRICING = {
     },
 }
 
-# OpenAI pricing for models not in LangChain
-# Most OpenAI models are covered by langchain_community.callbacks.openai_info
-# This is a fallback for any missing models
-# Source: https://platform.openai.com/docs/pricing (Standard tier, as of January 2025)
+# OpenAI pricing with tier-specific data
+# Source: https://platform.openai.com/docs/pricing (as of January 2025)
+# Structure: model_name -> { tier -> { input, output, cache_read } }
+# Available tiers: "standard" (default), "flex", "batch", "priority"
 OPENAI_PRICING = {
     # GPT-5 series
     "gpt-5.1": {
-        "input": 1.25,  # $1.25 per MTok
-        "output": 10.00,  # $10.00 per MTok
-        "cache_read": 0.125,  # $0.125 per MTok (cached input)
+        "standard": {"input": 1.25, "output": 10.00, "cache_read": 0.125},
+        "flex": {"input": 0.625, "output": 5.00, "cache_read": 0.0625},
+        "batch": {"input": 0.625, "output": 5.00, "cache_read": 0.0625},
+        "priority": {"input": 2.50, "output": 20.00, "cache_read": 0.25},
     },
     "gpt-5": {
-        "input": 1.25,  # $1.25 per MTok
-        "output": 10.00,  # $10.00 per MTok
-        "cache_read": 0.125,  # $0.125 per MTok (cached input)
+        "standard": {"input": 1.25, "output": 10.00, "cache_read": 0.125},
+        "flex": {"input": 0.625, "output": 5.00, "cache_read": 0.0625},
+        "batch": {"input": 0.625, "output": 5.00, "cache_read": 0.0625},
+        "priority": {"input": 2.50, "output": 20.00, "cache_read": 0.25},
     },
     "gpt-5-mini": {
-        "input": 0.25,  # $0.25 per MTok
-        "output": 2.00,  # $2.00 per MTok
-        "cache_read": 0.025,  # $0.025 per MTok (cached input)
+        "standard": {"input": 0.25, "output": 2.00, "cache_read": 0.025},
+        "flex": {"input": 0.125, "output": 1.00, "cache_read": 0.0125},
+        "batch": {"input": 0.125, "output": 1.00, "cache_read": 0.0125},
+        "priority": {"input": 0.45, "output": 3.60, "cache_read": 0.045},
     },
     "gpt-5-nano": {
-        "input": 0.05,  # $0.05 per MTok
-        "output": 0.40,  # $0.40 per MTok
-        "cache_read": 0.005,  # $0.005 per MTok (cached input)
+        "standard": {"input": 0.05, "output": 0.40, "cache_read": 0.005},
+        "flex": {"input": 0.025, "output": 0.20, "cache_read": 0.0025},
+        "batch": {"input": 0.025, "output": 0.20, "cache_read": 0.0025},
     },
     "gpt-5-pro": {
-        "input": 15.00,  # $15.00 per MTok
-        "output": 120.00,  # $120.00 per MTok
+        "standard": {"input": 15.00, "output": 120.00},
+        "batch": {"input": 7.50, "output": 60.00},
     },
     # GPT-4.1 series
     "gpt-4.1": {
-        "input": 2.00,  # $2.00 per MTok
-        "output": 8.00,  # $8.00 per MTok
-        "cache_read": 0.50,  # $0.50 per MTok (cached input)
+        "standard": {"input": 2.00, "output": 8.00, "cache_read": 0.50},
+        "batch": {"input": 1.00, "output": 4.00},
+        "priority": {"input": 3.50, "output": 14.00, "cache_read": 0.875},
     },
     "gpt-4.1-mini": {
-        "input": 0.40,  # $0.40 per MTok
-        "output": 1.60,  # $1.60 per MTok
-        "cache_read": 0.10,  # $0.10 per MTok (cached input)
+        "standard": {"input": 0.40, "output": 1.60, "cache_read": 0.10},
+        "batch": {"input": 0.20, "output": 0.80},
+        "priority": {"input": 0.70, "output": 2.80, "cache_read": 0.175},
     },
     "gpt-4.1-nano": {
-        "input": 0.10,  # $0.10 per MTok
-        "output": 0.40,  # $0.40 per MTok
-        "cache_read": 0.025,  # $0.025 per MTok (cached input)
+        "standard": {"input": 0.10, "output": 0.40, "cache_read": 0.025},
+        "batch": {"input": 0.05, "output": 0.20},
+        "priority": {"input": 0.20, "output": 0.80, "cache_read": 0.05},
     },
     # GPT-4o series
     "gpt-4o": {
-        "input": 2.50,  # $2.50 per MTok
-        "output": 10.00,  # $10.00 per MTok
-        "cache_read": 1.25,  # $1.25 per MTok (cached input, 50% discount)
+        "standard": {"input": 2.50, "output": 10.00, "cache_read": 1.25},
+        "batch": {"input": 1.25, "output": 5.00},
+        "priority": {"input": 4.25, "output": 17.00, "cache_read": 2.125},
     },
     "gpt-4o-2024-05-13": {
-        "input": 5.00,  # $5.00 per MTok
-        "output": 15.00,  # $15.00 per MTok
+        "standard": {"input": 5.00, "output": 15.00},
+        "batch": {"input": 2.50, "output": 7.50},
+        "priority": {"input": 8.75, "output": 26.25},
     },
     "gpt-4o-mini": {
-        "input": 0.15,  # $0.15 per MTok
-        "output": 0.60,  # $0.60 per MTok
-        "cache_read": 0.075,  # $0.075 per MTok (cached input, 50% discount)
+        "standard": {"input": 0.15, "output": 0.60, "cache_read": 0.075},
+        "batch": {"input": 0.075, "output": 0.30},
+        "priority": {"input": 0.25, "output": 1.00, "cache_read": 0.125},
     },
     # O-series (reasoning models)
     "o1": {
-        "input": 15.00,  # $15.00 per MTok
-        "output": 60.00,  # $60.00 per MTok (includes reasoning tokens)
-        "cache_read": 7.50,  # $7.50 per MTok (cached input)
+        "standard": {"input": 15.00, "output": 60.00, "cache_read": 7.50},
+        "batch": {"input": 7.50, "output": 30.00},
     },
     "o1-pro": {
-        "input": 150.00,  # $150.00 per MTok
-        "output": 600.00,  # $600.00 per MTok (includes reasoning tokens)
+        "standard": {"input": 150.00, "output": 600.00},
+        "batch": {"input": 75.00, "output": 300.00},
     },
     "o1-mini": {
-        "input": 1.10,  # $1.10 per MTok
-        "output": 4.40,  # $4.40 per MTok (includes reasoning tokens)
-        "cache_read": 0.55,  # $0.55 per MTok (cached input)
+        "standard": {"input": 1.10, "output": 4.40, "cache_read": 0.55},
+        "batch": {"input": 0.55, "output": 2.20},
     },
     # O3 series
     "o3": {
-        "input": 2.00,  # $2.00 per MTok
-        "output": 8.00,  # $8.00 per MTok (includes reasoning tokens)
-        "cache_read": 0.50,  # $0.50 per MTok (cached input)
+        "standard": {"input": 2.00, "output": 8.00, "cache_read": 0.50},
+        "flex": {"input": 1.00, "output": 4.00, "cache_read": 0.25},
+        "batch": {"input": 1.00, "output": 4.00},
+        "priority": {"input": 3.50, "output": 14.00, "cache_read": 0.875},
     },
     "o3-pro": {
-        "input": 20.00,  # $20.00 per MTok
-        "output": 80.00,  # $80.00 per MTok (includes reasoning tokens)
+        "standard": {"input": 20.00, "output": 80.00},
+        "batch": {"input": 10.00, "output": 40.00},
     },
     "o3-mini": {
-        "input": 1.10,  # $1.10 per MTok
-        "output": 4.40,  # $4.40 per MTok (includes reasoning tokens)
-        "cache_read": 0.55,  # $0.55 per MTok (cached input)
+        "standard": {"input": 1.10, "output": 4.40, "cache_read": 0.55},
+        "batch": {"input": 0.55, "output": 2.20},
     },
     "o3-deep-research": {
-        "input": 10.00,  # $10.00 per MTok
-        "output": 40.00,  # $40.00 per MTok (includes reasoning tokens)
-        "cache_read": 2.50,  # $2.50 per MTok (cached input)
+        "standard": {"input": 10.00, "output": 40.00, "cache_read": 2.50},
+        "batch": {"input": 5.00, "output": 20.00},
     },
     # O4 series
     "o4-mini": {
-        "input": 1.10,  # $1.10 per MTok
-        "output": 4.40,  # $4.40 per MTok (includes reasoning tokens)
-        "cache_read": 0.275,  # $0.275 per MTok (cached input)
+        "standard": {"input": 1.10, "output": 4.40, "cache_read": 0.275},
+        "flex": {"input": 0.55, "output": 2.20, "cache_read": 0.138},
+        "batch": {"input": 0.55, "output": 2.20},
+        "priority": {"input": 2.00, "output": 8.00, "cache_read": 0.50},
     },
     "o4-mini-deep-research": {
-        "input": 2.00,  # $2.00 per MTok
-        "output": 8.00,  # $8.00 per MTok (includes reasoning tokens)
-        "cache_read": 0.50,  # $0.50 per MTok (cached input)
+        "standard": {"input": 2.00, "output": 8.00, "cache_read": 0.50},
+        "batch": {"input": 1.00, "output": 4.00},
     },
     # Computer use preview
     "computer-use-preview": {
-        "input": 3.00,  # $3.00 per MTok
-        "output": 12.00,  # $12.00 per MTok
+        "standard": {"input": 3.00, "output": 12.00},
+        "batch": {"input": 1.50, "output": 6.00},
     },
 }
 
@@ -241,16 +242,6 @@ OLLAMA_PRICING = {
     }
 }
 
-# OpenAI service tier pricing multipliers (relative to Standard tier)
-# Source: https://platform.openai.com/docs/pricing
-OPENAI_SERVICE_TIER_MULTIPLIERS = {
-    "auto": 1.0,  # Default to standard pricing
-    "default": 1.0,  # Standard tier (base pricing)
-    "flex": 0.5,  # Flex tier is ~50% cheaper than standard
-    "batch": 0.5,  # Batch tier is ~50% cheaper than standard
-    "priority": 2.0,  # Priority tier is ~2x more expensive than standard
-}
-
 
 def get_model_pricing(
     model_name: str, service_tier: str | None = None
@@ -260,10 +251,10 @@ def get_model_pricing(
     Args:
         model_name: The model identifier (e.g., "claude-3-5-sonnet-20241022")
         service_tier: OpenAI service tier ("auto", "default", "flex", "batch", "priority").
-                     Only applies to OpenAI models. Defaults to "default" (standard pricing).
+                     Only applies to OpenAI models. Defaults to "standard" pricing.
 
     Returns:
-        Dictionary with pricing info (input, output, cache_read, cache_write prices per MTok),
+        Dictionary with pricing info (input, output, cache_read prices per MTok),
         or None if model pricing is not available.
 
     Example:
@@ -282,17 +273,23 @@ def get_model_pricing(
 
     # Check OpenAI models
     if model_name in OPENAI_PRICING:
-        base_pricing = OPENAI_PRICING[model_name].copy()
+        model_tiers = OPENAI_PRICING[model_name]
 
-        # Apply service tier multiplier for OpenAI models
-        if service_tier and service_tier in OPENAI_SERVICE_TIER_MULTIPLIERS:
-            multiplier = OPENAI_SERVICE_TIER_MULTIPLIERS[service_tier]
-            base_pricing["input"] = base_pricing["input"] * multiplier
-            base_pricing["output"] = base_pricing["output"] * multiplier
-            if "cache_read" in base_pricing:
-                base_pricing["cache_read"] = base_pricing["cache_read"] * multiplier
+        # Normalize service_tier: "auto" and "default" map to "standard"
+        tier = (
+            service_tier
+            if service_tier in ("flex", "batch", "priority")
+            else "standard"
+        )
 
-        return base_pricing
+        # Get tier-specific pricing, fallback to standard if tier not available
+        if tier in model_tiers:
+            return model_tiers[tier].copy()
+        elif "standard" in model_tiers:
+            return model_tiers["standard"].copy()
+        else:
+            # Fallback to first available tier if standard not available
+            return next(iter(model_tiers.values())).copy()
 
     # Check if it's an Ollama model (usually no provider prefix or "ollama/" prefix)
     if "/" not in model_name or model_name.startswith("ollama/"):
