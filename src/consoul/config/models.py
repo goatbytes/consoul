@@ -165,6 +165,10 @@ class OpenAIModelConfig(BaseModelConfig):
         default=None,
         description="Response format (e.g., {'type': 'json_object'} or {'type': 'json_schema', 'json_schema': {...}})",
     )
+    service_tier: Literal["auto", "default", "flex"] | None = Field(
+        default=None,
+        description="Service tier for API requests: 'auto' (default), 'default' (standard), or 'flex' (~50% cheaper, slower). See https://platform.openai.com/docs/guides/flex-processing",
+    )
 
 
 class AnthropicModelConfig(BaseModelConfig):

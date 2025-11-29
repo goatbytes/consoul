@@ -241,12 +241,26 @@ OLLAMA_PRICING = {
     }
 }
 
+# OpenAI service tier pricing multipliers (relative to Standard tier)
+# Source: https://platform.openai.com/docs/pricing
+OPENAI_SERVICE_TIER_MULTIPLIERS = {
+    "auto": 1.0,  # Default to standard pricing
+    "default": 1.0,  # Standard tier (base pricing)
+    "flex": 0.5,  # Flex tier is ~50% cheaper than standard
+    "batch": 0.5,  # Batch tier is ~50% cheaper than standard
+    "priority": 2.0,  # Priority tier is ~2x more expensive than standard
+}
 
-def get_model_pricing(model_name: str) -> dict[str, float] | None:
+
+def get_model_pricing(
+    model_name: str, service_tier: str | None = None
+) -> dict[str, float] | None:
     """Get pricing information for a model.
 
     Args:
         model_name: The model identifier (e.g., "claude-3-5-sonnet-20241022")
+        service_tier: OpenAI service tier ("auto", "default", "flex", "batch", "priority").
+                     Only applies to OpenAI models. Defaults to "default" (standard pricing).
 
     Returns:
         Dictionary with pricing info (input, output, cache_read, cache_write prices per MTok),
@@ -255,6 +269,8 @@ def get_model_pricing(model_name: str) -> dict[str, float] | None:
     Example:
         >>> pricing = get_model_pricing("claude-3-5-haiku-20241022")
         >>> print(f"Input: ${pricing['input']}/MTok, Output: ${pricing['output']}/MTok")
+        >>> # OpenAI with flex tier (50% cheaper)
+        >>> flex_pricing = get_model_pricing("gpt-4o", service_tier="flex")
     """
     # Check Anthropic models
     if model_name in ANTHROPIC_PRICING:
@@ -266,7 +282,17 @@ def get_model_pricing(model_name: str) -> dict[str, float] | None:
 
     # Check OpenAI models
     if model_name in OPENAI_PRICING:
-        return OPENAI_PRICING[model_name]
+        base_pricing = OPENAI_PRICING[model_name].copy()
+
+        # Apply service tier multiplier for OpenAI models
+        if service_tier and service_tier in OPENAI_SERVICE_TIER_MULTIPLIERS:
+            multiplier = OPENAI_SERVICE_TIER_MULTIPLIERS[service_tier]
+            base_pricing["input"] = base_pricing["input"] * multiplier
+            base_pricing["output"] = base_pricing["output"] * multiplier
+            if "cache_read" in base_pricing:
+                base_pricing["cache_read"] = base_pricing["cache_read"] * multiplier
+
+        return base_pricing
 
     # Check if it's an Ollama model (usually no provider prefix or "ollama/" prefix)
     if "/" not in model_name or model_name.startswith("ollama/"):
@@ -281,6 +307,7 @@ def calculate_cost(
     input_tokens: int,
     output_tokens: int,
     cached_tokens: int = 0,
+    service_tier: str | None = None,
 ) -> dict[str, Any]:
     """Calculate the cost for a model invocation.
 
@@ -289,6 +316,8 @@ def calculate_cost(
         input_tokens: Number of input/prompt tokens
         output_tokens: Number of output/completion tokens
         cached_tokens: Number of cached tokens (for models with prompt caching)
+        service_tier: OpenAI service tier ("auto", "default", "flex", "batch", "priority").
+                     Only applies to OpenAI models. Defaults to "default" (standard pricing).
 
     Returns:
         Dictionary with cost breakdown:
@@ -297,12 +326,15 @@ def calculate_cost(
         - output_cost: Cost of output tokens
         - cache_cost: Cost of cached tokens (if applicable)
         - pricing_available: Whether pricing data was found
+        - service_tier: The service tier used (for OpenAI models)
 
     Example:
         >>> cost = calculate_cost("claude-3-5-haiku-20241022", 1000, 500)
         >>> print(f"Total: ${cost['total_cost']:.6f}")
+        >>> # OpenAI with flex tier (50% cheaper)
+        >>> flex_cost = calculate_cost("gpt-4o", 1000, 500, service_tier="flex")
     """
-    pricing = get_model_pricing(model_name)
+    pricing = get_model_pricing(model_name, service_tier=service_tier)
 
     if pricing is None:
         # Try using LangChain for OpenAI models
@@ -347,7 +379,7 @@ def calculate_cost(
     if cached_tokens > 0 and "cache_read" in pricing:
         cache_cost = (cached_tokens / 1_000_000) * pricing["cache_read"]
 
-    return {
+    result = {
         "total_cost": input_cost + output_cost + cache_cost,
         "input_cost": input_cost,
         "output_cost": output_cost,
@@ -355,3 +387,9 @@ def calculate_cost(
         "pricing_available": True,
         "source": "consoul",
     }
+
+    # Add service_tier to result if provided (for OpenAI models)
+    if service_tier and model_name in OPENAI_PRICING:
+        result["service_tier"] = service_tier
+
+    return result

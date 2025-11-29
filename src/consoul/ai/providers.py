@@ -879,6 +879,8 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
             params["logit_bias"] = model_config.logit_bias
         if model_config.response_format is not None:
             params["response_format"] = model_config.response_format
+        if model_config.service_tier is not None:
+            params["service_tier"] = model_config.service_tier
 
     elif isinstance(model_config, AnthropicModelConfig):
         if model_config.top_p is not None:
