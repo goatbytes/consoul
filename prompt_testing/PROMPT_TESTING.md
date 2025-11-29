@@ -56,8 +56,8 @@ python test_prompts.py --prompts-file my_custom_prompts.json
 ## Documentation
 
 For complete documentation, see:
-- [`prompt_testing/README.md`](prompt_testing/README.md) - Main testing framework docs
-- [`prompt_testing/system_prompts/README.md`](prompt_testing/system_prompts/README.md) - System prompt guide
+- [`prompt_testing/README.md`](README.md) - Main testing framework docs
+- [`prompt_testing/system_prompts/README.md`](system_prompts/README.md) - System prompt guide
 
 ## Example Outputs
 
@@ -84,4 +84,4 @@ Each test run creates:
 
 ---
 
-**Full documentation:** See [`prompt_testing/README.md`](prompt_testing/README.md)
+**Full documentation:** See [`prompt_testing/README.md`](README.md)

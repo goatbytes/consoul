@@ -1,6 +1,21 @@
 # File Editing Tools
 
-Comprehensive guide to Consoul's AI-powered file editing capabilities with safety controls and progressive matching.
+Let the AI write, edit, and manage files for you—with powerful safety controls and surgical precision.
+
+## Introduction
+
+Consoul's file editing tools let AI models create, modify, and delete files in your project. Instead of copying code from a chat window and manually pasting it into your editor, the AI can make changes directly—and you can review them first.
+
+**Quick example:**
+```bash
+$ consoul chat "Add error handling to calculate_total in src/utils.py"
+```
+
+The AI will find the function, add try/catch blocks, preserve your formatting, and make the change—all without you opening an editor.
+
+**Related Tools:**
+- [Code Search](code-search.md) - Find code before editing
+- [Image Analysis](image-analysis.md) - Analyze screenshots and UI
 
 ## Table of Contents
 
@@ -1134,7 +1149,14 @@ edit_file_lines.invoke({
 
 ## See Also
 
-- [Tool Calling](../tools.md) - Complete tool calling documentation
-- [Security](../SECURITY.md) - Security best practices
-- [Configuration](configuration.md) - Profile configuration reference
-- [Examples](../examples/file-editing/README.md) - Working code examples
+**Other Tools:**
+- [Code Search](code-search.md) - Find code before editing it
+- [Image Analysis](image-analysis.md) - Review changes visually
+
+**SDK & API:**
+- [SDK Tools Overview](../api/tools.md) - Using file editing tools programmatically
+- [Tool Configuration](../sdk-tools.md) - Configuring file editing in your code
+
+**Configuration & Security:**
+- [Configuration Guide](configuration.md) - Enable/disable file editing
+- [Security Policy](../SECURITY.md) - Safety controls and best practices

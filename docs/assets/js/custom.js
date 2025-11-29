@@ -106,9 +106,38 @@ function setupTermynal() {
             return true;
         });
     }
+
+    // Use IntersectionObserver for more reliable loading
+    function setupIntersectionObserver() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const termynal = termynals.find(t => t.container === entry.target);
+                    if (termynal) {
+                        termynal.init();
+                        termynals = termynals.filter(t => t !== termynal);
+                        observer.unobserve(entry.target);
+                    }
+                }
+            });
+        }, {
+            rootMargin: '100px' // Start loading 100px before it comes into view
+        });
+
+        termynals.forEach(termynal => {
+            observer.observe(termynal.container);
+        });
+    }
+
     window.addEventListener("scroll", loadVisibleTermynals);
     createTermynals();
-    loadVisibleTermynals();
+
+    // Try both methods for better compatibility
+    if ('IntersectionObserver' in window) {
+        setupIntersectionObserver();
+    } else {
+        loadVisibleTermynals();
+    }
 }
 
 // Setup restart buttons for Termynal instances

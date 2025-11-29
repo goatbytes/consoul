@@ -1,6 +1,21 @@
 # Image Analysis (Vision)
 
-Consoul supports analyzing images using vision-capable AI models like Claude 3.5 Sonnet, GPT-4o, and Gemini 2.0 Flash. This enables powerful workflows like debugging screenshots, reviewing UI designs, analyzing diagrams, and more.
+Show the AI what you see—analyze screenshots, debug errors visually, review designs, and extract information from images.
+
+## Introduction
+
+Ever wanted to just *show* the AI what's on your screen instead of describing it? With Consoul's image analysis, you can attach screenshots, mockups, diagrams, or any image and ask questions about them.
+
+**Quick example:**
+```bash
+$ consoul chat "What's wrong with this error?" --attach error-screenshot.png
+```
+
+The AI sees the screenshot, reads the error message, examines the stack trace, and helps you debug—all from the visual context.
+
+**Related Tools:**
+- [Code Search](code-search.md) - Find code referenced in screenshots
+- [File Editing](file-editing.md) - Fix issues found in images
 
 ## Overview
 
@@ -502,6 +517,20 @@ A: Cloud providers may charge more for vision API calls. Check pricing:
 
 **Q: Can I disable image analysis?**
 A: Yes, set `tools.image_analysis.enabled: false` in your config.
+
+## See Also
+
+**Other Tools:**
+- [Code Search](code-search.md) - Find code referenced in images
+- [File Editing](file-editing.md) - Fix issues discovered visually
+
+**SDK & API:**
+- [SDK Tools Overview](../api/tools.md) - Using image analysis programmatically
+- [Tool Configuration](../sdk-tools.md) - Configuring vision tools in your code
+
+**Configuration:**
+- [Configuration Guide](configuration.md) - Enable/disable image analysis
+- [Vision-Capable Models](configuration.md#models) - Supported AI models
 
 ## Feedback & Support
 

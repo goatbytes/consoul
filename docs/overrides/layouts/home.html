@@ -89,6 +89,7 @@
   width: 100%;
   height: auto;
   margin: 0 auto;
+  padding-bottom: 2rem;
   display: flex;
   align-items: stretch;
 }
@@ -97,6 +98,7 @@
   width: 100%;
   height: 100%;
   min-width: 0;
+  cursor: pointer;
 }
 
 /* Secondary content styles */
@@ -199,6 +201,7 @@
   width: 100%;
   height: 100%;
   min-width: 0;
+  cursor: pointer;
 }
 
 .secondary-section .g .section .component-wrapper .first-column {
@@ -375,11 +378,13 @@
 
   <div class="md-container">
     <div class="tx-hero__image">
-      <img
-        src="{{ 'assets/screenshots/consoul-screenshot-conversation.png' | url }}"
-        alt="Consoul TUI Screenshot"
-        draggable="false"
-      >
+      <a href="{{ 'assets/screenshots/consoul-themes.gif' | url }}" data-gallery="hero">
+        <img
+          src="{{ 'assets/screenshots/consoul-themes.gif' | url }}"
+          alt="Consoul TUI Themes"
+          draggable="false"
+        >
+      </a>
     </div>
   </div>
 
@@ -396,20 +401,22 @@
               without leaving your terminal.
             </p>
             <p>
-              Full mouse support, split-pane rendering, and dark mode themes make the experience feel
-              native. Switch between <a href="{{ 'user-guide/tui-chat/' | url }}">interactive sessions</a>,
-              <a href="{{ 'user-guide/tui-quick-ask/' | url }}">quick questions</a>, and
-              <a href="{{ 'user-guide/tui-file-chat/' | url }}">file-based chats</a> powered by
+              Full mouse support, split-pane rendering, and customizable themes make the experience feel
+              native. Explore the <a href="{{ 'user-guide/tui/' | url }}">rich interface</a>,
+              <a href="{{ 'user-guide/tui/features/' | url }}">powerful features</a>, and
+              <a href="{{ 'user-guide/tui/keyboard-shortcuts/' | url }}">keyboard shortcuts</a> powered by
               <a href="https://textual.textualize.io" target="_blank">Textual</a>.
             </p>
           </div>
           <div class="second-column">
             <div class="image-wrapper">
-              <img
-                src="{{ 'assets/screenshots/consoul-screenshot-start.png' | url }}"
-                alt="Consoul TUI"
-                draggable="false"
-              >
+              <a href="{{ 'assets/screenshots/consoul-screenshot-conversation.png' | url }}" data-gallery="tui">
+                <img
+                  src="{{ 'assets/screenshots/consoul-screenshot-conversation.png' | url }}"
+                  alt="Consoul TUI"
+                  draggable="false"
+                >
+              </a>
             </div>
           </div>
         </div>
@@ -417,7 +424,7 @@
           <h4>Explore features</h4>
 
           <div class="responsive-grid">
-            <a class="card-wrapper" href="{{ 'user-guide/tui-chat/' | url }}">
+            <a class="card-wrapper" href="{{ 'user-guide/tui/interface/' | url }}">
               <div class="card">
                 <div class="logo">
                   <span class="twemoji">
@@ -433,7 +440,7 @@
               </div>
             </a>
 
-            <a class="card-wrapper" href="{{ 'user-guide/themes/' | url }}">
+            <a class="card-wrapper" href="{{ 'user-guide/tui/themes/' | url }}">
               <div class="card">
                 <div class="logo">
                   <span class="twemoji">
@@ -449,7 +456,7 @@
               </div>
             </a>
 
-            <a class="card-wrapper" href="{{ 'user-guide/models/' | url }}">
+            <a class="card-wrapper" href="{{ 'user-guide/configuration/' | url }}">
               <div class="card">
                 <div class="logo">
                   <span class="twemoji">
@@ -530,7 +537,7 @@ Goodbye!
               </div>
             </a>
 
-            <a class="card-wrapper" href="{{ 'user-guide/sessions/' | url }}">
+            <a class="card-wrapper" href="{{ 'user-guide/cli-chat/' | url }}">
               <div class="card">
                 <div class="logo">
                   <span class="twemoji">
@@ -546,7 +553,7 @@ Goodbye!
               </div>
             </a>
 
-            <a class="card-wrapper" href="{{ 'api/cli/' | url }}">
+            <a class="card-wrapper" href="{{ 'user-guide/usage/' | url }}">
               <div class="card">
                 <div class="logo">
                   <span class="twemoji">
@@ -571,7 +578,7 @@ Goodbye!
           <div class="first-column">
             <h3>Flexible SDK for Integration</h3>
             <p>
-              Embed AI capabilities in your Python applications with <a href="{{ 'api/sdk/' | url }}">full type safety</a>
+              Embed AI capabilities in your Python applications with <a href="{{ 'api/' | url }}">full type safety</a>
               and async support. Build conversational interfaces, integrate with existing systems, and create
               automated workflows.
             </p>
@@ -594,7 +601,7 @@ Goodbye!
           <h4>Explore features</h4>
 
           <div class="responsive-grid">
-            <a class="card-wrapper" href="{{ 'api/sdk/' | url }}">
+            <a class="card-wrapper" href="{{ 'api/' | url }}">
               <div class="card">
                 <div class="logo">
                   <span class="twemoji">
@@ -610,7 +617,7 @@ Goodbye!
               </div>
             </a>
 
-            <a class="card-wrapper" href="{{ 'api/sdk/' | url }}#async-support">
+            <a class="card-wrapper" href="{{ 'api/tutorial/' | url }}">
               <div class="card">
                 <div class="logo">
                   <span class="twemoji">
@@ -626,7 +633,7 @@ Goodbye!
               </div>
             </a>
 
-            <a class="card-wrapper" href="{{ 'api/sdk/' | url }}#extensibility">
+            <a class="card-wrapper" href="{{ 'api/tools/' | url }}">
               <div class="card">
                 <div class="logo">
                   <span class="twemoji">

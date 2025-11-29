@@ -194,13 +194,21 @@ nav:
     - Overview: api/index.md
     - Tutorial: api/tutorial.md
     - Tools: api/tools.md
+    - Tool Configuration: sdk-tools.md
     - Building Agents: api/agents.md
     - API Reference: api/reference.md
   - CLI:
     - Overview: cli-reference/index.md
     - Commands: user-guide/usage.md
     - Chat Mode: user-guide/cli-chat.md
+  - Tools:
+    - File Editing: user-guide/file-editing.md
+    - Image Analysis: user-guide/image-analysis.md
+    - Code Search: user-guide/code-search.md
+  - Advanced:
+    - SearxNG Setup: advanced/searxng-setup.md
   - Development:
     - Setup: development.md
     - Contributing: contributing.md
+  - Security: SECURITY.md
   - FAQs: faqs.md
