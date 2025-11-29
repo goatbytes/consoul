@@ -881,8 +881,8 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
             params["response_format"] = model_config.response_format
         if model_config.service_tier is not None:
             params["service_tier"] = model_config.service_tier
-        # Enable streaming usage metadata for cost calculation
-        params["stream_usage"] = True
+        # Enable streaming usage metadata for cost calculation via stream_options
+        params["model_kwargs"] = {"stream_options": {"include_usage": True}}
 
     elif isinstance(model_config, AnthropicModelConfig):
         if model_config.top_p is not None:

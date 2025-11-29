@@ -1835,8 +1835,16 @@ class ConsoulApp(App[None]):
                             usage_metadata = None
                             if collected_chunks:
                                 last_chunk = collected_chunks[-1]
+                                logger.debug(
+                                    f"[COST] Last chunk type: {type(last_chunk).__name__}, "
+                                    f"has_usage_metadata: {hasattr(last_chunk, 'usage_metadata')}, "
+                                    f"chunk_attrs: {[a for a in dir(last_chunk) if not a.startswith('_')][:15]}"
+                                )
                                 if hasattr(last_chunk, "usage_metadata"):
                                     usage_metadata = last_chunk.usage_metadata
+                                    logger.debug(
+                                        f"[COST] Extracted usage_metadata from last chunk: {usage_metadata}"
+                                    )
 
                             # Create final message with all content, tool_calls, and usage_metadata
                             final_message = AIMessage(
