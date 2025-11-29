@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-26T00:53:47.978786",
+  "updated_at": "2025-11-26T19:56:48.323127Z",
+  "id": "SOUL-173",
+  "uuid": "f2c9ffb4-00a6-47b0-a688-e6eea37af786",
+  "title": "Document CLI chat command usage and features",
+  "description": "**As a** Consoul user\n**I want** comprehensive documentation for the chat command\n**So that** I understand how to use CLI chat mode effectively\n\n**Context:**\nWith the new consoul chat command, users need documentation covering:\n- Basic usage and getting started\n- Keyboard shortcuts and navigation\n- Slash commands reference\n- Tool approval workflow\n- Configuration options\n- Comparison with TUI mode\n- Examples and common workflows\n\n**Technical Notes:**\n- docs/user-guide/chat.md - Create new page\n- docs/cli-reference/index.md - Update with chat command details\n- README.md - Add chat mode mention\n- Update quickstart with chat example\n- Add to mkdocs.yml navigation\n\n**Acceptance Criteria:**\n\n**Given** user reads docs/user-guide/chat.md\n**When** they want to start using chat\n**Then** clear examples and instructions are provided\n\n**Given** user wants to know available options\n**When** they read CLI reference\n**Then** all flags and options are documented with examples\n\n**Given** user wants to know keyboard shortcuts\n**When** they read the shortcuts section\n**Then** all keys are listed (Ctrl+C, Ctrl+D, arrow keys, etc.)\n\n**Given** user wants to understand slash commands\n**When** they read slash commands section\n**Then** all commands are documented with usage examples\n\n**Testing Considerations:**\n- Verify all examples work as documented\n- Test commands on fresh install\n- Check links work in rendered docs\n- Verify mkdocs renders correctly\n\n**Implementation Hints:**\nCreate docs/user-guide/chat.md with sections on getting started, keyboard shortcuts, slash commands, tool approval, configuration, and examples. Update CLI reference and README with chat mode information.\n\nDependencies: SOUL-170 (Main chat implementation)",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "documentation",
+    "cli"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

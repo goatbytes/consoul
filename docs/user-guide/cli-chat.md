@@ -373,19 +373,19 @@ Format is auto-detected from file extension:
 **Model**: claude-3-5-sonnet-20241022
 **Created**: 2025-01-15T10:30:00
 **Messages**: 6
-**Total Tokens**: 1,245
+**Total Tokens**: (not tracked in CLI export)
 
 ---
 
 ## 👤 User
-*2025-01-15T10:30:05* | *45 tokens*
+*2025-01-15T10:30:05*
 
 What is the difference between lists and tuples?
 
 ---
 
 ## 🤖 Assistant
-*2025-01-15T10:30:08* | *312 tokens*
+*2025-01-15T10:30:08*
 
 The main differences are...
 ```
@@ -413,7 +413,7 @@ Assistant: I'll use the bash tool to check...
 2. **You approve or deny:**
 - Type `y` and press Enter to approve
 - Type `n` or press Enter to deny
-- Press `Ctrl+C` to cancel
+- (Cancel the session to abort the request)
 
 3. **Tool executes and AI continues:**
 ```
