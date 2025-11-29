@@ -234,10 +234,15 @@ class ConversationHistory:
             ...     summarize_threshold=20
             ... )
         """
+        import time
+        init_start = time.time()
+
         self.model_name = model_name
 
         # Calculate context window size
+        step_start = time.time()
         model_limit = get_model_token_limit(model_name)
+        logger.debug(f"[PERF-HIST] Get model token limit: {(time.time() - step_start)*1000:.1f}ms")
 
         if max_tokens is None or max_tokens == 0:
             # Auto-size: use 75% of model's context window
@@ -246,7 +251,11 @@ class ConversationHistory:
             # Use explicit limit, but cap at model maximum
             self.max_tokens = min(max_tokens, model_limit)
         self.messages: list[BaseMessage] = []
+
+        step_start = time.time()
         self._token_counter = create_token_counter(model_name, model)
+        logger.debug(f"[PERF-HIST] Create token counter: {(time.time() - step_start)*1000:.1f}ms")
+
         self._model = model
 
         # Flag to use fast estimation instead of real token counting
@@ -264,11 +273,15 @@ class ConversationHistory:
             try:
                 from consoul.ai.database import ConversationDatabase
 
+                step_start = time.time()
                 self._db = ConversationDatabase(self._db_path)
+                logger.debug(f"[PERF-HIST] Create ConversationDatabase: {(time.time() - step_start)*1000:.1f}ms")
 
                 if session_id:
                     # Resume existing conversation
+                    step_start = time.time()
                     self._load_from_db(session_id)
+                    logger.debug(f"[PERF-HIST] Load from DB: {(time.time() - step_start)*1000:.1f}ms")
                     self._conversation_created = True
                     # Use fast token counting for loaded conversations to avoid hangs
                     self._use_fast_token_counting = True
@@ -298,16 +311,20 @@ class ConversationHistory:
             else:
                 from consoul.ai.summarization import ConversationSummarizer
 
+                step_start = time.time()
                 self._summarizer = ConversationSummarizer(
                     llm=model,
                     threshold=summarize_threshold,
                     keep_recent=keep_recent,
                     summary_model=summary_model,
                 )
+                logger.debug(f"[PERF-HIST] Create ConversationSummarizer: {(time.time() - step_start)*1000:.1f}ms")
                 logger.info(
                     f"Initialized summarization: threshold={summarize_threshold}, "
                     f"keep_recent={keep_recent}"
                 )
+
+        logger.debug(f"[PERF-HIST] Total ConversationHistory.__init__: {(time.time() - init_start)*1000:.1f}ms")
 
     def _load_from_db(self, session_id: str) -> None:
         """Load conversation from database.

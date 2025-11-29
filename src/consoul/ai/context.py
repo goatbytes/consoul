@@ -95,6 +95,11 @@ MODEL_TOKEN_LIMITS: dict[str, int] = {
     "llama3.1": 128_000,  # Llama 3.1 family supports 128K
     "mistral": 32_000,
     "phi": 4_096,
+    # IBM Granite models
+    "granite4": 128_000,  # Granite 4.x series: 128K context
+    "granite3": 128_000,  # Granite 3.x series: 128K context
+    "granite3-moe": 128_000,  # Granite 3 MoE: 128K context
+    "granite3-dense": 128_000,  # Granite 3 Dense: 128K context
     # Qwen models
     "qwen3": 262_000,  # Qwen 3 series: 262K context
     "qwen2.5": 128_000,  # Qwen 2.5 series: 128K context
@@ -106,11 +111,50 @@ MODEL_TOKEN_LIMITS: dict[str, int] = {
 # Default fallback for unknown models
 DEFAULT_TOKEN_LIMIT = 4_096
 
+# Cache for Ollama context lengths (in-memory, persists for session)
+_OLLAMA_CONTEXT_CACHE: dict[str, int] = {}
+
+
+def _load_ollama_cache() -> dict[str, int]:
+    """Load cached Ollama context lengths from disk.
+
+    Returns:
+        Dictionary mapping model names to context lengths
+    """
+    try:
+        from pathlib import Path
+        import json
+
+        cache_file = Path.home() / ".consoul" / "ollama_context_cache.json"
+        if cache_file.exists():
+            return json.loads(cache_file.read_text())
+    except Exception:
+        pass
+    return {}
+
+
+def _save_ollama_cache(cache: dict[str, int]) -> None:
+    """Save Ollama context length cache to disk.
+
+    Args:
+        cache: Dictionary mapping model names to context lengths
+    """
+    try:
+        from pathlib import Path
+        import json
+
+        cache_file = Path.home() / ".consoul" / "ollama_context_cache.json"
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(json.dumps(cache, indent=2))
+    except Exception:
+        pass
+
 
 def _get_ollama_context_length(model_name: str) -> int | None:
     """Query Ollama API for actual context length of a model.
 
-    Uses the existing get_ollama_models function to avoid duplicating API logic.
+    Results are cached both in-memory and on disk to avoid repeated API calls.
+    Cache is stored at ~/.consoul/ollama_context_cache.json
 
     Args:
         model_name: Ollama model name (e.g., "qwen3:30b", "llama3.1:8b")
@@ -122,6 +166,20 @@ def _get_ollama_context_length(model_name: str) -> int | None:
         >>> _get_ollama_context_length("qwen3:30b")
         262144
     """
+    global _OLLAMA_CONTEXT_CACHE
+
+    # Check in-memory cache first (fastest)
+    if model_name in _OLLAMA_CONTEXT_CACHE:
+        return _OLLAMA_CONTEXT_CACHE[model_name]
+
+    # Load disk cache if not already loaded
+    if not _OLLAMA_CONTEXT_CACHE:
+        _OLLAMA_CONTEXT_CACHE = _load_ollama_cache()
+        # Check again after loading
+        if model_name in _OLLAMA_CONTEXT_CACHE:
+            return _OLLAMA_CONTEXT_CACHE[model_name]
+
+    # Cache miss - query Ollama API
     try:
         from consoul.ai.providers import get_ollama_models
 
@@ -129,7 +187,12 @@ def _get_ollama_context_length(model_name: str) -> int | None:
         models = get_ollama_models(include_context=True)
         for model in models:
             if model.get("name") == model_name:
-                return model.get("context_length")
+                context_length = model.get("context_length")
+                if context_length:
+                    # Cache the result (both in-memory and on disk)
+                    _OLLAMA_CONTEXT_CACHE[model_name] = context_length
+                    _save_ollama_cache(_OLLAMA_CONTEXT_CACHE)
+                    return context_length
     except Exception:
         # Silently fail - we'll fall back to hardcoded limits
         pass
@@ -167,21 +230,21 @@ def get_model_token_limit(model_name: str) -> int:
     key = (model_name or "").strip().lower()
     key_normalized = key.replace(":", "-").replace("/", "-").replace("_", "-")
 
-    # For Ollama models with tags (contain ":"), try API query first for exact context
-    # This gives us the actual configured context rather than the model family default
+    # Try exact match (with normalized key) - FAST, no API call
+    if key_normalized in MODEL_TOKEN_LIMITS:
+        return MODEL_TOKEN_LIMITS[key_normalized]
+
+    # Try prefix match (e.g., "gpt-4o-2024-08-06" → "gpt-4o", "granite4:3b" → "granite4") - FAST
+    for known_model, limit in MODEL_TOKEN_LIMITS.items():
+        if key_normalized.startswith(known_model):
+            return limit
+
+    # Fallback: For Ollama models with tags (contain ":"), try API query
+    # This gives us the actual configured context for unmapped models
     if ":" in key:
         ollama_context = _get_ollama_context_length(model_name)
         if ollama_context:
             return ollama_context
-
-    # Try exact match (with normalized key)
-    if key_normalized in MODEL_TOKEN_LIMITS:
-        return MODEL_TOKEN_LIMITS[key_normalized]
-
-    # Try prefix match (e.g., "gpt-4o-2024-08-06" → "gpt-4o")
-    for known_model, limit in MODEL_TOKEN_LIMITS.items():
-        if key_normalized.startswith(known_model):
-            return limit
 
     # For local models without tags, try API query as fallback
     if key in {"llama3", "llama3.1", "mistral", "phi", "qwen", "codellama"}:
@@ -380,7 +443,9 @@ def _create_huggingface_counter(
     try:
         from consoul.ai.tokenizers import create_huggingface_token_counter
 
-        return create_huggingface_token_counter(model_name)
+        # Use lazy=True - tokenizer loads in background after UI appears
+        # This makes startup instant while ensuring tokenizer is ready before first message
+        return create_huggingface_token_counter(model_name, lazy=True)
     except ImportError:
         import logging
 

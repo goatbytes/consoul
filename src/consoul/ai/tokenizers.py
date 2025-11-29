@@ -164,11 +164,12 @@ class HuggingFaceTokenCounter:
         "mixtral:8x22b": "mistralai/Mixtral-8x22B-Instruct-v0.1",
     }
 
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str, lazy: bool = False):
         """Initialize tokenizer for the given model.
 
         Args:
             model_name: Ollama model name (e.g., "granite4:3b")
+            lazy: If True, defer tokenizer loading until first use
 
         Raises:
             ImportError: If transformers package not installed
@@ -176,7 +177,15 @@ class HuggingFaceTokenCounter:
             Exception: If tokenizer fails to load
         """
         self.model_name = model_name
-        self.tokenizer = self._load_tokenizer(model_name)
+        self._lazy = lazy
+        self._tokenizer = None if lazy else self._load_tokenizer(model_name)
+
+    @property
+    def tokenizer(self) -> Any:
+        """Get tokenizer, loading it lazily if needed."""
+        if self._tokenizer is None:
+            self._tokenizer = self._load_tokenizer(self.model_name)
+        return self._tokenizer
 
     def _load_tokenizer(self, model_name: str) -> Any:
         """Load HuggingFace tokenizer for the model.
@@ -299,6 +308,7 @@ class HuggingFaceTokenCounter:
 
 def create_huggingface_token_counter(
     model_name: str,
+    lazy: bool = False,
 ) -> Callable[[list[BaseMessage]], int]:
     """Create a token counter function using HuggingFace tokenizer.
 
@@ -307,6 +317,7 @@ def create_huggingface_token_counter(
 
     Args:
         model_name: Ollama model name (e.g., "granite4:3b")
+        lazy: If True, defer tokenizer loading until first use (faster startup)
 
     Returns:
         Function that takes list[BaseMessage] and returns token count
@@ -323,7 +334,7 @@ def create_huggingface_token_counter(
         >>> print(tokens)
         8
     """
-    counter = HuggingFaceTokenCounter(model_name)
+    counter = HuggingFaceTokenCounter(model_name, lazy=lazy)
     return counter.count_tokens
 
 
