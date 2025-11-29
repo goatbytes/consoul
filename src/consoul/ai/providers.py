@@ -1668,22 +1668,23 @@ def get_chat_model(
                     ) from e
 
     # Special handling for OpenAI to properly set stream_options
-    # init_chat_model doesn't properly forward model_kwargs for stream_options
+    # ChatOpenAI expects stream_options in model_kwargs, not as direct parameter
     if provider == Provider.OPENAI:
         from langchain_openai import ChatOpenAI
 
-        # Extract stream_options from model_kwargs
+        # Extract or create model_kwargs with stream_options
         model_kwargs = params.pop("model_kwargs", {})
-        stream_options = model_kwargs.get("stream_options", {"include_usage": True})
+        if "stream_options" not in model_kwargs:
+            model_kwargs["stream_options"] = {"include_usage": True}
 
-        # Build ChatOpenAI params
-        openai_params = {**params, "stream_options": stream_options}
+        # Build ChatOpenAI params with model_kwargs
+        openai_params = {**params, "model_kwargs": model_kwargs}
 
         import logging
 
         logger = logging.getLogger(__name__)
         logger.debug(
-            f"[STREAM_OPTIONS] OpenAI init params: stream_options={stream_options}"
+            f"[STREAM_OPTIONS] OpenAI init params: model_kwargs={model_kwargs}"
         )
 
         return ChatOpenAI(**openai_params)  # type: ignore[no-any-return]
