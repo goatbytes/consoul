@@ -122,25 +122,114 @@ GOOGLE_PRICING = {
 # OpenAI pricing for models not in LangChain
 # Most OpenAI models are covered by langchain_community.callbacks.openai_info
 # This is a fallback for any missing models
-# Source: https://openai.com/api/pricing/ (as of November 2024)
+# Source: https://platform.openai.com/docs/pricing (Standard tier, as of January 2025)
 OPENAI_PRICING = {
+    # GPT-5 series
+    "gpt-5.1": {
+        "input": 1.25,  # $1.25 per MTok
+        "output": 10.00,  # $10.00 per MTok
+        "cache_read": 0.125,  # $0.125 per MTok (cached input)
+    },
+    "gpt-5": {
+        "input": 1.25,  # $1.25 per MTok
+        "output": 10.00,  # $10.00 per MTok
+        "cache_read": 0.125,  # $0.125 per MTok (cached input)
+    },
+    "gpt-5-mini": {
+        "input": 0.25,  # $0.25 per MTok
+        "output": 2.00,  # $2.00 per MTok
+        "cache_read": 0.025,  # $0.025 per MTok (cached input)
+    },
+    "gpt-5-nano": {
+        "input": 0.05,  # $0.05 per MTok
+        "output": 0.40,  # $0.40 per MTok
+        "cache_read": 0.005,  # $0.005 per MTok (cached input)
+    },
+    "gpt-5-pro": {
+        "input": 15.00,  # $15.00 per MTok
+        "output": 120.00,  # $120.00 per MTok
+    },
+    # GPT-4.1 series
+    "gpt-4.1": {
+        "input": 2.00,  # $2.00 per MTok
+        "output": 8.00,  # $8.00 per MTok
+        "cache_read": 0.50,  # $0.50 per MTok (cached input)
+    },
+    "gpt-4.1-mini": {
+        "input": 0.40,  # $0.40 per MTok
+        "output": 1.60,  # $1.60 per MTok
+        "cache_read": 0.10,  # $0.10 per MTok (cached input)
+    },
+    "gpt-4.1-nano": {
+        "input": 0.10,  # $0.10 per MTok
+        "output": 0.40,  # $0.40 per MTok
+        "cache_read": 0.025,  # $0.025 per MTok (cached input)
+    },
+    # GPT-4o series
     "gpt-4o": {
+        "input": 2.50,  # $2.50 per MTok
+        "output": 10.00,  # $10.00 per MTok
+        "cache_read": 1.25,  # $1.25 per MTok (cached input, 50% discount)
+    },
+    "gpt-4o-2024-05-13": {
         "input": 5.00,  # $5.00 per MTok
-        "output": 20.00,  # $20.00 per MTok
-        "cache_read": 2.50,  # $2.50 per MTok (cached input, 50% discount)
+        "output": 15.00,  # $15.00 per MTok
     },
     "gpt-4o-mini": {
         "input": 0.15,  # $0.15 per MTok
         "output": 0.60,  # $0.60 per MTok
         "cache_read": 0.075,  # $0.075 per MTok (cached input, 50% discount)
     },
+    # O-series (reasoning models)
     "o1": {
         "input": 15.00,  # $15.00 per MTok
         "output": 60.00,  # $60.00 per MTok (includes reasoning tokens)
+        "cache_read": 7.50,  # $7.50 per MTok (cached input)
+    },
+    "o1-pro": {
+        "input": 150.00,  # $150.00 per MTok
+        "output": 600.00,  # $600.00 per MTok (includes reasoning tokens)
     },
     "o1-mini": {
-        "input": 1.10,  # $1.10 per MTok (per LangChain data)
+        "input": 1.10,  # $1.10 per MTok
         "output": 4.40,  # $4.40 per MTok (includes reasoning tokens)
+        "cache_read": 0.55,  # $0.55 per MTok (cached input)
+    },
+    # O3 series
+    "o3": {
+        "input": 2.00,  # $2.00 per MTok
+        "output": 8.00,  # $8.00 per MTok (includes reasoning tokens)
+        "cache_read": 0.50,  # $0.50 per MTok (cached input)
+    },
+    "o3-pro": {
+        "input": 20.00,  # $20.00 per MTok
+        "output": 80.00,  # $80.00 per MTok (includes reasoning tokens)
+    },
+    "o3-mini": {
+        "input": 1.10,  # $1.10 per MTok
+        "output": 4.40,  # $4.40 per MTok (includes reasoning tokens)
+        "cache_read": 0.55,  # $0.55 per MTok (cached input)
+    },
+    "o3-deep-research": {
+        "input": 10.00,  # $10.00 per MTok
+        "output": 40.00,  # $40.00 per MTok (includes reasoning tokens)
+        "cache_read": 2.50,  # $2.50 per MTok (cached input)
+    },
+    # O4 series
+    "o4-mini": {
+        "input": 1.10,  # $1.10 per MTok
+        "output": 4.40,  # $4.40 per MTok (includes reasoning tokens)
+        "cache_read": 0.275,  # $0.275 per MTok (cached input)
+    },
+    "o4-mini-deep-research": {
+        "input": 2.00,  # $2.00 per MTok
+        "output": 8.00,  # $8.00 per MTok (includes reasoning tokens)
+        "cache_read": 0.50,  # $0.50 per MTok (cached input)
+    },
+    # Computer use preview
+    "computer-use-preview": {
+        "input": 3.00,  # $3.00 per MTok
+        "output": 12.00,  # $12.00 per MTok
     },
 }
 
