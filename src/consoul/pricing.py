@@ -21,6 +21,14 @@ from typing import Any
 # Source: https://docs.anthropic.com/en/docs/about-claude/pricing
 # Note: Anthropic now uses naming like "Claude Sonnet 4.5" but API still uses "claude-3-5-sonnet-*"
 ANTHROPIC_PRICING = {
+    # Claude Opus 4.5 (November 2025 release - 66% price drop!)
+    "claude-opus-4-5-20251101": {
+        "input": 5.00,  # $5 per MTok (down from $15)
+        "output": 25.00,  # $25 per MTok (down from $75)
+        "cache_write_5m": 6.25,  # $6.25 per MTok (5min TTL)
+        "cache_write_1h": 10.00,  # $10.00 per MTok (1hr TTL)
+        "cache_read": 0.50,  # $0.50 per MTok
+    },
     # Claude Sonnet 4.5 (marketed as Claude 3.5 Sonnet in API)
     "claude-3-5-sonnet-20241022": {
         "input": 3.00,  # $3 per MTok
@@ -44,10 +52,10 @@ ANTHROPIC_PRICING = {
         "cache_write_1h": 2.00,  # $2.00 per MTok (1hr TTL)
         "cache_read": 0.10,  # $0.10 per MTok
     },
-    # Claude Opus 4.5 (marketed as Claude 3 Opus in API)
+    # Claude Opus 4.5 (legacy API name - same pricing as new version)
     "claude-3-opus-20240229": {
-        "input": 5.00,  # $5 per MTok (67% price reduction from $15!)
-        "output": 25.00,  # $25 per MTok (67% price reduction from $75!)
+        "input": 5.00,  # $5 per MTok (67% price reduction from original $15!)
+        "output": 25.00,  # $25 per MTok (67% price reduction from original $75!)
         "cache_write_5m": 6.25,  # $6.25 per MTok (5min TTL)
         "cache_write_1h": 10.00,  # $10.00 per MTok (1hr TTL)
         "cache_read": 0.50,  # $0.50 per MTok
