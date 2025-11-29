@@ -3,8 +3,12 @@
 This module provides pricing information for AI models from various providers.
 Pricing data is updated as of November 2024.
 
-For OpenAI models, we use LangChain's built-in pricing data when available.
-For other providers (Anthropic, Google, etc.), we maintain static pricing.
+IMPORTANT: LangChain's pricing data for OpenAI models may be outdated. Our
+OPENAI_PRICING dict takes priority and contains verified pricing from
+https://openai.com/api/pricing/ (as of November 2024).
+
+For other providers (Anthropic, Google), we maintain static pricing from
+official sources.
 
 Prices are in USD per million tokens (MTok).
 """
@@ -96,16 +100,25 @@ GOOGLE_PRICING = {
 # OpenAI pricing for models not in LangChain
 # Most OpenAI models are covered by langchain_community.callbacks.openai_info
 # This is a fallback for any missing models
+# Source: https://openai.com/api/pricing/ (as of November 2024)
 OPENAI_PRICING = {
     "gpt-4o": {
-        "input": 2.50,  # $2.50 per MTok
-        "output": 10.00,  # $10.00 per MTok
-        "cache_read": 1.25,  # $1.25 per MTok (cached input)
+        "input": 5.00,  # $5.00 per MTok
+        "output": 20.00,  # $20.00 per MTok
+        "cache_read": 2.50,  # $2.50 per MTok (cached input, 50% discount)
     },
     "gpt-4o-mini": {
         "input": 0.15,  # $0.15 per MTok
         "output": 0.60,  # $0.60 per MTok
-        "cache_read": 0.075,  # $0.075 per MTok (cached input)
+        "cache_read": 0.075,  # $0.075 per MTok (cached input, 50% discount)
+    },
+    "o1": {
+        "input": 15.00,  # $15.00 per MTok
+        "output": 60.00,  # $60.00 per MTok (includes reasoning tokens)
+    },
+    "o1-mini": {
+        "input": 1.10,  # $1.10 per MTok (per LangChain data)
+        "output": 4.40,  # $4.40 per MTok (includes reasoning tokens)
     },
 }
 
