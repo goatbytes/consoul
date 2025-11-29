@@ -88,6 +88,17 @@ class TuiConfig(BaseModel):
     enable_mouse: bool = Field(default=True, description="Enable mouse interactions")
     vim_mode: bool = Field(default=False, description="Enable vim-style navigation")
 
+    # Loading Screen
+    show_loading_screen: bool = Field(
+        default=True, description="Show animated loading screen on startup"
+    )
+    loading_animation_style: Literal[
+        "sound_wave", "matrix_rain", "binary_wave", "code_stream", "pulse"
+    ] = Field(default="sound_wave", description="Animation style for loading screen")
+    loading_show_progress: bool = Field(
+        default=True, description="Show progress bar on loading screen"
+    )
+
     # Debug Settings
     debug: bool = Field(default=False, description="Enable debug logging")
     log_file: str | None = Field(

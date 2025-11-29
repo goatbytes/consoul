@@ -23,6 +23,8 @@ if TYPE_CHECKING:
     from textual.binding import BindingType
 
     from consoul.ai.history import ConversationHistory
+    from consoul.ai.title_generator import TitleGenerator
+    from consoul.ai.tools import ToolRegistry
     from consoul.ai.tools.parser import ParsedToolCall
     from consoul.config import ConsoulConfig
     from consoul.tui.widgets import (
@@ -201,6 +203,7 @@ class ConsoulApp(App[None]):
         This is a helper to run blocking I/O operations without freezing the UI.
         """
         import asyncio
+
         return await asyncio.to_thread(func, *args, **kwargs)
 
     def _load_config(self) -> ConsoulConfig:
@@ -245,15 +248,18 @@ class ConsoulApp(App[None]):
         Returns:
             ConversationHistory instance
         """
-        import time
         import logging
+        import time
+
         logger = logging.getLogger(__name__)
 
         from consoul.ai import ConversationHistory
 
         step_start = time.time()
         conv_kwargs = self._get_conversation_config()
-        logger.info(f"[PERF-CONV] Get conversation config: {(time.time() - step_start)*1000:.1f}ms")
+        logger.info(
+            f"[PERF-CONV] Get conversation config: {(time.time() - step_start) * 1000:.1f}ms"
+        )
 
         step_start = time.time()
         conversation = ConversationHistory(
@@ -261,7 +267,9 @@ class ConsoulApp(App[None]):
             model=model,
             **conv_kwargs,
         )
-        logger.info(f"[PERF-CONV] ConversationHistory.__init__: {(time.time() - step_start)*1000:.1f}ms")
+        logger.info(
+            f"[PERF-CONV] ConversationHistory.__init__: {(time.time() - step_start) * 1000:.1f}ms"
+        )
 
         return conversation
 
@@ -656,8 +664,8 @@ class ConsoulApp(App[None]):
             Exception: Any initialization error (caught and shown in error screen)
         """
         import asyncio
-        import time
         import logging
+        import time
 
         logger = logging.getLogger(__name__)
 
@@ -680,7 +688,9 @@ class ConsoulApp(App[None]):
                 self.consoul_config = consoul_config
             else:
                 consoul_config = self.consoul_config
-            logger.info(f"[PERF] Step 1 (Load config): {(time.time() - step_start)*1000:.1f}ms")
+            logger.info(
+                f"[PERF] Step 1 (Load config): {(time.time() - step_start) * 1000:.1f}ms"
+            )
 
             # If no config, skip initialization
             if not consoul_config:
@@ -705,7 +715,9 @@ class ConsoulApp(App[None]):
             self.chat_model = await self._run_in_thread(
                 self._initialize_ai_model, consoul_config
             )
-            logger.info(f"[PERF] Step 2 (Initialize AI model): {(time.time() - step_start)*1000:.1f}ms")
+            logger.info(
+                f"[PERF] Step 2 (Initialize AI model): {(time.time() - step_start) * 1000:.1f}ms"
+            )
 
             # Step 3: Create conversation (50%)
             step_start = time.time()
@@ -713,6 +725,7 @@ class ConsoulApp(App[None]):
 
             # Add detailed profiling to understand what's slow
             import logging as log_module
+
             conv_logger = log_module.getLogger("consoul.ai.history")
             original_level = conv_logger.level
             conv_logger.setLevel(log_module.DEBUG)
@@ -722,7 +735,9 @@ class ConsoulApp(App[None]):
             )
 
             conv_logger.setLevel(original_level)
-            logger.info(f"[PERF] Step 3 (Create conversation): {(time.time() - step_start)*1000:.1f}ms")
+            logger.info(
+                f"[PERF] Step 3 (Create conversation): {(time.time() - step_start) * 1000:.1f}ms"
+            )
 
             # Set conversation ID for tracking
             self.conversation_id = self.conversation.session_id
@@ -737,7 +752,9 @@ class ConsoulApp(App[None]):
             self.tool_registry = await self._run_in_thread(
                 self._initialize_tool_registry, consoul_config
             )
-            logger.info(f"[PERF] Step 4 (Load tools): {(time.time() - step_start)*1000:.1f}ms")
+            logger.info(
+                f"[PERF] Step 4 (Load tools): {(time.time() - step_start) * 1000:.1f}ms"
+            )
 
             # Step 5: Bind tools (80%)
             if self.tool_registry:
@@ -746,7 +763,9 @@ class ConsoulApp(App[None]):
                 self.chat_model = await self._run_in_thread(
                     self._bind_tools_to_model, self.chat_model, self.tool_registry
                 )
-                logger.info(f"[PERF] Step 5 (Bind tools): {(time.time() - step_start)*1000:.1f}ms")
+                logger.info(
+                    f"[PERF] Step 5 (Bind tools): {(time.time() - step_start) * 1000:.1f}ms"
+                )
 
             # Step 6: Auto-resume if enabled (90%)
             if (
@@ -761,7 +780,9 @@ class ConsoulApp(App[None]):
                     self._auto_resume_if_enabled, self.conversation, self.active_profile
                 )
                 self.conversation_id = self.conversation.session_id
-                logger.info(f"[PERF] Step 6 (Auto-resume): {(time.time() - step_start)*1000:.1f}ms")
+                logger.info(
+                    f"[PERF] Step 6 (Auto-resume): {(time.time() - step_start) * 1000:.1f}ms"
+                )
 
             # Cleanup old conversations (retention policy)
             if self.active_profile:
@@ -769,24 +790,21 @@ class ConsoulApp(App[None]):
                 await self._run_in_thread(
                     self._cleanup_old_conversations, self.active_profile
                 )
-                logger.info(f"[PERF] Cleanup old conversations: {(time.time() - step_start)*1000:.1f}ms")
+                logger.info(
+                    f"[PERF] Cleanup old conversations: {(time.time() - step_start) * 1000:.1f}ms"
+                )
 
             # Initialize title generator
             step_start = time.time()
             self.title_generator = await self._run_in_thread(
                 self._initialize_title_generator, consoul_config
             )
-            logger.info(f"[PERF] Initialize title generator: {(time.time() - step_start)*1000:.1f}ms")
+            logger.info(
+                f"[PERF] Initialize title generator: {(time.time() - step_start) * 1000:.1f}ms"
+            )
 
             # Step 7: Complete (100%)
             loading_screen.update_progress("Ready!", 100)
-
-            # Ensure minimum display time of 1.5 seconds for visibility
-            elapsed = time.time() - start_time
-            # if elapsed < 1:
-            #     await asyncio.sleep(1.5 - elapsed)
-            # else:
-            #     await asyncio.sleep(0.5)
 
             # Fade out and show main UI
             await loading_screen.fade_out(duration=0.5)
@@ -843,7 +861,9 @@ class ConsoulApp(App[None]):
             self.theme = self.config.theme
             logger.info(f"[POST-INIT] Applied theme: {self.config.theme}")
         except Exception as e:
-            logger.warning(f"[POST-INIT] Failed to set theme '{self.config.theme}': {e}")
+            logger.warning(
+                f"[POST-INIT] Failed to set theme '{self.config.theme}': {e}"
+            )
             self.theme = "textual-dark"
 
         # Set up GC management (streaming-aware mode from research)
@@ -861,19 +881,24 @@ class ConsoulApp(App[None]):
 
         # Warm up tokenizer in background (if using lazy loading)
         # This ensures tokenizer is loaded before first message
-        if self.conversation and hasattr(self.conversation, '_token_counter'):
+        if self.conversation and hasattr(self.conversation, "_token_counter"):
+
             async def warm_up_tokenizer():
                 try:
                     # Trigger tokenizer loading by counting tokens on empty message
                     from langchain_core.messages import HumanMessage
+
                     _ = self.conversation._token_counter([HumanMessage(content="")])
                     logger.info("[POST-INIT] Tokenizer warmed up in background")
                 except Exception as e:
-                    logger.debug(f"[POST-INIT] Tokenizer warmup failed (non-critical): {e}")
+                    logger.debug(
+                        f"[POST-INIT] Tokenizer warmup failed (non-critical): {e}"
+                    )
 
             # Run in background without blocking
             import asyncio
-            asyncio.create_task(warm_up_tokenizer())
+
+            _task = asyncio.create_task(warm_up_tokenizer())
 
         logger.info("[POST-INIT] Post-initialization setup complete")
 
