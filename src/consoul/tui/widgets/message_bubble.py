@@ -68,6 +68,7 @@ class MessageBubble(Container):
         thinking_content: str | None = None,
         tokens_per_second: float | None = None,
         time_to_first_token: float | None = None,
+        estimated_cost: float | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize MessageBubble widget.
@@ -83,6 +84,7 @@ class MessageBubble(Container):
             thinking_content: Optional AI reasoning/thinking content to display in collapsible section
             tokens_per_second: Optional tokens/sec throughput metric
             time_to_first_token: Optional time (seconds) to receive first token
+            estimated_cost: Optional estimated cost in USD for this message
             **kwargs: Additional arguments passed to Static
         """
         super().__init__(**kwargs)
@@ -96,6 +98,7 @@ class MessageBubble(Container):
         self.thinking_content = thinking_content
         self.tokens_per_second = tokens_per_second
         self.time_to_first_token = time_to_first_token
+        self.estimated_cost = estimated_cost
         self._markdown_failed = False
         # Set role last (triggers watcher which needs other attributes)
         self.role = role
@@ -210,9 +213,9 @@ class MessageBubble(Container):
                 pass
 
     def _build_metadata_text(self) -> Text:
-        """Build metadata text with timestamp and optional streaming metrics.
+        """Build metadata text with timestamp, streaming metrics, and cost estimate.
 
-        Format: "49.75 tok/sec • 491 tokens • 0.16s to first token"
+        Format: "49.75 tok/sec • 491 tokens • 0.16s to first token • ~$0.0012"
 
         Returns:
             Rich Text object with styled metadata
@@ -244,6 +247,18 @@ class MessageBubble(Container):
             footer.append(" │ ", style="dim")
             metrics_text = " • ".join(metrics_parts)
             footer.append(metrics_text, style="bold cyan")
+
+        # Add estimated cost if available (for non-local models)
+        if self.estimated_cost is not None and self.estimated_cost > 0:
+            footer.append(" │ ", style="dim")
+            # Format cost based on magnitude
+            if self.estimated_cost < 0.001:
+                cost_str = f"~${self.estimated_cost:.6f}"
+            elif self.estimated_cost < 0.01:
+                cost_str = f"~${self.estimated_cost:.4f}"
+            else:
+                cost_str = f"~${self.estimated_cost:.2f}"
+            footer.append(cost_str, style="bold green")
 
         return footer
 

@@ -2250,6 +2250,65 @@ class ConsoulApp(App[None]):
                     # Determine if thinking should be displayed based on config
                     thinking_content = self._should_display_thinking(thinking)
 
+                    # Calculate estimated cost for non-local providers
+                    estimated_cost = None
+                    if (
+                        final_message
+                        and hasattr(final_message, "usage_metadata")
+                        and final_message.usage_metadata
+                        and self.consoul_config
+                    ):
+                        # Check if this is a local provider (Ollama, LlamaCpp, MLX)
+                        model_config = self.consoul_config.get_current_model_config()
+                        from consoul.config.models import (
+                            LlamaCppModelConfig,
+                            MLXModelConfig,
+                            OllamaModelConfig,
+                        )
+
+                        is_local = isinstance(
+                            model_config,
+                            (OllamaModelConfig, LlamaCppModelConfig, MLXModelConfig),
+                        )
+
+                        if not is_local:
+                            try:
+                                from consoul.pricing import calculate_cost
+
+                                usage = final_message.usage_metadata
+                                input_tokens = usage.get("input_tokens", 0)
+                                output_tokens = usage.get("output_tokens", 0)
+
+                                # Extract cached tokens if available
+                                cached_tokens = 0
+                                if "input_token_details" in usage:
+                                    input_details = usage["input_token_details"]
+                                    if isinstance(input_details, dict):
+                                        cached_tokens = input_details.get(
+                                            "cache_read", 0
+                                        )
+
+                                # Get service_tier for OpenAI models
+                                service_tier = None
+                                from consoul.config.models import OpenAIModelConfig
+
+                                if isinstance(model_config, OpenAIModelConfig):
+                                    service_tier = model_config.service_tier
+
+                                # Calculate cost
+                                cost_info = calculate_cost(
+                                    self.current_model,
+                                    input_tokens,
+                                    output_tokens,
+                                    cached_tokens=cached_tokens,
+                                    service_tier=service_tier,
+                                )
+
+                                if cost_info["pricing_available"]:
+                                    estimated_cost = cost_info["total_cost"]
+                            except Exception as e:
+                                logger.warning(f"Failed to calculate cost: {e}")
+
                     assistant_bubble = MessageBubble(
                         response_text,
                         role="assistant",
@@ -2260,6 +2319,7 @@ class ConsoulApp(App[None]):
                         thinking_content=thinking_content,
                         tokens_per_second=tokens_per_second,
                         time_to_first_token=time_to_first_token,
+                        estimated_cost=estimated_cost,
                     )
                     await self.chat_view.add_message(assistant_bubble)
             elif self._stream_cancelled:
