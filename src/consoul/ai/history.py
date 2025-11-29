@@ -873,6 +873,28 @@ class ConversationHistory:
                 allow_partial=False,
             )
             trimmed_result: list[BaseMessage] = trimmed
+
+            # Ensure we have at least one non-system message for providers that require it
+            # (e.g., Anthropic requires at least one user/assistant message)
+            non_system_messages = [
+                msg for msg in trimmed_result if not isinstance(msg, SystemMessage)
+            ]
+            if len(non_system_messages) == 0 and len(self.messages) > 1:
+                # If trimming removed all non-system messages, force-include the last user/assistant message
+                # Find the last non-system message
+                for msg in reversed(self.messages):
+                    if not isinstance(msg, SystemMessage):
+                        # Keep system message if present, plus this message
+                        system_msgs = [
+                            m for m in trimmed_result if isinstance(m, SystemMessage)
+                        ]
+                        trimmed_result = [*system_msgs, msg]
+                        logger.warning(
+                            f"Trimming removed all non-system messages. "
+                            f"Force-included last {msg.type} message to meet provider requirements."
+                        )
+                        break
+
             return trimmed_result
         except Exception:
             # Fallback: return all messages if trimming fails
