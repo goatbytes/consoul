@@ -24,10 +24,10 @@ class TestPricingData:
 
     def test_google_gemini_2_flash_pricing(self) -> None:
         """Test that Gemini 2.0 Flash has pricing data."""
-        pricing = get_model_pricing("gemini-2.0-flash-exp")
+        pricing = get_model_pricing("gemini-2.0-flash")
         assert pricing is not None
-        assert pricing["input"] == 0.10  # $0.10 per MTok
-        assert pricing["output"] == 0.40  # $0.40 per MTok
+        assert pricing["input"] == 0.30  # $0.30 per MTok (updated from scrape)
+        assert pricing["output"] == 2.50  # $2.50 per MTok (updated from scrape)
 
     def test_openai_gpt4o_mini_pricing(self) -> None:
         """Test that GPT-4o-mini has pricing data."""
@@ -85,15 +85,15 @@ class TestCostCalculation:
     def test_gemini_2_flash_cost(self) -> None:
         """Test accurate cost calculation for Gemini 2.0 Flash."""
         # 5000 input tokens, 2000 output tokens
-        # Input: 5000/1M * $0.10 = $0.0005
-        # Output: 2000/1M * $0.40 = $0.0008
-        # Total: $0.0013
-        cost = calculate_cost("gemini-2.0-flash-exp", 5000, 2000)
+        # Input: 5000/1M * $0.30 = $0.0015
+        # Output: 2000/1M * $2.50 = $0.0050
+        # Total: $0.0065
+        cost = calculate_cost("gemini-2.0-flash", 5000, 2000)
 
         assert cost["pricing_available"] is True
-        assert cost["input_cost"] == 0.0005
-        assert cost["output_cost"] == 0.0008
-        assert cost["total_cost"] == 0.0013
+        assert cost["input_cost"] == 0.0015
+        assert cost["output_cost"] == 0.0050
+        assert abs(cost["total_cost"] - 0.0065) < 0.0001  # Allow for floating point
 
     def test_prompt_caching_cost(self) -> None:
         """Test cost calculation with prompt caching."""

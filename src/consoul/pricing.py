@@ -44,13 +44,13 @@ ANTHROPIC_PRICING = {
         "cache_write_1h": 2.00,  # $2.00 per MTok (1hr TTL)
         "cache_read": 0.10,  # $0.10 per MTok
     },
-    # Claude Opus 4.1/4 (marketed as Claude 3 Opus in API)
+    # Claude Opus 4.5 (marketed as Claude 3 Opus in API)
     "claude-3-opus-20240229": {
-        "input": 15.00,  # $15 per MTok
-        "output": 75.00,  # $75 per MTok
-        "cache_write_5m": 18.75,  # $18.75 per MTok (5min TTL)
-        "cache_write_1h": 30.00,  # $30.00 per MTok (1hr TTL)
-        "cache_read": 1.50,  # $1.50 per MTok
+        "input": 5.00,  # $5 per MTok (67% price reduction from $15!)
+        "output": 25.00,  # $25 per MTok (67% price reduction from $75!)
+        "cache_write_5m": 6.25,  # $6.25 per MTok (5min TTL)
+        "cache_write_1h": 10.00,  # $10.00 per MTok (1hr TTL)
+        "cache_read": 0.50,  # $0.50 per MTok
     },
     # Claude Sonnet 4 (API: claude-3-sonnet)
     "claude-3-sonnet-20240229": {
@@ -62,11 +62,11 @@ ANTHROPIC_PRICING = {
     },
     # Claude Haiku 3.5/3
     "claude-3-haiku-20240307": {
-        "input": 0.25,  # $0.25 per MTok
-        "output": 1.25,  # $1.25 per MTok
-        "cache_write_5m": 0.30,  # $0.30 per MTok (5min TTL)
-        "cache_write_1h": 0.50,  # $0.50 per MTok (1hr TTL)
-        "cache_read": 0.03,  # $0.03 per MTok
+        "input": 0.80,  # $0.80 per MTok
+        "output": 4.00,  # $4.00 per MTok
+        "cache_write_5m": 1.00,  # $1.00 per MTok (5min TTL)
+        "cache_write_1h": 1.60,  # $1.60 per MTok (1hr TTL)
+        "cache_read": 0.08,  # $0.08 per MTok
     },
 }
 
@@ -79,13 +79,13 @@ GOOGLE_PRICING = {
     "gemini-2.5-pro": {
         "input": 1.25,  # $1.25 per MTok (prompts ≤200k)
         "output": 10.00,  # $10.00 per MTok
-        "cache_read": 0.125,  # $0.125 per MTok
+        "cache_read": 0.12,  # $0.12 per MTok - Updated from scrape
     },
     # Gemini 2.5 Flash
     "gemini-2.5-flash": {
-        "input": 0.625,  # $0.625 per MTok (prompts ≤200k)
+        "input": 0.62,  # $0.62 per MTok (prompts ≤200k) - Updated from scrape
         "output": 5.00,  # $5.00 per MTok
-        "cache_read": 0.125,  # $0.125 per MTok
+        "cache_read": 0.12,  # $0.12 per MTok
     },
     # Gemini 2.5 Flash-Lite
     "gemini-2.5-flash-lite": {
