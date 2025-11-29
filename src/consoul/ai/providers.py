@@ -1667,10 +1667,32 @@ def get_chat_model(
                         f"See available models: https://huggingface.co/models"
                     ) from e
 
+    # Special handling for OpenAI to properly set stream_options
+    # init_chat_model doesn't properly forward model_kwargs for stream_options
+    if provider == Provider.OPENAI:
+        from langchain_openai import ChatOpenAI
+
+        # Extract stream_options from model_kwargs
+        model_kwargs = params.pop("model_kwargs", {})
+        stream_options = model_kwargs.get("stream_options", {"include_usage": True})
+
+        # Build ChatOpenAI params
+        openai_params = {**params, "stream_options": stream_options}
+
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.debug(
+            f"[STREAM_OPTIONS] OpenAI init params: stream_options={stream_options}"
+        )
+
+        return ChatOpenAI(**openai_params)  # type: ignore[no-any-return]
+
     # Initialize the model using init_chat_model for other providers
     # Use LANGCHAIN_PROVIDER_NAMES mapping to get correct provider name
     # (e.g., "google" -> "google_genai")
     langchain_provider = LANGCHAIN_PROVIDER_NAMES.get(provider, provider.value)
+
     try:
         return init_chat_model(  # type: ignore[no-any-return]
             model_provider=langchain_provider,
