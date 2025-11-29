@@ -69,8 +69,13 @@ MODEL_TOKEN_LIMITS: dict[str, int] = {
     # OpenAI reasoning models
     "o1-preview": 128_000,
     "o1-mini": 128_000,
-    # Anthropic models - Claude 4 (longer prefixes first for proper matching)
-    "claude-sonnet-4-5": 200_000,  # Default 200K
+    # Anthropic models - Claude 4.5 (November 2025 release)
+    "claude-opus-4-5": 200_000,  # Opus 4.5: 200K context
+    "claude-sonnet-4-5": 200_000,  # Sonnet 4.5: 200K context
+    "claude-haiku-4-5": 200_000,  # Haiku 4.5: 200K context
+    # Anthropic models - Claude 4.x
+    "claude-opus-4-1": 200_000,  # Opus 4.1: 200K context
+    "claude-opus-4": 200_000,  # Opus 4: 200K context
     "claude-sonnet-4": 1_000_000,  # Beta/enterprise: 1M context
     # Anthropic models - Claude 3.5
     "claude-3-5-sonnet": 200_000,
