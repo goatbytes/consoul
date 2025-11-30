@@ -634,7 +634,7 @@ ConversationList {
 ConversationList #cards-container {
     background: $surface-darken-1;
     height: 100%;
-    padding: 1;
+    padding: 1 0 1 1;  /* padding: top right bottom left - no right padding for scrollbar */
 }
 
 /* Empty state for conversation list */
