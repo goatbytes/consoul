@@ -649,7 +649,7 @@ class ConsoulApp(App[None]):
 
         This method orchestrates the entire initialization sequence, calling
         each extracted initialization method in order while updating the
-        loading screen with progress.
+        loading screen with progress (if enabled).
 
         Progress stages:
             10% - Loading configuration
@@ -672,17 +672,21 @@ class ConsoulApp(App[None]):
         # Track initialization start time for minimum display duration
         start_time = time.time()
 
-        # Get reference to the loading screen (already pushed by caller)
-        loading_screen = self.screen
+        # Get reference to the loading screen (may be None if disabled)
+        loading_screen = None
+        if self.config.show_loading_screen and self.screen_stack:
+            loading_screen = self.screen
 
-        # Give the screen a moment to render
-        await asyncio.sleep(0.05)
+        # Give the screen a moment to render (if present)
+        if loading_screen:
+            await asyncio.sleep(0.05)
 
         try:
             # Step 1: Load config (10%)
             step_start = time.time()
-            loading_screen.update_progress("Loading configuration...", 10)
-            await asyncio.sleep(0.1)  # Ensure loading screen is visible
+            if loading_screen:
+                loading_screen.update_progress("Loading configuration...", 10)
+                await asyncio.sleep(0.1)  # Ensure loading screen is visible
             if self._needs_config_load:
                 consoul_config = await self._run_in_thread(self._load_config)
                 self.consoul_config = consoul_config
@@ -695,10 +699,11 @@ class ConsoulApp(App[None]):
             # If no config, skip initialization
             if not consoul_config:
                 logger.warning("No configuration available, skipping AI initialization")
-                loading_screen.update_progress("Ready!", 100)
-                await asyncio.sleep(0.5)
-                await loading_screen.fade_out(duration=0.5)
-                self.pop_screen()
+                if loading_screen:
+                    loading_screen.update_progress("Ready!", 100)
+                    await asyncio.sleep(0.5)
+                    await loading_screen.fade_out(duration=0.5)
+                    self.pop_screen()
                 self._initialization_complete = True
                 # Still do post-init setup
                 await self._post_initialization_setup()
@@ -711,7 +716,8 @@ class ConsoulApp(App[None]):
 
             # Step 2: Initialize AI model (40%)
             step_start = time.time()
-            loading_screen.update_progress("Connecting to AI provider...", 40)
+            if loading_screen:
+                loading_screen.update_progress("Connecting to AI provider...", 40)
             self.chat_model = await self._run_in_thread(
                 self._initialize_ai_model, consoul_config
             )
@@ -721,7 +727,8 @@ class ConsoulApp(App[None]):
 
             # Step 3: Create conversation (50%)
             step_start = time.time()
-            loading_screen.update_progress("Initializing conversation...", 50)
+            if loading_screen:
+                loading_screen.update_progress("Initializing conversation...", 50)
 
             # Add detailed profiling to understand what's slow
             import logging as log_module
@@ -748,7 +755,8 @@ class ConsoulApp(App[None]):
 
             # Step 4: Load tools (60%)
             step_start = time.time()
-            loading_screen.update_progress("Loading tools...", 60)
+            if loading_screen:
+                loading_screen.update_progress("Loading tools...", 60)
             self.tool_registry = await self._run_in_thread(
                 self._initialize_tool_registry, consoul_config
             )
@@ -759,7 +767,8 @@ class ConsoulApp(App[None]):
             # Step 5: Bind tools (80%)
             if self.tool_registry:
                 step_start = time.time()
-                loading_screen.update_progress("Binding tools to model...", 80)
+                if loading_screen:
+                    loading_screen.update_progress("Binding tools to model...", 80)
                 self.chat_model = await self._run_in_thread(
                     self._bind_tools_to_model, self.chat_model, self.tool_registry
                 )
@@ -775,7 +784,8 @@ class ConsoulApp(App[None]):
                 and self.active_profile.conversation.persist
             ):
                 step_start = time.time()
-                loading_screen.update_progress("Restoring conversation...", 90)
+                if loading_screen:
+                    loading_screen.update_progress("Restoring conversation...", 90)
                 self.conversation = await self._run_in_thread(
                     self._auto_resume_if_enabled, self.conversation, self.active_profile
                 )
@@ -804,11 +814,11 @@ class ConsoulApp(App[None]):
             )
 
             # Step 7: Complete (100%)
-            loading_screen.update_progress("Ready!", 100)
-
-            # Fade out and show main UI
-            await loading_screen.fade_out(duration=0.5)
-            self.pop_screen()
+            if loading_screen:
+                loading_screen.update_progress("Ready!", 100)
+                # Fade out and show main UI
+                await loading_screen.fade_out(duration=0.5)
+                self.pop_screen()
 
             self._initialization_complete = True
 
@@ -823,12 +833,13 @@ class ConsoulApp(App[None]):
                 f"[LOADING] Initialization failed: {e}\n{traceback.format_exc()}"
             )
 
-            # Remove loading screen
-            try:
-                logger.info("[LOADING] Exception caught, popping loading screen")
-                self.pop_screen()
-            except Exception as pop_err:
-                logger.error(f"[LOADING] Failed to pop screen: {pop_err}")
+            # Remove loading screen (if present)
+            if loading_screen:
+                try:
+                    logger.info("[LOADING] Exception caught, popping loading screen")
+                    self.pop_screen()
+                except Exception as pop_err:
+                    logger.error(f"[LOADING] Failed to pop screen: {pop_err}")
 
             # Show error screen (will be created in Phase 5)
             # For now, log the error and allow app to start with degraded functionality
@@ -903,23 +914,25 @@ class ConsoulApp(App[None]):
         logger.info("[POST-INIT] Post-initialization setup complete")
 
     def on_mount(self) -> None:
-        """Mount the app and show loading screen immediately.
+        """Mount the app and start initialization.
 
-        Shows the loading screen and triggers async initialization. This ensures
-        the user sees visual feedback immediately instead of a frozen terminal.
+        Optionally shows loading screen based on config, then triggers async
+        initialization. This ensures users get visual feedback when enabled,
+        or instant startup when disabled.
         """
-        from consoul.tui.animations import AnimationStyle
-        from consoul.tui.loading import ConsoulLoadingScreen
+        # Conditionally push loading screen based on config
+        if self.config.show_loading_screen:
+            from consoul.tui.animations import AnimationStyle
+            from consoul.tui.loading import ConsoulLoadingScreen
 
-        # Push loading screen immediately
-        loading_screen = ConsoulLoadingScreen(
-            animation_style=AnimationStyle.CODE_STREAM,
-            show_progress=True,
-        )
-        self.push_screen(loading_screen)
+            loading_screen = ConsoulLoadingScreen(
+                animation_style=AnimationStyle.CODE_STREAM,
+                show_progress=True,
+            )
+            self.push_screen(loading_screen)
 
         # Use set_timer to schedule initialization after a brief delay
-        # This ensures the loading screen renders before we start heavy work
+        # This ensures UI is ready (with or without loading screen) before heavy work
         self.set_timer(0.1, self._start_initialization)
 
     def _start_initialization(self) -> None:

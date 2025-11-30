@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-23T18:19:59.301673",
-  "updated_at": "2025-11-24T20:09:48.925057Z",
+  "updated_at": "2025-11-29T23:30:51.782727Z",
   "id": "SOUL-153",
   "uuid": "72f1ebe8-5e02-4abf-be9d-636d0fc46298",
   "title": "Add SDK tool specification documentation and examples",
   "description": "**As a** Consoul SDK user\n**I want** comprehensive documentation on tool specification options\n**So that** I can understand all the ways to configure and customize tools\n\n**Context:**\nOnce SOUL-149 (flexible tool specification) is implemented, users will need clear documentation on:\n1. All tool specification options (list, dict, risk levels, categories)\n2. How to register custom tools\n3. How to use discover_tools\n4. Examples for common use cases\n5. Security considerations for tool usage\n\nDocumentation should cover:\n- Quick start examples\n- Detailed API reference\n- Common patterns and use cases\n- Custom tool development\n- Security best practices\n- Troubleshooting guide\n\n**Technical Notes:**\n- Should be added to existing SDK documentation\n- Include runnable code examples\n- Consider adding to README.md or dedicated docs/sdk-tools.md\n- Add docstring examples to SDK.__init__()\n- Reference tool discovery from SOUL-150\n- Reference tool categories from SOUL-151\n\n**Acceptance Criteria:**\n\n**Given** I'm a new SDK user\n**When** I read the tool specification docs\n**Then** I understand how to specify tools for my use case\n\n**Given** I want to create a custom tool\n**When** I follow the custom tool guide\n**Then** I can successfully register and use my tool\n\n**Given** I'm concerned about security\n**When** I read the security section\n**Then** I understand risk levels and safe tool usage\n\n**Given** I have a specific use case (e.g., read-only tools)\n**When** I read the examples\n**Then** I find a relevant example I can copy\n\n**Testing Considerations:**\n- All code examples should be tested\n- Examples should work with real SDK\n- Consider adding examples/ directory with runnable scripts\n- Verify documentation accuracy against implementation\n\n**Implementation Hints:**\n1. Add comprehensive docstring to `Consoul.__init__()` with examples\n2. Create `docs/sdk-tools.md` or extend existing SDK docs\n3. Structure:\n   - Quick Start (5 common patterns)\n   - Tool Specification Options (detailed)\n   - Custom Tools (step-by-step guide)\n   - Built-in Tools Reference (list with descriptions)\n   - Risk Levels and Security\n   - Tool Discovery\n   - Tool Categories\n   - Troubleshooting\n4. Include examples for:\n   - Read-only safe tools\n   - Custom tool with @tool decorator\n   - Custom tool as BaseTool subclass\n   - Mixed built-in + custom tools\n   - Risk level filtering\n   - Category filtering\n   - Tool discovery\n5. Add security warnings for dangerous operations\n6. Link to LangChain tool documentation\n\n**Example Documentation Structure:**\n```markdown\n# Tool Specification Guide\n\n## Quick Start\n\n### Read-Only Safe Tools\nconsoul = Consoul(tools=[\"grep\", \"code_search\"])\n\n### All File Operations\nconsoul = Consoul(tools=\"file-edit\")\n\n### Custom Tool\n@tool\ndef my_tool(query: str) -> str:\n    return result\n\nconsoul = Consoul(tools=[my_tool, \"bash\"])\n\n## Built-in Tools\n\n| Tool | Category | Risk | Description |\n|------|----------|------|-------------|\n| grep_search | search | SAFE | Search file contents |\n| bash_execute | execute | CAUTION | Execute bash commands |\n...\n```\n\n**Dependencies:**\n- Blocked by SOUL-149 (must be implemented first)\n- Should reference SOUL-150 (discover_tools)\n- Should reference SOUL-151 (categories)",
-  "status": "review",
+  "status": "done",
   "type": "task",
   "priority": "medium",
   "labels": [
@@ -17,10 +17,24 @@
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-11-29T15:30:49.518910",
+      "updated_at": "2025-11-29T15:30:49.518912",
+      "id": "20251129153049-1201d0da",
+      "ticket_id": "SOUL-153",
+      "author": "jared@goatbytes.io",
+      "content": "Code review completed. Comprehensive SDK tool specification documentation implemented:\n\n✅ Documentation (794 lines): docs/sdk-tools.md with complete guide covering:\n- Quick start patterns (5 common use cases)\n- All specification options (boolean, risk levels, categories, lists)\n- Built-in tools reference table (11 tools)\n- Tool categories mapping\n- Custom tools guide (@tool decorator + BaseTool class)\n- Tool discovery setup\n- Security considerations\n- Common use cases\n- Troubleshooting guide\n\n✅ Examples (5 runnable files + READMEs): examples/sdk/tool_specification/\n- 01_basic_patterns.py - Boolean, risk level, specific lists\n- 02_categories.py - Category filtering and combinations\n- 03_custom_tools.py - Custom tool creation\n- 04_tool_discovery.py - Auto-discovery from .consoul/tools/\n- 05_security_examples.py - Risk-based filtering and best practices\n\n✅ SDK Improvements:\n- Updated Consoul.__init__() docstring with security guidelines\n- Added tool deduplication in _setup_tools() to prevent crashes with overlapping categories\n\nAll examples tested successfully. Meets all acceptance criteria. Ready for production.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 2,
   "order": 0,
   "custom_fields": {}
