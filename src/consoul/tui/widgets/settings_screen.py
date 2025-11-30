@@ -262,6 +262,15 @@ class SettingsScreen(ModalScreen[bool]):
                     value=self.config.show_token_count, id="setting-show_token_count"
                 )
 
+        # Show loading screen
+        with Horizontal(classes="setting-row"):
+            yield Label("Show Loading Screen:", classes="setting-label")
+            with Vertical(classes="setting-control"):
+                yield Switch(
+                    value=self.config.show_loading_screen,
+                    id="setting-show_loading_screen",
+                )
+
         # Input syntax highlighting
         with Horizontal(classes="setting-row"):
             yield Label("Input Syntax Highlighting:", classes="setting-label")
@@ -561,6 +570,7 @@ class SettingsScreen(ModalScreen[bool]):
             "show_sidebar",
             "show_timestamps",
             "show_token_count",
+            "show_loading_screen",
             "input_syntax_highlighting",
             "enable_virtualization",
             "auto_generate_titles",
@@ -657,6 +667,7 @@ class SettingsScreen(ModalScreen[bool]):
                 "show_sidebar",
                 "show_timestamps",
                 "show_token_count",
+                "show_loading_screen",
                 "input_syntax_highlighting",
                 "enable_virtualization",
                 "auto_generate_titles",
