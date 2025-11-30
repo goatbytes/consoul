@@ -831,9 +831,7 @@ class ConsoulApp(App[None]):
             # Step 7: Complete (100%)
             if loading_screen:
                 loading_screen.update_progress("Ready!", 100)
-                # Set main UI to invisible before popping loading screen
-                self.styles.opacity = 0.0
-                # Fade out loading screen while main UI is still invisible
+                # Fade out loading screen (main UI already invisible from on_mount)
                 await loading_screen.fade_out(duration=0.5)
                 # Pop the loading screen
                 self.pop_screen()
@@ -933,6 +931,11 @@ class ConsoulApp(App[None]):
         initialization. This ensures users get visual feedback when enabled,
         or instant startup when disabled.
         """
+        # Set main UI to invisible initially if loading screen will be shown
+        # This prevents flash when transitioning from loading to main UI
+        if self.config.show_loading_screen:
+            self.styles.opacity = 0.0
+
         # Conditionally push loading screen based on config
         if self.config.show_loading_screen:
             from consoul.tui.animations import AnimationStyle
