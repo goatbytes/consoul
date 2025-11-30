@@ -2616,6 +2616,18 @@ class ConsoulApp(App[None]):
                         )
 
                 # Replace StreamingResponse with MessageBubble for permanent display
+                # Save scroll position before removing widget to prevent jump to top
+                chat_view_scroll_y = self.chat_view.scroll_y
+                chat_view_at_bottom = (
+                    self.chat_view.scroll_y >= self.chat_view.max_scroll_y - 1
+                )
+                logger.debug(
+                    f"[SCROLL] Before removing StreamingResponse - "
+                    f"scroll_y: {chat_view_scroll_y}, "
+                    f"max_scroll_y: {self.chat_view.max_scroll_y}, "
+                    f"at_bottom: {chat_view_at_bottom}"
+                )
+
                 await stream_widget.remove()
 
                 # Collect tool call data if any tools were executed
@@ -2772,6 +2784,28 @@ class ConsoulApp(App[None]):
                         estimated_cost=estimated_cost,
                     )
                     await self.chat_view.add_message(assistant_bubble)
+
+                    # Ensure we're scrolled to bottom if we were at bottom before removal
+                    # This prevents the scroll position from jumping to top when widget is replaced
+                    if chat_view_at_bottom:
+                        logger.debug(
+                            f"[SCROLL] Forcing scroll to bottom after MessageBubble added - "
+                            f"current_scroll_y: {self.chat_view.scroll_y}, "
+                            f"max_scroll_y: {self.chat_view.max_scroll_y}"
+                        )
+                        # Use nested call_after_refresh to ensure both MessageBubble and its children
+                        # are fully laid out before scrolling (similar to typing indicator pattern)
+                        def _scroll_after_bubble_layout() -> None:
+                            logger.debug(
+                                f"[SCROLL] Second refresh - scheduling final scroll - "
+                                f"scroll_y: {self.chat_view.scroll_y}, "
+                                f"max_scroll_y: {self.chat_view.max_scroll_y}"
+                            )
+                            self.chat_view.call_after_refresh(
+                                self.chat_view.scroll_end, animate=False
+                            )
+
+                        self.chat_view.call_after_refresh(_scroll_after_bubble_layout)
             elif self._stream_cancelled:
                 # Show cancellation indicator
                 await stream_widget.remove()
