@@ -80,8 +80,19 @@ class StreamingResponse(RichLog):
 
         This timer runs continuously to keep the ChatView scrolled
         to the bottom as the streaming widget grows in height.
+        Only scrolls if user hasn't manually scrolled away.
         """
         if self.streaming and self.parent and hasattr(self.parent, "scroll_end"):
+            # Check if user has manually scrolled away from bottom
+            user_scrolled_away = getattr(self.parent, "_user_scrolled_away", False)
+
+            if user_scrolled_away:
+                logger.debug(
+                    f"[SCROLL] Skipping auto-scroll during streaming - user scrolled away "
+                    f"(height: {self.size.height})"
+                )
+                return
+
             # Use call_after_refresh to avoid race conditions with layout
             logger.debug(
                 f"[SCROLL] Auto-scroll during streaming - height: {self.size.height}, "

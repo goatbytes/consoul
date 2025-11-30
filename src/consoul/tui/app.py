@@ -1526,6 +1526,10 @@ class ConsoulApp(App[None]):
         user_bubble = MessageBubble(user_message, role="user", show_metadata=True)
         await self.chat_view.add_message(user_bubble)
 
+        # Clear the "user scrolled away" flag when they submit a new message
+        # This re-enables auto-scroll for the new conversation turn
+        self.chat_view._user_scrolled_away = False
+
         # Ensure we scroll to bottom to show the user's message
         # Use call_after_refresh to wait for layout, then scroll
         self.chat_view.call_after_refresh(self.chat_view.scroll_end, animate=True)
@@ -2836,9 +2840,12 @@ class ConsoulApp(App[None]):
                             # Layout is ready when:
                             # 1. We've reached the expected minimum height AND layout is stable
                             # 2. OR we've timed out
-                            reached_expected_height = current_max_scroll >= expected_min_scroll
+                            reached_expected_height = (
+                                current_max_scroll >= expected_min_scroll
+                            )
                             layout_stable = (
-                                scroll_attempts >= 3  # Wait at least 3 attempts before trusting stability
+                                scroll_attempts
+                                >= 3  # Wait at least 3 attempts before trusting stability
                                 and current_max_scroll > 0
                                 and current_max_scroll == last_max_scroll
                             )
