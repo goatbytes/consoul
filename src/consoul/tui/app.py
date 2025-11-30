@@ -669,9 +669,6 @@ class ConsoulApp(App[None]):
 
         logger = logging.getLogger(__name__)
 
-        # Track initialization start time for minimum display duration
-        start_time = time.time()
-
         # Get reference to the loading screen (may be None if disabled)
         loading_screen = None
         if self.config.show_loading_screen and self.screen_stack:
@@ -823,6 +820,10 @@ class ConsoulApp(App[None]):
             except Exception as e:
                 logger.warning(f"Failed to set theme '{self.config.theme}': {e}")
                 self.theme = "textual-dark"
+
+            # Give Textual a moment to apply theme CSS to all widgets
+            await asyncio.sleep(1.05)
+
             logger.info(
                 f"[PERF] Apply theme: {(time.time() - step_start) * 1000:.1f}ms"
             )
