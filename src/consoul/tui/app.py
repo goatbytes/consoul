@@ -831,11 +831,13 @@ class ConsoulApp(App[None]):
             # Step 7: Complete (100%)
             if loading_screen:
                 loading_screen.update_progress("Ready!", 100)
-                # Start main UI at opacity 0 for smooth fade-in
+                # Set main UI to invisible before popping loading screen
                 self.styles.opacity = 0.0
-                # Pop loading screen to reveal main UI
+                # Fade out loading screen while main UI is still invisible
+                await loading_screen.fade_out(duration=0.5)
+                # Pop the loading screen
                 self.pop_screen()
-                # Fade in the main UI
+                # Now fade in the main UI
                 self.styles.animate("opacity", value=1.0, duration=0.5)
                 await asyncio.sleep(0.5)
             else:
