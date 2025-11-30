@@ -96,7 +96,7 @@ ChatView:focus {
 }
 
 .message-system {
-    background: $surface-lighten-1;
+    # background: $surface-lighten-1;
     color: $text-muted;
     border: round $accent;
     border-title-color: $accent;
@@ -111,7 +111,8 @@ ChatView:focus {
 
 /* Message content */
 .message-content {
-    padding: 0;  /* Remove default Markdown padding to align with metadata */
+    padding: 0;  /* Remove horizontal padding to align with metadata */
+    margin-bottom: 0;  /* Remove bottom margin for tighter spacing */
 }
 
 /* Message metadata */
@@ -120,7 +121,7 @@ ChatView:focus {
     height: auto;
     layout: horizontal;
     align: left middle;
-    padding-top: 1;
+    # padding-top: 1;
 }
 
 .metadata-text {
