@@ -13,7 +13,7 @@ __all__ = ["CONSOUL_DARK", "CONSOUL_LIGHT"]
 CONSOUL_DARK = Theme(
     name="consoul-dark",
     primary="#0085CC",  # Sky Blue - innovation and trust
-    secondary="#44385E",  # Deep purple - secondary actions
+    secondary="#FF6600",  # Deep purple - secondary actions
     warning="#FFC107",  # Amber - warnings
     error="#DC3545",  # Red - errors
     success="#28A745",  # Green - success states
@@ -24,6 +24,7 @@ CONSOUL_DARK = Theme(
     panel="#3D3D3D",  # Binary Slate - panels
     dark=True,
     variables={
+        "text-muted": "#9BA3AB",  # Light gray - secondary text
         "button-color-foreground": "#FFFFFF",
         "footer-background": "#0085CC",
         "footer-key-foreground": "#FFFFFF",
@@ -37,7 +38,7 @@ CONSOUL_DARK = Theme(
 CONSOUL_LIGHT = Theme(
     name="consoul-light",
     primary="#0085CC",  # Sky Blue - innovation and trust
-    secondary="#44385E",  # Deep purple - secondary actions
+    secondary="#CC4300",  # Deep purple - secondary actions
     warning="#FFC107",  # Amber - warnings
     error="#DC3545",  # Red - errors
     success="#28A745",  # Green - success states
@@ -48,6 +49,7 @@ CONSOUL_LIGHT = Theme(
     panel="#F5F5F5",  # Slightly off-white for contrast
     dark=False,
     variables={
+        "text-muted": "#6C757D",  # Medium gray - secondary text for light theme
         "button-color-foreground": "#FFFFFF",
         "footer-background": "#0085CC",
         "footer-key-foreground": "#FFFFFF",
