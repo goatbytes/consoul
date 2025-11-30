@@ -822,7 +822,7 @@ class ConsoulApp(App[None]):
                 self.theme = "textual-dark"
 
             # Give Textual a moment to apply theme CSS to all widgets
-            await asyncio.sleep(1.05)
+            await asyncio.sleep(0.25)
 
             logger.info(
                 f"[PERF] Apply theme: {(time.time() - step_start) * 1000:.1f}ms"
@@ -831,9 +831,16 @@ class ConsoulApp(App[None]):
             # Step 7: Complete (100%)
             if loading_screen:
                 loading_screen.update_progress("Ready!", 100)
-                # Fade out and show main UI
-                await loading_screen.fade_out(duration=0.5)
+                # Start main UI at opacity 0 for smooth fade-in
+                self.styles.opacity = 0.0
+                # Pop loading screen to reveal main UI
                 self.pop_screen()
+                # Fade in the main UI
+                self.styles.animate("opacity", value=1.0, duration=0.5)
+                await asyncio.sleep(0.5)
+            else:
+                # No loading screen, ensure main UI is fully opaque
+                self.styles.opacity = 1.0
 
             self._initialization_complete = True
 
