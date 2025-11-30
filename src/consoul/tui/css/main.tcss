@@ -127,7 +127,7 @@ ChatView:focus {
     height: auto;
     layout: horizontal;
     align: left middle;
-    # padding-top: 1;
+    padding-top: 1;
 }
 
 .metadata-text {
