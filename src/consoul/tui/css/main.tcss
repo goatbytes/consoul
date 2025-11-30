@@ -112,7 +112,13 @@ ChatView:focus {
 /* Message content */
 .message-content {
     padding: 0;  /* Remove horizontal padding to align with metadata */
-    margin-bottom: 0;  /* Remove bottom margin for tighter spacing */
+    margin: 0;  /* Remove all margins */
+}
+
+/* Remove paragraph spacing in message content */
+.message-content > * {
+    margin: 0;
+    padding: 0;
 }
 
 /* Message metadata */
