@@ -109,6 +109,11 @@ ChatView:focus {
     border-title-color: $warning;
 }
 
+/* Message content */
+.message-content {
+    padding: 0;  /* Remove default Markdown padding to align with metadata */
+}
+
 /* Message metadata */
 .message-metadata {
     width: 100%;
