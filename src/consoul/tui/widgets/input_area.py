@@ -15,7 +15,7 @@ from textual.binding import Binding
 from textual.containers import Container, Horizontal
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import TextArea
+from textual.widgets import Button, TextArea
 
 if TYPE_CHECKING:
     from textual import events
@@ -156,6 +156,7 @@ class InputArea(Container):
             from consoul.tui.widgets.attachment_button import AttachmentButton
 
             yield self.text_area
+            yield Button("Send", id="send-button", variant="primary")
             yield AttachmentButton()
         with Horizontal(id="file-chips-container"):
             # Dynamically populated with FileChip widgets
@@ -212,6 +213,25 @@ class InputArea(Container):
 
         # Clear input
         self.clear()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle Send button click.
+
+        Args:
+            event: Button pressed event
+        """
+        if event.button.id == "send-button":
+            # Get current text content
+            content = self.text_area.text.strip()
+
+            if not content:
+                return  # Don't send empty messages
+
+            # Post message event
+            self.post_message(self.MessageSubmit(content))
+
+            # Clear input
+            self.clear()
 
     def clear(self) -> None:
         """Clear the input area and reset character count."""
