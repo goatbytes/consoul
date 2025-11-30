@@ -131,9 +131,10 @@ class MessageBubble(Container):
                 # Add tool calls button if assistant message has tools
                 if self.tool_calls:
                     yield Button(
-                        "🛠",
+                        "⛏",
                         id="tools-button",
                         classes="tools-button",
+                        tooltip="View tool/function calls",
                     )
 
                 # Add branch button for assistant messages with message_id
@@ -145,7 +146,12 @@ class MessageBubble(Container):
                         tooltip="Branch conversation from this point",
                     )
 
-                yield Button("⧉", id="copy-button", classes="copy-button")
+                yield Button(
+                    "⧉",
+                    id="copy-button",
+                    classes="copy-button",
+                    tooltip="Copy this message",
+                )
 
     def on_mount(self) -> None:
         """Initialize message bubble on mount."""

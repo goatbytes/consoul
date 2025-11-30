@@ -1,145 +1,105 @@
-2025-11-29 15:07:34,431 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
-2025-11-29 15:07:34,845 - consoul.tui.app - INFO - [PERF] Step 1 (Load config): 146.5ms
-2025-11-29 15:07:34,976 - consoul.tui.app - INFO - [PERF] Step 2 (Initialize AI model): 130.6ms
-2025-11-29 15:07:34,977 - consoul.tui.app - INFO - [PERF-CONV] Get conversation config: 0.0ms
-2025-11-29 15:07:34,977 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 15:07:34,978 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.1ms
-2025-11-29 15:07:34,978 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 15:07:34,978 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.7ms
-2025-11-29 15:07:34,978 - consoul.tui.app - INFO - [PERF-CONV] ConversationHistory.__init__: 0.7ms
-2025-11-29 15:07:34,978 - consoul.tui.app - INFO - [PERF] Step 3 (Create conversation): 2.1ms
-2025-11-29 15:07:34,978 - consoul.tui.app - INFO - Initialized AI model: granite4:3b, session: None
-2025-11-29 15:07:34,982 - consoul.tui.app - INFO - [PERF] Step 4 (Load tools): 4.1ms
-2025-11-29 15:07:35,016 - consoul.tui.app - INFO - [PERF] Step 5 (Bind tools): 33.7ms
-2025-11-29 15:07:35,016 - consoul.tui.app - INFO - [PERF] Cleanup old conversations: 0.1ms
-2025-11-29 15:07:35,055 - consoul.tui.app - INFO - [PERF] Initialize title generator: 38.3ms
-2025-11-29 15:07:35,589 - consoul.tui.app - INFO - [POST-INIT] Applied theme: consoul-dark
-2025-11-29 15:07:35,590 - consoul.tui.app - INFO - [POST-INIT] Post-initialization setup complete
-2025-11-29 16:05:32,753 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:32,753 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:32,754 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:05:32,754 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.5ms
-2025-11-29 16:05:33,597 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:33,597 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:33,598 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:05:33,598 - consoul.ai.history - INFO - Loaded 2 messages from session 2876f1e1-ef68-4d27-ba3f-a60519e7917b
-2025-11-29 16:05:33,598 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:05:33,598 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-11-29 16:05:35,442 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:35,442 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:35,443 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:05:35,443 - consoul.ai.history - INFO - Loaded 2 messages from session 2876f1e1-ef68-4d27-ba3f-a60519e7917b
-2025-11-29 16:05:35,443 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:05:35,443 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-11-29 16:05:37,078 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:37,078 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:37,078 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:05:37,079 - consoul.ai.history - INFO - Loaded 2 messages from session 2876f1e1-ef68-4d27-ba3f-a60519e7917b
-2025-11-29 16:05:37,079 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:05:37,079 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-11-29 16:05:38,361 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:38,361 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:38,361 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:05:38,362 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.5ms
-2025-11-29 16:05:39,237 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:39,237 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:39,237 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:05:39,238 - consoul.ai.history - INFO - Loaded 10 messages from session 19a81f83-e0fc-42cd-9e99-3655300afd9f
-2025-11-29 16:05:39,238 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.4ms
-2025-11-29 16:05:39,238 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 1.0ms
-2025-11-29 16:05:40,864 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:40,864 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:40,864 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:05:40,864 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.5ms
-2025-11-29 16:05:41,774 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:41,774 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:41,775 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:05:41,775 - consoul.ai.history - INFO - Loaded 4 messages from session 22f53053-ed39-40e8-b35f-62c8d8e77101
-2025-11-29 16:05:41,775 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:05:41,775 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-11-29 16:05:42,808 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:42,808 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:42,808 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:05:42,808 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.5ms
-2025-11-29 16:05:43,618 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:43,618 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:43,618 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:05:43,619 - consoul.ai.history - INFO - Loaded 2 messages from session 431bb5aa-df52-474a-9197-8ec3253d9197
-2025-11-29 16:05:43,619 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:05:43,619 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.7ms
-2025-11-29 16:05:45,633 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:45,633 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:45,633 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:05:45,633 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.5ms
-2025-11-29 16:05:46,528 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:46,529 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:46,529 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:05:46,529 - consoul.ai.history - INFO - Loaded 2 messages from session 0ce08683-db6a-479a-afdb-36d1d5dd8d4b
-2025-11-29 16:05:46,529 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:05:46,529 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-11-29 16:05:48,070 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:48,070 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:48,070 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:05:48,070 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.5ms
-2025-11-29 16:05:49,053 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:49,053 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:49,053 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:05:49,053 - consoul.ai.history - INFO - Loaded 2 messages from session 6809d420-7cba-49ba-968d-061ee963dffa
-2025-11-29 16:05:49,053 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:05:49,053 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.7ms
-2025-11-29 16:05:50,711 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:50,711 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:50,712 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:05:50,712 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.5ms
-2025-11-29 16:05:51,939 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:51,939 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:51,939 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:05:51,940 - consoul.ai.history - INFO - Loaded 2 messages from session cb380779-3503-44c8-a5a6-f25c69e9c313
-2025-11-29 16:05:51,940 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:05:51,940 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-11-29 16:05:53,430 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:53,430 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:53,431 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:05:53,431 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.6ms
-2025-11-29 16:05:55,244 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:55,245 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:55,245 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:05:55,245 - consoul.ai.history - INFO - Loaded 2 messages from session 8b5e3bac-5b09-4bf8-b85e-c758527c2d53
-2025-11-29 16:05:55,245 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:05:55,245 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-11-29 16:05:56,912 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:56,912 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:56,913 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:05:56,913 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.5ms
-2025-11-29 16:05:57,749 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:05:57,749 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:05:57,749 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:05:57,749 - consoul.ai.history - INFO - Loaded 2 messages from session 1e9079f2-519f-4d74-9865-ce5b5afdfb5e
-2025-11-29 16:05:57,749 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:05:57,749 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-11-29 16:06:00,704 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:06:00,705 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:06:00,705 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:06:00,705 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.5ms
-2025-11-29 16:06:01,435 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:06:01,435 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:06:01,436 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:06:01,436 - consoul.ai.history - INFO - Loaded 2 messages from session 0bac4e5d-9ff8-4fc9-a22e-9309d42bf9ed
-2025-11-29 16:06:01,436 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:06:01,436 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-11-29 16:06:03,485 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:06:03,485 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:06:03,485 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:06:03,485 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.5ms
-2025-11-29 16:06:04,291 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:06:04,291 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:06:04,292 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
-2025-11-29 16:06:04,292 - consoul.ai.history - INFO - Loaded 2 messages from session 0629d3d9-fe00-42d5-baef-215ee502d46c
-2025-11-29 16:06:04,292 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:06:04,292 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-11-29 16:06:17,001 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-11-29 16:06:17,001 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-11-29 16:06:17,001 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-11-29 16:06:17,002 - consoul.ai.history - INFO - Loaded 2 messages from session 0629d3d9-fe00-42d5-baef-215ee502d46c
-2025-11-29 16:06:17,002 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.3ms
-2025-11-29 16:06:17,002 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.7ms
+2025-11-29 22:37:43,065 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
+2025-11-29 22:37:43,441 - consoul.tui.app - INFO - [PERF] Step 1 (Load config): 117.7ms
+2025-11-29 22:37:43,590 - consoul.tui.app - INFO - [PERF] Step 2 (Initialize AI model): 149.2ms
+2025-11-29 22:37:43,597 - consoul.tui.app - INFO - [PERF-CONV] Get conversation config: 0.0ms
+2025-11-29 22:37:43,604 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
+2025-11-29 22:37:43,604 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
+2025-11-29 22:37:43,605 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.6ms
+2025-11-29 22:37:43,605 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 1.4ms
+2025-11-29 22:37:43,605 - consoul.tui.app - INFO - [PERF-CONV] ConversationHistory.__init__: 1.4ms
+2025-11-29 22:37:43,605 - consoul.tui.app - INFO - [PERF] Step 3 (Create conversation): 15.2ms
+2025-11-29 22:37:43,605 - consoul.tui.app - INFO - Initialized AI model: gemini-2.5-flash, session: None
+2025-11-29 22:37:43,609 - consoul.tui.app - INFO - [PERF] Step 4 (Load tools): 4.0ms
+2025-11-29 22:37:43,632 - consoul.tui.app - INFO - [PERF] Step 5 (Bind tools): 22.4ms
+2025-11-29 22:37:43,632 - consoul.tui.app - INFO - [PERF] Cleanup old conversations: 0.1ms
+2025-11-29 22:37:43,835 - consoul.tui.app - INFO - [PERF] Initialize title generator: 203.1ms
+2025-11-29 22:37:43,835 - consoul.tui.app - INFO - [PERF] Applied theme: consoul-dark
+2025-11-29 22:37:44,095 - consoul.tui.app - INFO - [PERF] Apply theme: 259.7ms
+2025-11-29 22:37:44,597 - consoul.tui.app - INFO - [POST-INIT] Post-initialization setup complete
+2025-11-29 22:38:06,847 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:06,854 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:06,907 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:06,908 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:06,908 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:06,916 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:06,917 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:06,917 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:08,964 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:08,964 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:08,971 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:08,971 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:08,972 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:09,754 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:09,754 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:09,761 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:09,761 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:09,762 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:10,504 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:10,504 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:10,511 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:10,511 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:10,511 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:11,215 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:11,215 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:11,222 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:11,222 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:11,223 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:12,090 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:12,091 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:12,098 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:12,098 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:12,098 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:13,066 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:13,066 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:13,073 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:13,074 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:13,074 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,460 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,461 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,472 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,473 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,473 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,491 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,492 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,519 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,521 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,521 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,569 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,569 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,584 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,585 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,636 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,636 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,637 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,657 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,658 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,701 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,701 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,721 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,723 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,724 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,789 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,790 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,811 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,811 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,812 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,850 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,851 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,898 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,899 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,899 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,950 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,950 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,951 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,987 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,988 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:18,988 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:19,113 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:19,113 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:19,114 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:19,173 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:19,174 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:19,174 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:19,187 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:19,188 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)
+2025-11-29 22:38:19,189 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #9BA3AB (theme: consoul-dark)

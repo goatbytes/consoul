@@ -2570,7 +2570,7 @@ class ConsoulApp(App[None]):
                             # Show minimal tool execution indicator
                             tool_names = ", ".join([call.name for call in parsed_calls])
                             tool_indicator = MessageBubble(
-                                f"🔧 Executing: {tool_names}",
+                                f"⛏ Executing: {tool_names}",
                                 role="system",
                                 show_metadata=False,
                             )
@@ -4046,7 +4046,7 @@ class ConsoulApp(App[None]):
                             [tc.get("name", "unknown") for tc in tool_calls]
                         )
                         tool_indicator = MessageBubble(
-                            f"🔧 Executing: {tool_names}",
+                            f"⛏ Executing: {tool_names}",
                             role="system",
                             show_metadata=False,
                         )
