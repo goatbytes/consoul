@@ -41,7 +41,7 @@ class ConversationCard(Vertical):
         height: auto;
         min-height: 5;
         padding: 1;
-        margin: 0 0 1 0;
+        margin: 0 1 1 0;  /* Add right margin for spacing from scrollbar */
         background: $surface;
         border-left: wide $primary;
     }
