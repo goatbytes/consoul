@@ -813,6 +813,20 @@ class ConsoulApp(App[None]):
                 f"[PERF] Initialize title generator: {(time.time() - step_start) * 1000:.1f}ms"
             )
 
+            # Apply theme BEFORE showing main UI (prevents background color flash)
+            step_start = time.time()
+            self.register_theme(CONSOUL_DARK)
+            self.register_theme(CONSOUL_LIGHT)
+            try:
+                self.theme = self.config.theme
+                logger.info(f"[PERF] Applied theme: {self.config.theme}")
+            except Exception as e:
+                logger.warning(f"Failed to set theme '{self.config.theme}': {e}")
+                self.theme = "textual-dark"
+            logger.info(
+                f"[PERF] Apply theme: {(time.time() - step_start) * 1000:.1f}ms"
+            )
+
             # Step 7: Complete (100%)
             if loading_screen:
                 loading_screen.update_progress("Ready!", 100)
@@ -863,19 +877,8 @@ class ConsoulApp(App[None]):
             self._add_initial_system_prompt()
             logger.info("[POST-INIT] Added initial system prompt")
 
-        # Register Consoul brand themes
-        self.register_theme(CONSOUL_DARK)
-        self.register_theme(CONSOUL_LIGHT)
-
-        # Apply theme from config
-        try:
-            self.theme = self.config.theme
-            logger.info(f"[POST-INIT] Applied theme: {self.config.theme}")
-        except Exception as e:
-            logger.warning(
-                f"[POST-INIT] Failed to set theme '{self.config.theme}': {e}"
-            )
-            self.theme = "textual-dark"
+        # Theme is now applied during initialization (before main UI shows)
+        # to prevent background color flash when loading screen is disabled
 
         # Set up GC management (streaming-aware mode from research)
         if self.config.gc_mode == "streaming-aware":
