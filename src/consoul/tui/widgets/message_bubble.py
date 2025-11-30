@@ -6,6 +6,7 @@ styling, markdown formatting, and optional metadata display.
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -248,9 +249,19 @@ class MessageBubble(Container):
         if metrics_parts:
             footer.append(" │ ", style="dim")
             metrics_text = " • ".join(metrics_parts)
-            # Get secondary color from current theme
-            secondary_color = self.app.theme_variables.get("secondary", "#FF6600")
-            footer.append(metrics_text, style=Style(bold=True, color=secondary_color))
+            # Get text-muted color from current theme, fallback to default
+            # Need to use the design system color, not theme_variables (which may contain CSS formats)
+            theme = self.app.get_theme(self.app.theme)
+            if theme and "text-muted" in theme.variables and not theme.variables["text-muted"].startswith("auto"):
+                # Use custom text-muted if defined and not a CSS format
+                metrics_color = theme.variables["text-muted"]
+            else:
+                # Fallback to a sensible muted color based on theme darkness
+                metrics_color = "#9BA3AB" if (theme and theme.dark) else "#6C757D"
+
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Metrics text color: {metrics_color} (theme: {self.app.theme})")
+            footer.append(metrics_text, style=Style(bold=True, color=metrics_color))
 
         # Add estimated cost if available (for non-local models)
         if self.estimated_cost is not None and self.estimated_cost > 0:
