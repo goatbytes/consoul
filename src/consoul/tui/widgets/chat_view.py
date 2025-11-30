@@ -155,17 +155,17 @@ class ChatView(VerticalScroll):
     def on_mouse_scroll_up(self, event: MouseScrollUp) -> None:
         """Handle mouse scroll up event to detect user scrolling away from bottom.
 
-        When user scrolls up and they're currently at/near the bottom, we suspend
-        auto-scroll to let them review previous messages without being yanked back down.
+        Any upward scroll suspends auto-scroll to let users review previous messages
+        without being yanked back down during streaming.
 
         Args:
             event: MouseScrollUp event from Textual
         """
-        # If user is scrolling up from the bottom, mark that they've scrolled away
-        if self._is_at_bottom():
+        # Any upward scroll means user wants to review history - suspend auto-scroll
+        if not self._user_scrolled_away:
             self._user_scrolled_away = True
             logger.debug(
-                f"[SCROLL] User scrolled up from bottom - suspending auto-scroll "
+                f"[SCROLL] User scrolled up - suspending auto-scroll "
                 f"(scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
             )
 
