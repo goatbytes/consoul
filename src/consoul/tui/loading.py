@@ -124,7 +124,7 @@ class LoadingScreen(Widget):
     LoadingScreen {
         width: 100%;
         height: 100%;
-        background: $background;
+        background: $surface;
         layers: bg overlay;
     }
 
