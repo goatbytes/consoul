@@ -156,8 +156,8 @@ class InputArea(Container):
             from consoul.tui.widgets.attachment_button import AttachmentButton
 
             yield self.text_area
-            yield Button("Send", id="send-button", variant="default")
             yield AttachmentButton()
+            yield Button("↑ Send", id="send-button", variant="default")
         with Horizontal(id="file-chips-container"):
             # Dynamically populated with FileChip widgets
             pass
