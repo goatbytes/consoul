@@ -1526,6 +1526,10 @@ class ConsoulApp(App[None]):
         user_bubble = MessageBubble(user_message, role="user", show_metadata=True)
         await self.chat_view.add_message(user_bubble)
 
+        # Ensure we scroll to bottom to show the user's message
+        # Use call_after_refresh to wait for layout, then scroll
+        self.chat_view.call_after_refresh(self.chat_view.scroll_end, animate=True)
+
         t3 = time.time()
         logger.info(f"[TIMING] Added message bubble: {(t3 - t2) * 1000:.1f}ms")
 
@@ -2618,8 +2622,10 @@ class ConsoulApp(App[None]):
                 # Replace StreamingResponse with MessageBubble for permanent display
                 # Save scroll position before removing widget to prevent jump to top
                 chat_view_scroll_y = self.chat_view.scroll_y
+                # Consider "at bottom" if within 5 units of the bottom
+                # This handles cases where scroll is in progress but not yet complete
                 chat_view_at_bottom = (
-                    self.chat_view.scroll_y >= self.chat_view.max_scroll_y - 1
+                    self.chat_view.scroll_y >= self.chat_view.max_scroll_y - 5
                 )
                 logger.debug(
                     f"[SCROLL] Before removing StreamingResponse - "
@@ -2783,29 +2789,80 @@ class ConsoulApp(App[None]):
                         time_to_first_token=time_to_first_token,
                         estimated_cost=estimated_cost,
                     )
+
+                    # Temporarily disable auto_scroll to prevent premature scroll during MessageBubble mount
+                    # We'll manually scroll after layout is complete
+                    saved_auto_scroll = self.chat_view.auto_scroll
+                    self.chat_view.auto_scroll = False
+
                     await self.chat_view.add_message(assistant_bubble)
 
+                    # Restore auto_scroll
+                    self.chat_view.auto_scroll = saved_auto_scroll
+
                     # Ensure we're scrolled to bottom if we were at bottom before removal
-                    # This prevents the scroll position from jumping to top when widget is replaced
+                    # This prevents the scroll position from jumping when widget is replaced
                     if chat_view_at_bottom:
+                        # Store the expected minimum scroll height
+                        # The MessageBubble should render at least as tall as the StreamingResponse was
+                        expected_min_scroll = chat_view_scroll_y
+
                         logger.debug(
-                            f"[SCROLL] Forcing scroll to bottom after MessageBubble added - "
+                            f"[SCROLL] Scheduling scroll after MessageBubble added - "
                             f"current_scroll_y: {self.chat_view.scroll_y}, "
-                            f"max_scroll_y: {self.chat_view.max_scroll_y}"
+                            f"max_scroll_y: {self.chat_view.max_scroll_y}, "
+                            f"expected_min_scroll: {expected_min_scroll}"
                         )
-                        # Use nested call_after_refresh to ensure both MessageBubble and its children
-                        # are fully laid out before scrolling (similar to typing indicator pattern)
-                        def _scroll_after_bubble_layout() -> None:
+
+                        # Use a polling approach to wait for layout completion
+                        # The MessageBubble's Markdown widget needs time to render
+                        scroll_attempts = 0
+                        max_attempts = 50  # 500ms max (10ms * 50)
+                        last_max_scroll = 0
+
+                        def _check_and_scroll() -> None:
+                            nonlocal scroll_attempts, last_max_scroll
+                            scroll_attempts += 1
+                            current_max_scroll = self.chat_view.max_scroll_y
+
                             logger.debug(
-                                f"[SCROLL] Second refresh - scheduling final scroll - "
+                                f"[SCROLL] Attempt {scroll_attempts} - "
                                 f"scroll_y: {self.chat_view.scroll_y}, "
-                                f"max_scroll_y: {self.chat_view.max_scroll_y}"
-                            )
-                            self.chat_view.call_after_refresh(
-                                self.chat_view.scroll_end, animate=False
+                                f"max_scroll_y: {current_max_scroll}, "
+                                f"last_max_scroll: {last_max_scroll}, "
+                                f"expected_min: {expected_min_scroll}"
                             )
 
-                        self.chat_view.call_after_refresh(_scroll_after_bubble_layout)
+                            # Layout is ready when:
+                            # 1. We've reached the expected minimum height AND layout is stable
+                            # 2. OR we've timed out
+                            reached_expected_height = current_max_scroll >= expected_min_scroll
+                            layout_stable = (
+                                scroll_attempts >= 3  # Wait at least 3 attempts before trusting stability
+                                and current_max_scroll > 0
+                                and current_max_scroll == last_max_scroll
+                            )
+                            timed_out = scroll_attempts >= max_attempts
+
+                            # Only scroll if we've reached expected height or timed out
+                            # Don't scroll early just because layout looks "stable" at a smaller size
+                            if (reached_expected_height and layout_stable) or timed_out:
+                                logger.debug(
+                                    f"[SCROLL] Scrolling to bottom - "
+                                    f"layout_stable: {layout_stable}, "
+                                    f"reached_expected: {reached_expected_height}, "
+                                    f"timed_out: {timed_out}, "
+                                    f"scroll_y: {self.chat_view.scroll_y}, "
+                                    f"max_scroll_y: {current_max_scroll}"
+                                )
+                                self.chat_view.scroll_end(animate=False)
+                            else:
+                                # Layout not ready yet, try again in 10ms
+                                last_max_scroll = current_max_scroll
+                                self.set_timer(0.01, _check_and_scroll)
+
+                        # Start checking after initial refresh
+                        self.chat_view.call_after_refresh(_check_and_scroll)
             elif self._stream_cancelled:
                 # Show cancellation indicator
                 await stream_widget.remove()
