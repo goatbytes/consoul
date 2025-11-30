@@ -115,10 +115,9 @@ ChatView:focus {
     margin: 0;  /* Remove all margins */
 }
 
-/* Remove paragraph spacing in message content */
-.message-content > * {
-    margin: 0;
-    padding: 0;
+/* Remove excessive bottom margin from last element in message content */
+.message-content > *:last-child {
+    margin-bottom: 0;
 }
 
 /* Message metadata */
