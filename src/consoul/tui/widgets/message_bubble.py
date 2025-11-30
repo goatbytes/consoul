@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
+from rich.style import Style
 from rich.text import Text
 from textual import on
 from textual.containers import Container, Horizontal
@@ -137,13 +138,13 @@ class MessageBubble(Container):
                 # Add branch button for assistant messages with message_id
                 if self.role == "assistant" and self.message_id is not None:
                     yield Button(
-                        "🔀",
+                        "⇄",
                         id="branch-button",
                         classes="branch-button",
                         tooltip="Branch conversation from this point",
                     )
 
-                yield Button("📋", id="copy-button", classes="copy-button")
+                yield Button("⧉", id="copy-button", classes="copy-button")
 
     def on_mount(self) -> None:
         """Initialize message bubble on mount."""
@@ -224,7 +225,7 @@ class MessageBubble(Container):
 
         # Add timestamp
         time_str = self.timestamp.strftime("%H:%M:%S")
-        footer.append("🕐 ", style="dim")
+        footer.append("⏱ ", style="dim")
         footer.append(time_str, style="dim italic")
 
         # Build streaming metrics if available
@@ -242,11 +243,14 @@ class MessageBubble(Container):
         if self.time_to_first_token is not None:
             metrics_parts.append(f"{self.time_to_first_token:.2f}s to first token")
 
+
         # Add metrics with separator if we have any
         if metrics_parts:
             footer.append(" │ ", style="dim")
             metrics_text = " • ".join(metrics_parts)
-            footer.append(metrics_text, style="bold cyan")
+            # Get secondary color from current theme
+            secondary_color = self.app.theme_variables.get("secondary", "#FF6600")
+            footer.append(metrics_text, style=Style(bold=True, color=secondary_color))
 
         # Add estimated cost if available (for non-local models)
         if self.estimated_cost is not None and self.estimated_cost > 0:
@@ -255,10 +259,10 @@ class MessageBubble(Container):
             if self.estimated_cost < 0.001:
                 cost_str = f"~${self.estimated_cost:.6f}"
             elif self.estimated_cost < 0.01:
-                cost_str = f"~${self.estimated_cost:.4f}"
+                cost_str = f"~${self.estimated_cost:i.4f}"
             else:
                 cost_str = f"~${self.estimated_cost:.2f}"
-            footer.append(cost_str, style="bold green")
+            footer.append(cost_str, style="bold #85BB65")
 
         return footer
 
