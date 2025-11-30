@@ -83,6 +83,11 @@ class StreamingResponse(RichLog):
         """
         if self.streaming and self.parent and hasattr(self.parent, "scroll_end"):
             # Use call_after_refresh to avoid race conditions with layout
+            logger.debug(
+                f"[SCROLL] Auto-scroll during streaming - height: {self.size.height}, "
+                f"parent_scroll_y: {getattr(self.parent, 'scroll_y', 'N/A')}, "
+                f"parent_max_scroll_y: {getattr(self.parent, 'max_scroll_y', 'N/A')}"
+            )
             self.parent.call_after_refresh(self.parent.scroll_end, animate=False)
 
     async def add_token(self, token: str) -> None:
@@ -146,10 +151,17 @@ class StreamingResponse(RichLog):
         Marks streaming as complete, renders any remaining buffered
         tokens, and updates the border title with token count.
         """
+        logger.info(
+            f"[SCROLL] Finalizing stream - token_count: {self.token_count}, "
+            f"height_before: {self.size.height}, "
+            f"parent_scroll_y: {getattr(self.parent, 'scroll_y', 'N/A') if self.parent else 'N/A'}"
+        )
+
         self.streaming = False
 
         # Stop the auto-scroll timer to prevent race conditions
         if hasattr(self, "_scroll_timer") and self._scroll_timer:
+            logger.debug("[SCROLL] Stopping auto-scroll timer")
             self._scroll_timer.stop()
 
         self.token_buffer.clear()
@@ -159,12 +171,22 @@ class StreamingResponse(RichLog):
         self.border_title = f"Assistant ({self.token_count} tokens)"
 
         # Scroll self to bottom first (in case content is taller than viewport)
+        logger.debug(
+            f"[SCROLL] Scrolling self to bottom - height_after: {self.size.height}, "
+            f"scroll_y: {self.scroll_y}, max_scroll_y: {self.max_scroll_y}"
+        )
         self.scroll_end(animate=False)
 
         # Notify parent to scroll after final content render
         # Use animate=False to prevent animation drift causing scroll-up
         # scroll_end() already uses call_after_refresh internally for proper timing
         if self.parent and hasattr(self.parent, "scroll_end"):
+            logger.info(
+                f"[SCROLL] Requesting parent scroll_end - "
+                f"parent_scroll_y: {self.parent.scroll_y}, "
+                f"parent_max_scroll_y: {self.parent.max_scroll_y}, "
+                f"parent_height: {self.parent.size.height}"
+            )
             self.parent.scroll_end(animate=False)
 
     def reset(self) -> None:

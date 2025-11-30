@@ -6,6 +6,7 @@ messages in a scrollable vertical layout with auto-scrolling support.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from textual.containers import VerticalScroll
@@ -15,6 +16,8 @@ if TYPE_CHECKING:
     from textual.widget import Widget
 
 __all__ = ["ChatView"]
+
+logger = logging.getLogger(__name__)
 
 
 class ChatView(VerticalScroll):
@@ -51,17 +54,28 @@ class ChatView(VerticalScroll):
         Args:
             message_widget: Widget (typically MessageBubble) to add
         """
+        role = getattr(message_widget, "role", "unknown") if hasattr(message_widget, "role") else "unknown"
+        logger.debug(
+            f"[SCROLL] Adding message - role: {role}, "
+            f"auto_scroll: {self.auto_scroll}, "
+            f"current_scroll_y: {self.scroll_y}, "
+            f"max_scroll_y: {self.max_scroll_y}"
+        )
+
         await self.mount(message_widget)
 
         # Only count user and assistant messages (not system/error/tool)
         if hasattr(message_widget, "role"):
-            role = getattr(message_widget, "role", None)
             if role in ("user", "assistant"):
                 self.message_count += 1
 
         if self.auto_scroll:
             # Defer scroll until after layout pass to avoid race condition
             # Widget height isn't finalized until after next layout
+            logger.info(
+                f"[SCROLL] Scheduling scroll_end after message add - "
+                f"role: {role}, scroll_y: {self.scroll_y}"
+            )
             self.call_after_refresh(self.scroll_end, animate=True)
 
     async def clear_messages(self) -> None:
@@ -95,6 +109,7 @@ class ChatView(VerticalScroll):
 
         # Only show if not already showing
         if self._typing_indicator is None:
+            logger.debug("[SCROLL] Showing typing indicator")
             self._typing_indicator = TypingIndicator()
             await self.mount(self._typing_indicator)
 
@@ -102,6 +117,10 @@ class ChatView(VerticalScroll):
                 # Defer scroll until after layout pass to avoid race condition
                 # Use two refresh cycles to ensure both user message and typing indicator are laid out
                 def _scroll_after_layout() -> None:
+                    logger.debug(
+                        f"[SCROLL] Scrolling after typing indicator layout - "
+                        f"scroll_y: {self.scroll_y}, max_scroll_y: {self.max_scroll_y}"
+                    )
                     self.call_after_refresh(self.scroll_end, animate=True)
 
                 self.call_after_refresh(_scroll_after_layout)
