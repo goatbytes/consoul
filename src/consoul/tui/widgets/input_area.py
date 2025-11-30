@@ -15,7 +15,7 @@ from textual.binding import Binding
 from textual.containers import Container, Horizontal
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import Button, TextArea
+from textual.widgets import TextArea
 
 if TYPE_CHECKING:
     from textual import events
@@ -154,10 +154,11 @@ class InputArea(Container):
         """
         with Horizontal(id="input-controls"):
             from consoul.tui.widgets.attachment_button import AttachmentButton
+            from consoul.tui.widgets.send_button import SendButton
 
             yield self.text_area
             yield AttachmentButton()
-            yield Button("↑ Send", id="send-button", variant="default")
+            yield SendButton()
         with Horizontal(id="file-chips-container"):
             # Dynamically populated with FileChip widgets
             pass
@@ -214,24 +215,27 @@ class InputArea(Container):
         # Clear input
         self.clear()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Handle Send button click.
+    def on_send_button_message_submit(
+        self, event: SendButton.MessageSubmit
+    ) -> None:
+        """Handle Send button click from SendButton widget.
 
         Args:
-            event: Button pressed event
+            event: MessageSubmit event from SendButton
         """
-        if event.button.id == "send-button":
-            # Get current text content
-            content = self.text_area.text.strip()
+        from consoul.tui.widgets.send_button import SendButton
 
-            if not content:
-                return  # Don't send empty messages
+        # Get current text content
+        content = self.text_area.text.strip()
 
-            # Post message event
-            self.post_message(self.MessageSubmit(content))
+        if not content:
+            return  # Don't send empty messages
 
-            # Clear input
-            self.clear()
+        # Post message event
+        self.post_message(self.MessageSubmit(content))
+
+        # Clear input
+        self.clear()
 
     def clear(self) -> None:
         """Clear the input area and reset character count."""

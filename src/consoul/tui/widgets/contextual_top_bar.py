@@ -217,15 +217,15 @@ class ContextualTopBar(Static):
             Icon representing current tool status
         """
         if self.tools_enabled == 0:
-            return "🔒"  # No tools
+            return "⛨"  # No tools
 
         # Show icon based on risk level
         if self.highest_risk == "dangerous":
-            return "🔴"  # Red for dangerous
+            return "[red]⚒[/red]"  # Red for dangerous
         elif self.highest_risk == "caution":
-            return "🟡"  # Yellow for caution
+            return "[yellow]⛏[/yellow]"  # Yellow for caution
         else:
-            return "🛠️"  # Tools icon for safe
+            return "⚒"  # Tools icon for safe
 
     def compose(self) -> ComposeResult:
         """Compose the three-zone top bar layout."""
@@ -245,7 +245,7 @@ class ContextualTopBar(Static):
     def _compose_brand_zone(self) -> ComposeResult:
         """Compose the branding/status zone."""
         # Consoul logo
-        yield Label("🤖 Consoul", classes="brand-logo", id="brand-logo")
+        yield Label("⟡ C𝙤ns𝙤ul", classes="brand-logo", id="brand-logo")
 
         # Conversation count indicator (clickable to toggle sidebar)
         count_text = (
@@ -281,7 +281,7 @@ class ContextualTopBar(Static):
         model_display = self._get_model_display_name(
             self.current_model, self.current_provider
         )
-        model_text = f"🤖 {provider_display}: {model_display}"
+        model_text = f"◉ {provider_display}: {model_display}"
         model_label = Label(
             model_text, classes="status-label action-button", id="model-label"
         )
@@ -300,10 +300,11 @@ class ContextualTopBar(Static):
         # Tool status button (shows icon based on enabled tools and risk)
         tool_icon = self._get_tool_status_icon()
         tools_btn = Label(tool_icon, classes="action-button", id="tools-btn")
+        # tools_btn = Label("⚒", classes="action-button", id="tools-btn")
         tools_btn.can_focus = True
         yield tools_btn
 
-        settings_btn = Label("⚙️", classes="action-button", id="settings-btn")
+        settings_btn = Label("⚙", classes="action-button", id="settings-btn")
         settings_btn.can_focus = True
         yield settings_btn
 
@@ -371,7 +372,7 @@ class ContextualTopBar(Static):
             model_display = self._get_model_display_name(
                 self.current_model, self.current_provider
             )
-            model_label.update(f"🤖 {provider_display}: {model_display}")
+            model_label.update(f"◉ {provider_display}: {model_display}")
         except Exception as e:
             import logging
 

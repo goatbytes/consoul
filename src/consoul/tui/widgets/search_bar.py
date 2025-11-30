@@ -129,7 +129,7 @@ class SearchBar(Static):
         """Compose the search bar layout."""
         with Horizontal(classes="search-container"):
             # Mode indicator (search icon)
-            yield Label("🔍", id="mode-indicator", classes="mode-indicator")
+            yield Label("⌕", id="mode-indicator", classes="mode-indicator")
 
             # Search input field
             yield Input(

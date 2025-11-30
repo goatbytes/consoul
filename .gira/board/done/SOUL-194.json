@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-29T16:10:19.247524",
-  "updated_at": "2025-11-30T00:47:46.209842Z",
+  "updated_at": "2025-11-29T18:45:56.835778",
   "id": "SOUL-194",
   "uuid": "e78cafa3-760d-4f22-88b2-ddbad07f3ac4",
   "title": "Implement conditional loading screen based on config.show_loading_screen",
@@ -30,11 +30,50 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-29T16:53:10.566564",
+      "updated_at": "2025-11-29T16:53:10.566565",
+      "id": "20251129165310-6796cfb9",
+      "ticket_id": "SOUL-194",
+      "author": "jared@goatbytes.io",
+      "content": "Added UI setting to Settings modal for easy access.\n\nChanges:\n- Settings → Appearance → Show Loading Screen (switch toggle)\n- Located after 'Show Token Count' setting\n- Integrated with reset and save functionality\n- Users can now toggle without editing config files\n\nUI Implementation:\n- settings_screen.py:265-272 - Added switch widget\n- settings_screen.py:573 - Added to reset list\n- settings_screen.py:670 - Added to save collection\n\nComplete implementation includes:\n1. Core functionality (on_mount + _async_initialize conditionals) ✅\n2. Settings UI toggle ✅\n3. Config persistence ✅\n4. Documentation in ticket ✅\n\nUsers can now disable the loading screen via Settings UI for ~500ms faster startup.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-29T17:01:09.011209",
+      "updated_at": "2025-11-29T17:01:09.011210",
+      "id": "20251129170109-6a469cec",
+      "ticket_id": "SOUL-194",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed background color flash when loading screen is disabled.\n\nIssue:\nWhen show_loading_screen=false, the main UI appeared before theme was applied, causing a brief flash from the default background color to the configured theme's background color.\n\nRoot Cause:\nTheme registration and application was happening in _post_initialization_setup(), which runs AFTER the main UI is visible when the loading screen is disabled.\n\nSolution:\nMoved theme application to occur during initialization, before Step 7 completion:\n- app.py:816-828 - Apply theme after title generator, before UI shows\n- app.py:880-881 - Removed duplicate theme application from post-init\n\nTimeline:\n1. Initialize title generator\n2. Register and apply theme ← NEW LOCATION\n3. Complete Step 7 (fade out loading or show main UI)\n4. Post-initialization setup\n\nResult:\n- With loading screen: No visible change (theme applied before fade-out)\n- Without loading screen: No color flash (theme applied before UI shows)\n- Consistent themed appearance from first frame\n- Performance impact: ~0-5ms (negligible)\n\nThe fix ensures a polished startup experience regardless of loading screen setting.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-29T18:45:56.835697",
+      "updated_at": "2025-11-29T18:45:56.835698",
+      "id": "20251129184556-b93c12fc",
+      "ticket_id": "SOUL-194",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed background color flash when loading screen is disabled.\n\nIssue:\nWhen show_loading_screen=false, the main UI appeared before theme was applied, causing a brief flash from the default background color to the configured theme's background color.\n\nRoot Cause:\nTheme registration and application was happening in _post_initialization_setup(), which runs AFTER the main UI is visible when the loading screen is disabled.\n\nSolution:\nMoved theme application to occur during initialization, before Step 7 completion:\n- app.py:816-828 - Apply theme after title generator, before UI shows\n- app.py:880-881 - Removed duplicate theme application from post-init\n\nTimeline:\n1. Initialize title generator\n2. Register and apply theme ← NEW LOCATION\n3. Complete Step 7 (fade out loading or show main UI)\n4. Post-initialization setup\n\nResult:\n- With loading screen: No visible change (theme applied before fade-out)\n- Without loading screen: No color flash (theme applied before UI shows)\n- Consistent themed appearance from first frame\n- Performance impact: ~0-5ms (negligible)\n\nThe fix ensures a polished startup experience regardless of loading screen setting.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 1,
+  "comment_count": 4,
   "story_points": 3,
   "order": 0,
   "custom_fields": {}
