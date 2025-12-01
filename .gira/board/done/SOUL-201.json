@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-30T23:59:27.538511",
-  "updated_at": "2025-12-01T00:22:54.727152",
+  "updated_at": "2025-12-01T08:11:50.379765",
   "id": "SOUL-201",
   "uuid": "19e954f8-97be-4762-a466-6ce93d7aee2a",
   "title": "Enhance tool call display with argument visibility in header",
@@ -57,11 +57,24 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-01T08:11:50.379692",
+      "updated_at": "2025-12-01T08:11:50.379693",
+      "id": "20251201081150-9cd123e3",
+      "ticket_id": "SOUL-201",
+      "author": "jared@goatbytes.io",
+      "content": "Bug fix: Corrected file_path display for file operations.\n\nIssue: read_file and similar tools were showing ellipsis instead of actual file paths:\n- Old: read_file(end_page=..., file_path=..., limit=..., ...)\n- Expected: read_file(file_path=\"README.md\")\n\nRoot cause: Formatter was checking for 'path' key, but these tools use 'file_path'.\n\nSolution (commit b2da84f):\n- Updated formatter to check both 'file_path' and 'path' keys\n- Simplified display to show only the file path (most important info)\n- Hide null/default parameters that add no value\n- Added create_file to file operations list\n\nResult: Clean, focused display showing what matters:\n- 🔧 read_file(file_path=\"README.md\")\n- 🔧 write_file(file_path=\"/path/to/file.txt\")\n- 🔧 create_file(file_path=\"new_file.py\")\n\nUser-reported issue resolved.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 3,
+  "comment_count": 4,
   "story_points": 3,
   "order": 0,
   "custom_fields": {}
