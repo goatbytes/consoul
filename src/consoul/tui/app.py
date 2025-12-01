@@ -2572,21 +2572,21 @@ class ConsoulApp(App[None]):
                             await stream_widget.remove()
 
                             # Show tool execution messages with formatted headers
+                            from textual.widgets import Static
+
                             from consoul.tui.widgets.tool_formatter import (
                                 format_tool_header,
                             )
 
                             for call in parsed_calls:
-                                # Format tool header with arguments for visibility
-                                header_rich = format_tool_header(
+                                # Format tool header with arguments (returns RenderableType)
+                                header_renderable = format_tool_header(
                                     call.name, call.arguments
                                 )
-                                # Convert Rich Text to plain string for MessageBubble
-                                header_text = header_rich.plain
-                                tool_message = MessageBubble(
-                                    header_text,
-                                    role="system",
-                                    show_metadata=False,
+                                # Use Static widget to render Rich renderables
+                                tool_message = Static(
+                                    header_renderable,
+                                    classes="system-message",
                                 )
                                 await self.chat_view.add_message(tool_message)
 
@@ -4185,6 +4185,8 @@ class ConsoulApp(App[None]):
 
                     # Show tool execution indicator for assistant messages with tools
                     if tool_calls and role == "assistant":
+                        from textual.widgets import Static
+
                         from consoul.tui.widgets.tool_formatter import (
                             format_tool_header,
                         )
@@ -4193,11 +4195,11 @@ class ConsoulApp(App[None]):
                         for tc in tool_calls:
                             tool_name = tc.get("name", "unknown")
                             tool_args = tc.get("arguments", {})
-                            header_rich = format_tool_header(tool_name, tool_args)
-                            tool_indicator = MessageBubble(
-                                header_rich.plain,
-                                role="system",
-                                show_metadata=False,
+                            header_renderable = format_tool_header(tool_name, tool_args)
+                            # Use Static widget to render Rich renderables
+                            tool_indicator = Static(
+                                header_renderable,
+                                classes="system-message",
                             )
                             await self.chat_view.add_message(tool_indicator)
 

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from rich.columns import Columns
+from rich.syntax import Syntax
 from rich.text import Text
 
 __all__ = ["format_tool_header"]
@@ -63,7 +65,7 @@ def _format_generic_header(tool_name: str, arguments: dict[str, Any]) -> str:
     return f"{tool_name}({args_preview})"
 
 
-def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text:
+def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text | Columns:
     """Format tool header with tool name and arguments.
 
     Shows arguments inline in the header for immediate visibility
@@ -75,11 +77,11 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text:
         arguments: Tool arguments dictionary
 
     Returns:
-        Rich Text object with formatted header
+        Rich renderable (Text or Columns for bash with syntax highlighting)
 
     Examples:
         >>> format_tool_header("bash_execute", {"command": "ls -la"})
-        Text('⛏ Bash("ls -la")')
+        Columns([Text('⛏ Bash: '), Syntax('ls -la', 'bash')])
 
         >>> format_tool_header("read_file", {"path": "/path/to/file.txt"})
         Text('⛏ Read("/path/to/file.txt")')
@@ -87,22 +89,32 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text:
         >>> format_tool_header("grep_search", {"pattern": "TODO", "path": "src/"})
         Text('⛏ Search("TODO", in="src/")')
     """
-    header = Text()
-    header.append("⛏ ", style="bold")
-
     # Get friendly display name
     display_name = TOOL_DISPLAY_NAMES.get(tool_name, tool_name)
 
     # Format based on tool type
     if tool_name == "bash_execute" and "command" in arguments:
-        # Show bash command inline with quotes
+        # Show bash command with syntax highlighting
         cmd = arguments["command"]
         truncated = _truncate_arg(cmd, max_len=80)
-        header.append(f'{display_name}("', style="bold cyan")
-        header.append(truncated, style="cyan")
-        header.append('")', style="bold cyan")
 
-    elif tool_name in ("read_file", "write_file", "edit_file", "create_file"):
+        # Create label
+        label = Text()
+        label.append("⛏ ", style="bold")
+        label.append(f"{display_name}: ", style="bold cyan")
+
+        # Return Columns with label + syntax-highlighted command
+        return Columns(
+            [label, Syntax(truncated, "bash", theme="monokai", word_wrap=False)],
+            expand=False,
+            equal=False,
+        )
+
+    # All other tools return Text
+    header = Text()
+    header.append("⛏ ", style="bold")
+
+    if tool_name in ("read_file", "write_file", "edit_file", "create_file"):
         # File operations - show file_path or path prominently
         # Try file_path first (used by read_file, write_file, create_file)
         # then fall back to path (used by edit_file)
