@@ -75,6 +75,16 @@ class SendableTextArea(TextArea):
         Args:
             event: The key event
         """
+        import logging
+        import time
+
+        logger = logging.getLogger(__name__)
+
+        logger.debug(
+            f"[USER_INPUT] Key at {time.time():.3f} - key: {event.key}, "
+            f"char: {getattr(event, 'character', None)}"
+        )
+
         # Check for plain Enter (without Shift modifier)
         # When Shift is pressed, the key becomes "shift+enter", not "enter"
         if event.key == "enter":
@@ -216,14 +226,13 @@ class InputArea(Container):
         self.clear()
 
     def on_send_button_message_submit(
-        self, event: SendButton.MessageSubmit
+        self, event: "SendButton.MessageSubmit"
     ) -> None:
         """Handle Send button click from SendButton widget.
 
         Args:
             event: MessageSubmit event from SendButton
         """
-        from consoul.tui.widgets.send_button import SendButton
 
         # Get current text content
         content = self.text_area.text.strip()

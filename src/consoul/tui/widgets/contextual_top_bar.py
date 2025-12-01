@@ -422,6 +422,11 @@ class ContextualTopBar(Static):
 
     async def on_click(self, event: Click) -> None:
         """Handle click events on action buttons."""
+        import logging
+        import time
+
+        logger = logging.getLogger(__name__)
+
         # Determine which element was clicked
         target_id = (
             event.control.id
@@ -429,6 +434,11 @@ class ContextualTopBar(Static):
             and event.control is not None
             and hasattr(event.control, "id")
             else None
+        )
+
+        logger.info(
+            f"[USER_INPUT] Click at {time.time():.3f} - target: {target_id}, "
+            f"x: {event.x}, y: {event.y}"
         )
 
         if target_id == "conversation-info":
