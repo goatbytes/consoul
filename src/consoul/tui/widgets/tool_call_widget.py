@@ -83,9 +83,9 @@ class ToolCallWidget(Container):
 
     def compose(self) -> ComposeResult:
         """Compose the tool call widget structure."""
-        # Tool header with name
+        # Tool header with name and arguments
         yield Static(
-            f"🔧 Tool: {self.tool_name}",
+            self._format_tool_header(),
             id="tool-header",
             classes="tool-header",
         )
@@ -122,6 +122,110 @@ class ToolCallWidget(Container):
     def on_mount(self) -> None:
         """Initialize widget styling on mount."""
         self._update_widget_classes()
+
+    def _truncate_arg(self, value: str, max_len: int) -> str:
+        """Truncate argument value to maximum length with ellipsis.
+
+        Args:
+            value: Argument value to truncate
+            max_len: Maximum length before truncation
+
+        Returns:
+            Truncated string with '...' if longer than max_len
+        """
+        if len(value) <= max_len:
+            return value
+        return value[: max_len - 3] + "..."
+
+    def _format_tool_header(self) -> Text:
+        """Format tool header with tool name and arguments.
+
+        Shows arguments inline in the header for immediate visibility
+        of what the tool is executing. Different formatting strategies
+        are used based on tool type and argument complexity.
+
+        Returns:
+            Rich Text object with formatted header
+        """
+        header = Text()
+        header.append("🔧 ", style="bold")
+
+        # Format based on tool type
+        if self.tool_name == "bash_execute" and "command" in self.arguments:
+            # Show bash command inline
+            cmd = self.arguments["command"]
+            truncated = self._truncate_arg(cmd, max_len=80)
+            header.append(f'bash_execute("{truncated}")', style="bold cyan")
+
+        elif self.tool_name in ("read_file", "write_file", "edit_file"):
+            # File operations - show path prominently
+            if "path" in self.arguments:
+                path = self.arguments["path"]
+                truncated_path = self._truncate_arg(str(path), max_len=60)
+                # Show other args abbreviated
+                other_args = [k for k in self.arguments if k != "path"]
+                if other_args:
+                    args_str = f'path="{truncated_path}", {", ".join(f"{k}=..." for k in other_args[:2])}'
+                else:
+                    args_str = f'path="{truncated_path}"'
+                header.append(f"{self.tool_name}({args_str})", style="bold cyan")
+            else:
+                # Fallback to generic format
+                header.append(self._format_generic_header(), style="bold cyan")
+
+        elif self.tool_name in (
+            "grep_search",
+            "code_search",
+            "ripgrep_search",
+            "search",
+        ):
+            # Search tools - show pattern/query prominently
+            pattern_key = None
+            for key in ["pattern", "query", "search_term", "term"]:
+                if key in self.arguments:
+                    pattern_key = key
+                    break
+
+            if pattern_key:
+                pattern = self.arguments[pattern_key]
+                truncated_pattern = self._truncate_arg(str(pattern), max_len=50)
+                # Show path if present
+                if "path" in self.arguments:
+                    path = self._truncate_arg(str(self.arguments["path"]), max_len=30)
+                    args_str = f'{pattern_key}="{truncated_pattern}", path="{path}"'
+                else:
+                    args_str = f'{pattern_key}="{truncated_pattern}"'
+                header.append(f"{self.tool_name}({args_str})", style="bold cyan")
+            else:
+                # Fallback to generic format
+                header.append(self._format_generic_header(), style="bold cyan")
+
+        elif len(self.arguments) == 1:
+            # Single argument - show inline
+            key, value = next(iter(self.arguments.items()))
+            truncated = self._truncate_arg(str(value), max_len=60)
+            header.append(f'{self.tool_name}({key}="{truncated}")', style="bold cyan")
+
+        else:
+            # Multiple arguments - show abbreviated
+            header.append(self._format_generic_header(), style="bold cyan")
+
+        return header
+
+    def _format_generic_header(self) -> str:
+        """Format header for tools with multiple/generic arguments.
+
+        Returns:
+            String with tool name and abbreviated argument list
+        """
+        if not self.arguments:
+            return f"{self.tool_name}()"
+
+        # Show first 3 argument names with ellipsis
+        args_preview = ", ".join(f"{k}=..." for k in list(self.arguments.keys())[:3])
+        if len(self.arguments) > 3:
+            args_preview += ", ..."
+        return f"{self.tool_name}({args_preview})"
 
     def _format_arguments(self) -> Text | Syntax:
         """Format tool arguments for display.

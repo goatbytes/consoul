@@ -8,7 +8,9 @@
   "owner": "jared@goatbytes.io",
   "target_date": "2025-12-20",
   "labels": [],
-  "tickets": [],
+  "tickets": [
+    "SOUL-201"
+  ],
   "comments": [],
   "comment_count": 0,
   "attachments": [],
