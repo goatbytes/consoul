@@ -2404,6 +2404,10 @@ class ConsoulApp(App[None]):
                 while True:
                     token = await token_queue.get()
 
+                    # Yield control to allow UI event processing (scrolling, clicking, etc)
+                    # Without this, user input events queue up and aren't processed until streaming ends
+                    await asyncio.sleep(0)
+
                     # None = sentinel, stream is done
                     if token is None:
                         break
