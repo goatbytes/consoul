@@ -10,10 +10,10 @@ import logging
 from typing import TYPE_CHECKING
 
 from textual.containers import VerticalScroll
-from textual.events import MouseScrollDown, MouseScrollUp
 from textual.reactive import reactive
 
 if TYPE_CHECKING:
+    from textual.events import MouseScrollDown, MouseScrollUp
     from textual.widget import Widget
 
 __all__ = ["ChatView"]
@@ -41,7 +41,9 @@ class ChatView(VerticalScroll):
         super().__init__()
         self.can_focus = True
         self._typing_indicator: Widget | None = None
-        self._user_scrolled_away = False  # Track if user manually scrolled away from bottom
+        self._user_scrolled_away = (
+            False  # Track if user manually scrolled away from bottom
+        )
 
     def on_mount(self) -> None:
         """Initialize chat view on mount."""
@@ -56,7 +58,11 @@ class ChatView(VerticalScroll):
         Args:
             message_widget: Widget (typically MessageBubble) to add
         """
-        role = getattr(message_widget, "role", "unknown") if hasattr(message_widget, "role") else "unknown"
+        role = (
+            getattr(message_widget, "role", "unknown")
+            if hasattr(message_widget, "role")
+            else "unknown"
+        )
         logger.debug(
             f"[SCROLL] Adding message - role: {role}, "
             f"auto_scroll: {self.auto_scroll}, "
@@ -67,9 +73,8 @@ class ChatView(VerticalScroll):
         await self.mount(message_widget)
 
         # Only count user and assistant messages (not system/error/tool)
-        if hasattr(message_widget, "role"):
-            if role in ("user", "assistant"):
-                self.message_count += 1
+        if hasattr(message_widget, "role") and role in ("user", "assistant"):
+            self.message_count += 1
 
         # Only auto-scroll if enabled AND user hasn't manually scrolled away
         if self.auto_scroll and not self._user_scrolled_away:
@@ -162,11 +167,17 @@ class ChatView(VerticalScroll):
             event: MouseScrollUp event from Textual
         """
         # Any upward scroll means user wants to review history - suspend auto-scroll
+        import time
+
         if not self._user_scrolled_away:
             self._user_scrolled_away = True
-            logger.debug(
-                f"[SCROLL] User scrolled up - suspending auto-scroll "
+            logger.info(
+                f"[USER_INPUT] Scroll up at {time.time():.3f} - suspending auto-scroll "
                 f"(scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
+            )
+        else:
+            logger.debug(
+                f"[USER_INPUT] Scroll up at {time.time():.3f} - already suspended"
             )
 
     def on_mouse_scroll_down(self, event: MouseScrollDown) -> None:
@@ -178,9 +189,15 @@ class ChatView(VerticalScroll):
             event: MouseScrollDown event from Textual
         """
         # Re-enable auto-scroll if user scrolls back to bottom
+        import time
+
+        logger.debug(
+            f"[USER_INPUT] Scroll down at {time.time():.3f} "
+            f"(scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
+        )
         if self._user_scrolled_away and self._is_at_bottom():
             self._user_scrolled_away = False
-            logger.debug(
-                f"[SCROLL] User scrolled back to bottom - resuming auto-scroll "
+            logger.info(
+                f"[USER_INPUT] Scrolled back to bottom - resuming auto-scroll "
                 f"(scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
             )

@@ -917,6 +917,33 @@ class ConsoulApp(App[None]):
 
         logger.info("[POST-INIT] Post-initialization setup complete")
 
+    async def _event_loop_health_check(self) -> None:
+        """Monitor event loop health by checking for blocking operations.
+
+        Logs a warning if the gap between checks exceeds threshold,
+        indicating the event loop was blocked.
+        """
+        import asyncio
+        import time
+
+        last_check = time.time()
+        check_interval = 0.05  # 50ms
+        block_threshold = 0.15  # 150ms - warn if gap exceeds this
+
+        while True:
+            await asyncio.sleep(check_interval)
+            current_time = time.time()
+            gap = (current_time - last_check) * 1000  # milliseconds
+
+            if gap > (block_threshold * 1000):
+                logger.warning(
+                    f"[EVENT_LOOP] BLOCKED! Gap: {gap:.1f}ms (threshold: {block_threshold * 1000:.1f}ms)"
+                )
+            else:
+                logger.debug(f"[EVENT_LOOP] Health check OK - gap: {gap:.1f}ms")
+
+            last_check = current_time
+
     def on_mount(self) -> None:
         """Mount the app and start initialization.
 
@@ -938,6 +965,12 @@ class ConsoulApp(App[None]):
         # Use set_timer to schedule initialization after a brief delay
         # This ensures UI is ready (with or without loading screen) before heavy work
         self.set_timer(0.1, self._start_initialization)
+
+        # Start event loop health monitoring for debugging UI responsiveness
+        import asyncio
+
+        self._health_check_task = asyncio.create_task(self._event_loop_health_check())
+        logger.info("[EVENT_LOOP] Started health check monitoring")
 
     def _start_initialization(self) -> None:
         """Callback to start async initialization."""
@@ -3008,6 +3041,8 @@ class ConsoulApp(App[None]):
             >>> tool_results = [ToolMessage(content="...", tool_call_id="call_123")]
             >>> await self._continue_with_tool_results(tool_results)
         """
+        import time
+
         self.log.info(
             f"[TOOL_FLOW] _continue_with_tool_results called with {len(tool_results)} results"
         )
@@ -3039,6 +3074,7 @@ class ConsoulApp(App[None]):
                 )
 
             # Add tool results to conversation history and persist them
+            persist_start = time.time()
             self.log.info(
                 f"[TOOL_FLOW] Adding {len(tool_results)} tool messages to conversation"
             )
@@ -3052,13 +3088,25 @@ class ConsoulApp(App[None]):
                 )
                 # Yield control after each persistence to keep UI responsive
                 await asyncio.sleep(0)
+            persist_end = time.time()
+            self.log.info(
+                f"[TOOL_TIMING] Persist loop complete: {(persist_end - persist_start) * 1000:.1f}ms"
+            )
 
             # Stream AI's final response with tool results
             # Reuse existing streaming infrastructure
+            stream_start = time.time()
+            self.log.info(
+                f"[TOOL_TIMING] Before _stream_ai_response: {(stream_start - persist_start) * 1000:.1f}ms from persist start"
+            )
             self.log.info(
                 "[TOOL_FLOW] Calling _stream_ai_response to get model continuation"
             )
             await self._stream_ai_response()
+            stream_end = time.time()
+            self.log.info(
+                f"[TOOL_TIMING] _stream_ai_response completed: {(stream_end - stream_start) * 1000:.1f}ms"
+            )
             self.log.info("[TOOL_FLOW] _stream_ai_response completed")
 
         except Exception as e:
@@ -3425,15 +3473,22 @@ class ConsoulApp(App[None]):
             f"call_id={message.tool_call.id}"
         )
 
+        # Start timing for entire approval flow
+        start_time = time.time()
+
         if message.approved:
             # Update tool call data to EXECUTING
+            t0 = time.time()
             self._tool_call_data[message.tool_call.id]["status"] = "EXECUTING"
+            t1 = time.time()
+            self.log.info(
+                f"[TOOL_TIMING] T1: Set status to EXECUTING: {(t1 - t0) * 1000:.1f}ms"
+            )
             self.log.info(
                 f"[TOOL_FLOW] Executing approved tool: {message.tool_call.name}"
             )
 
             # Log execution start
-            start_time = time.time()
             if self.tool_registry and self.tool_registry.audit_logger:
                 await self.tool_registry.audit_logger.log_event(
                     AuditEvent(
@@ -3445,11 +3500,23 @@ class ConsoulApp(App[None]):
 
             # Yield control to allow UI to update and show "EXECUTING" status
             # This prevents the UI from appearing frozen during tool execution
+            t2 = time.time()
+            self.log.info(
+                f"[TOOL_TIMING] T2: Before UI yield: {(t2 - start_time) * 1000:.1f}ms"
+            )
             await asyncio.sleep(0.01)  # 10ms delay to let UI refresh
+            t3 = time.time()
+            self.log.info(
+                f"[TOOL_TIMING] T3: After UI yield: {(t3 - start_time) * 1000:.1f}ms"
+            )
 
             # Execute tool
             try:
                 result = await self._execute_tool(message.tool_call)
+                t4 = time.time()
+                self.log.info(
+                    f"[TOOL_TIMING] T4: Tool execution complete: {(t4 - start_time) * 1000:.1f}ms"
+                )
                 # Update tool call data with SUCCESS
                 self._tool_call_data[message.tool_call.id]["status"] = "SUCCESS"
                 self._tool_call_data[message.tool_call.id]["result"] = result
@@ -3508,8 +3575,12 @@ class ConsoulApp(App[None]):
             )
 
         # Store result
+        t5 = time.time()
         tool_message = ToolMessage(content=result, tool_call_id=message.tool_call.id)
         self._tool_results[message.tool_call.id] = tool_message
+        self.log.info(
+            f"[TOOL_TIMING] T5: Result stored: {(t5 - start_time) * 1000:.1f}ms"
+        )
 
         # Persist tool call to database for UI reconstruction
         await self._persist_tool_call(
@@ -3517,9 +3588,17 @@ class ConsoulApp(App[None]):
             status=self._tool_call_data[message.tool_call.id]["status"],
             result=result,
         )
+        t6 = time.time()
+        self.log.info(
+            f"[TOOL_TIMING] T6: After persist_tool_call: {(t6 - start_time) * 1000:.1f}ms"
+        )
 
         # Yield control to allow UI to process events after tool execution
         await asyncio.sleep(0)
+        t7 = time.time()
+        self.log.info(
+            f"[TOOL_TIMING] T7: After post-persist yield: {(t7 - start_time) * 1000:.1f}ms"
+        )
 
         # Check if all tools are done
         completed = len(self._tool_results)
@@ -3530,6 +3609,10 @@ class ConsoulApp(App[None]):
 
         if completed == total:
             # All tools completed - feed results back to AI
+            t8 = time.time()
+            self.log.info(
+                f"[TOOL_TIMING] T8: Before continue_with_tool_results: {(t8 - start_time) * 1000:.1f}ms"
+            )
             logger.debug(
                 f"[TOOL_FLOW] All {total} tools completed, continuing with tool results"
             )
@@ -3537,6 +3620,10 @@ class ConsoulApp(App[None]):
                 self._tool_results[tc.id] for tc in self._pending_tool_calls
             ]
             await self._continue_with_tool_results(tool_results)
+            t9 = time.time()
+            self.log.info(
+                f"[TOOL_TIMING] T9: After continue_with_tool_results: {(t9 - start_time) * 1000:.1f}ms"
+            )
         else:
             self.log.info(
                 f"[TOOL_FLOW] Waiting for remaining tools ({total - completed} pending)"
