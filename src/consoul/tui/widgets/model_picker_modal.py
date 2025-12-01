@@ -271,6 +271,17 @@ MODEL_INFO = {
         "context": "1M",
         "description": "Latest stable flash",
     },
+    # Google Gemini 3 Models (Preview)
+    "gemini-3-pro-preview": {
+        "provider": "google",
+        "context": "1M",
+        "description": "Advanced reasoning with thinking",
+    },
+    "gemini-3-pro-image-preview": {
+        "provider": "google",
+        "context": "1M",
+        "description": "Vision + reasoning with thinking",
+    },
     # Google Gemini 1.5 Models (Legacy)
     "gemini-1.5-pro": {
         "provider": "google",

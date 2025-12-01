@@ -115,9 +115,10 @@ GOOGLE_PRICING = {
     },
     # Gemini 3 Pro Preview (Thinking model)
     "gemini-3-pro-preview": {
-        "input": 2.00,  # $2.00 per MTok (prompts ≤200k)
-        "output": 12.00,  # $12.00 per MTok (includes thinking tokens)
-        "cache_read": 0.20,  # $0.20 per MTok
+        "input": 2.00,  # $2.00 per MTok (prompts ≤200k), $4.00 for >200k
+        "output": 12.00,  # $12.00 per MTok (prompts ≤200k), $18.00 for >200k (includes thinking tokens)
+        "cache_read": 0.20,  # $0.20 per MTok (prompts ≤200k), $0.40 for >200k
+        # Note: Storage pricing: $4.50 per 1M tokens per hour (not implemented)
     },
     # Gemini 3 Pro Image Preview
     "gemini-3-pro-image-preview": {
