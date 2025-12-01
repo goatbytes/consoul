@@ -37,7 +37,18 @@ if TYPE_CHECKING:
 
 from consoul.ai.reasoning import extract_reasoning
 from consoul.tui.config import TuiConfig
-from consoul.tui.themes import CONSOUL_DARK, CONSOUL_LIGHT
+from consoul.tui.themes import (
+    CONSOUL_DARK,
+    CONSOUL_FOREST,
+    CONSOUL_LIGHT,
+    CONSOUL_MATRIX,
+    CONSOUL_MIDNIGHT,
+    CONSOUL_NEON,
+    CONSOUL_OCEAN,
+    CONSOUL_OLED,
+    CONSOUL_SUNSET,
+    CONSOUL_VOLCANO,
+)
 from consoul.tui.widgets import InputArea, MessageBubble
 
 __all__ = ["ConsoulApp"]
@@ -130,6 +141,7 @@ class ConsoulApp(App[None]):
         Binding("/", "focus_input", "Input", show=False),
         # UI
         Binding("ctrl+b", "toggle_sidebar", "Sidebar", show=True),
+        Binding("ctrl+shift+t", "toggle_theme", "Theme", show=True),
         Binding("ctrl+comma", "settings", "Settings", show=False),
         Binding("ctrl+shift+p", "permissions", "Permissions", show=True),
         Binding("ctrl+t", "tools", "Tools", show=True),
@@ -825,6 +837,14 @@ class ConsoulApp(App[None]):
             step_start = time.time()
             self.register_theme(CONSOUL_DARK)
             self.register_theme(CONSOUL_LIGHT)
+            self.register_theme(CONSOUL_OLED)
+            self.register_theme(CONSOUL_MIDNIGHT)
+            self.register_theme(CONSOUL_MATRIX)
+            self.register_theme(CONSOUL_SUNSET)
+            self.register_theme(CONSOUL_OCEAN)
+            self.register_theme(CONSOUL_VOLCANO)
+            self.register_theme(CONSOUL_NEON)
+            self.register_theme(CONSOUL_FOREST)
             try:
                 self.theme = self.config.theme
                 logger.info(f"[PERF] Applied theme: {self.config.theme}")
@@ -3989,6 +4009,58 @@ class ConsoulApp(App[None]):
 
         # Toggle display
         self.conversation_list.display = not self.conversation_list.display
+
+    def action_toggle_theme(self) -> None:
+        """Cycle through available themes."""
+        # Define available themes in order (matches settings screen)
+        available_themes = [
+            "consoul-dark",
+            "consoul-oled",
+            "consoul-midnight",
+            "consoul-ocean",
+            "consoul-forest",
+            "consoul-sunset",
+            "consoul-volcano",
+            "consoul-matrix",
+            "consoul-neon",
+            "consoul-light",
+            "monokai",
+            "dracula",
+            "nord",
+            "gruvbox",
+            "tokyo-night",
+            "catppuccin-mocha",
+            "catppuccin-latte",
+            "solarized-light",
+            "flexoki",
+            "textual-dark",
+            "textual-light",
+            "textual-ansi",
+        ]
+
+        try:
+            # Get current theme
+            current_theme = str(self.theme)
+
+            # Find next theme in cycle
+            try:
+                current_index = available_themes.index(current_theme)
+                next_index = (current_index + 1) % len(available_themes)
+            except ValueError:
+                # Current theme not in list, default to first theme
+                next_index = 0
+
+            next_theme = available_themes[next_index]
+
+            # Apply theme
+            self.theme = next_theme
+
+            # Update config to persist the change
+            if hasattr(self, "config") and self.config:
+                self.config.theme = next_theme
+
+        except Exception as e:
+            logger.error(f"Failed to toggle theme: {e}")
 
     def _should_generate_title(self) -> bool:
         """Check if we should generate a title for current conversation.

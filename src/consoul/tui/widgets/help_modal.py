@@ -202,7 +202,11 @@ class HelpModal(ModalScreen[None]):
 
         # UI shortcuts
         yield Label("UI", classes="section-title")
+        yield from self._shortcut_row("Ctrl+B", "Toggle Sidebar")
+        yield from self._shortcut_row("Ctrl+Shift+T", "Toggle Theme")
         yield from self._shortcut_row("Ctrl+,", "Settings")
+        yield from self._shortcut_row("Ctrl+Shift+P", "Permissions")
+        yield from self._shortcut_row("Ctrl+T", "Tools")
         yield from self._shortcut_row("F1", "Help (this screen)")
 
     def _compose_about_tab(self) -> ComposeResult:

@@ -222,6 +222,14 @@ class SettingsScreen(ModalScreen[bool]):
                 yield Select(
                     options=[
                         ("Consoul Dark", "consoul-dark"),
+                        ("Consoul OLED", "consoul-oled"),
+                        ("Consoul Midnight", "consoul-midnight"),
+                        ("Consoul Ocean", "consoul-ocean"),
+                        ("Consoul Forest", "consoul-forest"),
+                        ("Consoul Sunset", "consoul-sunset"),
+                        ("Consoul Volcano", "consoul-volcano"),
+                        ("Consoul Matrix", "consoul-matrix"),
+                        ("Consoul Neon", "consoul-neon"),
                         ("Consoul Light", "consoul-light"),
                         ("Monokai", "monokai"),
                         ("Dracula", "dracula"),
