@@ -121,6 +121,17 @@ ChatView:focus {
     margin-bottom: 0;
 }
 
+/* System messages (tool execution displays) */
+.system-message {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    margin: 1 2 1 0;
+    color: $text-muted;
+    border: round $accent;
+    border-title-color: $accent;
+}
+
 /* Message metadata */
 .message-metadata {
     width: 100%;

@@ -9,11 +9,15 @@ from __future__ import annotations
 from typing import Any
 
 from rich.columns import Columns
+from rich.style import Style
 from rich.syntax import Syntax
 from rich.text import Text
 
 __all__ = ["format_tool_header"]
 
+# Tool name and syntax colors (muted, theme-friendly)
+TOOL_NAME_COLOR = "#9BA3AB"  # Muted gray-blue
+TOOL_ARG_COLOR = "#9BA3AB"  # Same muted color for consistency
 
 # Mapping of tool names to user-friendly display names
 TOOL_DISPLAY_NAMES = {
@@ -96,18 +100,25 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text | Colu
     if tool_name == "bash_execute" and "command" in arguments:
         # Show bash command with syntax highlighting
         cmd = arguments["command"]
-        truncated = _truncate_arg(cmd, max_len=80)
+        truncated = _truncate_arg(cmd, max_len=120)
 
-        # Create label
+        # Create label with opening paren
         label = Text()
         label.append("⛏ ", style="bold")
-        label.append(f"{display_name}: ", style="bold cyan")
+        label.append(f"{display_name}(", style=Style(bold=True, color=TOOL_NAME_COLOR))
 
-        # Return Columns with label + syntax-highlighted command
+        # Append syntax-highlighted command directly to label to avoid spacing
+        # Note: We can't combine Text and Syntax in one renderable, so we use Columns
+        # but need to ensure no padding between elements
+        syntax = Syntax(truncated, "bash", theme="monokai", word_wrap=False)
+        closing = Text(")", style=Style(bold=True, color=TOOL_NAME_COLOR))
+
+        # Return Columns with padding=0 to remove spacing
         return Columns(
-            [label, Syntax(truncated, "bash", theme="monokai", word_wrap=False)],
+            [label, syntax, closing],
             expand=False,
             equal=False,
+            padding=0,
         )
 
     # All other tools return Text
@@ -127,14 +138,20 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text | Colu
         if path_key:
             path = arguments[path_key]
             truncated_path = _truncate_arg(str(path), max_len=60)
-            header.append(f'{display_name}("', style="bold cyan")
-            header.append(truncated_path, style="cyan")
-            header.append('")', style="bold cyan")
+            header.append(
+                f'{display_name}("', style=Style(bold=True, color=TOOL_NAME_COLOR)
+            )
+            header.append(truncated_path, style=TOOL_ARG_COLOR)
+            header.append('")', style=Style(bold=True, color=TOOL_NAME_COLOR))
         else:
             # Fallback to generic format
-            header.append(f"{display_name}(", style="bold cyan")
-            header.append(_format_generic_header(tool_name, arguments), style="cyan")
-            header.append(")", style="bold cyan")
+            header.append(
+                f"{display_name}(", style=Style(bold=True, color=TOOL_NAME_COLOR)
+            )
+            header.append(
+                _format_generic_header(tool_name, arguments), style=TOOL_ARG_COLOR
+            )
+            header.append(")", style=Style(bold=True, color=TOOL_NAME_COLOR))
 
     elif tool_name in (
         "grep_search",
@@ -152,35 +169,45 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text | Colu
         if pattern_key:
             pattern = arguments[pattern_key]
             truncated_pattern = _truncate_arg(str(pattern), max_len=50)
-            header.append(f'{display_name}("', style="bold cyan")
+            header.append(
+                f'{display_name}("', style=Style(bold=True, color=TOOL_NAME_COLOR)
+            )
             # Show path if present
             if "path" in arguments:
                 path = _truncate_arg(str(arguments["path"]), max_len=30)
-                header.append(truncated_pattern, style="cyan")
-                header.append('", in="', style="bold cyan")
-                header.append(path, style="cyan")
-                header.append('")', style="bold cyan")
+                header.append(truncated_pattern, style=TOOL_ARG_COLOR)
+                header.append('", in="', style=Style(bold=True, color=TOOL_NAME_COLOR))
+                header.append(path, style=TOOL_ARG_COLOR)
+                header.append('")', style=Style(bold=True, color=TOOL_NAME_COLOR))
             else:
-                header.append(truncated_pattern, style="cyan")
-                header.append('")', style="bold cyan")
+                header.append(truncated_pattern, style=TOOL_ARG_COLOR)
+                header.append('")', style=Style(bold=True, color=TOOL_NAME_COLOR))
         else:
             # Fallback to generic format
-            header.append(f"{display_name}(", style="bold cyan")
-            header.append(_format_generic_header(tool_name, arguments), style="cyan")
-            header.append(")", style="bold cyan")
+            header.append(
+                f"{display_name}(", style=Style(bold=True, color=TOOL_NAME_COLOR)
+            )
+            header.append(
+                _format_generic_header(tool_name, arguments), style=TOOL_ARG_COLOR
+            )
+            header.append(")", style=Style(bold=True, color=TOOL_NAME_COLOR))
 
     elif len(arguments) == 1:
         # Single argument - show inline with quotes
         key, value = next(iter(arguments.items()))
         truncated = _truncate_arg(str(value), max_len=60)
-        header.append(f'{display_name}("', style="bold cyan")
-        header.append(truncated, style="cyan")
-        header.append('")', style="bold cyan")
+        header.append(
+            f'{display_name}("', style=Style(bold=True, color=TOOL_NAME_COLOR)
+        )
+        header.append(truncated, style=TOOL_ARG_COLOR)
+        header.append('")', style=Style(bold=True, color=TOOL_NAME_COLOR))
 
     else:
         # Multiple arguments - show abbreviated
-        header.append(f"{display_name}(", style="bold cyan")
-        header.append(_format_generic_header(tool_name, arguments), style="cyan")
-        header.append(")", style="bold cyan")
+        header.append(f"{display_name}(", style=Style(bold=True, color=TOOL_NAME_COLOR))
+        header.append(
+            _format_generic_header(tool_name, arguments), style=TOOL_ARG_COLOR
+        )
+        header.append(")", style=Style(bold=True, color=TOOL_NAME_COLOR))
 
     return header
