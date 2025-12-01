@@ -148,10 +148,20 @@ class StreamingResponse(RichLog):
 
                 # Notify parent to scroll as our height changed
                 # Use call_after_refresh to ensure layout is updated first
+                # Only scroll if user hasn't manually scrolled away
                 if self.parent and hasattr(self.parent, "scroll_end"):
-                    self.parent.call_after_refresh(
-                        self.parent.scroll_end, animate=False
+                    user_scrolled_away = getattr(
+                        self.parent, "_user_scrolled_away", False
                     )
+                    if not user_scrolled_away:
+                        self.parent.call_after_refresh(
+                            self.parent.scroll_end, animate=False
+                        )
+                    else:
+                        logger.debug(
+                            f"[SCROLL] Skipping parent scroll after render - user scrolled away "
+                            f"(height: {self.size.height})"
+                        )
 
             self.token_buffer.clear()
             self.last_render_time = current_time
@@ -194,9 +204,9 @@ class StreamingResponse(RichLog):
         if self.parent and hasattr(self.parent, "scroll_end"):
             logger.info(
                 f"[SCROLL] Requesting parent scroll_end - "
-                f"parent_scroll_y: {self.parent.scroll_y}, "
-                f"parent_max_scroll_y: {self.parent.max_scroll_y}, "
-                f"parent_height: {self.parent.size.height}"
+                f"parent_scroll_y: {getattr(self.parent, 'scroll_y', 'N/A')}, "
+                f"parent_max_scroll_y: {getattr(self.parent, 'max_scroll_y', 'N/A')}, "
+                f"parent_height: {getattr(self.parent, 'size', None)}"
             )
             self.parent.scroll_end(animate=False)
 

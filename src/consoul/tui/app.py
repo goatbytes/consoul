@@ -6,6 +6,7 @@ terminal user interface for interactive AI conversations.
 
 from __future__ import annotations
 
+import asyncio
 import gc
 import logging
 from pathlib import Path
@@ -912,7 +913,7 @@ class ConsoulApp(App[None]):
             # Run in background without blocking
             import asyncio
 
-            _task = asyncio.create_task(warm_up_tokenizer())
+            self._warmup_task = asyncio.create_task(warm_up_tokenizer())
 
         logger.info("[POST-INIT] Post-initialization setup complete")
 
@@ -1522,17 +1523,14 @@ class ConsoulApp(App[None]):
         t2 = time.time()
         logger.info(f"[TIMING] Reset tracking: {(t2 - t1) * 1000:.1f}ms")
 
+        # Clear the "user scrolled away" flag when they submit a new message
+        # This re-enables auto-scroll for the new conversation turn
+        # IMPORTANT: Clear this BEFORE adding the message so add_message() will scroll
+        self.chat_view._user_scrolled_away = False
+
         # Add user message to chat view FIRST for immediate visual feedback
         user_bubble = MessageBubble(user_message, role="user", show_metadata=True)
         await self.chat_view.add_message(user_bubble)
-
-        # Clear the "user scrolled away" flag when they submit a new message
-        # This re-enables auto-scroll for the new conversation turn
-        self.chat_view._user_scrolled_away = False
-
-        # Ensure we scroll to bottom to show the user's message
-        # Use call_after_refresh to wait for layout, then scroll
-        self.chat_view.call_after_refresh(self.chat_view.scroll_end, animate=True)
 
         t3 = time.time()
         logger.info(f"[TIMING] Added message bubble: {(t3 - t2) * 1000:.1f}ms")
@@ -1555,6 +1553,13 @@ class ConsoulApp(App[None]):
         # Track if this is the first message (conversation not yet in DB)
         is_first_message = (
             self.conversation.persist and not self.conversation._conversation_created
+        )
+        logger.debug(
+            f"[MESSAGE_SUBMIT] is_first_message={is_first_message}, "
+            f"persist={self.conversation.persist}, "
+            f"_conversation_created={self.conversation._conversation_created}, "
+            f"session_id={self.conversation.session_id}, "
+            f"message_count={len(self.conversation.messages)}"
         )
 
         # Add user message to conversation history immediately (in-memory)
@@ -1694,6 +1699,8 @@ class ConsoulApp(App[None]):
                         self.conversation.model_name,
                     )
                     self.conversation._conversation_created = True
+                    # Sync conversation_id with the session_id
+                    self.conversation_id = self.conversation.session_id
                     logger.info(
                         f"Created conversation session: {self.conversation.session_id}"
                     )
@@ -1716,9 +1723,14 @@ class ConsoulApp(App[None]):
                         f"Failed to persist message or attachments: {e}", exc_info=True
                     )
 
-            # Reload conversation list if first message
-            if is_first_message and hasattr(self, "conversation_list"):
-                await self.conversation_list.reload_conversations()
+            # Add new conversation to list if first message
+            # Use prepend instead of reload to avoid flickering
+            if (
+                is_first_message
+                and hasattr(self, "conversation_list")
+                and self.conversation_id
+            ):
+                await self.conversation_list.prepend_conversation(self.conversation_id)
                 self._update_top_bar_state()
 
             t7 = time.time()
@@ -3038,6 +3050,8 @@ class ConsoulApp(App[None]):
                     f"[TOOL_FLOW] Added tool message: id={tool_msg.tool_call_id}, "
                     f"content_length={len(tool_msg.content)}"
                 )
+                # Yield control after each persistence to keep UI responsive
+                await asyncio.sleep(0)
 
             # Stream AI's final response with tool results
             # Reuse existing streaming infrastructure
@@ -3429,6 +3443,10 @@ class ConsoulApp(App[None]):
                     )
                 )
 
+            # Yield control to allow UI to update and show "EXECUTING" status
+            # This prevents the UI from appearing frozen during tool execution
+            await asyncio.sleep(0.01)  # 10ms delay to let UI refresh
+
             # Execute tool
             try:
                 result = await self._execute_tool(message.tool_call)
@@ -3499,6 +3517,9 @@ class ConsoulApp(App[None]):
             status=self._tool_call_data[message.tool_call.id]["status"],
             result=result,
         )
+
+        # Yield control to allow UI to process events after tool execution
+        await asyncio.sleep(0)
 
         # Check if all tools are done
         completed = len(self._tool_results)
@@ -4195,20 +4216,58 @@ class ConsoulApp(App[None]):
                 # Update conversation ID to resume this conversation
                 self.conversation_id = conversation_id
 
-                # Update the conversation object if we have one
-                if self.conversation and self.consoul_config:
-                    # Reload conversation history into current conversation object with profile settings
-                    from consoul.ai import ConversationHistory
+                # Ensure we scroll to the bottom after loading all messages
+                # Clear the "user scrolled away" flag first
+                self.chat_view._user_scrolled_away = False
+                # Use call_after_refresh to ensure all messages are laid out first
+                self.chat_view.call_after_refresh(
+                    self.chat_view.scroll_end, animate=False
+                )
 
-                    conv_kwargs = self._get_conversation_config()
-                    conv_kwargs["session_id"] = (
-                        conversation_id  # Resume this specific session
-                    )
-                    self.conversation = ConversationHistory(
-                        model_name=self.consoul_config.current_model,
-                        model=self.chat_model,
-                        **conv_kwargs,
-                    )
+                # Update the conversation object if we have one
+                logger.info(
+                    f"[CONV_LOAD] Checking conditions: "
+                    f"has_conversation={self.conversation is not None}, "
+                    f"has_config={self.consoul_config is not None}, "
+                    f"bool(conversation)={bool(self.conversation)}, "
+                    f"bool(config)={bool(self.consoul_config)}"
+                )
+
+                if not self.conversation:
+                    logger.warning("[CONV_LOAD] self.conversation is falsy!")
+                if not self.consoul_config:
+                    logger.warning("[CONV_LOAD] self.consoul_config is falsy!")
+
+                # Use explicit None check instead of truthiness check
+                # because ConversationHistory.__len__ makes empty conversations falsy
+                if self.conversation is not None and self.consoul_config is not None:
+                    # Reload conversation history into current conversation object with profile settings
+                    try:
+                        from consoul.ai import ConversationHistory
+
+                        conv_kwargs = self._get_conversation_config()
+                        conv_kwargs["session_id"] = (
+                            conversation_id  # Resume this specific session
+                        )
+                        logger.info(
+                            f"[CONV_LOAD] Creating ConversationHistory with session_id={conversation_id}"
+                        )
+                        self.conversation = ConversationHistory(
+                            model_name=self.consoul_config.current_model,
+                            model=self.chat_model,
+                            **conv_kwargs,
+                        )
+                        logger.info(
+                            f"[CONV_LOAD] Created ConversationHistory: "
+                            f"session_id={self.conversation.session_id}, "
+                            f"_conversation_created={self.conversation._conversation_created}, "
+                            f"message_count={len(self.conversation.messages)}"
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"[CONV_LOAD] Failed to create ConversationHistory: {e}",
+                            exc_info=True,
+                        )
 
                 self.notify(
                     f"Loaded conversation {conversation_id[:8]}...",

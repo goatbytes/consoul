@@ -201,6 +201,73 @@ class ConversationList(Container):
         self._update_title()
         self._update_empty_state()
 
+    async def prepend_conversation(self, conversation_id: str) -> None:
+        """Add a single new conversation to the top of the list.
+
+        More efficient than reload_conversations() when adding just one new conversation.
+        Prevents the flicker caused by removing and re-adding all cards.
+
+        Args:
+            conversation_id: The session ID of the new conversation
+        """
+        # Check if conversation already exists in the list
+        existing_cards = list(self.cards_container.query(ConversationCard))
+        for i, card in enumerate(existing_cards):
+            if card.conversation_id == conversation_id:
+                # Card already exists
+                if i == 0:
+                    # Already at the top, nothing to do
+                    return
+                # Move to top by removing and re-adding at index 0
+                await card.remove()
+                await self.cards_container.mount(card, before=0)
+                return
+
+        # Fetch the conversation from database
+        import asyncio
+
+        loop = asyncio.get_event_loop()
+        conversations = await loop.run_in_executor(
+            None,
+            self.db.list_conversations,
+            1,  # Only fetch the newest one
+            0,  # From the beginning
+        )
+
+        if not conversations or conversations[0]["session_id"] != conversation_id:
+            # Conversation not found or not the newest
+            # This can happen if user adds to an old conversation - that's OK!
+            # Just silently return without reloading everything
+            return
+
+        conv = conversations[0]
+        title = self._get_conversation_title(conv)
+
+        # Format date if available
+        date_str = ""
+        if "created_at" in conv:
+            from datetime import datetime
+
+            try:
+                dt = datetime.fromisoformat(conv["created_at"])
+                date_str = dt.strftime("%b %d, %Y")
+            except (ValueError, TypeError):
+                pass
+
+        # Create card
+        card = ConversationCard(
+            conversation_id=conversation_id,
+            title=title,
+            date_str=date_str,
+        )
+
+        # Mount at index 0 (top of list) instead of appending
+        await self.cards_container.mount(card, before=0)
+        self.loaded_count += 1
+        self.conversation_count = self.loaded_count
+        self._update_title()
+        self._update_empty_state()
+
     async def reload_conversations(self) -> None:
         """Reload all conversations from database asynchronously to avoid blocking UI.
 
