@@ -189,9 +189,6 @@ class ContextualTopBar(Static):
         # Update terminal width for responsive design
         self._update_terminal_width()
 
-        # Start heartbeat timer to prove UI is responsive
-        self.set_interval(0.1, self._update_heartbeat)
-
     def on_resize(self) -> None:
         """Handle terminal resize for responsive design."""
         self._update_terminal_width()
@@ -212,23 +209,6 @@ class ContextualTopBar(Static):
             self.add_class("-narrow")
         elif size.width > 140:
             self.add_class("-wide")
-
-    def _update_heartbeat(self) -> None:
-        """Update heartbeat display to prove UI is responsive."""
-        import logging
-        import time
-
-        logger = logging.getLogger(__name__)
-
-        current_time = time.time()
-        timestamp = current_time % 10  # Show last digit to see updates
-
-        try:
-            heartbeat = self.query_one("#heartbeat", Label)
-            heartbeat.update(f"💓 {timestamp:.3f}")
-            logger.debug(f"[HEARTBEAT] Updated at {current_time:.3f}")
-        except Exception:
-            pass  # Widget not mounted yet
 
     def _get_tool_status_icon(self) -> str:
         """Get tool status icon based on enabled state and risk level.
@@ -288,9 +268,6 @@ class ContextualTopBar(Static):
 
     def _compose_status_zone(self) -> ComposeResult:
         """Compose the system info zone."""
-        # Heartbeat indicator (updates every 100ms to prove UI is alive)
-        yield Label("💓 0.000", classes="status-label", id="heartbeat")
-
         # Streaming indicator
         if self.streaming:
             yield Label(
@@ -445,11 +422,6 @@ class ContextualTopBar(Static):
 
     async def on_click(self, event: Click) -> None:
         """Handle click events on action buttons."""
-        import logging
-        import time
-
-        logger = logging.getLogger(__name__)
-
         # Determine which element was clicked
         target_id = (
             event.control.id
@@ -457,11 +429,6 @@ class ContextualTopBar(Static):
             and event.control is not None
             and hasattr(event.control, "id")
             else None
-        )
-
-        logger.info(
-            f"[USER_INPUT] Click at {time.time():.3f} - target: {target_id}, "
-            f"x: {event.x}, y: {event.y}"
         )
 
         if target_id == "conversation-info":

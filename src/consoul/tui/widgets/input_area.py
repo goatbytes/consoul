@@ -75,16 +75,6 @@ class SendableTextArea(TextArea):
         Args:
             event: The key event
         """
-        import logging
-        import time
-
-        logger = logging.getLogger(__name__)
-
-        logger.debug(
-            f"[USER_INPUT] Key at {time.time():.3f} - key: {event.key}, "
-            f"char: {getattr(event, 'character', None)}"
-        )
-
         # Check for plain Enter (without Shift modifier)
         # When Shift is pressed, the key becomes "shift+enter", not "enter"
         if event.key == "enter":

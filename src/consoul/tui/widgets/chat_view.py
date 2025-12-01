@@ -167,18 +167,14 @@ class ChatView(VerticalScroll):
             event: MouseScrollUp event from Textual
         """
         # Any upward scroll means user wants to review history - suspend auto-scroll
-        import time
-
         if not self._user_scrolled_away:
             self._user_scrolled_away = True
             logger.info(
-                f"[USER_INPUT] Scroll up at {time.time():.3f} - suspending auto-scroll "
+                f"Scroll up - suspending auto-scroll "
                 f"(scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
             )
         else:
-            logger.debug(
-                f"[USER_INPUT] Scroll up at {time.time():.3f} - already suspended"
-            )
+            logger.debug("Scroll up - already suspended")
 
     def on_mouse_scroll_down(self, event: MouseScrollDown) -> None:
         """Handle mouse scroll down event to detect user returning to bottom.
@@ -189,15 +185,12 @@ class ChatView(VerticalScroll):
             event: MouseScrollDown event from Textual
         """
         # Re-enable auto-scroll if user scrolls back to bottom
-        import time
-
         logger.debug(
-            f"[USER_INPUT] Scroll down at {time.time():.3f} "
-            f"(scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
+            f"Scroll down (scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
         )
         if self._user_scrolled_away and self._is_at_bottom():
             self._user_scrolled_away = False
             logger.info(
-                f"[USER_INPUT] Scrolled back to bottom - resuming auto-scroll "
+                f"Scrolled back to bottom - resuming auto-scroll "
                 f"(scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
             )

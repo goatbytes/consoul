@@ -159,16 +159,7 @@ class SearchBar(Static):
         IMPORTANT: Does NOT post messages to avoid focus/freeze issues.
         Parent app should poll get_search_query() instead.
         """
-        import logging
-        import time
-
-        logger = logging.getLogger(__name__)
-
         if event.input.id == "search-input":
-            logger.debug(
-                f"[USER_INPUT] SearchBar input changed at {time.time():.3f} - "
-                f"value: '{event.value}'"
-            )
             self._search_query = event.value
             # Update clear button visibility
             try:
@@ -179,16 +170,6 @@ class SearchBar(Static):
 
     def on_click(self, event: Click) -> None:
         """Handle click events (clear button)."""
-        import logging
-        import time
-
-        logger = logging.getLogger(__name__)
-
-        logger.info(
-            f"[USER_INPUT] SearchBar click at {time.time():.3f} - "
-            f"widget: {event.widget.id if event.widget and hasattr(event.widget, 'id') else 'unknown'}"
-        )
-
         if (
             event.widget is not None
             and hasattr(event.widget, "id")
