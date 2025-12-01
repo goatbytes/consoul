@@ -82,18 +82,24 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text:
         truncated = _truncate_arg(cmd, max_len=80)
         header.append(f'bash_execute("{truncated}")', style="bold cyan")
 
-    elif tool_name in ("read_file", "write_file", "edit_file"):
-        # File operations - show path prominently
-        if "path" in arguments:
-            path = arguments["path"]
+    elif tool_name in ("read_file", "write_file", "edit_file", "create_file"):
+        # File operations - show file_path or path prominently
+        # Try file_path first (used by read_file, write_file, create_file)
+        # then fall back to path (used by edit_file)
+        path_key = None
+        if "file_path" in arguments:
+            path_key = "file_path"
+        elif "path" in arguments:
+            path_key = "path"
+
+        if path_key:
+            path = arguments[path_key]
             truncated_path = _truncate_arg(str(path), max_len=60)
-            # Show other args abbreviated
-            other_args = [k for k in arguments if k != "path"]
-            if other_args:
-                args_str = f'path="{truncated_path}", {", ".join(f"{k}=..." for k in other_args[:2])}'
-            else:
-                args_str = f'path="{truncated_path}"'
-            header.append(f"{tool_name}({args_str})", style="bold cyan")
+            # Don't show other args for file operations - they're usually null/defaults
+            # Just show the file path which is the important part
+            header.append(
+                f'{tool_name}(file_path="{truncated_path}")', style="bold cyan"
+            )
         else:
             # Fallback to generic format
             header.append(
