@@ -163,6 +163,14 @@ class StreamingResponse(RichLog):
                             f"(height: {self.size.height})"
                         )
 
+                # CRITICAL: Yield control after blocking markdown render
+                # The Markdown() parsing and self.write() are synchronous and can block
+                # the event loop for 10-100ms+, preventing user input from being processed.
+                # This yield allows keyboard/mouse events to be delivered.
+                import asyncio
+
+                await asyncio.sleep(0)
+
             self.token_buffer.clear()
             self.last_render_time = current_time
 
