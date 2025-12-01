@@ -4185,15 +4185,21 @@ class ConsoulApp(App[None]):
 
                     # Show tool execution indicator for assistant messages with tools
                     if tool_calls and role == "assistant":
-                        tool_names = ", ".join(
-                            [tc.get("name", "unknown") for tc in tool_calls]
+                        from consoul.tui.widgets.tool_formatter import (
+                            format_tool_header,
                         )
-                        tool_indicator = MessageBubble(
-                            f"⛏ Executing: {tool_names}",
-                            role="system",
-                            show_metadata=False,
-                        )
-                        await self.chat_view.add_message(tool_indicator)
+
+                        # Show each tool call with formatted header and arguments
+                        for tc in tool_calls:
+                            tool_name = tc.get("name", "unknown")
+                            tool_args = tc.get("arguments", {})
+                            header_rich = format_tool_header(tool_name, tool_args)
+                            tool_indicator = MessageBubble(
+                                header_rich.plain,
+                                role="system",
+                                show_metadata=False,
+                            )
+                            await self.chat_view.add_message(tool_indicator)
 
                     # Create message bubbles
                     # Show assistant messages (always, even if empty, for 🛠 button)
