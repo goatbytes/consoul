@@ -5,9 +5,13 @@ Build AI-powered applications with the Consoul SDK - a simple, powerful Python l
 ## Why Consoul SDK?
 
 **🚀 Simple**: 3 lines to add AI chat to any Python app
+
 **🛠️ Powerful**: 13 built-in tools for file operations, web search, and command execution
+
 **🔧 Flexible**: Support for OpenAI, Anthropic, Google, and local Ollama models
+
 **🔒 Secure**: Risk-based tool approval and permission system
+
 **📦 Batteries Included**: Conversation history, token tracking, cost estimation
 
 ## Quick Start

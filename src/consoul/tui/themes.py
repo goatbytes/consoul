@@ -9,15 +9,15 @@ from textual.theme import Theme
 
 __all__ = [
     "CONSOUL_DARK",
-    "CONSOUL_LIGHT",
-    "CONSOUL_OLED",
-    "CONSOUL_MIDNIGHT",
-    "CONSOUL_MATRIX",
-    "CONSOUL_SUNSET",
-    "CONSOUL_OCEAN",
-    "CONSOUL_VOLCANO",
-    "CONSOUL_NEON",
     "CONSOUL_FOREST",
+    "CONSOUL_LIGHT",
+    "CONSOUL_MATRIX",
+    "CONSOUL_MIDNIGHT",
+    "CONSOUL_NEON",
+    "CONSOUL_OCEAN",
+    "CONSOUL_OLED",
+    "CONSOUL_SUNSET",
+    "CONSOUL_VOLCANO",
 ]
 
 # Consoul Dark Theme - Binary Slate with Sky Blue accents
