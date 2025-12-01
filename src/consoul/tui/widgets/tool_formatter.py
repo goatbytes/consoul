@@ -79,13 +79,13 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text:
 
     Examples:
         >>> format_tool_header("bash_execute", {"command": "ls -la"})
-        Text('⛏ Bash: ls -la')
+        Text('⛏ Bash("ls -la")')
 
         >>> format_tool_header("read_file", {"path": "/path/to/file.txt"})
-        Text('⛏ Read: /path/to/file.txt')
+        Text('⛏ Read("/path/to/file.txt")')
 
         >>> format_tool_header("grep_search", {"pattern": "TODO", "path": "src/"})
-        Text('⛏ Search: TODO in src/')
+        Text('⛏ Search("TODO", in="src/")')
     """
     header = Text()
     header.append("⛏ ", style="bold")
@@ -95,11 +95,12 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text:
 
     # Format based on tool type
     if tool_name == "bash_execute" and "command" in arguments:
-        # Show bash command inline
+        # Show bash command inline with quotes
         cmd = arguments["command"]
         truncated = _truncate_arg(cmd, max_len=80)
-        header.append(f"{display_name}: ", style="bold cyan")
+        header.append(f'{display_name}("', style="bold cyan")
         header.append(truncated, style="cyan")
+        header.append('")', style="bold cyan")
 
     elif tool_name in ("read_file", "write_file", "edit_file", "create_file"):
         # File operations - show file_path or path prominently
@@ -114,12 +115,14 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text:
         if path_key:
             path = arguments[path_key]
             truncated_path = _truncate_arg(str(path), max_len=60)
-            header.append(f"{display_name}: ", style="bold cyan")
+            header.append(f'{display_name}("', style="bold cyan")
             header.append(truncated_path, style="cyan")
+            header.append('")', style="bold cyan")
         else:
             # Fallback to generic format
-            header.append(f"{display_name}: ", style="bold cyan")
+            header.append(f"{display_name}(", style="bold cyan")
             header.append(_format_generic_header(tool_name, arguments), style="cyan")
+            header.append(")", style="bold cyan")
 
     elif tool_name in (
         "grep_search",
@@ -137,28 +140,35 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text:
         if pattern_key:
             pattern = arguments[pattern_key]
             truncated_pattern = _truncate_arg(str(pattern), max_len=50)
-            header.append(f"{display_name}: ", style="bold cyan")
+            header.append(f'{display_name}("', style="bold cyan")
             # Show path if present
             if "path" in arguments:
                 path = _truncate_arg(str(arguments["path"]), max_len=30)
-                header.append(f"{truncated_pattern} in {path}", style="cyan")
+                header.append(truncated_pattern, style="cyan")
+                header.append('", in="', style="bold cyan")
+                header.append(path, style="cyan")
+                header.append('")', style="bold cyan")
             else:
                 header.append(truncated_pattern, style="cyan")
+                header.append('")', style="bold cyan")
         else:
             # Fallback to generic format
-            header.append(f"{display_name}: ", style="bold cyan")
+            header.append(f"{display_name}(", style="bold cyan")
             header.append(_format_generic_header(tool_name, arguments), style="cyan")
+            header.append(")", style="bold cyan")
 
     elif len(arguments) == 1:
-        # Single argument - show inline
+        # Single argument - show inline with quotes
         key, value = next(iter(arguments.items()))
         truncated = _truncate_arg(str(value), max_len=60)
-        header.append(f"{display_name}: ", style="bold cyan")
+        header.append(f'{display_name}("', style="bold cyan")
         header.append(truncated, style="cyan")
+        header.append('")', style="bold cyan")
 
     else:
         # Multiple arguments - show abbreviated
-        header.append(f"{display_name}: ", style="bold cyan")
+        header.append(f"{display_name}(", style="bold cyan")
         header.append(_format_generic_header(tool_name, arguments), style="cyan")
+        header.append(")", style="bold cyan")
 
     return header

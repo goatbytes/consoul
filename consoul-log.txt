@@ -1,394 +1,227 @@
-2025-12-01 08:07:17,801 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
-2025-12-01 08:07:18,264 - consoul.tui.app - INFO - [PERF] Step 1 (Load config): 135.9ms
-2025-12-01 08:07:19,366 - consoul.tui.app - INFO - [PERF] Step 2 (Initialize AI model): 1101.7ms
-2025-12-01 08:07:19,367 - consoul.tui.app - INFO - [PERF-CONV] Get conversation config: 0.0ms
-2025-12-01 08:07:19,367 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.1ms
-2025-12-01 08:07:19,478 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 110.9ms
-2025-12-01 08:07:19,485 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 1.1ms
-2025-12-01 08:07:19,485 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 117.4ms
-2025-12-01 08:07:19,485 - consoul.tui.app - INFO - [PERF-CONV] ConversationHistory.__init__: 117.5ms
-2025-12-01 08:07:19,485 - consoul.tui.app - INFO - [PERF] Step 3 (Create conversation): 118.7ms
-2025-12-01 08:07:19,485 - consoul.tui.app - INFO - Initialized AI model: gpt-oss:20b, session: None
-2025-12-01 08:07:19,489 - consoul.tui.app - INFO - [PERF] Step 4 (Load tools): 3.9ms
-2025-12-01 08:07:19,508 - consoul.tui.app - INFO - [PERF] Step 5 (Bind tools): 19.2ms
-2025-12-01 08:07:19,522 - consoul.tui.app - INFO - [PERF] Cleanup old conversations: 14.4ms
-2025-12-01 08:07:19,565 - consoul.tui.app - INFO - [PERF] Initialize title generator: 42.3ms
-2025-12-01 08:07:19,565 - consoul.tui.app - INFO - [PERF] Applied theme: consoul-light
-2025-12-01 08:07:19,816 - consoul.tui.app - INFO - [PERF] Apply theme: 251.2ms
-2025-12-01 08:07:20,320 - consoul.tui.app - INFO - [POST-INIT] Post-initialization setup complete
-2025-12-01 08:07:22,673 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
-2025-12-01 08:07:22,690 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,695 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,695 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
-2025-12-01 08:07:22,695 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: system, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
-2025-12-01 08:07:22,701 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: system, scroll_y: 0.0
-2025-12-01 08:07:22,702 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
-2025-12-01 08:07:22,709 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,709 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,711 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,711 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
-2025-12-01 08:07:22,712 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
-2025-12-01 08:07:22,783 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,790 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,835 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
-2025-12-01 08:07:22,835 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: system, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
-2025-12-01 08:07:22,846 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: system, scroll_y: 0.0
-2025-12-01 08:07:22,847 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
-2025-12-01 08:07:22,874 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,875 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,876 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,877 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
-2025-12-01 08:07:22,877 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
-2025-12-01 08:07:22,943 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,944 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,950 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
-2025-12-01 08:07:22,951 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
-2025-12-01 08:07:22,967 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,967 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,968 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
-2025-12-01 08:07:22,970 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
-2025-12-01 08:07:22,970 - consoul.tui.app - INFO - [CONV_LOAD] Checking conditions: has_conversation=True, has_config=True, bool(conversation)=False, bool(config)=True
-2025-12-01 08:07:22,970 - consoul.tui.app - WARNING - [CONV_LOAD] self.conversation is falsy!
-2025-12-01 08:07:22,970 - consoul.tui.app - INFO - [CONV_LOAD] Creating ConversationHistory with session_id=6bd8947a-e3a8-44f3-b59d-c6e78018073c
-2025-12-01 08:07:22,970 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
-2025-12-01 08:07:22,970 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
-2025-12-01 08:07:22,971 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.3ms
-2025-12-01 08:07:22,971 - consoul.ai.history - INFO - Loaded 10 messages from session 6bd8947a-e3a8-44f3-b59d-c6e78018073c
-2025-12-01 08:07:22,971 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.4ms
-2025-12-01 08:07:22,971 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
-2025-12-01 08:07:22,971 - consoul.tui.app - INFO - [CONV_LOAD] Created ConversationHistory: session_id=6bd8947a-e3a8-44f3-b59d-c6e78018073c, _conversation_created=True, message_count=10
-2025-12-01 08:07:25,393 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 0.0, max: 169)
-2025-12-01 08:07:25,458 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 2.0, max: 169)
-2025-12-01 08:07:25,503 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 4.0, max: 169)
-2025-12-01 08:07:25,549 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 6.0, max: 169)
-2025-12-01 08:07:25,591 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 8.0, max: 169)
-2025-12-01 08:07:25,633 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 10.0, max: 169)
-2025-12-01 08:07:25,681 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 12.0, max: 169)
-2025-12-01 08:07:25,740 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 14.0, max: 169)
-2025-12-01 08:07:25,817 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 16.0, max: 169)
-2025-12-01 08:07:26,022 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 18.0, max: 169)
-2025-12-01 08:07:26,058 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 20.0, max: 169)
-2025-12-01 08:07:26,082 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 22.0, max: 169)
-2025-12-01 08:07:26,103 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 24.0, max: 169)
-2025-12-01 08:07:26,130 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 26.0, max: 169)
-2025-12-01 08:07:26,147 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 28.0, max: 169)
-2025-12-01 08:07:26,166 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 30.0, max: 169)
-2025-12-01 08:07:26,183 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 32.0, max: 169)
-2025-12-01 08:07:26,203 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 34.0, max: 169)
-2025-12-01 08:07:26,216 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 36.0, max: 169)
-2025-12-01 08:07:26,233 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 38.0, max: 169)
-2025-12-01 08:07:26,250 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 40.0, max: 169)
-2025-12-01 08:07:26,266 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 42.0, max: 169)
-2025-12-01 08:07:26,288 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 44.0, max: 169)
-2025-12-01 08:07:26,313 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 46.0, max: 169)
-2025-12-01 08:07:26,338 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 48.0, max: 169)
-2025-12-01 08:07:28,031 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 50.0, max: 169)
-2025-12-01 08:07:28,100 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 52.0, max: 169)
-2025-12-01 08:07:28,224 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 54.0, max: 169)
-2025-12-01 08:07:45,379 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 56.0, max: 169)
-2025-12-01 08:07:45,407 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 58.0, max: 169)
-2025-12-01 08:07:45,429 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 60.0, max: 169)
-2025-12-01 08:07:45,453 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 62.0, max: 169)
-2025-12-01 08:07:45,478 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 64.0, max: 169)
-2025-12-01 08:07:45,501 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 66.0, max: 169)
-2025-12-01 08:07:45,517 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 68.0, max: 169)
-2025-12-01 08:07:45,534 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 70.0, max: 169)
-2025-12-01 08:07:45,550 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 72.0, max: 169)
-2025-12-01 08:07:45,567 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 74.0, max: 169)
-2025-12-01 08:07:45,584 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 76.0, max: 169)
-2025-12-01 08:07:45,600 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 78.0, max: 169)
-2025-12-01 08:07:45,617 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 80.0, max: 169)
-2025-12-01 08:07:45,634 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 82.0, max: 169)
-2025-12-01 08:07:45,651 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 84.0, max: 169)
-2025-12-01 08:07:45,667 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 86.0, max: 169)
-2025-12-01 08:07:45,690 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 88.0, max: 169)
-2025-12-01 08:07:46,116 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 90.0, max: 169)
-2025-12-01 08:07:46,140 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 92.0, max: 169)
-2025-12-01 08:07:46,157 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 94.0, max: 169)
-2025-12-01 08:07:46,177 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 96.0, max: 169)
-2025-12-01 08:07:46,193 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 98.0, max: 169)
-2025-12-01 08:07:46,202 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 100.0, max: 169)
-2025-12-01 08:07:46,210 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 102.0, max: 169)
-2025-12-01 08:07:46,218 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 104.0, max: 169)
-2025-12-01 08:07:46,227 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 106.0, max: 169)
-2025-12-01 08:07:46,237 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 108.0, max: 169)
-2025-12-01 08:07:46,243 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 110.0, max: 169)
-2025-12-01 08:07:46,251 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 112.0, max: 169)
-2025-12-01 08:07:46,260 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 114.0, max: 169)
-2025-12-01 08:07:46,268 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 116.0, max: 169)
-2025-12-01 08:07:46,285 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 118.0, max: 169)
-2025-12-01 08:07:46,302 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 120.0, max: 169)
-2025-12-01 08:07:46,318 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 122.0, max: 169)
-2025-12-01 08:07:46,335 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 124.0, max: 169)
-2025-12-01 08:07:46,352 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 126.0, max: 169)
-2025-12-01 08:07:46,368 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 128.0, max: 169)
-2025-12-01 08:07:46,385 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 130.0, max: 169)
-2025-12-01 08:07:46,775 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 132.0, max: 169)
-2025-12-01 08:07:46,807 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 134.0, max: 169)
-2025-12-01 08:07:46,830 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 136.0, max: 169)
-2025-12-01 08:07:46,846 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 138.0, max: 169)
-2025-12-01 08:07:46,858 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 140.0, max: 169)
-2025-12-01 08:07:46,868 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 142.0, max: 169)
-2025-12-01 08:07:46,876 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 144.0, max: 169)
-2025-12-01 08:07:46,884 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 146.0, max: 169)
-2025-12-01 08:07:46,893 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 148.0, max: 169)
-2025-12-01 08:07:46,901 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 150.0, max: 169)
-2025-12-01 08:07:46,908 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 152.0, max: 169)
-2025-12-01 08:07:46,918 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 154.0, max: 169)
-2025-12-01 08:07:46,926 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 156.0, max: 169)
-2025-12-01 08:07:46,936 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 158.0, max: 169)
-2025-12-01 08:07:46,942 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 160.0, max: 169)
-2025-12-01 08:07:46,952 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 162.0, max: 169)
-2025-12-01 08:07:46,959 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 164.0, max: 169)
-2025-12-01 08:07:46,968 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 166.0, max: 169)
-2025-12-01 08:07:46,985 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 168.0, max: 169)
-2025-12-01 08:07:47,001 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,018 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,034 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,051 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,068 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,084 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,109 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,134 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,159 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,186 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,219 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,261 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:47,310 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:50,368 - asyncio - ERROR - Task was destroyed but it is pending!
-task: <Task pending name="message pump ScrollBar(name='horizontal', classes='-textual-system', window_virtual_size=100, window_size=0, position=0)" coro=<MessagePump._process_messages() done, defined at /Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/textual/message_pump.py:553> wait_for=<Future pending cb=[Task.task_wakeup()]>>
-2025-12-01 08:07:50,368 - asyncio - ERROR - Task was destroyed but it is pending!
-task: <Task pending name="message pump ScrollBar(name='horizontal', classes='-textual-system', window_virtual_size=100, window_size=0, position=0)" coro=<MessagePump._process_messages() done, defined at /Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/textual/message_pump.py:553> wait_for=<Future pending cb=[Task.task_wakeup()]>>
-2025-12-01 08:07:50,368 - asyncio - ERROR - Task was destroyed but it is pending!
-task: <Task pending name="message pump ScrollBar(name='horizontal', classes='-textual-system', window_virtual_size=100, window_size=0, position=0)" coro=<MessagePump._process_messages() done, defined at /Users/jaredrummler/.pyenv/versions/3.12.3/lib/python3.12/site-packages/textual/message_pump.py:553> wait_for=<Future pending cb=[Task.task_wakeup()]>>
-2025-12-01 08:07:53,099 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:53,145 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:53,188 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:53,223 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:53,265 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:53,307 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:53,357 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:53,407 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:53,483 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:07:55,691 - consoul.tui.widgets.chat_view - INFO - Scroll up - suspending auto-scroll (scroll_y: 169, max: 169)
-2025-12-01 08:07:55,723 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:26,168 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:26,168 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:26,168 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:26,168 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:26,199 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,311 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,336 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,352 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,367 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,382 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,399 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,416 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,424 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,432 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,441 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,449 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,457 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,465 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,473 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,482 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,491 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,499 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,507 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,518 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,524 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,533 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,541 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,549 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,557 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,574 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,590 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,607 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,624 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,641 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,657 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,673 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,939 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,948 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,954 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,963 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,984 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,984 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:27,987 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,000 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,000 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,005 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,005 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,017 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,017 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,022 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,022 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,034 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,034 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,038 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,039 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,051 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,051 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,055 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,055 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,069 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,069 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,071 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,072 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,083 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,083 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,088 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,088 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,099 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,105 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,116 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,122 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,131 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,138 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,148 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,155 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,164 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,171 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,181 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,188 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,197 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,205 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,215 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,222 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:28,231 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:29,178 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:29,253 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:29,341 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 0, max: 169)
-2025-12-01 08:08:29,354 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 2.0, max: 169)
-2025-12-01 08:08:29,360 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 4.0, max: 169)
-2025-12-01 08:08:29,364 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 6.0, max: 169)
-2025-12-01 08:08:29,381 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 8.0, max: 169)
-2025-12-01 08:08:29,388 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 10.0, max: 169)
-2025-12-01 08:08:29,403 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 12.0, max: 169)
-2025-12-01 08:08:29,403 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 14.0, max: 169)
-2025-12-01 08:08:29,414 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 16.0, max: 169)
-2025-12-01 08:08:29,420 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 18.0, max: 169)
-2025-12-01 08:08:29,420 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 20.0, max: 169)
-2025-12-01 08:08:29,431 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 22.0, max: 169)
-2025-12-01 08:08:29,431 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 24.0, max: 169)
-2025-12-01 08:08:29,437 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 26.0, max: 169)
-2025-12-01 08:08:29,437 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 28.0, max: 169)
-2025-12-01 08:08:29,448 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 30.0, max: 169)
-2025-12-01 08:08:29,449 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 32.0, max: 169)
-2025-12-01 08:08:29,454 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 34.0, max: 169)
-2025-12-01 08:08:29,454 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 36.0, max: 169)
-2025-12-01 08:08:29,465 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 38.0, max: 169)
-2025-12-01 08:08:29,465 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 40.0, max: 169)
-2025-12-01 08:08:29,471 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 42.0, max: 169)
-2025-12-01 08:08:29,471 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 44.0, max: 169)
-2025-12-01 08:08:29,482 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 46.0, max: 169)
-2025-12-01 08:08:29,482 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 48.0, max: 169)
-2025-12-01 08:08:29,487 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 50.0, max: 169)
-2025-12-01 08:08:29,499 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 52.0, max: 169)
-2025-12-01 08:08:29,503 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 54.0, max: 169)
-2025-12-01 08:08:29,516 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 56.0, max: 169)
-2025-12-01 08:08:29,520 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 58.0, max: 169)
-2025-12-01 08:08:29,533 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 60.0, max: 169)
-2025-12-01 08:08:29,536 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 62.0, max: 169)
-2025-12-01 08:08:29,551 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 64.0, max: 169)
-2025-12-01 08:08:29,553 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 66.0, max: 169)
-2025-12-01 08:08:29,566 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 68.0, max: 169)
-2025-12-01 08:08:29,570 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 70.0, max: 169)
-2025-12-01 08:08:29,583 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 72.0, max: 169)
-2025-12-01 08:08:29,587 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 74.0, max: 169)
-2025-12-01 08:08:29,599 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 76.0, max: 169)
-2025-12-01 08:08:29,603 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 78.0, max: 169)
-2025-12-01 08:08:29,616 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 80.0, max: 169)
-2025-12-01 08:08:29,620 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 82.0, max: 169)
-2025-12-01 08:08:29,633 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 84.0, max: 169)
-2025-12-01 08:08:29,650 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 86.0, max: 169)
-2025-12-01 08:08:29,666 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 88.0, max: 169)
-2025-12-01 08:08:29,682 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 90.0, max: 169)
-2025-12-01 08:08:29,699 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 92.0, max: 169)
-2025-12-01 08:08:30,006 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,019 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,036 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,052 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,070 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,085 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,098 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,123 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,138 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,154 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,171 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,171 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,181 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,188 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,199 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,204 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,215 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,232 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,249 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,265 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,282 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,300 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:30,316 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
-2025-12-01 08:08:55,424 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 48.0, max: 169)
-2025-12-01 08:08:55,451 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 50.0, max: 169)
-2025-12-01 08:08:55,484 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 52.0, max: 169)
-2025-12-01 08:08:55,518 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 54.0, max: 169)
-2025-12-01 08:08:55,555 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 56.0, max: 169)
-2025-12-01 08:08:55,587 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 58.0, max: 169)
-2025-12-01 08:08:55,613 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 60.0, max: 169)
-2025-12-01 08:08:55,638 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 62.0, max: 169)
-2025-12-01 08:08:55,671 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 64.0, max: 169)
-2025-12-01 08:08:55,704 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 66.0, max: 169)
-2025-12-01 08:08:55,746 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 68.0, max: 169)
-2025-12-01 08:08:55,798 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 70.0, max: 169)
-2025-12-01 08:08:55,856 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 72.0, max: 169)
-2025-12-01 08:08:56,174 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 74.0, max: 169)
-2025-12-01 08:08:56,226 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 76.0, max: 169)
-2025-12-01 08:08:56,285 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 78.0, max: 169)
-2025-12-01 08:08:56,351 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 80.0, max: 169)
-2025-12-01 08:08:56,376 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 82.0, max: 169)
-2025-12-01 08:08:56,394 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 84.0, max: 169)
-2025-12-01 08:08:56,419 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 86.0, max: 169)
-2025-12-01 08:08:56,444 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 88.0, max: 169)
-2025-12-01 08:08:56,469 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 90.0, max: 169)
-2025-12-01 08:08:56,494 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 92.0, max: 169)
-2025-12-01 08:08:56,519 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 94.0, max: 169)
-2025-12-01 08:08:56,553 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 96.0, max: 169)
-2025-12-01 08:08:56,594 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 98.0, max: 169)
-2025-12-01 08:08:57,038 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 100.0, max: 169)
-2025-12-01 08:08:57,086 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 102.0, max: 169)
-2025-12-01 08:08:57,126 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 104.0, max: 169)
-2025-12-01 08:08:57,168 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 106.0, max: 169)
-2025-12-01 08:08:57,218 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 108.0, max: 169)
-2025-12-01 08:08:57,268 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 110.0, max: 169)
-2025-12-01 08:08:57,343 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 112.0, max: 169)
-2025-12-01 08:08:57,515 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 114.0, max: 169)
-2025-12-01 08:08:57,547 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 116.0, max: 169)
-2025-12-01 08:08:57,572 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 118.0, max: 169)
-2025-12-01 08:08:57,610 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 120.0, max: 169)
-2025-12-01 08:08:57,658 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 122.0, max: 169)
-2025-12-01 08:08:57,692 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 124.0, max: 169)
-2025-12-01 08:08:57,725 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 126.0, max: 169)
-2025-12-01 08:08:57,758 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 128.0, max: 169)
-2025-12-01 08:08:57,801 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 130.0, max: 169)
-2025-12-01 08:08:57,851 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 132.0, max: 169)
-2025-12-01 08:08:58,137 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 134.0, max: 169)
-2025-12-01 08:08:58,168 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 136.0, max: 169)
-2025-12-01 08:08:58,190 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 138.0, max: 169)
-2025-12-01 08:08:58,210 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 140.0, max: 169)
-2025-12-01 08:08:58,224 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 142.0, max: 169)
-2025-12-01 08:08:58,240 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 144.0, max: 169)
-2025-12-01 08:08:58,257 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 146.0, max: 169)
-2025-12-01 08:08:58,273 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 148.0, max: 169)
-2025-12-01 08:08:58,290 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 150.0, max: 169)
-2025-12-01 08:08:58,307 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 152.0, max: 169)
-2025-12-01 08:08:58,324 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 154.0, max: 169)
-2025-12-01 08:08:58,340 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 156.0, max: 169)
-2025-12-01 08:08:58,358 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 158.0, max: 169)
-2025-12-01 08:08:58,374 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 160.0, max: 169)
-2025-12-01 08:08:58,398 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 162.0, max: 169)
-2025-12-01 08:08:58,423 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 164.0, max: 169)
-2025-12-01 08:08:58,423 - consoul.tui.widgets.chat_view - INFO - Scrolled back to bottom - resuming auto-scroll (scroll_y: 164.0, max: 169)
-2025-12-01 08:08:58,448 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 166.0, max: 169)
-2025-12-01 08:08:58,482 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 168.0, max: 169)
-2025-12-01 08:08:58,515 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
-2025-12-01 08:08:58,557 - consoul.tui.widgets.chat_view - DEBUG - Scroll down (scroll_y: 169, max: 169)
+2025-12-01 08:54:42,995 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./consoul-log.txt
+2025-12-01 08:54:43,453 - consoul.tui.app - INFO - [PERF] Step 1 (Load config): 120.1ms
+2025-12-01 08:54:44,395 - consoul.tui.app - INFO - [PERF] Step 2 (Initialize AI model): 942.0ms
+2025-12-01 08:54:44,396 - consoul.tui.app - INFO - [PERF-CONV] Get conversation config: 0.0ms
+2025-12-01 08:54:44,397 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.2ms
+2025-12-01 08:54:44,470 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 73.4ms
+2025-12-01 08:54:44,471 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 1.1ms
+2025-12-01 08:54:44,471 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 74.9ms
+2025-12-01 08:54:44,471 - consoul.tui.app - INFO - [PERF-CONV] ConversationHistory.__init__: 74.9ms
+2025-12-01 08:54:44,471 - consoul.tui.app - INFO - [PERF] Step 3 (Create conversation): 76.2ms
+2025-12-01 08:54:44,471 - consoul.tui.app - INFO - Initialized AI model: gpt-oss:20b, session: None
+2025-12-01 08:54:44,475 - consoul.tui.app - INFO - [PERF] Step 4 (Load tools): 3.8ms
+2025-12-01 08:54:44,494 - consoul.tui.app - INFO - [PERF] Step 5 (Bind tools): 18.6ms
+2025-12-01 08:54:44,494 - consoul.tui.app - INFO - [PERF] Cleanup old conversations: 0.1ms
+2025-12-01 08:54:44,557 - consoul.tui.app - INFO - [PERF] Initialize title generator: 63.2ms
+2025-12-01 08:54:44,558 - consoul.tui.app - INFO - [PERF] Applied theme: consoul-light
+2025-12-01 08:54:44,808 - consoul.tui.app - INFO - [PERF] Apply theme: 251.0ms
+2025-12-01 08:54:45,313 - consoul.tui.app - INFO - [POST-INIT] Post-initialization setup complete
+2025-12-01 08:54:47,467 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 08:54:47,484 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,488 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,497 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 08:54:47,498 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: system, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 08:54:47,508 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: system, scroll_y: 0.0
+2025-12-01 08:54:47,509 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 08:54:47,517 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,517 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,518 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,527 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 08:54:47,528 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 08:54:47,556 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,557 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,560 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 08:54:47,561 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 7
+2025-12-01 08:54:47,572 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,572 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,573 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,577 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 08:54:47,577 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 7
+2025-12-01 08:54:47,586 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,587 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,588 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 08:54:47,588 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 7
+2025-12-01 08:54:47,599 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,599 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,600 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,601 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 08:54:47,601 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 7
+2025-12-01 08:54:47,608 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,609 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,611 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 08:54:47,612 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 7
+2025-12-01 08:54:47,620 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,621 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,622 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,623 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 08:54:47,623 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 7
+2025-12-01 08:54:47,632 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,633 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,634 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 08:54:47,635 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 7
+2025-12-01 08:54:47,643 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,643 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,644 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,645 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 08:54:47,646 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 7
+2025-12-01 08:54:47,651 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,652 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,674 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 08:54:47,675 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 81
+2025-12-01 08:54:47,689 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,689 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,690 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,690 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 08:54:47,691 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 81
+2025-12-01 08:54:47,698 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,699 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,701 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 08:54:47,701 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 81
+2025-12-01 08:54:47,737 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,737 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,738 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,755 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 08:54:47,756 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 81
+2025-12-01 08:54:47,768 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,769 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,771 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 08:54:47,772 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 81
+2025-12-01 08:54:47,781 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,781 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,782 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,782 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.3113185066172577
+2025-12-01 08:54:47,783 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.3113185066172577, max_scroll_y: 81
+2025-12-01 08:54:47,790 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,791 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,793 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.3113185066172577
+2025-12-01 08:54:47,794 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: system, auto_scroll: True, current_scroll_y: 0.3113185066172577, max_scroll_y: 81
+2025-12-01 08:54:47,799 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: system, scroll_y: 4.945880967639478
+2025-12-01 08:54:47,800 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 4.945880967639478, max_scroll_y: 81
+2025-12-01 08:54:47,808 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,808 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,810 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,811 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 4.945880967639478
+2025-12-01 08:54:47,812 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 4.945880967639478, max_scroll_y: 81
+2025-12-01 08:54:47,818 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,819 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,850 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 9.081452516909739
+2025-12-01 08:54:47,851 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: system, auto_scroll: True, current_scroll_y: 9.081452516909739, max_scroll_y: 168
+2025-12-01 08:54:47,857 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: system, scroll_y: 17.45490340549013
+2025-12-01 08:54:47,858 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 17.45490340549013, max_scroll_y: 168
+2025-12-01 08:54:47,865 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,865 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,866 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #6C757D (theme: consoul-light)
+2025-12-01 08:54:47,867 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 17.45490340549013
+2025-12-01 08:54:47,868 - consoul.tui.app - INFO - [CONV_LOAD] Checking conditions: has_conversation=True, has_config=True, bool(conversation)=False, bool(config)=True
+2025-12-01 08:54:47,868 - consoul.tui.app - WARNING - [CONV_LOAD] self.conversation is falsy!
+2025-12-01 08:54:47,868 - consoul.tui.app - INFO - [CONV_LOAD] Creating ConversationHistory with session_id=797c47e3-42c0-4cef-b03a-4291f08a93f2
+2025-12-01 08:54:47,868 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
+2025-12-01 08:54:47,868 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
+2025-12-01 08:54:47,869 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.5ms
+2025-12-01 08:54:47,869 - consoul.ai.history - INFO - Loaded 26 messages from session 797c47e3-42c0-4cef-b03a-4291f08a93f2
+2025-12-01 08:54:47,869 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.4ms
+2025-12-01 08:54:47,869 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 1.0ms
+2025-12-01 08:54:47,869 - consoul.tui.app - INFO - [CONV_LOAD] Created ConversationHistory: session_id=797c47e3-42c0-4cef-b03a-4291f08a93f2, _conversation_created=True, message_count=26
+2025-12-01 08:54:55,947 - consoul.tui.widgets.chat_view - INFO - Scroll up - suspending auto-scroll (scroll_y: 168, max: 183)
+2025-12-01 08:54:55,970 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:55,990 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,007 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,023 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,039 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,049 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,058 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,072 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,075 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,089 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,091 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,100 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,108 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,122 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,125 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,141 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,158 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,174 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,191 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,208 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,224 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,241 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,802 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,833 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,851 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,872 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,905 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,929 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,954 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:56,979 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,004 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,029 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,054 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,088 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,490 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,505 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,518 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,542 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,559 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,575 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,592 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,608 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,625 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,642 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,659 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,675 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,692 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,708 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,725 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,742 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,767 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,792 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:57,817 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:59,165 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:59,223 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:59,281 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:59,335 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:59,394 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:54:59,469 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:00,248 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:00,281 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:00,312 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:00,363 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,136 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,189 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,290 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,373 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,432 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,464 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,489 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,513 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,543 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,565 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,590 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,615 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,640 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,665 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,698 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,877 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,897 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,925 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,940 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,956 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,973 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:02,986 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,003 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,019 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,036 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,054 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,071 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,088 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,104 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,122 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,137 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,163 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,188 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,213 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,245 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,279 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,320 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,371 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
+2025-12-01 08:55:03,428 - consoul.tui.widgets.chat_view - DEBUG - Scroll up - already suspended
