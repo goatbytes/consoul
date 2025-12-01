@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from consoul.tui.widgets.attachment_button import AttachmentButton
 from consoul.tui.widgets.center_middle import CenterMiddle
-from consoul.tui.widgets.send_button import SendButton
 from consoul.tui.widgets.chat_view import ChatView
 from consoul.tui.widgets.contextual_top_bar import ContextualTopBar
 from consoul.tui.widgets.conversation_list import ConversationList
@@ -26,11 +25,13 @@ from consoul.tui.widgets.permission_manager_screen import PermissionManagerScree
 from consoul.tui.widgets.profile_editor_modal import ProfileEditorModal
 from consoul.tui.widgets.profile_selector_modal import ProfileSelectorModal
 from consoul.tui.widgets.search_bar import SearchBar
+from consoul.tui.widgets.send_button import SendButton
 from consoul.tui.widgets.settings_screen import SettingsScreen
 from consoul.tui.widgets.streaming_response import StreamingResponse
 from consoul.tui.widgets.tool_approval_modal import ToolApprovalModal
 from consoul.tui.widgets.tool_call_details_modal import ToolCallDetailsModal
 from consoul.tui.widgets.tool_call_widget import ToolCallWidget
+from consoul.tui.widgets.tool_formatter import format_tool_header
 from consoul.tui.widgets.typing_indicator import TypingIndicator
 
 __all__ = [
@@ -60,4 +61,5 @@ __all__ = [
     "ToolCallDetailsModal",
     "ToolCallWidget",
     "TypingIndicator",
+    "format_tool_header",
 ]

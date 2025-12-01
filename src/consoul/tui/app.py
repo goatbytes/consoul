@@ -2571,14 +2571,24 @@ class ConsoulApp(App[None]):
                             )
                             await stream_widget.remove()
 
-                            # Show minimal tool execution indicator
-                            tool_names = ", ".join([call.name for call in parsed_calls])
-                            tool_indicator = MessageBubble(
-                                f"⛏ Executing: {tool_names}",
-                                role="system",
-                                show_metadata=False,
+                            # Show tool execution messages with formatted headers
+                            from consoul.tui.widgets.tool_formatter import (
+                                format_tool_header,
                             )
-                            await self.chat_view.add_message(tool_indicator)
+
+                            for call in parsed_calls:
+                                # Format tool header with arguments for visibility
+                                header_rich = format_tool_header(
+                                    call.name, call.arguments
+                                )
+                                # Convert Rich Text to plain string for MessageBubble
+                                header_text = header_rich.plain
+                                tool_message = MessageBubble(
+                                    header_text,
+                                    role="system",
+                                    show_metadata=False,
+                                )
+                                await self.chat_view.add_message(tool_message)
 
                         # Handle tool calls
                         logger.debug(
@@ -3471,6 +3481,8 @@ class ConsoulApp(App[None]):
                     f"result_length={len(result)}"
                 )
 
+                # Update widget with result and SUCCESS status
+
                 # Log successful result
                 if self.tool_registry and self.tool_registry.audit_logger:
                     await self.tool_registry.audit_logger.log_event(
@@ -3497,6 +3509,8 @@ class ConsoulApp(App[None]):
                     exc_info=True,
                 )
 
+                # Update widget with error result and ERROR status
+
                 # Log error
                 if self.tool_registry and self.tool_registry.audit_logger:
                     await self.tool_registry.audit_logger.log_event(
@@ -3512,6 +3526,7 @@ class ConsoulApp(App[None]):
             # Tool denied - update tool call data with DENIED status
             result = f"Tool execution denied: {message.reason}"
             self._tool_call_data[message.tool_call.id]["status"] = "DENIED"
+
             self._tool_call_data[message.tool_call.id]["result"] = result
             self.log.info(
                 f"[TOOL_FLOW] Tool DENIED: {message.tool_call.name} - {message.reason}"
