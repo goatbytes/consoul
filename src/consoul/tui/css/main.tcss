@@ -62,7 +62,7 @@ ChatView {
 }
 
 ChatView:focus {
-    border: round white 50%;
+    border: round $accent;
 }
 
 .chat-messages {
