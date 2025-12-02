@@ -37,7 +37,23 @@ class BinaryCanvas(Static):
     def __init__(
         self,
         style: AnimationStyle = AnimationStyle.SOUND_WAVE,
-        color_scheme: Literal["green", "blue", "cyan", "magenta", "rainbow"] = "blue",
+        color_scheme: Literal[
+            "green",
+            "blue",
+            "cyan",
+            "magenta",
+            "rainbow",
+            "consoul-dark",
+            "consoul-light",
+            "consoul-oled",
+            "consoul-midnight",
+            "consoul-matrix",
+            "consoul-sunset",
+            "consoul-ocean",
+            "consoul-volcano",
+            "consoul-neon",
+            "consoul-forest",
+        ] = "blue",
     ) -> None:
         """Initialize the binary canvas.
 
@@ -50,13 +66,25 @@ class BinaryCanvas(Static):
         self.color_scheme = color_scheme
         self.animator: BinaryAnimator | None = None
 
-        # Color maps for animations
+        # Color maps for animations - theme-based gradients
         self._color_map = {
+            # Classic presets
             "green": ["#002200", "#004400", "#006600", "#00aa00", "#00ff00"],
             "blue": ["#001a33", "#003366", "#0055aa", "#0077cc", "#0085CC"],
             "cyan": ["#001a1a", "#003333", "#005555", "#007777", "#009999"],
             "magenta": ["#220022", "#440044", "#660066", "#aa00aa", "#ff00ff"],
             "rainbow": ["#ff0000", "#ff7700", "#ffff00", "#00ff00", "#0000ff"],
+            # Theme-based gradients
+            "consoul-dark": ["#001a33", "#003366", "#0055aa", "#0077cc", "#0085CC"],
+            "consoul-light": ["#004466", "#006699", "#0085CC", "#33A3DD", "#66C1EE"],
+            "consoul-oled": ["#003355", "#006688", "#0099BB", "#00B4FF", "#33C4FF"],
+            "consoul-midnight": ["#2A4A60", "#446A85", "#5E8AA0", "#88D4F5", "#AAE0F7"],
+            "consoul-matrix": ["#001100", "#003300", "#006600", "#00AA00", "#00FF00"],
+            "consoul-sunset": ["#5A2A2F", "#8A3A3F", "#BA5A5F", "#FF8474", "#FFA494"],
+            "consoul-ocean": ["#042A3D", "#083D57", "#0C5171", "#14B8A6", "#2DC9B7"],
+            "consoul-volcano": ["#4D1A0F", "#7A2A1A", "#A73A25", "#FF6B35", "#FF8B5F"],
+            "consoul-neon": ["#550055", "#880088", "#BB00BB", "#FF10F0", "#FF55F5"],
+            "consoul-forest": ["#0A1A15", "#152A22", "#20402F", "#7CB342", "#9CC368"],
         }
 
     def on_mount(self) -> None:
@@ -161,7 +189,23 @@ class LoadingScreen(Widget):
         self,
         message: str = "Loading Consoul...",
         style: AnimationStyle = AnimationStyle.SOUND_WAVE,
-        color_scheme: Literal["green", "blue", "cyan", "magenta", "rainbow"] = "blue",
+        color_scheme: Literal[
+            "green",
+            "blue",
+            "cyan",
+            "magenta",
+            "rainbow",
+            "consoul-dark",
+            "consoul-light",
+            "consoul-oled",
+            "consoul-midnight",
+            "consoul-matrix",
+            "consoul-sunset",
+            "consoul-ocean",
+            "consoul-volcano",
+            "consoul-neon",
+            "consoul-forest",
+        ] = "blue",
         show_progress: bool = False,
     ) -> None:
         """Initialize the loading screen.

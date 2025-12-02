@@ -4144,9 +4144,12 @@ class ConsoulApp(App[None]):
             }
             """
 
-            def __init__(self, animation_style: AnimationStyle) -> None:
+            def __init__(
+                self, animation_style: AnimationStyle, theme_name: str
+            ) -> None:
                 super().__init__()
                 self.animation_style = animation_style
+                self.theme_name = theme_name
 
             def on_mount(self) -> None:
                 """Hide docked widgets when screen mounts."""
@@ -4155,10 +4158,28 @@ class ConsoulApp(App[None]):
                     widget.display = False
 
             def compose(self) -> ComposeResult:
+                # Use theme name as color scheme if available, otherwise fallback to blue
+                color_scheme = (
+                    self.theme_name
+                    if self.theme_name
+                    in [
+                        "consoul-dark",
+                        "consoul-light",
+                        "consoul-oled",
+                        "consoul-midnight",
+                        "consoul-matrix",
+                        "consoul-sunset",
+                        "consoul-ocean",
+                        "consoul-volcano",
+                        "consoul-neon",
+                        "consoul-forest",
+                    ]
+                    else "blue"
+                )
                 yield LoadingScreen(
                     message="",
                     style=self.animation_style,
-                    color_scheme="blue",
+                    color_scheme=color_scheme,  # type: ignore
                     show_progress=False,
                 )
 
@@ -4169,7 +4190,9 @@ class ConsoulApp(App[None]):
                     widget.display = True
                 self.app.pop_screen()
 
-        await self.push_screen(ScreensaverScreen(style))
+        # Get current theme name
+        theme_name = self.theme if hasattr(self, "theme") and self.theme else "blue"
+        await self.push_screen(ScreensaverScreen(style, theme_name))
 
     def _should_generate_title(self) -> bool:
         """Check if we should generate a title for current conversation.
