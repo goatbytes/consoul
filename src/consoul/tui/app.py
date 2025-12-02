@@ -4122,14 +4122,10 @@ class ConsoulApp(App[None]):
         class ScreensaverModal(ModalScreen[None]):
             """Modal screen for screensaver display."""
 
-            CSS = """
+            # Override default ModalScreen CSS to fill entire screen
+            DEFAULT_CSS = """
             ScreensaverModal {
-                width: 100%;
-                height: 100%;
-                align: center middle;
-                background: $surface;
-                layer: screensaver;
-                layers: screensaver;
+                align: stretch;
             }
 
             ScreensaverModal > LoadingScreen {
