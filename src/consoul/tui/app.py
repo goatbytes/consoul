@@ -4511,13 +4511,8 @@ class ConsoulApp(App[None]):
                             exc_info=True,
                         )
 
-                # Notify user and scroll to bottom
+                # Hide loading indicator and scroll to bottom
                 try:
-                    self.notify(
-                        f"Loaded conversation {conversation_id[:8]}...",
-                        severity="information",
-                    )
-
                     # Hide loading indicator
                     await self.chat_view.hide_loading_indicator()
 
