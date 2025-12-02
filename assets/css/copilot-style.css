@@ -1,0 +1,170 @@
+/* Copilot-Inspired Minimal Design
+   Clean, professional styling matching AWS Copilot CLI aesthetic */
+
+:root {
+  /* Neutral color palette */
+  --copilot-white: #ffffff;
+  --copilot-gray-50: #f8f9fa;
+  --copilot-gray-100: #e1e4e8;
+  --copilot-gray-200: #d1d5da;
+  --copilot-gray-600: #586069;
+  --copilot-gray-900: #24292e;
+
+  /* Accent color */
+  --copilot-blue: #0366d6;
+  --copilot-blue-light: #58a6ff;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark theme overrides */
+[data-md-color-scheme="slate"] {
+  --copilot-white: #1e1e1e;
+  --copilot-gray-50: #2d2d2d;
+  --copilot-gray-100: #404040;
+  --copilot-gray-200: #4d4d4d;
+  --copilot-gray-600: #959da5;
+  --copilot-gray-900: #e1e4e8;
+  --copilot-blue: #58a6ff;
+  --copilot-blue-light: #79b8ff;
+}
+
+/* Override gradient headings */
+.md-typeset h1 {
+  background: none;
+  -webkit-text-fill-color: initial;
+  color: var(--copilot-gray-900);
+  font-weight: 700;
+}
+
+.md-typeset h2,
+.md-typeset h3 {
+  color: var(--copilot-gray-900);
+}
+
+/* Override primary navigation colors */
+.md-nav--primary .md-nav__link--active {
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
+  color: var(--copilot-blue);
+  font-weight: 600;
+  border-left: 2px solid var(--copilot-blue);
+  padding-left: calc(1rem - 2px);
+}
+
+/* Button overrides */
+.md-button {
+  border-radius: 6px;
+  border: 1px solid var(--copilot-gray-100);
+  background: transparent;
+  color: var(--copilot-blue);
+  transition: all 0.2s ease;
+}
+
+.md-button:hover {
+  border-color: var(--copilot-blue);
+  background: rgba(3, 102, 214, 0.05);
+}
+
+.md-button--primary {
+  background: var(--copilot-blue);
+  border-color: var(--copilot-blue);
+  color: white;
+}
+
+.md-button--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+  background: var(--copilot-blue);
+}
+
+/* Code blocks - clean borders */
+.md-typeset .highlight {
+  border-radius: 6px;
+  border: 1px solid var(--copilot-gray-100);
+  box-shadow: var(--shadow-sm);
+  border-left: 3px solid var(--copilot-blue);
+}
+
+/* Tables */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--copilot-gray-100);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--copilot-gray-50);
+  color: var(--copilot-gray-900);
+  font-weight: 600;
+}
+
+/* Admonitions - minimal style */
+.md-typeset .admonition {
+  border-radius: 6px;
+  border: 1px solid var(--copilot-gray-100);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Links */
+.md-typeset a {
+  color: var(--copilot-blue);
+  text-decoration: none;
+}
+
+.md-typeset a:hover {
+  text-decoration: underline;
+}
+
+/* Code in links */
+.md-typeset a code {
+  color: var(--copilot-blue) !important;
+  background-color: var(--copilot-gray-50) !important;
+  border: 1px solid var(--copilot-gray-100);
+}
+
+/* Footer - clean styling */
+.md-footer {
+  background: var(--copilot-gray-50);
+  border-top: 1px solid var(--copilot-gray-100);
+}
+
+/* Search */
+.md-search__input {
+  border-radius: 6px;
+  border: 1px solid var(--copilot-gray-100);
+  background: var(--copilot-white);
+}
+
+.md-search__input:focus {
+  border-color: var(--copilot-blue);
+  box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.1);
+}
+
+/* TOC borders */
+.md-nav--secondary,
+.md-nav--integrated {
+  border-left: 1px solid var(--copilot-gray-100);
+}
+
+.md-nav--secondary .md-nav__link--active,
+.md-nav--integrated .md-nav__link--active {
+  color: var(--copilot-blue);
+  border-left: 2px solid var(--copilot-blue);
+  padding-left: calc(1rem - 2px);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+
+  .md-button--primary:hover {
+    transform: none;
+  }
+}
