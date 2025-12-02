@@ -4097,19 +4097,19 @@ class ConsoulApp(App[None]):
         """Toggle the loading screen as a screen saver (secret binding)."""
         import random
 
-        from textual.screen import ModalScreen
+        from textual.screen import Screen
 
         from consoul.tui.animations import AnimationStyle
         from consoul.tui.loading import LoadingScreen
 
         # Check if a screensaver is currently showing
-        # Modal screens are on top of the screen stack
+        # Screens are on top of the screen stack
         if len(self.screen_stack) > 1:
-            # There's a modal screen showing - dismiss it
+            # There's a screen showing - dismiss it
             self.pop_screen()
             return
 
-        # Create a modal screen with the loading animation
+        # Create a screen with the loading animation
         animation_styles = [
             AnimationStyle.SOUND_WAVE,
             AnimationStyle.MATRIX_RAIN,
@@ -4119,14 +4119,17 @@ class ConsoulApp(App[None]):
         ]
         style = random.choice(animation_styles)
 
-        class ScreensaverModal(ModalScreen[None]):
-            """Modal screen for screensaver display."""
+        class ScreensaverScreen(Screen[None]):
+            """Screensaver screen that covers entire terminal."""
 
-            # Override default ModalScreen CSS to fill entire screen
             DEFAULT_CSS = """
-            ScreensaverModal > LoadingScreen {
+            ScreensaverScreen {
+                layout: vertical;
+            }
+
+            ScreensaverScreen > LoadingScreen {
                 width: 100%;
-                height: 100vh;
+                height: 100%;
             }
             """
 
@@ -4144,9 +4147,9 @@ class ConsoulApp(App[None]):
 
             def on_key(self, event: events.Key) -> None:
                 """Dismiss on any key press."""
-                self.dismiss()
+                self.app.pop_screen()
 
-        await self.push_screen(ScreensaverModal(style))
+        await self.push_screen(ScreensaverScreen(style))
 
     def _should_generate_title(self) -> bool:
         """Check if we should generate a title for current conversation.
