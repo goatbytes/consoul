@@ -22,6 +22,8 @@ if TYPE_CHECKING:
     from textual.app import ComposeResult
     from textual.binding import BindingType
 
+    from consoul.tui.widgets.send_button import SendButton
+
 __all__ = ["AttachedFile", "InputArea"]
 
 
@@ -215,9 +217,7 @@ class InputArea(Container):
         # Clear input
         self.clear()
 
-    def on_send_button_message_submit(
-        self, event: "SendButton.MessageSubmit"
-    ) -> None:
+    def on_send_button_message_submit(self, event: SendButton.MessageSubmit) -> None:
         """Handle Send button click from SendButton widget.
 
         Args:
@@ -294,7 +294,7 @@ class InputArea(Container):
 
         # Get config
         try:
-            config = self.app.consoul_config.tools  # type: ignore[attr-defined]
+            config = self.app.consoul_config.tools
         except AttributeError:
             # Fallback if config not available
             return

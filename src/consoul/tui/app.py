@@ -19,6 +19,9 @@ from textual.reactive import reactive
 from textual.widgets import Footer, Input
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import TypeVar
+
     from langchain_core.language_models.chat_models import BaseChatModel
     from langchain_core.messages import ToolMessage
     from textual.binding import BindingType
@@ -28,12 +31,15 @@ if TYPE_CHECKING:
     from consoul.ai.tools import ToolRegistry
     from consoul.ai.tools.parser import ParsedToolCall
     from consoul.config import ConsoulConfig
+    from consoul.config.models import ProfileConfig
     from consoul.tui.widgets import (
         ContextualTopBar,
         InputArea,
         StreamingResponse,
     )
     from consoul.tui.widgets.input_area import AttachedFile
+
+    T = TypeVar("T")
 
 from consoul.ai.reasoning import extract_reasoning
 from consoul.tui.config import TuiConfig
@@ -198,7 +204,7 @@ class ConsoulApp(App[None]):
         # Initialize AI components to None (populated by async init)
         self.chat_model: BaseChatModel | None = None
         self.conversation: ConversationHistory | None = None
-        self.active_profile = None
+        self.active_profile: ProfileConfig | None = None
         self.current_profile: str | None = None
         self.current_model: str | None = None
         self.tool_registry: ToolRegistry | None = None
@@ -220,7 +226,9 @@ class ConsoulApp(App[None]):
         # Initialization state flag
         self._initialization_complete = False
 
-    async def _run_in_thread(self, func, *args, **kwargs):
+    async def _run_in_thread(
+        self, func: Callable[..., T], *args: Any, **kwargs: Any
+    ) -> T:
         """Run a blocking function in a thread pool.
 
         This is a helper to run blocking I/O operations without freezing the UI.
@@ -492,7 +500,7 @@ class ConsoulApp(App[None]):
         return tool_registry
 
     def _auto_resume_if_enabled(
-        self, conversation: ConversationHistory, profile
+        self, conversation: ConversationHistory, profile: ProfileConfig
     ) -> ConversationHistory:
         """Auto-resume last conversation if enabled in profile.
 
@@ -535,6 +543,11 @@ class ConsoulApp(App[None]):
             conv_kwargs = self._get_conversation_config()
             conv_kwargs["session_id"] = latest_session_id
 
+            # At this point consoul_config should be set since we're in an initialized conversation
+            assert self.consoul_config is not None, (
+                "Config should be available when resuming conversation"
+            )
+
             return ConversationHistory(
                 model_name=self.consoul_config.current_model,
                 model=conversation._model,  # Reuse same model
@@ -556,6 +569,8 @@ class ConsoulApp(App[None]):
         Returns:
             Model with tools bound (or original if not supported)
         """
+        from typing import cast
+
         from consoul.ai.providers import supports_tool_calling
 
         # Get enabled tools
@@ -574,7 +589,8 @@ class ConsoulApp(App[None]):
 
         # Bind tools
         tools = [meta.tool for meta in tool_metadata_list]
-        bound_model = model.bind_tools(tools)  # type: ignore[assignment]
+        # bind_tools() returns a Runnable, but it's compatible with BaseChatModel interface
+        bound_model = cast("BaseChatModel", model.bind_tools(tools))
         self.log.info(f"Bound {len(tools)} tools to chat model")
 
         # Update conversation's model reference if conversation exists
@@ -638,7 +654,7 @@ class ConsoulApp(App[None]):
             self.log.warning(f"Failed to initialize title generator: {e}")
             return None
 
-    def _cleanup_old_conversations(self, profile) -> None:
+    def _cleanup_old_conversations(self, profile: ProfileConfig) -> None:
         """Clean up old conversations based on retention policy.
 
         Args:
@@ -707,6 +723,8 @@ class ConsoulApp(App[None]):
             if loading_screen:
                 loading_screen.update_progress("Loading configuration...", 10)
                 await asyncio.sleep(0.1)  # Ensure loading screen is visible
+
+            consoul_config: ConsoulConfig | None
             if self._needs_config_load:
                 consoul_config = await self._run_in_thread(self._load_config)
                 self.consoul_config = consoul_config
@@ -731,6 +749,9 @@ class ConsoulApp(App[None]):
 
             # Set active profile
             self.active_profile = consoul_config.get_active_profile()
+            assert self.active_profile is not None, (
+                "Active profile should be available from config"
+            )
             self.current_profile = self.active_profile.name
             self.current_model = consoul_config.current_model
 
@@ -928,11 +949,14 @@ class ConsoulApp(App[None]):
         # This ensures tokenizer is loaded before first message
         if self.conversation and hasattr(self.conversation, "_token_counter"):
 
-            async def warm_up_tokenizer():
+            async def warm_up_tokenizer() -> None:
                 try:
                     # Trigger tokenizer loading by counting tokens on empty message
                     from langchain_core.messages import HumanMessage
 
+                    assert self.conversation is not None, (
+                        "Conversation should be available in warmup"
+                    )
                     _ = self.conversation._token_counter([HumanMessage(content="")])
                     logger.info("[POST-INIT] Tokenizer warmed up in background")
                 except Exception as e:
@@ -3865,7 +3889,7 @@ class ConsoulApp(App[None]):
             self.notify("Configuration not loaded", severity="error")
             return
 
-        result = await self.push_screen(  # type: ignore[func-returns-value]
+        result = await self.push_screen(
             SettingsScreen(config=self.config, consoul_config=self.consoul_config)
         )
         if result:
@@ -3881,7 +3905,7 @@ class ConsoulApp(App[None]):
             self.notify("Configuration not loaded", severity="error")
             return
 
-        result = await self.push_screen(PermissionManagerScreen(self.consoul_config))  # type: ignore[func-returns-value]
+        result = await self.push_screen(PermissionManagerScreen(self.consoul_config))
         if result:
             self.notify(
                 "Permission settings saved successfully", severity="information"
@@ -3897,7 +3921,7 @@ class ConsoulApp(App[None]):
 
         logger = logging.getLogger(__name__)
         logger.info("[TOOL_MANAGER] About to push tool manager screen")
-        result = await self.push_screen(ToolManagerScreen(self.tool_registry))  # type: ignore[func-returns-value]
+        result = await self.push_screen(ToolManagerScreen(self.tool_registry))
         logger.info(
             f"[TOOL_MANAGER] Tool manager closed, result={result}, type={type(result)}"
         )
@@ -4655,6 +4679,9 @@ class ConsoulApp(App[None]):
             self.current_profile = profile_name
 
             # Get new persist setting
+            assert self.active_profile is not None, (
+                "Active profile should be available after switching"
+            )
             new_persist = self.active_profile.conversation.persist
 
             # Persist profile selection to config file
@@ -4685,6 +4712,9 @@ class ConsoulApp(App[None]):
             # NOTE: Model/provider remain unchanged - profiles are separate from models
 
             # Handle sidebar visibility based on persist setting changes
+            assert self.active_profile is not None, (
+                "Active profile should be available for db path access"
+            )
             new_db_path = self.active_profile.conversation.db_path
 
             # Case 1: Switching from non-persist to persist profile

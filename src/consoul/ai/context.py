@@ -122,12 +122,13 @@ def _load_ollama_cache() -> dict[str, int]:
         Dictionary mapping model names to context lengths
     """
     try:
-        from pathlib import Path
         import json
+        from pathlib import Path
 
         cache_file = Path.home() / ".consoul" / "ollama_context_cache.json"
         if cache_file.exists():
-            return json.loads(cache_file.read_text())
+            result: dict[str, int] = json.loads(cache_file.read_text())
+            return result
     except Exception:
         pass
     return {}
@@ -140,8 +141,8 @@ def _save_ollama_cache(cache: dict[str, int]) -> None:
         cache: Dictionary mapping model names to context lengths
     """
     try:
-        from pathlib import Path
         import json
+        from pathlib import Path
 
         cache_file = Path.home() / ".consoul" / "ollama_context_cache.json"
         cache_file.parent.mkdir(parents=True, exist_ok=True)
@@ -187,7 +188,7 @@ def _get_ollama_context_length(model_name: str) -> int | None:
         models = get_ollama_models(include_context=True)
         for model in models:
             if model.get("name") == model_name:
-                context_length = model.get("context_length")
+                context_length: int | None = model.get("context_length")
                 if context_length:
                     # Cache the result (both in-memory and on disk)
                     _OLLAMA_CONTEXT_CACHE[model_name] = context_length
