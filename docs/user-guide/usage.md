@@ -7,7 +7,7 @@ Common usage patterns and examples for Consoul.
 ### Simple Query
 
 ```bash
-consoul chat "How do I reverse a string in Python?"
+consoul ask "How do I reverse a string in Python?"
 ```
 
 ### Interactive Mode
@@ -21,13 +21,13 @@ consoul tui
 ### Single File
 
 ```bash
-consoul chat --file main.py "Explain this code"
+consoul ask --file main.py "Explain this code"
 ```
 
 ### Multiple Files
 
 ```bash
-consoul chat \
+consoul ask \
   --file app.py \
   --file config.yaml \
   --file README.md \
@@ -38,13 +38,13 @@ consoul chat \
 
 ```bash
 # All Python files in current directory
-consoul chat --glob "*.py" "Summarize this codebase"
+consoul ask --glob "*.py" "Summarize this codebase"
 
 # Recursive search
-consoul chat --glob "**/*.py" "What does this project do?"
+consoul ask --glob "**/*.py" "What does this project do?"
 
 # Multiple patterns
-consoul chat --glob "src/**/*.py" --glob "tests/**/*.py" "Analyze test coverage"
+consoul ask --glob "src/**/*.py" --glob "tests/**/*.py" "Analyze test coverage"
 ```
 
 ## Pipeline Integration
@@ -53,26 +53,26 @@ consoul chat --glob "src/**/*.py" --glob "tests/**/*.py" "Analyze test coverage"
 
 ```bash
 # Git status
-git status | consoul chat --stdin "What should I commit?"
+git status | consoul ask --stdin "What should I commit?"
 
 # Directory listing
-ls -la | consoul chat --stdin "What are these files?"
+ls -la | consoul ask --stdin "What are these files?"
 
 # Log analysis
-tail -n 100 app.log | consoul chat --stdin "Any errors in these logs?"
+tail -n 100 app.log | consoul ask --stdin "Any errors in these logs?"
 ```
 
 ### Error Debugging
 
 ```bash
 # Python errors
-python script.py 2>&1 | consoul chat --stdin "What's wrong?"
+python script.py 2>&1 | consoul ask --stdin "What's wrong?"
 
 # Test failures
-pytest 2>&1 | consoul chat --stdin "Why are these tests failing?"
+pytest 2>&1 | consoul ask --stdin "Why are these tests failing?"
 
 # Build errors
-make 2>&1 | consoul chat --stdin "How do I fix these build errors?"
+make 2>&1 | consoul ask --stdin "How do I fix these build errors?"
 ```
 
 ## Development Workflows
@@ -81,27 +81,26 @@ make 2>&1 | consoul chat --stdin "How do I fix these build errors?"
 
 ```bash
 # Review staged changes
-git diff --staged | consoul chat --stdin \
+git diff --staged | consoul ask --stdin \
   --system "You are a senior code reviewer" \
   "Review these changes"
 
 # Review specific commit
-git show HEAD | consoul chat --stdin "Review this commit"
+git show HEAD | consoul ask --stdin "Review this commit"
 
 # Review pull request diff
-gh pr diff 123 | consoul chat --stdin "Review this PR"
+gh pr diff 123 | consoul ask --stdin "Review this PR"
 ```
 
 ### Commit Messages
 
 ```bash
 # Generate conventional commit message
-git diff --staged | consoul chat --stdin \
-  --temperature 0.3 \
+git diff --staged | consoul --temperature 0.3 ask --stdin \
   "Generate a conventional commit message for these changes"
 
 # Or use it directly
-git diff --staged | consoul chat --stdin "Generate commit message" \
+git diff --staged | consoul ask --stdin "Generate commit message" \
   | git commit -F -
 ```
 
@@ -109,16 +108,16 @@ git diff --staged | consoul chat --stdin "Generate commit message" \
 
 ```bash
 # Generate docstrings
-consoul chat --file module.py \
+consoul ask --file module.py \
   --system "Add Google-style docstrings" \
   "Add comprehensive docstrings to all functions"
 
 # Generate README
-consoul chat --glob "*.py" --file setup.py \
+consoul ask --glob "*.py" --file setup.py \
   "Write a comprehensive README.md for this project"
 
 # API documentation
-consoul chat --glob "api/**/*.py" \
+consoul ask --glob "api/**/*.py" \
   "Generate API documentation in markdown format"
 ```
 
@@ -126,15 +125,15 @@ consoul chat --glob "api/**/*.py" \
 
 ```bash
 # Generate tests
-consoul chat --file app.py \
+consoul ask --file app.py \
   "Write pytest tests for this module with fixtures"
 
 # Explain test failures
-pytest -v 2>&1 | consoul chat --stdin \
+pytest -v 2>&1 | consoul ask --stdin \
   "Explain why these tests are failing and how to fix them"
 
 # Test coverage analysis
-coverage report | consoul chat --stdin \
+coverage report | consoul ask --stdin \
   "What areas need more test coverage?"
 ```
 
@@ -142,16 +141,16 @@ coverage report | consoul chat --stdin \
 
 ```bash
 # General refactoring
-consoul chat --file legacy.py \
+consoul ask --file legacy.py \
   --system "You are a refactoring expert" \
   "Refactor this code for better readability and maintainability"
 
 # Extract functions
-consoul chat --file large_file.py \
+consoul ask --file large_file.py \
   "Identify functions that should be extracted and suggest a module structure"
 
 # Type hints
-consoul chat --file untyped.py \
+consoul ask --file untyped.py \
   "Add comprehensive type hints to this module"
 ```
 
@@ -161,16 +160,16 @@ consoul chat --file untyped.py \
 
 ```bash
 # Explain complex code
-consoul chat --file complex.py \
+consoul ask --file complex.py \
   --system "You are a patient teacher" \
   "Explain this code step by step"
 
 # Understand project structure
-consoul chat --glob "**/*.py" --file setup.py \
+consoul ask --glob "**/*.py" --file setup.py \
   "Explain the architecture of this project"
 
 # Learn from examples
-consoul chat --file example.py \
+consoul ask --file example.py \
   "Explain how this works and suggest improvements"
 ```
 
@@ -178,13 +177,13 @@ consoul chat --file example.py \
 
 ```bash
 # With examples
-consoul chat "Explain Python decorators with 3 practical examples"
+consoul ask "Explain Python decorators with 3 practical examples"
 
 # Step by step
-consoul chat "Explain async/await in Python step by step with examples"
+consoul ask "Explain async/await in Python step by step with examples"
 
 # Comparisons
-consoul chat "Compare and contrast lists vs tuples in Python"
+consoul ask "Compare and contrast lists vs tuples in Python"
 ```
 
 ## Command Line Help
@@ -193,26 +192,26 @@ consoul chat "Compare and contrast lists vs tuples in Python"
 
 ```bash
 # Explain complex commands
-consoul chat "Explain: find . -type f -name '*.py' -exec grep -l 'TODO' {} \;"
+consoul ask "Explain: find . -type f -name '*.py' -exec grep -l 'TODO' {} \;"
 
 # Get command suggestions
-consoul chat "How do I find all files larger than 100MB modified in the last week?"
+consoul ask "How do I find all files larger than 100MB modified in the last week?"
 
 # Understand output
-ps aux | consoul chat --stdin "Explain this process list"
+ps aux | consoul ask --stdin "Explain this process list"
 ```
 
 ### Writing Scripts
 
 ```bash
 # Generate bash script
-consoul chat "Write a bash script to backup a directory with timestamp"
+consoul ask "Write a bash script to backup a directory with timestamp"
 
 # Generate Python script
-consoul chat "Write a Python script to rename files in bulk"
+consoul ask "Write a Python script to rename files in bulk"
 
 # Shell one-liners
-consoul chat "Give me a one-liner to count lines of code in all Python files"
+consoul ask "Give me a one-liner to count lines of code in all Python files"
 ```
 
 ## Advanced Patterns
@@ -221,17 +220,17 @@ consoul chat "Give me a one-liner to count lines of code in all Python files"
 
 ```bash
 # Code review persona
-consoul chat --system "You are a senior software engineer specializing in Python. \
+consoul ask --system "You are a senior software engineer specializing in Python. \
 Focus on security, performance, and maintainability." \
 --file app.py "Review this code"
 
 # Teaching persona
-consoul chat --system "You are a patient teacher explaining concepts to beginners. \
+consoul ask --system "You are a patient teacher explaining concepts to beginners. \
 Use simple language and provide examples." \
 "Explain Python decorators"
 
 # Pair programming persona
-consoul chat --system "You are an experienced pair programming partner. \
+consoul ask --system "You are an experienced pair programming partner. \
 Ask clarifying questions and suggest alternatives." \
 --file solution.py "Help me improve this implementation"
 ```
@@ -240,15 +239,15 @@ Ask clarifying questions and suggest alternatives." \
 
 ```bash
 # Deterministic (code generation, factual answers)
-consoul chat --temperature 0.2 \
+consoul --temperature 0.2 ask \
   "Write a function to validate email addresses"
 
 # Balanced (default for most tasks)
-consoul chat --temperature 0.7 \
+consoul --temperature 0.7 ask \
   "How should I structure this project?"
 
 # Creative (brainstorming, naming)
-consoul chat --temperature 0.9 \
+consoul --temperature 0.9 ask \
   "Suggest creative names for an AI terminal assistant"
 ```
 
@@ -256,11 +255,11 @@ consoul chat --temperature 0.9 \
 
 ```bash
 # Brief summary
-consoul chat --max-tokens 200 \
+consoul --max-tokens 200 ask \
   "Summarize Python decorators in one paragraph"
 
 # Detailed explanation
-consoul chat --max-tokens 2000 \
+consoul --max-tokens 2000 ask \
   "Provide a comprehensive guide to Python decorators with examples"
 ```
 
@@ -270,39 +269,39 @@ consoul chat --max-tokens 2000 \
 
 ```bash
 # Setup new project
-consoul chat "Create a Python project structure for a CLI tool with poetry"
+consoul ask "Create a Python project structure for a CLI tool with poetry"
 
 # Dependency analysis
-poetry show --tree | consoul chat --stdin "Analyze these dependencies"
+poetry show --tree | consoul ask --stdin "Analyze these dependencies"
 
 # Virtual environment help
-consoul chat "How do I manage virtual environments with pyenv?"
+consoul ask "How do I manage virtual environments with pyenv?"
 ```
 
 ### JavaScript/TypeScript
 
 ```bash
 # Package.json analysis
-consoul chat --file package.json "Explain these dependencies and scripts"
+consoul ask --file package.json "Explain these dependencies and scripts"
 
 # TypeScript errors
-tsc 2>&1 | consoul chat --stdin "Help me fix these TypeScript errors"
+tsc 2>&1 | consoul ask --stdin "Help me fix these TypeScript errors"
 
 # React component
-consoul chat --file Component.tsx "Review this React component"
+consoul ask --file Component.tsx "Review this React component"
 ```
 
 ### Infrastructure
 
 ```bash
 # Dockerfile review
-consoul chat --file Dockerfile "Review and optimize this Dockerfile"
+consoul ask --file Dockerfile "Review and optimize this Dockerfile"
 
 # Kubernetes config
-consoul chat --file deployment.yaml "Review this Kubernetes deployment"
+consoul ask --file deployment.yaml "Review this Kubernetes deployment"
 
 # CI/CD
-consoul chat --file .github/workflows/ci.yml "Review this GitHub Actions workflow"
+consoul ask --file .github/workflows/ci.yml "Review this GitHub Actions workflow"
 ```
 
 ## Conversation Management
@@ -343,14 +342,14 @@ Add to `~/.zshrc` or `~/.bashrc`:
 
 ```bash
 # Quick access
-alias ask="consoul chat"
-alias explain="consoul chat --stdin"
-alias review="consoul chat --file"
+alias ask="consoul ask"
+alias explain="consoul ask --stdin"
+alias review="consoul ask --file"
 
 # Specialized
-alias commit-msg="git diff --staged | consoul chat --stdin --temperature 0.3 'Generate conventional commit message'"
-alias test-help="pytest 2>&1 | consoul chat --stdin 'Explain test failures'"
-alias code-review="git diff --staged | consoul chat --stdin --system 'You are a senior code reviewer' 'Review these changes'"
+alias commit-msg="git diff --staged | consoul --temperature 0.3 ask --stdin 'Generate conventional commit message'"
+alias test-help="pytest 2>&1 | consoul ask --stdin 'Explain test failures'"
+alias code-review="git diff --staged | consoul ask --stdin --system 'You are a senior code reviewer' 'Review these changes'"
 ```
 
 Usage:
@@ -368,19 +367,19 @@ Add to shell config:
 ```bash
 # Review git diff
 gdiff-review() {
-  git diff "$@" | consoul chat --stdin \
+  git diff "$@" | consoul ask --stdin \
     --system "You are a senior code reviewer" \
     "Review these changes"
 }
 
 # Explain command
 explain-cmd() {
-  consoul chat "Explain this command: $*"
+  consoul ask "Explain this command: $*"
 }
 
 # Generate tests
 gen-tests() {
-  consoul chat --file "$1" \
+  consoul ask --file "$1" \
     "Generate comprehensive pytest tests for this module"
 }
 ```
@@ -391,10 +390,10 @@ gen-tests() {
 
 ```bash
 # ✗ Not enough context
-consoul chat "Fix this"
+consoul ask "Fix this"
 
 # ✓ Good context
-consoul chat --file broken.py --file tests/test_broken.py \
+consoul ask --file broken.py --file tests/test_broken.py \
   "This function raises KeyError on line 42 when processing empty input. How do I fix it?"
 ```
 
@@ -402,10 +401,10 @@ consoul chat --file broken.py --file tests/test_broken.py \
 
 ```bash
 # ✗ Too vague
-consoul chat "Make this better"
+consoul ask "Make this better"
 
 # ✓ Specific request
-consoul chat --file app.py \
+consoul ask --file app.py \
   "Refactor this function to: 1) Add type hints, 2) Extract helper functions, 3) Add error handling"
 ```
 
@@ -413,22 +412,22 @@ consoul chat --file app.py \
 
 ```bash
 # Start simple
-consoul chat "Write a function to merge sorted lists"
+consoul ask "Write a function to merge sorted lists"
 
 # Then refine (in same conversation or new query)
-consoul chat "Add type hints and docstrings"
-consoul chat "Add error handling for invalid inputs"
-consoul chat "Optimize for large lists"
+consoul ask "Add type hints and docstrings"
+consoul ask "Add error handling for invalid inputs"
+consoul ask "Optimize for large lists"
 ```
 
 ### Use Appropriate Temperature
 
 ```bash
 # Low temperature for factual/deterministic tasks
-consoul chat --temperature 0.2 "Write a binary search implementation"
+consoul --temperature 0.2 ask "Write a binary search implementation"
 
 # High temperature for creative tasks
-consoul chat --temperature 0.9 "Brainstorm project name ideas"
+consoul --temperature 0.9 ask "Brainstorm project name ideas"
 ```
 
 ## Troubleshooting
@@ -437,20 +436,20 @@ consoul chat --temperature 0.9 "Brainstorm project name ideas"
 
 ```bash
 # Switch provider
-consoul chat --provider google "Your question"
+consoul ask --provider google "Your question"
 
 # Reduce token usage
-consoul chat --max-tokens 500 "Brief summary please"
+consoul --max-tokens 500 ask "Brief summary please"
 ```
 
 ### Context Too Large
 
 ```bash
 # Be selective with files
-consoul chat --file main.py "Explain this" # Instead of --glob "**/*.py"
+consoul ask --file main.py "Explain this" # Instead of --glob "**/*.py"
 
 # Pipe summary instead of full output
-git log --oneline -20 | consoul chat --stdin "Summarize recent work"
+git log --oneline -20 | consoul ask --stdin "Summarize recent work"
 ```
 
 ### API Errors
@@ -458,7 +457,7 @@ git log --oneline -20 | consoul chat --stdin "Summarize recent work"
 ```bash
 # Enable debug logging
 consoul config set logging.level DEBUG
-consoul chat "test"
+consoul ask "test"
 
 # Check logs
 tail -f ~/.config/consoul/consoul.log

@@ -1,11 +1,11 @@
 {
   "created_at": "2025-12-02T11:06:49.389390",
-  "updated_at": "2025-12-02T15:09:48.559447",
+  "updated_at": "2025-12-02T15:21:58.876314",
   "id": "SOUL-209",
   "uuid": "4d37bf92-7759-494d-bec2-088593cfeab8",
   "title": "Implement consoul history command for conversation management",
   "description": "**As a** Consoul user  \n**I want** to resume previous conversations via `consoul history resume <id>`\n**So that** I can continue AI conversations from where I left off\n\n**Current Status:**\nThe `consoul history` command exists with these subcommands:\n- ✅ `list` - Show all conversations with metadata\n- ✅ `show` - Show conversation details\n- ✅ `summary` - Show conversation summary\n- ✅ `export` - Export to markdown/json\n- ✅ `delete` - Delete a conversation\n- ✅ `clear` - Delete all conversations\n- ✅ `search` - Full-text search\n- ✅ `stats` - Usage statistics\n- ✅ `import` - Import conversations\n- ❌ `resume` - **MISSING** (referenced in docs but not implemented)\n\n**Documentation References:**\n- `docs/user-guide/getting-started.md:291` - `consoul history resume <id>`\n- `docs/user-guide/usage.md:319` - `consoul history resume <conversation-id>`\n\n**Proposed Implementation:**\n\nAdd `consoul history resume <session-id>` command that:\n1. Loads conversation from database\n2. Starts interactive `chat` session with history pre-loaded\n3. Continues from last message in the conversation\n\nExample:\n```bash\n# List conversations to find ID\nconsoul history list\n\n# Resume a specific conversation\nconsoul history resume abc123def456\n\n# Should load into interactive chat with full context\n```\n\n**Implementation Notes:**\n- Reuse existing `chat` command infrastructure\n- Load messages from database using `ConversationDatabase.load_conversation(session_id)`\n- Restore conversation context before entering REPL loop\n- Maintain same session_id for continuity\n\n**Acceptance Criteria:**\n- `consoul history resume <id>` loads conversation and starts interactive chat\n- Full conversation context is available to the AI\n- New messages append to existing conversation\n- Session ID remains the same (continues existing conversation)\n- Error handling for invalid/non-existent session IDs\n- Compatible with all `chat` command options (--model, --tools, etc.)\n\n**Story Points:** 2 (reduced from 5 since most features exist)",
-  "status": "todo",
+  "status": "done",
   "type": "feature",
   "priority": "medium",
   "labels": [],
@@ -26,11 +26,24 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-02T15:21:58.876239",
+      "updated_at": "2025-12-02T15:21:58.876239",
+      "id": "20251202152158-41a54349",
+      "ticket_id": "SOUL-209",
+      "author": "jared@goatbytes.io",
+      "content": "Successfully implemented consoul history resume command. Changes include:\n\n1. Modified ChatSession to accept resume_session_id parameter\n   - Loads existing conversation from database when provided\n   - Skips adding system message (already in DB)\n   \n2. Implemented full resume command with:\n   - Session validation and helpful error messages\n   - Conversation metadata display\n   - Last 3 messages shown for context\n   - Support for --model, --tools, --multiline, --no-stream, --no-markdown\n   - Complete interactive chat loop maintaining same session ID\n   \n3. Documentation already correct (no changes needed)\n\nTesting completed:\n- Command appears in help menu\n- Error handling works correctly\n- All pre-commit hooks passing\n\nTotal changes: +350 lines, 3 files modified",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 1,
+  "comment_count": 2,
   "order": 0,
   "custom_fields": {}
 }
