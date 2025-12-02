@@ -33,7 +33,7 @@ class TypingIndicator(Container):
         width: 100%;
         height: auto;
         padding: 1 2;
-        margin: 1 0;
+        margin: 1 2 1 0;
         background: transparent;
         border: round $success;
         border-title-color: $success;
