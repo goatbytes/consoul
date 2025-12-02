@@ -3889,6 +3889,7 @@ class ConsoulApp(App[None]):
         """Focus the input area."""
         self.notify("Focus input (Phase 2)")
 
+    # type: ignore[func-returns-value]  # Textual action methods
     async def action_settings(self) -> None:
         """Show settings screen."""
         from consoul.tui.widgets.settings_screen import SettingsScreen
