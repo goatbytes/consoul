@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from consoul.ai.tools.parser import ParsedToolCall
     from consoul.config import ConsoulConfig
     from consoul.config.models import ProfileConfig
+    from consoul.tui.loading import ConsoulLoadingScreen
     from consoul.tui.widgets import (
         ContextualTopBar,
         InputArea,
@@ -153,6 +154,8 @@ class ConsoulApp(App[None]):
         Binding("ctrl+t", "tools", "Tools", show=True),
         Binding("ctrl+shift+s", "view_system_prompt", "System Prompt", show=False),
         Binding("f1", "help", "Help", show=False),
+        # Secret - Screen Saver
+        Binding("ctrl+shift+l", "toggle_screensaver", show=False),
     ]
 
     # Reactive state
@@ -214,6 +217,9 @@ class ConsoulApp(App[None]):
         # Streaming state
         self._current_stream: StreamingResponse | None = None
         self._stream_cancelled = False
+
+        # Screensaver state (secret feature)
+        self._screensaver_screen: ConsoulLoadingScreen | None = None
 
         # Tool execution state
         self._pending_tool_calls: list[ParsedToolCall] = []
@@ -4089,6 +4095,37 @@ class ConsoulApp(App[None]):
 
         except Exception as e:
             logger.error(f"Failed to toggle theme: {e}")
+
+    async def action_toggle_screensaver(self) -> None:
+        """Toggle the loading screen as a screen saver (secret binding)."""
+        import random
+
+        from consoul.tui.animations import AnimationStyle
+        from consoul.tui.loading import ConsoulLoadingScreen
+
+        # Check if screensaver is already showing
+        if (
+            hasattr(self, "_screensaver_screen")
+            and self._screensaver_screen is not None
+        ):
+            # Dismiss the screensaver
+            self.pop_screen()
+            self._screensaver_screen = None
+        else:
+            # Show screensaver with random animation style
+            animation_styles = [
+                AnimationStyle.SOUND_WAVE,
+                AnimationStyle.MATRIX_RAIN,
+                AnimationStyle.BINARY_WAVE,
+                AnimationStyle.CODE_STREAM,
+                AnimationStyle.PULSE,
+            ]
+            style = random.choice(animation_styles)
+
+            self._screensaver_screen = ConsoulLoadingScreen(
+                animation_style=style, show_progress=False
+            )
+            await self.push_screen(self._screensaver_screen)
 
     def _should_generate_title(self) -> bool:
         """Check if we should generate a title for current conversation.
