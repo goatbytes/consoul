@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-02T08:31:55.379986",
-  "updated_at": "2025-12-02T08:40:27.460388",
+  "updated_at": "2025-12-02T22:51:40.169361Z",
   "id": "SOUL-203",
   "uuid": "6236806c-b0ee-4412-8ef6-3c81ee398492",
   "title": "Add consoul ask command for one-off questions",
@@ -13,6 +13,7 @@
     "enhancement",
     "ux-improvement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

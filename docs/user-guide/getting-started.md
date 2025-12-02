@@ -263,10 +263,10 @@ Control creativity vs. determinism:
 
 ```bash
 # Deterministic (code generation)
-consoul chat --temperature 0.2 "Write a binary search function"
+consoul --temperature 0.2 ask "Write a binary search function"
 
 # Creative (brainstorming)
-consoul chat --temperature 0.9 "Suggest project names for an AI terminal assistant"
+consoul --temperature 0.9 ask "Suggest project names for an AI terminal assistant"
 ```
 
 ### Token Limits
@@ -275,10 +275,10 @@ Control response length:
 
 ```bash
 # Brief response
-consoul chat --max-tokens 200 "Summarize Python decorators"
+consoul --max-tokens 200 ask "Summarize Python decorators"
 
 # Detailed response
-consoul chat --max-tokens 2000 "Explain Python decorators with examples"
+consoul --max-tokens 2000 ask "Explain Python decorators with examples"
 ```
 
 ### Conversation History

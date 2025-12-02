@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-29T16:10:19.247524",
-  "updated_at": "2025-11-29T18:45:56.835778",
+  "updated_at": "2025-12-02T22:51:40.174492Z",
   "id": "SOUL-194",
   "uuid": "e78cafa3-760d-4f22-88b2-ddbad07f3ac4",
   "title": "Implement conditional loading screen based on config.show_loading_screen",
@@ -14,6 +14,7 @@
     "ux-improvement",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

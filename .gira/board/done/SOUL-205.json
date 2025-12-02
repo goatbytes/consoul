@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-02T11:05:52.141301",
-  "updated_at": "2025-12-02T11:16:05.748958",
+  "updated_at": "2025-12-02T22:51:40.171725Z",
   "id": "SOUL-205",
   "uuid": "11e18575-2fa8-4604-8abb-ce53d79a9d0f",
   "title": "Add --stdin flag to consoul ask/chat commands for pipeline integration",
@@ -9,6 +9,7 @@
   "type": "feature",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

@@ -491,6 +491,97 @@ In multi-line mode:
 - Press `Enter` to add new lines
 - Press `Alt+Enter` to submit your message
 
+### Model Parameters (--temperature and --max-tokens)
+
+Control AI response creativity and length using global model parameters. These flags must appear **before** the command name (e.g., `consoul --temperature 0.2 ask`, not `consoul ask --temperature 0.2`).
+
+**Temperature Control:**
+
+Temperature controls the randomness of AI responses (range: 0.0 to 2.0):
+
+- **0.0-0.3**: Deterministic, focused, consistent - ideal for code generation
+- **0.4-0.7**: Balanced creativity and coherence - good for general use
+- **0.8-1.2**: More creative and varied - useful for brainstorming
+- **1.3-2.0**: Highly creative and experimental - for exploratory tasks
+
+```bash
+# Deterministic code generation (temperature: 0.2)
+consoul --temperature 0.2 ask "Write a binary search function"
+
+# Balanced response (temperature: 0.7)
+consoul --temperature 0.7 ask "Explain async/await in Python"
+
+# Creative brainstorming (temperature: 1.0)
+consoul --temperature 1.0 ask "Suggest creative project names"
+```
+
+**Max Tokens Control:**
+
+Limit the length of AI responses by setting maximum output tokens:
+
+```bash
+# Brief response (200 tokens ≈ 150 words)
+consoul --max-tokens 200 ask "What is a closure?"
+
+# Standard response (1000 tokens ≈ 750 words)
+consoul --max-tokens 1000 ask "Explain Python decorators"
+
+# Detailed response (4000 tokens ≈ 3000 words)
+consoul --max-tokens 4000 ask "Comprehensive guide to async programming"
+```
+
+**Combining Parameters:**
+
+```bash
+# Deterministic + concise
+consoul --temperature 0.1 --max-tokens 500 ask "Quick function to parse JSON"
+
+# Creative + lengthy
+consoul --temperature 1.2 --max-tokens 3000 ask "Design a microservices architecture"
+
+# With other flags
+consoul --temperature 0.2 --max-tokens 1000 ask --file app.py "Optimize this code"
+```
+
+**Common Use Cases:**
+
+```bash
+# Code generation: low temperature for consistency
+consoul --temperature 0.2 ask "Generate REST API endpoints"
+
+# Code explanation: moderate temperature
+consoul --temperature 0.5 ask --file complex.py "Explain this algorithm"
+
+# Brainstorming: high temperature for variety
+consoul --temperature 1.0 ask "Alternative approaches to caching"
+
+# Quick answers: low max tokens
+consoul --max-tokens 100 ask "What does grep do?"
+
+# Detailed tutorials: high max tokens
+consoul --max-tokens 3000 ask "Teach me about decorators"
+```
+
+**Validation Rules:**
+
+- Temperature must be between 0.0 and 2.0
+- Max tokens must be greater than 0
+- Invalid values will show an error before execution
+
+**Configuration Priority:**
+
+Settings are applied in this order (highest priority first):
+
+1. **Global flags** (--temperature, --max-tokens)
+2. **Active profile** configuration
+3. **Provider defaults**
+
+Example:
+```bash
+# Global flags override profile settings
+consoul --temperature 0.1 ask "..."  # Uses 0.1, ignoring profile's temperature
+```
+
 ### Global Options
 
 These work with all Consoul commands:

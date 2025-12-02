@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-29T16:38:28.286347",
-  "updated_at": "2025-11-30T00:40:26.916607Z",
+  "updated_at": "2025-12-02T22:51:40.175504Z",
   "id": "SOUL-198",
   "uuid": "988f7891-ba5c-44e3-bc2a-e5869b937212",
   "title": "Update loading screen background to use theme surface color",
@@ -14,6 +14,7 @@
     "theme",
     "ux-improvement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

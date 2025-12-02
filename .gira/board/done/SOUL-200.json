@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-30T08:08:38.112567",
-  "updated_at": "2025-11-30T16:23:12.857997Z",
+  "updated_at": "2025-12-02T22:51:40.173609Z",
   "id": "SOUL-200",
   "uuid": "64b9b83c-8fa2-4ed5-959f-45a55ef93248",
   "title": "Add smart auto-scroll suspension on manual user scroll in ChatView",
@@ -13,6 +13,7 @@
     "ux-improvement",
     "quick-win"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
