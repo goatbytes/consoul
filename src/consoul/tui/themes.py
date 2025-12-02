@@ -55,8 +55,8 @@ CONSOUL_LIGHT = Theme(
     success="#28A745",  # Green - success states
     accent="#0085CC",  # Sky Blue - highlights
     foreground="#3D3D3D",  # Binary Slate - main text
-    background="#FFFFFF",  # Pure White - base background
-    surface="#F8F9FA",  # Very light gray - panels
+    background="#F8F9FA",  # Pure White - base background
+    surface="#FFFFFF",  # Very light gray - panels
     panel="#F5F5F5",  # Slightly off-white for contrast
     dark=False,
     variables={
@@ -88,9 +88,9 @@ CONSOUL_OLED = Theme(
     variables={
         "text-muted": "#B0B0B0",  # Light gray - secondary text
         "button-color-foreground": "#FFFFFF",
-        "footer-background": "#00B4FF",
-        "footer-key-foreground": "#000000",
-        "footer-description-foreground": "#000000",
+        "footer-background": "#000000",
+        "footer-key-foreground": "#4A6C88",
+        "footer-description-foreground": "#FEFEFE",
         "block-cursor-foreground": "#000000",
         "block-cursor-background": "#00B4FF",
         "input-selection-background": "#00B4FF 35%",
