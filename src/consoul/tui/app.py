@@ -989,6 +989,7 @@ class ConsoulApp(App[None]):
             loading_screen = ConsoulLoadingScreen(
                 animation_style=AnimationStyle.CODE_STREAM,
                 show_progress=True,
+                theme=self.config.theme,  # Pass theme from config
             )
             self.push_screen(loading_screen)
 
@@ -2628,7 +2629,7 @@ class ConsoulApp(App[None]):
                             for call in parsed_calls:
                                 # Format tool header with arguments (returns RenderableType)
                                 header_renderable = format_tool_header(
-                                    call.name, call.arguments
+                                    call.name, call.arguments, theme=self.theme
                                 )
                                 # Use Static widget to render Rich renderables
                                 tool_message = Static(
@@ -4174,7 +4175,7 @@ class ConsoulApp(App[None]):
                         "consoul-neon",
                         "consoul-forest",
                     ]
-                    else "blue"
+                    else "consoul-dark"
                 )
                 yield LoadingScreen(
                     message="",
@@ -4405,7 +4406,9 @@ class ConsoulApp(App[None]):
                         for tc in tool_calls:
                             tool_name = tc.get("name", "unknown")
                             tool_args = tc.get("arguments", {})
-                            header_renderable = format_tool_header(tool_name, tool_args)
+                            header_renderable = format_tool_header(
+                                tool_name, tool_args, theme=self.theme
+                            )
                             # Use Static widget to render Rich renderables
                             tool_indicator = Static(
                                 header_renderable,

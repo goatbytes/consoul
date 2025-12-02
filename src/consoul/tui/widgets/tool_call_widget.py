@@ -86,8 +86,11 @@ class ToolCallWidget(Container):
         # Tool header with name and arguments
         from consoul.tui.widgets.tool_formatter import format_tool_header
 
+        # Get current theme from app, fallback to consoul-dark
+        theme = self.app.theme if hasattr(self.app, "theme") else "consoul-dark"
+
         yield Static(
-            format_tool_header(self.tool_name, self.arguments),
+            format_tool_header(self.tool_name, self.arguments, theme=theme),
             id="tool-header",
             classes="tool-header",
         )

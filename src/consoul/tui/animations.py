@@ -11,6 +11,12 @@ import random
 from dataclasses import dataclass
 from enum import Enum
 
+from pygments.lexers import PythonLexer
+from pygments.styles import get_style_by_name
+from pygments.token import Token
+
+from consoul.tui.syntax_themes import THEME_SYNTAX_MAP
+
 __all__ = ["AnimationStyle", "BinaryAnimator"]
 
 
@@ -44,6 +50,10 @@ class CodeSnippet:
     text: str
     speed: float
     syntax_colors: list[str]
+    typewriter: bool = False  # Whether to reveal characters one by one
+    chars_revealed: float = (
+        0.0  # Number of characters currently visible (can be fractional)
+    )
 
 
 @dataclass
@@ -64,6 +74,7 @@ class BinaryAnimator:
         width: int,
         height: int,
         style: AnimationStyle = AnimationStyle.SOUND_WAVE,
+        theme: str = "consoul-dark",
     ) -> None:
         """Initialize the binary animator.
 
@@ -71,14 +82,18 @@ class BinaryAnimator:
             width: Width of the animation area
             height: Height of the animation area
             style: Animation style to use
+            theme: Consoul theme name for syntax highlighting
         """
         self.width = width
         self.height = height
         self.style = style
+        self.theme = theme
         self.frame = 0
         self._columns: list[BinaryColumn] = []
         self._code_snippets: list[CodeSnippet] = []
         self._waveform_columns: list[WaveformColumn] = []
+        self._lexer = PythonLexer()
+        self._pygments_style = self._get_pygments_style()
         self._initialize_animation()
 
     def _initialize_animation(self) -> None:
@@ -117,8 +132,91 @@ class BinaryAnimator:
                 )
             )
 
+    def _get_pygments_style(self) -> str:
+        """Get the Pygments style name for the current theme.
+
+        Returns:
+            Pygments style name
+        """
+        return THEME_SYNTAX_MAP.get(self.theme, "monokai")
+
+    def _token_to_hex_color(self, token_type: Token) -> str:
+        """Convert a Pygments token type to a hex color.
+
+        Args:
+            token_type: Pygments token type
+
+        Returns:
+            Hex color string (e.g., "#0085CC")
+        """
+        try:
+            style_class = get_style_by_name(self._pygments_style)
+            style_dict = dict(style_class.styles)
+
+            # Walk up the token hierarchy to find a color
+            current_token = token_type
+            while current_token:
+                if current_token in style_dict:
+                    style_string = style_dict[current_token]
+                    # Parse style string (e.g., "#0085CC" or "bold #0085CC")
+                    if style_string:
+                        parts = style_string.split()
+                        for part in parts:
+                            if part.startswith("#"):
+                                return part
+                    break
+                current_token = current_token.parent
+
+            # Determine if using light or dark theme based on background
+            bg = style_class.background_color or "#ffffff"
+            bg_hex = bg.lstrip("#")
+            if len(bg_hex) == 6:
+                r, g, b = (
+                    int(bg_hex[0:2], 16),
+                    int(bg_hex[2:4], 16),
+                    int(bg_hex[4:6], 16),
+                )
+                avg = (r + g + b) / 3
+                is_light = avg > 127
+            else:
+                is_light = True
+
+            # Default colors based on token type and theme brightness
+            if is_light:
+                # Light theme defaults (darker colors for visibility)
+                if token_type in Token.Comment:
+                    return "#008000"  # Dark green
+                elif token_type in Token.String:
+                    return "#BA2121"  # Dark red
+                elif token_type in Token.Keyword:
+                    return "#0000FF"  # Blue
+                elif token_type in Token.Name:
+                    return "#000000"  # Black
+                elif token_type in Token.Number:
+                    return "#666666"  # Dark gray
+                else:
+                    return "#000000"  # Black
+            else:
+                # Dark theme defaults (lighter colors for visibility)
+                if token_type in Token.Comment:
+                    return "#75715E"  # Muted gray
+                elif token_type in Token.String:
+                    return "#E6DB74"  # Yellow
+                elif token_type in Token.Keyword:
+                    return "#F92672"  # Pink/red
+                elif token_type in Token.Name:
+                    return "#A6E22E"  # Green
+                elif token_type in Token.Number:
+                    return "#AE81FF"  # Purple
+                else:
+                    return "#F8F8F2"  # White
+
+        except Exception:
+            # Fallback: return black for safety (works on most backgrounds)
+            return "#000000"
+
     def _get_syntax_colors(self, code: str) -> list[str]:
-        """Generate syntax highlighting colors for code.
+        """Generate syntax highlighting colors for code using Pygments.
 
         Args:
             code: Code string to highlight
@@ -126,79 +224,22 @@ class BinaryAnimator:
         Returns:
             List of color codes (one per character)
         """
-        colors = []
-        keywords = {
-            "def",
-            "class",
-            "import",
-            "from",
-            "return",
-            "if",
-            "else",
-            "for",
-            "while",
-            "in",
-            "with",
-            "as",
-            "async",
-            "await",
-            "lambda",
-            "try",
-            "except",
-            "match",
-            "case",
-        }
+        colors: list[str] = []
 
-        i = 0
-        while i < len(code):
-            char = code[i]
+        try:
+            # Tokenize the code using Pygments
+            tokens = list(self._lexer.get_tokens(code))
 
-            # Comments (including emojis and branding)
-            if char == "#":
-                # Color entire comment in green
-                while i < len(code):
-                    colors.append("#28A745")  # Green for comments
-                    i += 1
-                break
-
-            # String literals
-            if char in ('"', "'"):
-                quote = char
-                colors.append("#0085CC")  # Consoul blue for strings
-                i += 1
-                while i < len(code) and code[i] != quote:
-                    colors.append("#0085CC")
-                    i += 1
-                if i < len(code):
-                    colors.append("#0085CC")
-                    i += 1
-                continue
-
-            # Numbers
-            if char.isdigit():
-                colors.append("#44385E")  # Purple for numbers
-                i += 1
-                while i < len(code) and (code[i].isdigit() or code[i] == "."):
-                    colors.append("#44385E")
-                    i += 1
-                continue
-
-            # Keywords
-            if char.isalpha() or char == "_":
-                word_start = i
-                while i < len(code) and (code[i].isalnum() or code[i] == "_"):
-                    i += 1
-                word = code[word_start:i]
-
-                color = "#0085CC" if word in keywords else "#FFFFFF"
-
-                for _ in range(len(word)):
+            # Build color list character by character
+            for token_type, token_value in tokens:
+                color = self._token_to_hex_color(token_type)
+                # Add the color for each character in the token
+                for _ in token_value:
                     colors.append(color)
-                continue
 
-            # Default
-            colors.append("#FFFFFF")
-            i += 1
+        except Exception:
+            # Fallback to white if Pygments fails
+            colors = ["#F8F8F2"] * len(code)
 
         return colors
 
@@ -213,6 +254,7 @@ class BinaryAnimator:
             "console = Consoul(model='claude-3-5-sonnet', temperature=0.7)",
             "answer = console.ask('What is love?', show_tokens=True)",
             "from consoul.tui import ConsoulApp; app = ConsoulApp().run()",
+            "result = consoul.analyze('Explain the invariants in this design clearly')",
             # === INSPIRING AI USE CASES ===
             "# AI that understands your codebase",
             "consoul.chat('Refactor this function for better performance')",
@@ -245,25 +287,24 @@ class BinaryAnimator:
             "conversations = db.search('machine learning', limit=10)",
             # === GOATBYTES BRANDING ===
             "# Built with ❤️ by GoatBytes.IO",
-            "# GoatBytes.IO: Crafting Digital Excellence Since 2024",
-            "# Powered by GoatBytes.IO - Where Innovation Meets Code",
             "author = 'Jared Rummler <jared@goatbytes.io>'",
             "website = 'https://goatbytes.io'",
-            "# GoatBytes: Consoul, Gira, and future innovations",
             "from goatbytes.consoul import magic",
             # === EASTER EGGS & PERSONALITY ===
-            "# 🐐 GoatBytes: Greatest Of All Time Bytes",
             "# No goats were harmed making this AI assistant",
+            "# WARNING: AI may judge your variable names silently",
             "print('🐐 Baaaa-rilliant code!')",
-            "# This AI is a goat",
-            "if goat_mode: print('🐐' * 42)  # The answer to everything",
+            "print('If this works, pretend it was intentional.')",
+            "# MAGIC: Do not touch.",
+            "# Last patch fixed temporal anomaly. Do not remove.",
+            "# When I wrote this, only God and I understood what I was doing. Now, God only knows."
             "# TODO: Add more goat puns (we're not kidding around)",
             # === REAL CONSOUL FEATURES ===
             "console.export_conversation('important_chat.json')",
             "console.switch_model('gpt-4o')  # Hot-swap AI models",
             "profile = config.get_profile('development')",
             "theme = TuiConfig(theme='consoul-dark', show_timestamps=True)",
-            "cost = calculate_cost('claude-3-5-sonnet', input_tokens=1000)",
+            "cost = calculate_cost('claude-opus-4-5-20251101', input_tokens=420)",
             # === ADVANCED PATTERNS ===
             "@dataclass class AgentConfig: model: str; temperature: float",
             "async def smart_retry(func, max_attempts=3): ...",
@@ -271,11 +312,10 @@ class BinaryAnimator:
             "result = await asyncio.gather(*[ai_task(i) for i in range(10)])",
             "match response.type: case 'text': render(response) case _: log()",
             # === MOTIVATIONAL COMMENTS ===
-            "# AI is not replacing developers; it's amplifying them",
-            "# The future is collaborative intelligence",
-            "# Code with AI, ship faster, innovate more",
-            "# Your AI pair programmer, always available",
-            "# Dream it. Code it. Ship it. 🚀",
+            "# Ship something small; momentum beats perfection",
+            "# This line might unlock someone else's productivity",
+            "# You have solved harder problems than this one",
+            "# The bug is finite; your creativity is not",
             # === PRACTICAL WORKFLOWS ===
             "consoul.chat('Review this PR and suggest improvements')",
             "consoul.chat('Generate API docs from these type hints')",
@@ -349,7 +389,6 @@ class BinaryAnimator:
             "consoul.chat('Why is my Docker container eating all my RAM?')",
             "consoul.chat('Help me understand why this regex works')",
             "consoul.chat('I got a 403 error, what am I doing wrong?')",
-            "consoul.chat('How do I exit vim?' + ' ' * 42 + '# just kidding')",
             "consoul.chat('Explain this stack trace like I am 5')",
             "consoul.chat('Is this a memory leak or am I just bad at Python?')",
             # === LATE NIGHT CODING ===
@@ -380,8 +419,6 @@ class BinaryAnimator:
             # === PROCRASTINATION ===
             "consoul.chat('Settle this: tabs or spaces?')",
             "consoul.chat('Tell me a joke about JavaScript')",
-            "consoul.chat('Rate this variable name: data2_final_FINAL_v3')",
-            "consoul.chat('Is HTML a programming language?' + '  # bait')",
             "consoul.chat('Write a passive aggressive comment for legacy code')",
             # === HONEST QUESTIONS ===
             "consoul.chat('Should I learn Rust or Go?' + ' # or just stick with Python')",
@@ -392,9 +429,7 @@ class BinaryAnimator:
             # === QUICK WINS ===
             "consoul.chat('One-liner to reverse a dict in Python')",
             "consoul.chat('How to mock datetime.now() in pytest')",
-            "consoul.chat('Show me the import statement I always forget')",
             "consoul.chat('Quick chmod command for executable scripts')",
-            "consoul.chat('I need a UUID right now')",
             # === EXISTENTIAL DEVELOPER THOUGHTS ===
             "# Is this tech debt or just how we write code now?",
             "# Should I refactor this or just leave it for the next person?",
@@ -407,25 +442,45 @@ class BinaryAnimator:
             "# If it works, do not touch it",
             # === FRIDAY AFTERNOON VIBES ===
             "consoul.chat('Make this code less cringe before I push it')",
-            "consoul.chat('Is this a clever solution or am I being dumb?')",
-            "consoul.chat('Help me name this thing' + ' # hardest problem in CS')",
             "# Ship it and deal with the consequences Monday",
             # === REALITY CHECK ===
             "consoul.chat('Will this scale to 1000 users?' + ' # we have 12')",
-            "consoul.chat('Do I need Kubernetes for this?' + ' # probably not')",
             "consoul.chat('Should I use blockchain?' + ' # definitely not')",
-            "# Premature optimization is... well you know",
-            # === THE GOOD STUFF ===
+            # === MORE SNIPPETS... ===
             "consoul.chat('Help me architect this feature properly')",
             "consoul.chat('Code review: what did I miss?')",
             "consoul.chat('Suggest test cases I have not thought of')",
             "consoul.chat('How would you approach this problem?')",
             "# Pair programming with AI is actually pretty great",
+            "insights = consoul.review('Identify hidden complexity in this module')",
+            "consoul.chat('Summarize this class succinctly and propose improvements')",
+            "analysis = consoul.explain('Walk through the control flow step-by-step')",
+            "consoul.chat('Detect implicit assumptions and edge cases')",
+            "consoul.chat('Create regression tests for this bug fix')",
+            "consoul.chat('Document the contract for this function precisely')",
+            "architecture = consoul.evaluate('Assess modularity and coupling risks')",
+            "consoul.chat('Propose a cleaner boundary for this subsystem')",
+            "consoul.chat('Identify missing abstractions in this implementation')",
+            "design = consoul.refactor('Convert this pattern into a service object')",
+            "consoul.chat('Model this workflow using state-transition principles')",
+            "analysis = consoul.optimize('Propose micro-optimizations with benchmarks')",
+            "consoul.chat('Explain memory behavior of this coroutine sequence')",
+            "response = consoul.chat('Normalize error handling across these APIs')",
+            "consoul.chat('Draft a resilient retry strategy for external calls')",
+            "spec = consoul.generate('OpenAPI schema from these type hints')",
+            "docs = consoul.generate_docs('Explain design decisions in plain English')",
+            "consoul.chat('Summarize system behavior from mixed-modality inputs')",
+            "tokens = tokenizer.encode(source_code)",
+            "diff = patch.apply(original, changes)",
+            "vector = embedder.encode(document)",
         ]
 
         num_snippets = max(3, self.height // 4)
         for i in range(num_snippets):
             code = random.choice(code_samples)
+            # chance of typewriter effect
+            use_typewriter = random.random() < 0.45
+
             self._code_snippets.append(
                 CodeSnippet(
                     x=random.uniform(-len(code), self.width * 1.5),
@@ -433,6 +488,8 @@ class BinaryAnimator:
                     text=code,
                     speed=random.uniform(0.3, 1.0),
                     syntax_colors=self._get_syntax_colors(code),
+                    typewriter=use_typewriter,
+                    chars_revealed=0.0 if use_typewriter else len(code),
                 )
             )
 
@@ -528,23 +585,52 @@ class BinaryAnimator:
         frame_data: list[tuple[int, int, str, int, str | None]] = []
 
         for snippet in self._code_snippets:
+            # Update position
             snippet.x -= snippet.speed
 
+            # Update typewriter effect
+            if snippet.typewriter and snippet.chars_revealed < len(snippet.text):
+                # Reveal characters at a rate of 6-12 chars per second at 30fps
+                snippet.chars_revealed += random.uniform(0.2, 0.4)
+
+            # Reset if off screen
             if snippet.x + len(snippet.text) < 0:
                 snippet.x = self.width + random.uniform(10, 30)
                 snippet.speed = random.uniform(0.3, 1.0)
+                # Re-randomize typewriter effect on reset (70% chance)
+                snippet.typewriter = random.random() < 0.7
+                snippet.chars_revealed = (
+                    0.0 if snippet.typewriter else len(snippet.text)
+                )
 
+            # Determine how many characters to show
+            chars_to_show = (
+                int(snippet.chars_revealed) if snippet.typewriter else len(snippet.text)
+            )
+
+            # Draw snippet with syntax highlighting
             for i, char in enumerate(snippet.text):
+                # Skip characters not yet revealed by typewriter
+                if i >= chars_to_show:
+                    break
+
                 x = int(snippet.x + i)
                 y = snippet.y
 
                 if 0 <= x < self.width and 0 <= y < self.height:
+                    # Use syntax color for this character
                     color = (
                         snippet.syntax_colors[i]
                         if i < len(snippet.syntax_colors)
                         else "#FFFFFF"
                     )
-                    frame_data.append((x, y, char, 100, color))
+                    # Full intensity for syntax highlighted code
+                    # But dim the last character being typed for cursor effect
+                    intensity = (
+                        60 if snippet.typewriter and i == chars_to_show - 1 else 100
+                    )
+
+                    frame_data.append((x, y, char, intensity, color))
 
         return frame_data
 

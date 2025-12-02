@@ -13,6 +13,8 @@ from typing import Any, Literal
 from textual.reactive import reactive
 from textual.widgets import RichLog
 
+from consoul.tui.syntax_themes import THEME_SYNTAX_MAP
+
 __all__ = ["StreamingResponse"]
 
 logger = logging.getLogger(__name__)
@@ -136,7 +138,10 @@ class StreamingResponse(RichLog):
 
                 try:
                     # Render the full content as markdown for proper formatting
-                    md = Markdown(self.full_content)
+                    # Use theme-matched syntax highlighting
+                    current_theme = self.app.theme
+                    syntax_theme = THEME_SYNTAX_MAP.get(current_theme, "monokai")
+                    md = Markdown(self.full_content, code_theme=syntax_theme)
                     self.write(md)
                 except Exception as e:
                     # Fall back to plain text if markdown fails

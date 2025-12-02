@@ -21,6 +21,8 @@ from textual.widgets import Button, Collapsible, Markdown, Static
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
+from consoul.tui.syntax_themes import THEME_SYNTAX_MAP
+
 __all__ = ["MessageBubble"]
 
 
@@ -156,6 +158,15 @@ class MessageBubble(Container):
     def on_mount(self) -> None:
         """Initialize message bubble on mount."""
         self._update_styling()
+        # Set syntax highlighting for thinking content if present
+        if self.thinking_content:
+            try:
+                thinking_widget = self.query_one(".thinking-content", Markdown)
+                current_theme = self.app.theme
+                syntax_theme = THEME_SYNTAX_MAP.get(current_theme, "monokai")
+                thinking_widget.code_theme = syntax_theme  # type: ignore[attr-defined]
+            except Exception:
+                pass  # Widget not mounted yet
         # Wait a moment for child widgets to be available
         self.call_later(self._render_message)
 
@@ -195,6 +206,11 @@ class MessageBubble(Container):
             # Child widgets not available yet, retry later
             self.call_later(self._render_message)
             return
+
+        # Set syntax highlighting theme to match current Consoul theme
+        current_theme = self.app.theme
+        syntax_theme = THEME_SYNTAX_MAP.get(current_theme, "monokai")
+        content_widget.code_theme = syntax_theme  # type: ignore[attr-defined]
 
         # Update markdown widget with content
         # The Markdown widget handles parsing and rendering
@@ -250,7 +266,6 @@ class MessageBubble(Container):
         if self.time_to_first_token is not None:
             metrics_parts.append(f"{self.time_to_first_token:.2f}s to first token")
 
-
         # Add metrics with separator if we have any
         if metrics_parts:
             footer.append(" │ ", style="dim")
@@ -258,7 +273,11 @@ class MessageBubble(Container):
             # Get text-muted color from current theme, fallback to default
             # Need to use the design system color, not theme_variables (which may contain CSS formats)
             theme = self.app.get_theme(self.app.theme)
-            if theme and "text-muted" in theme.variables and not theme.variables["text-muted"].startswith("auto"):
+            if (
+                theme
+                and "text-muted" in theme.variables
+                and not theme.variables["text-muted"].startswith("auto")
+            ):
                 # Use custom text-muted if defined and not a CSS format
                 metrics_color = theme.variables["text-muted"]
             else:
@@ -266,7 +285,9 @@ class MessageBubble(Container):
                 metrics_color = "#9BA3AB" if (theme and theme.dark) else "#6C757D"
 
             logger = logging.getLogger(__name__)
-            logger.debug(f"Metrics text color: {metrics_color} (theme: {self.app.theme})")
+            logger.debug(
+                f"Metrics text color: {metrics_color} (theme: {self.app.theme})"
+            )
             footer.append(metrics_text, style=Style(bold=True, color=metrics_color))
 
         # Add estimated cost if available (for non-local models)

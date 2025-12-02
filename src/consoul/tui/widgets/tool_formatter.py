@@ -13,6 +13,8 @@ from rich.style import Style
 from rich.syntax import Syntax
 from rich.text import Text
 
+from consoul.tui.syntax_themes import THEME_SYNTAX_MAP
+
 __all__ = ["format_tool_header"]
 
 # Tool name and syntax colors (muted, theme-friendly)
@@ -69,7 +71,9 @@ def _format_generic_header(tool_name: str, arguments: dict[str, Any]) -> str:
     return f"{tool_name}({args_preview})"
 
 
-def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text | Columns:
+def format_tool_header(
+    tool_name: str, arguments: dict[str, Any], theme: str = "consoul-dark"
+) -> Text | Columns:
     """Format tool header with tool name and arguments.
 
     Shows arguments inline in the header for immediate visibility
@@ -79,6 +83,7 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text | Colu
     Args:
         tool_name: Name of the tool being executed
         arguments: Tool arguments dictionary
+        theme: Current Consoul theme name for syntax highlighting
 
     Returns:
         Rich renderable (Text or Columns for bash with syntax highlighting)
@@ -110,7 +115,8 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text | Colu
         # Append syntax-highlighted command directly to label to avoid spacing
         # Note: We can't combine Text and Syntax in one renderable, so we use Columns
         # but need to ensure no padding between elements
-        syntax = Syntax(truncated, "bash", theme="monokai", word_wrap=False)
+        syntax_theme = THEME_SYNTAX_MAP.get(theme, "monokai")
+        syntax = Syntax(truncated, "bash", theme=syntax_theme, word_wrap=False)
         closing = Text(")", style=Style(bold=True, color=TOOL_NAME_COLOR))
 
         # Return Columns with padding=0 to remove spacing
@@ -137,12 +143,12 @@ def format_tool_header(tool_name: str, arguments: dict[str, Any]) -> Text | Colu
 
         if path_key:
             path = arguments[path_key]
-            truncated_path = _truncate_arg(str(path), max_len=60)
+            truncated_path = _truncate_arg(str(path), max_len=120)
             header.append(
-                f'{display_name}("', style=Style(bold=True, color=TOOL_NAME_COLOR)
+                f"{display_name}(", style=Style(bold=True, color=TOOL_NAME_COLOR)
             )
             header.append(truncated_path, style=TOOL_ARG_COLOR)
-            header.append('")', style=Style(bold=True, color=TOOL_NAME_COLOR))
+            header.append(")", style=Style(bold=True, color=TOOL_NAME_COLOR))
         else:
             # Fallback to generic format
             header.append(

@@ -90,7 +90,27 @@ class BinaryCanvas(Static):
     def on_mount(self) -> None:
         """Initialize the animator when mounted."""
         size = self.size
-        self.animator = BinaryAnimator(size.width, size.height, self.animation_style)
+        # Use the color_scheme that was passed to __init__ as the theme for syntax highlighting
+        theme = (
+            self.color_scheme
+            if self.color_scheme
+            in [
+                "consoul-dark",
+                "consoul-light",
+                "consoul-oled",
+                "consoul-midnight",
+                "consoul-matrix",
+                "consoul-sunset",
+                "consoul-ocean",
+                "consoul-volcano",
+                "consoul-neon",
+                "consoul-forest",
+            ]
+            else "consoul-dark"
+        )
+        self.animator = BinaryAnimator(
+            size.width, size.height, self.animation_style, theme
+        )
         self.set_interval(1 / 30, self._update_animation)
 
     def _update_animation(self) -> None:
@@ -112,8 +132,26 @@ class BinaryCanvas(Static):
 
         size = self.size
         if size.width != self.animator.width or size.height != self.animator.height:
+            # Use the color_scheme that was passed to __init__ as the theme for syntax highlighting
+            theme = (
+                self.color_scheme
+                if self.color_scheme
+                in [
+                    "consoul-dark",
+                    "consoul-light",
+                    "consoul-oled",
+                    "consoul-midnight",
+                    "consoul-matrix",
+                    "consoul-sunset",
+                    "consoul-ocean",
+                    "consoul-volcano",
+                    "consoul-neon",
+                    "consoul-forest",
+                ]
+                else "consoul-dark"
+            )
             self.animator = BinaryAnimator(
-                size.width, size.height, self.animation_style
+                size.width, size.height, self.animation_style, theme
             )
 
         # Create a grid for the characters
@@ -236,6 +274,26 @@ class LoadingScreen(Widget):
         if self.show_progress:
             yield Static("", classes="progress-bar", id="progress-bar")
 
+    def on_mount(self) -> None:
+        """Set background color based on theme."""
+        # Map theme names to background colors
+        theme_backgrounds = {
+            "consoul-dark": "#2A2A2A",
+            "consoul-light": "#FFFFFF",
+            "consoul-oled": "#000000",
+            "consoul-midnight": "#0B1420",
+            "consoul-matrix": "#000000",
+            "consoul-sunset": "#2D1B2E",
+            "consoul-ocean": "#0A1929",
+            "consoul-volcano": "#1A1A1D",
+            "consoul-neon": "#000000",
+            "consoul-forest": "#0D1F1A",
+        }
+
+        # Set background color based on color_scheme
+        if self.color_scheme in theme_backgrounds:
+            self.styles.background = theme_backgrounds[self.color_scheme]
+
     def update_message(self, message: str) -> None:
         """Update the loading message.
 
@@ -305,24 +363,49 @@ class ConsoulLoadingScreen(Screen[None]):
         self,
         animation_style: AnimationStyle = AnimationStyle.SOUND_WAVE,
         show_progress: bool = True,
+        theme: str | None = None,
     ) -> None:
         """Initialize the Consoul loading screen.
 
         Args:
             animation_style: Animation style to display
             show_progress: Whether to show progress bar
+            theme: Theme name to use for color scheme (optional)
         """
         super().__init__()
         self.animation_style = animation_style
         self.show_progress = show_progress
+        self.theme_name = theme
         self.loading_widget: LoadingScreen | None = None
 
     def compose(self) -> ComposeResult:
         """Compose the loading screen."""
+        # Use provided theme, or try to get from app, or fallback to blue
+        theme = self.theme_name or (
+            self.app.theme if hasattr(self.app, "theme") else "blue"
+        )
+        # Use theme name as color scheme if it's a valid Consoul theme
+        color_scheme = (
+            theme
+            if theme
+            in [
+                "consoul-dark",
+                "consoul-light",
+                "consoul-oled",
+                "consoul-midnight",
+                "consoul-matrix",
+                "consoul-sunset",
+                "consoul-ocean",
+                "consoul-volcano",
+                "consoul-neon",
+                "consoul-forest",
+            ]
+            else "blue"
+        )
         self.loading_widget = LoadingScreen(
             message="Initializing Consoul...",
             style=self.animation_style,
-            color_scheme="blue",
+            color_scheme=color_scheme,  # type: ignore
             show_progress=self.show_progress,
         )
         yield self.loading_widget
