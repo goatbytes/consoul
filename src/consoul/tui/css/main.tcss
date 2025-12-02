@@ -632,6 +632,21 @@ LoadingIndicator {
     color: $primary;
 }
 
+/* Loading indicator in ChatView */
+ChatView LoadingIndicator {
+    width: 100%;
+    height: 100%;
+    align: center middle;
+    color: $accent;
+}
+
+/* Hide message bubbles while loading */
+ChatView.loading > MessageBubble,
+ChatView.loading > Static,
+ChatView.loading > .system-message {
+    display: none;
+}
+
 ProgressBar {
     background: $surface-darken-1;
 }

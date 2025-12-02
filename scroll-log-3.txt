@@ -1,0 +1,117 @@
+2025-12-01 16:51:20,425 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./scroll-log-3.txt
+2025-12-01 16:51:20,839 - consoul.tui.app - INFO - [PERF] Step 1 (Load config): 115.2ms
+2025-12-01 16:51:21,613 - consoul.tui.app - INFO - [PERF] Step 2 (Initialize AI model): 773.3ms
+2025-12-01 16:51:21,614 - consoul.tui.app - INFO - [PERF-CONV] Get conversation config: 0.0ms
+2025-12-01 16:51:21,614 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.1ms
+2025-12-01 16:51:21,672 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 58.4ms
+2025-12-01 16:51:21,680 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 1.4ms
+2025-12-01 16:51:21,680 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 66.3ms
+2025-12-01 16:51:21,680 - consoul.tui.app - INFO - [PERF-CONV] ConversationHistory.__init__: 66.3ms
+2025-12-01 16:51:21,680 - consoul.tui.app - INFO - [PERF] Step 3 (Create conversation): 67.4ms
+2025-12-01 16:51:21,680 - consoul.tui.app - INFO - Initialized AI model: gpt-oss:20b, session: None
+2025-12-01 16:51:21,683 - consoul.tui.app - INFO - [PERF] Step 4 (Load tools): 3.4ms
+2025-12-01 16:51:21,700 - consoul.tui.app - INFO - [PERF] Step 5 (Bind tools): 16.5ms
+2025-12-01 16:51:21,700 - consoul.tui.app - INFO - [PERF] Cleanup old conversations: 0.1ms
+2025-12-01 16:51:21,745 - consoul.tui.app - INFO - [PERF] Initialize title generator: 44.3ms
+2025-12-01 16:51:21,745 - consoul.tui.app - INFO - [PERF] Applied theme: consoul-volcano
+2025-12-01 16:51:21,995 - consoul.tui.app - INFO - [PERF] Apply theme: 250.2ms
+2025-12-01 16:51:22,498 - consoul.tui.app - INFO - [POST-INIT] Post-initialization setup complete
+2025-12-01 16:51:43,008 - consoul.tui.widgets.chat_view - DEBUG - Showing loading indicator
+2025-12-01 16:51:43,025 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,037 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,041 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,041 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 16:51:43,044 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,051 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,053 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,054 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,054 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 16:51:43,055 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,070 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,071 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,073 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 16:51:43,076 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,091 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,093 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,094 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,095 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 16:51:43,096 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,143 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,144 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,151 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 16:51:43,154 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,185 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,187 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,187 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,189 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 16:51:43,189 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,285 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,286 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,307 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 16:51:43,308 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,369 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,371 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,371 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,375 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 16:51:43,375 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,483 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,484 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,523 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 16:51:43,525 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,630 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,631 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,632 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,636 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 16:51:43,636 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,749 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,750 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,801 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 16:51:43,803 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:43,909 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,910 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,911 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:43,914 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 16:51:43,915 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:44,061 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,062 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,112 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 16:51:44,115 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:44,207 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,209 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,210 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,213 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 16:51:44,214 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:44,374 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,375 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,422 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 16:51:44,422 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:44,529 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,530 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,534 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 16:51:44,537 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:44,633 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,635 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,636 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,677 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 16:51:44,677 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: user, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:44,830 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,831 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:44,880 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: user, scroll_y: 0.0
+2025-12-01 16:51:44,882 - consoul.tui.widgets.chat_view - DEBUG - [SCROLL] Adding message - role: assistant, auto_scroll: True, current_scroll_y: 0.0, max_scroll_y: 0
+2025-12-01 16:51:44,999 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:45,001 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:45,002 - consoul.tui.widgets.message_bubble - DEBUG - Metrics text color: #B0B0B5 (theme: consoul-volcano)
+2025-12-01 16:51:45,004 - consoul.tui.widgets.chat_view - INFO - [SCROLL] Scheduling scroll_end after message add - role: assistant, scroll_y: 0.0
+2025-12-01 16:51:45,005 - consoul.tui.app - INFO - [CONV_LOAD] Checking conditions: has_conversation=True, has_config=True, bool(conversation)=False, bool(config)=True
+2025-12-01 16:51:45,005 - consoul.tui.app - WARNING - [CONV_LOAD] self.conversation is falsy!
+2025-12-01 16:51:45,005 - consoul.tui.app - INFO - [CONV_LOAD] Creating ConversationHistory with session_id=20d08d0e-ddb5-43ec-ae0a-8f9a8008f513
+2025-12-01 16:51:45,005 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.0ms
+2025-12-01 16:51:45,005 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 0.0ms
+2025-12-01 16:51:45,005 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 0.4ms
+2025-12-01 16:51:45,005 - consoul.ai.history - INFO - Loaded 19 messages from session 20d08d0e-ddb5-43ec-ae0a-8f9a8008f513
+2025-12-01 16:51:45,005 - consoul.ai.history - DEBUG - [PERF-HIST] Load from DB: 0.4ms
+2025-12-01 16:51:45,005 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 0.8ms
+2025-12-01 16:51:45,006 - consoul.tui.app - INFO - [CONV_LOAD] Created ConversationHistory: session_id=20d08d0e-ddb5-43ec-ae0a-8f9a8008f513, _conversation_created=True, message_count=19
+2025-12-01 16:51:45,006 - consoul.tui.app - INFO - [SCROLL] Reached notify/scroll section
+2025-12-01 16:51:45,006 - consoul.tui.app - INFO - [SCROLL] Notified user
+2025-12-01 16:51:45,006 - consoul.tui.app - INFO - [SCROLL] Hidden loading indicator

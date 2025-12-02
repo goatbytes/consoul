@@ -41,9 +41,11 @@ class ChatView(VerticalScroll):
         super().__init__()
         self.can_focus = True
         self._typing_indicator: Widget | None = None
+        self._loading_indicator: Widget | None = None
         self._user_scrolled_away = (
             False  # Track if user manually scrolled away from bottom
         )
+        self._is_loading = False  # Track if we're loading a conversation
 
     def on_mount(self) -> None:
         """Initialize chat view on mount."""
@@ -64,10 +66,9 @@ class ChatView(VerticalScroll):
             else "unknown"
         )
         logger.debug(
-            f"[SCROLL] Adding message - role: {role}, "
+            f"Adding message - role: {role}, "
             f"auto_scroll: {self.auto_scroll}, "
-            f"current_scroll_y: {self.scroll_y}, "
-            f"max_scroll_y: {self.max_scroll_y}"
+            f"is_loading: {self._is_loading}"
         )
 
         await self.mount(message_widget)
@@ -76,20 +77,15 @@ class ChatView(VerticalScroll):
         if hasattr(message_widget, "role") and role in ("user", "assistant"):
             self.message_count += 1
 
+        # Skip auto-scroll if we're loading a conversation (will scroll after all messages loaded)
+        if self._is_loading:
+            return
+
         # Only auto-scroll if enabled AND user hasn't manually scrolled away
         if self.auto_scroll and not self._user_scrolled_away:
             # Defer scroll until after layout pass to avoid race condition
             # Widget height isn't finalized until after next layout
-            logger.info(
-                f"[SCROLL] Scheduling scroll_end after message add - "
-                f"role: {role}, scroll_y: {self.scroll_y}"
-            )
             self.call_after_refresh(self.scroll_end, animate=True)
-        elif self._user_scrolled_away:
-            logger.debug(
-                f"[SCROLL] Skipping auto-scroll - user scrolled away "
-                f"(role: {role}, scroll_y: {self.scroll_y})"
-            )
 
     async def clear_messages(self) -> None:
         """Remove all messages from the chat view.
@@ -148,6 +144,54 @@ class ChatView(VerticalScroll):
         if self._typing_indicator is not None:
             await self._typing_indicator.remove()
             self._typing_indicator = None
+
+    async def show_loading_indicator(self) -> None:
+        """Show loading indicator while conversation is being loaded.
+
+        Displays centered loading spinner with message.
+        Call hide_loading_indicator() when loading completes.
+        """
+        from textual.widgets import LoadingIndicator
+
+        # Only show if not already showing
+        if self._loading_indicator is None:
+            logger.debug("Showing loading indicator")
+            self._is_loading = True
+            # Add loading class to hide existing messages
+            self.add_class("loading")
+            self._loading_indicator = LoadingIndicator()
+            await self.mount(self._loading_indicator)
+
+    async def hide_loading_indicator(self) -> None:
+        """Hide loading indicator when conversation finishes loading.
+
+        Removes the loading indicator widget if currently displayed.
+        Safe to call even if indicator is not showing.
+        """
+        if self._loading_indicator is not None:
+            self._is_loading = False
+            await self._loading_indicator.remove()
+            self._loading_indicator = None
+            # Remove loading class to show messages
+            self.remove_class("loading")
+
+    def scroll_to_bottom_after_load(self) -> None:
+        """Scroll to bottom after loading conversation messages.
+
+        Waits for layout to complete (max_scroll_y > 0) before scrolling.
+        Uses polling with set_timer to retry until layout is ready.
+        """
+
+        def _attempt_scroll() -> None:
+            if self.max_scroll_y > 0:
+                # Layout complete, scroll to bottom
+                self.scroll_end(animate=False, force=True)
+            else:
+                # Layout not ready, try again
+                self.set_timer(0.1, _attempt_scroll)
+
+        # Start polling after a short delay
+        self.set_timer(0.1, _attempt_scroll)
 
     def _is_at_bottom(self) -> bool:
         """Check if the scroll position is at or near the bottom.

@@ -4170,8 +4170,14 @@ class ConsoulApp(App[None]):
         conversation_id = event.conversation_id
         self.log.info(f"Loading conversation: {conversation_id}")
 
-        # Clear current chat view
+        # Clear current chat view first
         await self.chat_view.clear_messages()
+
+        # Show loading indicator
+        await self.chat_view.show_loading_indicator()
+
+        # Give the loading indicator time to render before we start loading messages
+        await asyncio.sleep(0.1)
 
         # Load conversation from database with full metadata for UI reconstruction
         if self.consoul_config:
@@ -4373,14 +4379,30 @@ class ConsoulApp(App[None]):
                             exc_info=True,
                         )
 
-                self.notify(
-                    f"Loaded conversation {conversation_id[:8]}...",
-                    severity="information",
-                )
+                # Notify user and scroll to bottom
+                try:
+                    self.notify(
+                        f"Loaded conversation {conversation_id[:8]}...",
+                        severity="information",
+                    )
+
+                    # Hide loading indicator
+                    await self.chat_view.hide_loading_indicator()
+
+                    # Trigger scroll after layout completes
+                    self.chat_view.scroll_to_bottom_after_load()
+                except Exception as scroll_err:
+                    logger.error(
+                        f"Error loading conversation scroll: {scroll_err}",
+                        exc_info=True,
+                    )
+                    raise
 
             except Exception as e:
                 self.log.error(f"Failed to load conversation: {e}")
                 self.notify(f"Failed to load conversation: {e}", severity="error")
+                # Hide loading indicator on error
+                await self.chat_view.hide_loading_indicator()
 
     async def on_conversation_list_conversation_deleted(
         self,
