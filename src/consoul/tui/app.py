@@ -4125,6 +4125,7 @@ class ConsoulApp(App[None]):
             DEFAULT_CSS = """
             ScreensaverScreen {
                 layout: vertical;
+                height: 100vh;
             }
 
             ScreensaverScreen > LoadingScreen {
