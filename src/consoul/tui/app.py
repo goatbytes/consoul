@@ -4105,7 +4105,9 @@ class ConsoulApp(App[None]):
         # Check if a screensaver is currently showing
         # Screens are on top of the screen stack
         if len(self.screen_stack) > 1:
-            # There's a screen showing - dismiss it
+            # There's a screen showing - restore docked widgets and dismiss it
+            for widget in self.query("Footer, ContextualTopBar"):
+                widget.display = True
             self.pop_screen()
             return
 
@@ -4126,17 +4128,31 @@ class ConsoulApp(App[None]):
             ScreensaverScreen {
                 layout: vertical;
                 height: 100vh;
+                padding: 0;
+                margin: 0;
             }
 
             ScreensaverScreen > LoadingScreen {
                 width: 100%;
                 height: 100%;
+                padding: 0;
+                margin: 0;
+            }
+
+            ScreensaverScreen > LoadingScreen > Center {
+                display: none;
             }
             """
 
             def __init__(self, animation_style: AnimationStyle) -> None:
                 super().__init__()
                 self.animation_style = animation_style
+
+            def on_mount(self) -> None:
+                """Hide docked widgets when screen mounts."""
+                # Hide docked widgets (Footer, ContextualTopBar) to ensure screensaver covers everything
+                for widget in self.app.query("Footer, ContextualTopBar"):
+                    widget.display = False
 
             def compose(self) -> ComposeResult:
                 yield LoadingScreen(
@@ -4147,7 +4163,10 @@ class ConsoulApp(App[None]):
                 )
 
             def on_key(self, event: events.Key) -> None:
-                """Dismiss on any key press."""
+                """Dismiss on any key press and restore docked widgets."""
+                # Restore docked widgets visibility
+                for widget in self.app.query("Footer, ContextualTopBar"):
+                    widget.display = True
                 self.app.pop_screen()
 
         await self.push_screen(ScreensaverScreen(style))
