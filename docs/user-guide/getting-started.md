@@ -71,7 +71,7 @@ consoul chat "Your question here"
 Integrate with Unix pipelines:
 
 ```bash
-command | consoul chat --stdin "Analyze this output"
+cat README.md | consoul ask --stdin "summarize"
 ```
 
 ## Working with Files

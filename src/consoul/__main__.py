@@ -142,9 +142,29 @@ def cli(
     help="Enable multi-line input mode (use Alt+Enter to submit)",
 )
 @click.option(
+    "--file",
+    "files",
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=False, readable=True),
+    help="Include text file content in first message (can be used multiple times)",
+)
+@click.option(
+    "--glob",
+    "globs",
+    multiple=True,
+    type=str,
+    help="Include files matching glob pattern in first message (e.g., '*.py', 'src/**/*.ts')",
+)
+@click.option(
     "--stdin",
     is_flag=True,
     help="Read initial message from stdin (for piping command output)",
+)
+@click.option(
+    "--system",
+    "system_prompt",
+    type=str,
+    help="Override system prompt for this session",
 )
 @click.pass_context
 def chat(
@@ -154,7 +174,10 @@ def chat(
     no_markdown: bool,
     tools: bool | None,
     multiline: bool,
+    files: tuple[str, ...],
+    globs: tuple[str, ...],
     stdin: bool,
+    system_prompt: str | None,
 ) -> None:
     """Start an interactive chat session with streaming responses.
 
@@ -309,6 +332,7 @@ def chat(
                 config=config,
                 tool_registry=tool_registry,
                 approval_provider=approval_provider,
+                system_prompt_override=system_prompt,
             )
     except Exception as e:
         console.print(f"[red]Error initializing chat session: {e}[/red]")
@@ -333,6 +357,56 @@ def chat(
         except ValueError as e:
             console.print(f"[yellow]Warning: Could not read stdin: {e}[/yellow]")
 
+    # Process file attachments (load once at start for first message)
+    initial_file_context: str | None = None
+    if files or globs:
+        from consoul.cli.file_reader import (
+            expand_glob_pattern,
+            format_files_context,
+        )
+
+        try:
+            # Collect all file paths
+            all_files: list[Path] = []
+
+            # Add explicitly specified files
+            for file_path in files:
+                all_files.append(Path(file_path).resolve())
+
+            # Expand glob patterns
+            for glob_pattern in globs:
+                expanded = expand_glob_pattern(glob_pattern, max_files=50)
+                all_files.extend(expanded)
+
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_files = []
+            for f in all_files:
+                if f not in seen:
+                    seen.add(f)
+                    unique_files.append(f)
+
+            if not unique_files:
+                console.print(
+                    "[yellow]Warning: No files found matching patterns[/yellow]"
+                )
+            else:
+                # Format file contents
+                initial_file_context = format_files_context(
+                    unique_files, max_total_size=500_000
+                )
+                console.print(
+                    f"[dim]Loaded {len(unique_files)} file(s) for context[/dim]"
+                )
+                logger.info(f"Loaded {len(unique_files)} file(s)")
+
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            ctx.exit(1)
+        except Exception as e:
+            console.print(f"[red]Error reading files: {e}[/red]")
+            ctx.exit(1)
+
     # Main chat loop
     first_iteration = True
     with session:
@@ -340,13 +414,25 @@ def chat(
             try:
                 user_input: str | None
 
-                # If we have stdin content on first iteration, use it
-                if first_iteration and initial_stdin:
-                    from consoul.cli.stdin_reader import format_stdin_message
+                # If we have stdin or file content on first iteration, use it
+                if first_iteration and (initial_stdin or initial_file_context):
+                    prompt_parts = []
 
-                    console.print(
-                        "[dim]Stdin content loaded. Enter your question:[/dim]"
-                    )
+                    # Build the context
+                    if initial_file_context:
+                        prompt_parts.append(initial_file_context)
+
+                    if initial_stdin:
+                        from consoul.cli.stdin_reader import format_stdin_message
+
+                        # If we already have file context, just append stdin, don't wrap it
+                        if initial_file_context:
+                            prompt_parts.append(f"<stdin>\n{initial_stdin}\n</stdin>")
+                        else:
+                            # No file context, will use format_stdin_message below
+                            pass
+
+                    console.print("[dim]Context loaded. Enter your question:[/dim]")
                     question = get_user_input(
                         prompt_text="You: ",
                         multiline=multiline,
@@ -360,7 +446,21 @@ def chat(
                     if not question.strip():
                         question = "Analyze this content"
 
-                    user_input = format_stdin_message(initial_stdin, question)
+                    # Build final message
+                    if initial_file_context and initial_stdin:
+                        # Both contexts: file + stdin + question
+                        user_input = "\n\n".join(prompt_parts) + f"\n\n{question}"
+                    elif initial_file_context:
+                        # Only file context
+                        user_input = f"{initial_file_context}\n\n{question}"
+                    else:
+                        # Only stdin context
+                        from consoul.cli.stdin_reader import format_stdin_message
+
+                        # Type assertion: initial_stdin is guaranteed to be str here
+                        assert initial_stdin is not None
+                        user_input = format_stdin_message(initial_stdin, question)
+
                     first_iteration = False
                 else:
                     # Normal input flow
@@ -455,6 +555,20 @@ def chat(
     help="Attach files (images for vision-capable models)",
 )
 @click.option(
+    "--file",
+    "files",
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=False, readable=True),
+    help="Include text file content in message (can be used multiple times)",
+)
+@click.option(
+    "--glob",
+    "globs",
+    multiple=True,
+    type=str,
+    help="Include files matching glob pattern (e.g., '*.py', 'src/**/*.ts')",
+)
+@click.option(
     "--tools/--no-tools",
     default=None,
     help="Enable/disable tool execution (overrides config)",
@@ -490,6 +604,12 @@ def chat(
     is_flag=True,
     help="Read input from stdin (for piping command output)",
 )
+@click.option(
+    "--system",
+    "system_prompt",
+    type=str,
+    help="Override system prompt for this query",
+)
 @click.pass_context
 def ask(
     ctx: click.Context,
@@ -497,6 +617,8 @@ def ask(
     message_opt: str | None,
     model: str | None,
     attach: tuple[str, ...],
+    files: tuple[str, ...],
+    globs: tuple[str, ...],
     tools: bool | None,
     no_markdown: bool,
     stream: bool,
@@ -504,6 +626,7 @@ def ask(
     show_cost: bool,
     output: str | None,
     stdin: bool,
+    system_prompt: str | None,
 ) -> None:
     """Ask a single question and get a response (non-interactive).
 
@@ -593,6 +716,55 @@ def ask(
 
         except ValueError as e:
             console.print(f"[red]Error: {e}[/red]")
+            ctx.exit(1)
+
+    # Process file attachments
+    if files or globs:
+        from consoul.cli.file_reader import (
+            expand_glob_pattern,
+            format_files_context,
+        )
+
+        try:
+            # Collect all file paths
+            all_files: list[Path] = []
+
+            # Add explicitly specified files
+            for file_path in files:
+                all_files.append(Path(file_path).resolve())
+
+            # Expand glob patterns
+            for glob_pattern in globs:
+                expanded = expand_glob_pattern(glob_pattern, max_files=50)
+                all_files.extend(expanded)
+
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_files = []
+            for f in all_files:
+                if f not in seen:
+                    seen.add(f)
+                    unique_files.append(f)
+
+            if not unique_files:
+                console.print(
+                    "[yellow]Warning: No files found matching patterns[/yellow]"
+                )
+            else:
+                # Format file contents
+                file_context = format_files_context(
+                    unique_files, max_total_size=500_000
+                )
+                logger.info(f"Loaded {len(unique_files)} file(s)")
+
+                # Prepend file context to message
+                msg = f"{file_context}\n\n{msg}"
+
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            ctx.exit(1)
+        except Exception as e:
+            console.print(f"[red]Error reading files: {e}[/red]")
             ctx.exit(1)
 
     # Override model if specified
@@ -719,6 +891,7 @@ def ask(
                 config=config,
                 tool_registry=tool_registry,
                 approval_provider=approval_provider,
+                system_prompt_override=system_prompt,
             )
 
         # Handle attachments by appending to message

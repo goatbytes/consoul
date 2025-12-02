@@ -56,6 +56,7 @@ class ChatSession:
         tool_registry: ToolRegistry | None = None,
         approval_provider: CliToolApprovalProvider | None = None,
         max_tool_iterations: int = 5,
+        system_prompt_override: str | None = None,
     ) -> None:
         """Initialize chat session from Consoul configuration.
 
@@ -66,6 +67,7 @@ class ChatSession:
                 If tool_registry is provided but approval_provider is not,
                 creates a default CliToolApprovalProvider.
             max_tool_iterations: Maximum number of tool call iterations per message (default: 5)
+            system_prompt_override: Optional system prompt to prepend to profile's base prompt
 
         Raises:
             MissingAPIKeyError: If required API key is not configured
@@ -78,6 +80,7 @@ class ChatSession:
         self._original_sigint_handler = None
         self._should_exit = False  # Flag for /exit command
         self.max_tool_iterations = max_tool_iterations
+        self.system_prompt_override = system_prompt_override
 
         # Tool execution support
         self.tool_registry = tool_registry
@@ -117,7 +120,7 @@ class ChatSession:
             model=self.model,
             persist=persist,
         )
-        if profile.system_prompt:
+        if profile.system_prompt or self.system_prompt_override:
             # Build complete system prompt with environment context
             system_prompt = self._build_system_prompt(profile, config)
             self.history.add_system_message(system_prompt)
@@ -136,8 +139,18 @@ class ChatSession:
         from consoul.ai.environment import get_environment_context
         from consoul.ai.prompt_builder import build_system_prompt
 
-        # Start with base system prompt
-        base_prompt = profile.system_prompt
+        # Start with base system prompt from profile
+        base_prompt = profile.system_prompt or ""
+
+        # Prepend system prompt override if provided
+        if self.system_prompt_override:
+            if base_prompt:
+                base_prompt = f"{self.system_prompt_override}\n\n{base_prompt}"
+            else:
+                base_prompt = self.system_prompt_override
+            logger.debug(
+                f"Prepended system prompt override ({len(self.system_prompt_override)} chars)"
+            )
 
         # Inject environment context if enabled
         include_system = (

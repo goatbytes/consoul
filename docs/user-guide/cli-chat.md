@@ -75,6 +75,100 @@ consoul ask "Long response" --no-stream
 
 # Disable markdown rendering
 consoul ask "Plain text please" --no-markdown
+
+# Custom system prompt
+consoul ask --system "You are a Python expert" "Explain decorators"
+```
+
+### Custom System Prompts with --system
+
+The `--system` flag allows you to customize the AI's role and expertise for a specific query or session without modifying your profile configuration.
+
+**How it works:**
+- Your custom prompt is **prepended** to the profile's base system prompt
+- Environment context injection (if enabled) is preserved
+- Tool documentation is automatically appended
+- Applies for the duration of the `ask` query or entire `chat` session
+
+**Basic Usage:**
+```bash
+# One-off query with custom role
+consoul ask --system "You are a security expert" "Review this authentication code" --file auth.py
+
+# Interactive session with custom expertise
+consoul chat --system "You are a Python performance expert"
+```
+
+**Common Use Cases:**
+```bash
+# Code review with specific focus
+consoul ask --system "You are a senior software engineer reviewing code for security vulnerabilities" \
+  --file app.py "Review this code"
+
+# Learning and education
+consoul chat --system "You are a patient teacher explaining concepts to a beginner"
+
+# Domain expertise
+consoul ask --system "You are an expert in distributed systems and microservices" \
+  "How should I design this API?"
+
+# Specific constraints
+consoul ask --system "You are a Python expert. Focus on code quality and best practices." \
+  --file legacy.py "Suggest refactoring"
+```
+
+**Multi-line System Prompts:**
+```bash
+# Using quotes for multi-line
+consoul ask --system "You are an expert programmer.
+Focus on code quality and best practices.
+Prioritize security and performance." "Review this function"
+
+# Using heredoc
+consoul ask --system "$(cat <<'EOF'
+You are a code reviewer with expertise in:
+- Security best practices
+- Performance optimization
+- Clean code principles
+EOF
+)" --file app.py "Review this code"
+```
+
+**Combining with Other Flags:**
+```bash
+# With file context
+consoul ask --system "You are a security auditor" --file app.py --tools "Find vulnerabilities"
+
+# With stdin
+git diff | consoul ask --stdin --system "You are a code reviewer" "Review this diff"
+
+# With model override
+consoul ask --system "You are a Python expert" --model gpt-4o "Explain this pattern"
+```
+
+**System Prompt Construction:**
+
+When you use `--system`, the final system prompt is built in this order:
+
+1. **Your custom prompt** (from --system flag)
+2. **Profile base prompt** (from your active profile configuration)
+3. **Environment context** (if enabled: OS, shell, git status, etc.)
+4. **Tool documentation** (automatically generated list of available tools)
+
+Example:
+```bash
+consoul ask --system "You are a security expert"
+```
+
+Results in:
+```
+You are a security expert
+
+<profile base system prompt>
+
+<environment context if enabled>
+
+<available tools documentation>
 ```
 
 ### Pipeline Integration with --stdin
@@ -141,6 +235,95 @@ consoul ask --stdin "Fix these issues" <<EOF
 Error 1: Connection timeout
 Error 2: Memory leak
 EOF
+```
+
+### File Context with --file and --glob
+
+Provide code and configuration files directly as context for AI analysis:
+
+**Single File:**
+```bash
+consoul ask --file app.py "Review this code for bugs"
+consoul ask --file config.yaml "Explain this configuration"
+```
+
+**Multiple Files:**
+```bash
+consoul ask \
+  --file src/app.py \
+  --file src/utils.py \
+  --file tests/test_app.py \
+  "How do these components work together?"
+```
+
+**Glob Patterns:**
+```bash
+# All Python files in current directory
+consoul ask --glob "*.py" "What does this project do?"
+
+# Recursive search
+consoul ask --glob "src/**/*.ts" "Analyze the TypeScript codebase"
+
+# Multiple patterns
+consoul ask --glob "*.py" --glob "*.yaml" "Review code and configuration"
+
+# Specific directory pattern
+consoul ask --glob "tests/**/*.py" "Summarize test coverage"
+```
+
+**Combining File and Glob:**
+```bash
+# Mix explicit files and patterns
+consoul ask --file README.md --glob "src/*.py" "Explain this project"
+
+# Multiple glob patterns
+consoul ask --glob "*.py" --glob "*.js" --glob "*.ts" "Compare implementations"
+```
+
+**With Other Flags:**
+```bash
+# Files + tools
+consoul ask --file app.py --tools "Fix the TODO comments in this file"
+
+# Files + stdin
+git diff | consoul ask --stdin "Review diff" --file README.md
+
+# Files + model override
+consoul ask --file auth.py --model gpt-4o "Security audit this code"
+
+# Save analysis
+consoul ask --glob "src/**/*.py" "Generate report" --output analysis.md
+```
+
+**Interactive Chat with Files:**
+```bash
+# Load files as context for interactive session
+consoul chat --file app.py --file utils.py --glob "tests/*.py"
+# Files are loaded once, then you can ask multiple questions interactively
+```
+
+**Limits:**
+- Single file: 100KB max
+- Total context: 500KB max across all files
+- Glob expansion: 50 files max per pattern
+- Binary files are rejected (except PDFs with vision models)
+
+**Use Cases:**
+```bash
+# Code review
+consoul ask --glob "src/**/*.py" "Code review with focus on error handling"
+
+# Refactoring suggestions
+consoul ask --file legacy.py "Suggest refactoring to modern Python"
+
+# Documentation generation
+consoul ask --glob "*.py" "Generate API documentation" --output API.md
+
+# Security audit
+consoul ask --glob "**/*auth*.py" "Security review authentication code"
+
+# Cross-file analysis
+consoul ask --file frontend.ts --file backend.py "Check API contract consistency"
 ```
 
 ### Use Cases

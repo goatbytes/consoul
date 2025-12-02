@@ -246,6 +246,7 @@ class BinaryAnimator:
     def _initialize_code_stream(self) -> None:
         """Initialize code snippets for horizontal scrolling effect."""
         # Massive pool of inspiring, branded code samples showcasing real AI capabilities
+
         code_samples = [
             # === CONSOUL SDK - Simple & Powerful ===
             "from consoul import Consoul",
@@ -371,6 +372,7 @@ class BinaryAnimator:
             "# AI-powered development, human-centered design",
             "# Consoul: Making AI accessible, powerful, beautiful",
             "# From zero to AI in 3 lines of Python",
+            "# Aim to make more than you take",
             # === PROFESSIONAL PATTERNS ===
             "logger.info(f'AI response: {response.content[:100]}...')",
             "metrics.record('ai_tokens_used', response.tokens)",
@@ -474,7 +476,6 @@ class BinaryAnimator:
             "diff = patch.apply(original, changes)",
             "vector = embedder.encode(document)",
         ]
-
         num_snippets = max(3, self.height // 4)
         for i in range(num_snippets):
             code = random.choice(code_samples)
