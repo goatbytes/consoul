@@ -74,12 +74,12 @@ CONSOUL_LIGHT = Theme(
 # Consoul OLED Theme - True black for OLED displays with vibrant accents
 CONSOUL_OLED = Theme(
     name="consoul-oled",
-    primary="#00B4FF",  # Bright Sky Blue - vibrant on OLED
-    secondary="#FF8C00",  # Bright Orange - secondary actions
+    primary="#1d1d1d",  # Bright Sky Blue - vibrant on OLED
+    secondary="#4A6C88",  # Bright Orange - secondary actions
     warning="#FFD700",  # Gold - warnings
     error="#FF4444",  # Bright Red - errors
     success="#00FF88",  # Bright Green - success states
-    accent="#00B4FF",  # Bright Sky Blue - highlights
+    accent="#704C38",  # Bright Sky Blue - highlights
     foreground="#FFFFFF",  # Pure White - maximum contrast
     background="#000000",  # True Black - OLED power saving
     surface="#0A0A0A",  # Near black - subtle elevation

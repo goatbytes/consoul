@@ -294,7 +294,7 @@ class InputArea(Container):
 
         # Get config
         try:
-            config = self.app.consoul_config.tools
+            config = self.app.consoul_config.tools  # type: ignore[attr-defined]
         except AttributeError:
             # Fallback if config not available
             return

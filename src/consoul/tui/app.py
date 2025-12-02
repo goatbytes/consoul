@@ -208,8 +208,8 @@ class ConsoulApp(App[None]):
         self.chat_model: BaseChatModel | None = None
         self.conversation: ConversationHistory | None = None
         self.active_profile: ProfileConfig | None = None
-        self.current_profile: str | None = None
-        self.current_model: str | None = None
+        self.current_profile: str | None = None  # type: ignore[assignment]
+        self.current_model: str | None = None  # type: ignore[assignment]
         self.tool_registry: ToolRegistry | None = None
         self.title_generator: TitleGenerator | None = None
         self.conversation_id: str | None = None
@@ -724,7 +724,7 @@ class ConsoulApp(App[None]):
             # Step 1: Load config (10%)
             step_start = time.time()
             if loading_screen:
-                loading_screen.update_progress("Loading configuration...", 10)
+                loading_screen.update_progress("Loading configuration...", 10)  # type: ignore[attr-defined]
                 await asyncio.sleep(0.1)  # Ensure loading screen is visible
 
             consoul_config: ConsoulConfig | None
@@ -741,9 +741,9 @@ class ConsoulApp(App[None]):
             if not consoul_config:
                 logger.warning("No configuration available, skipping AI initialization")
                 if loading_screen:
-                    loading_screen.update_progress("Ready!", 100)
+                    loading_screen.update_progress("Ready!", 100)  # type: ignore[attr-defined]
                     await asyncio.sleep(0.5)
-                    await loading_screen.fade_out(duration=0.5)
+                    await loading_screen.fade_out(duration=0.5)  # type: ignore[attr-defined]
                     self.pop_screen()
                 self._initialization_complete = True
                 # Still do post-init setup
@@ -761,7 +761,7 @@ class ConsoulApp(App[None]):
             # Step 2: Initialize AI model (40%)
             step_start = time.time()
             if loading_screen:
-                loading_screen.update_progress("Connecting to AI provider...", 40)
+                loading_screen.update_progress("Connecting to AI provider...", 40)  # type: ignore[attr-defined]
             self.chat_model = await self._run_in_thread(
                 self._initialize_ai_model, consoul_config
             )
@@ -772,7 +772,7 @@ class ConsoulApp(App[None]):
             # Step 3: Create conversation (50%)
             step_start = time.time()
             if loading_screen:
-                loading_screen.update_progress("Initializing conversation...", 50)
+                loading_screen.update_progress("Initializing conversation...", 50)  # type: ignore[attr-defined]
 
             # Add detailed profiling to understand what's slow
             import logging as log_module
@@ -800,7 +800,7 @@ class ConsoulApp(App[None]):
             # Step 4: Load tools (60%)
             step_start = time.time()
             if loading_screen:
-                loading_screen.update_progress("Loading tools...", 60)
+                loading_screen.update_progress("Loading tools...", 60)  # type: ignore[attr-defined]
             self.tool_registry = await self._run_in_thread(
                 self._initialize_tool_registry, consoul_config
             )
@@ -812,7 +812,7 @@ class ConsoulApp(App[None]):
             if self.tool_registry:
                 step_start = time.time()
                 if loading_screen:
-                    loading_screen.update_progress("Binding tools to model...", 80)
+                    loading_screen.update_progress("Binding tools to model...", 80)  # type: ignore[attr-defined]
                 self.chat_model = await self._run_in_thread(
                     self._bind_tools_to_model, self.chat_model, self.tool_registry
                 )
@@ -829,7 +829,7 @@ class ConsoulApp(App[None]):
             ):
                 step_start = time.time()
                 if loading_screen:
-                    loading_screen.update_progress("Restoring conversation...", 90)
+                    loading_screen.update_progress("Restoring conversation...", 90)  # type: ignore[attr-defined]
                 self.conversation = await self._run_in_thread(
                     self._auto_resume_if_enabled, self.conversation, self.active_profile
                 )
@@ -885,8 +885,8 @@ class ConsoulApp(App[None]):
 
             # Step 7: Complete (100%)
             if loading_screen:
-                loading_screen.update_progress("Ready!", 100)
-                await loading_screen.fade_out(duration=0.5)
+                loading_screen.update_progress("Ready!", 100)  # type: ignore[attr-defined]
+                await loading_screen.fade_out(duration=0.5)  # type: ignore[attr-defined]
                 self.pop_screen()
 
             self._initialization_complete = True
@@ -3895,7 +3895,7 @@ class ConsoulApp(App[None]):
 
         if self.consoul_config is None:
             self.notify("Configuration not loaded", severity="error")
-            return
+            return None
 
         result = await self.push_screen(
             SettingsScreen(config=self.config, consoul_config=self.consoul_config)
@@ -3911,7 +3911,7 @@ class ConsoulApp(App[None]):
 
         if self.consoul_config is None:
             self.notify("Configuration not loaded", severity="error")
-            return
+            return None
 
         result = await self.push_screen(PermissionManagerScreen(self.consoul_config))
         if result:
@@ -3925,7 +3925,7 @@ class ConsoulApp(App[None]):
 
         if not self.tool_registry:
             self.notify("Tool registry not initialized", severity="error")
-            return
+            return None
 
         logger = logging.getLogger(__name__)
         logger.info("[TOOL_MANAGER] About to push tool manager screen")

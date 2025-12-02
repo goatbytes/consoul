@@ -160,10 +160,10 @@ class BinaryAnimator:
                     style_string = style_dict[current_token]
                     # Parse style string (e.g., "#0085CC" or "bold #0085CC")
                     if style_string:
-                        parts = style_string.split()
+                        parts: list[str] = style_string.split()
                         for part in parts:
                             if part.startswith("#"):
-                                return part
+                                return str(part)
                     break
                 current_token = current_token.parent
 
