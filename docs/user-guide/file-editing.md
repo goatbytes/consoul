@@ -8,7 +8,7 @@ Consoul's file editing tools let AI models create, modify, and delete files in y
 
 **Quick example:**
 ```bash
-$ consoul chat "Add error handling to calculate_total in src/utils.py"
+$ consoul ask "Add error handling to calculate_total in src/utils.py"
 ```
 
 The AI will find the function, add try/catch blocks, preserve your formatting, and make the change—all without you opening an editor.

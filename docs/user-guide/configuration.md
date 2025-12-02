@@ -330,19 +330,19 @@ Configuration can be overridden via command-line flags:
 
 ```bash
 # Override provider
-consoul chat --provider openai "Your question"
+consoul --provider openai ask "Your question"
 
 # Override model
-consoul chat --model gpt-4 "Your question"
+consoul --model gpt-4 ask "Your question"
 
 # Override temperature
-consoul chat --temperature 0.2 "Your question"
+consoul --temperature 0.2 ask "Your question"
 
 # Override max tokens
-consoul chat --max-tokens 1000 "Your question"
+consoul --max-tokens 1000 ask "Your question"
 
 # Custom system prompt
-consoul chat --system "You are a Python expert" "Your question"
+consoul ask --system "You are a Python expert" "Your question"
 ```
 
 ## Configuration Profiles
@@ -450,14 +450,14 @@ profiles:
 
 ```bash
 # Use specific profile
-consoul chat --profile code-review "Review this PR"
+consoul ask --profile code-review "Review this PR"
 
 # Set default profile in config
 consoul config set default_profile creative
 
 # Or set via environment variable
 export CONSOUL_PROFILE=fast
-consoul chat "Quick question"
+consoul ask "Quick question"
 ```
 
 ### Default System Prompt
@@ -737,7 +737,7 @@ echo $ANTHROPIC_API_KEY
 cat ~/.zshrc | grep ANTHROPIC_API_KEY
 
 # Test with explicit variable
-ANTHROPIC_API_KEY=your-key consoul chat "test"
+ANTHROPIC_API_KEY=your-key consoul ask "test"
 ```
 
 ### Provider Connection Issues

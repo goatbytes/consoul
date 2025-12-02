@@ -8,7 +8,7 @@ Ever wished you could just ask "Where is the `calculate_total` function?" instea
 
 **Quick example:**
 ```bash
-$ consoul chat "Find all usages of deprecated_function"
+$ consoul ask "Find all usages of deprecated_function"
 ```
 
 The AI uses semantic code analysis to locate every call, import, and reference—not just text matches.

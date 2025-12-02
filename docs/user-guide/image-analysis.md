@@ -8,7 +8,7 @@ Ever wanted to just *show* the AI what's on your screen instead of describing it
 
 **Quick example:**
 ```bash
-$ consoul chat "What's wrong with this error?" --attach error-screenshot.png
+$ consoul ask "What's wrong with this error?" --attach error-screenshot.png
 ```
 
 The AI sees the screenshot, reads the error message, examines the stack trace, and helps you debug—all from the visual context.
