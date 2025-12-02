@@ -57,7 +57,7 @@ ChatView {
     height: 1fr;
     background: $panel;
     padding: 1 1 1 2;
-    border: round $accent;
+    border: solid $accent;
     scrollbar-gutter: stable;
 }
 
@@ -310,7 +310,7 @@ InputArea {
     layout: vertical;
     padding: 1 1 0 1;
     background: $panel;
-    border: round $accent;
+    border: solid $accent;
 }
 
 /* Input controls container (attachment button + text area) */
@@ -334,13 +334,13 @@ InputArea {
 }
 
 #attachment-button:hover {
-    background: $surface-lighten-1;
+    # background: $surface-lighten-1;
     color: $text;
-    border: round $accent;
+    border: round $success;
 }
 
 #attachment-button:focus {
-    border: round $primary 30%;
+    border: round $success 30%;
     color: $text;
 }
 
@@ -356,9 +356,9 @@ InputArea {
 }
 
 #send-button:hover {
-    background: $surface-lighten-1;
+    # background: $surface-lighten-1;
     color: $text;
-    border: round $accent;
+    border: round $success;
 }
 
 #send-button:focus {
@@ -433,7 +433,7 @@ FileChip Button:focus {
     height: 100%;
     background: $surface-darken-1;
     # border-right: solid $accent;
-    padding: 1;
+    # padding: 1;
 }
 
 .conversation-item {
