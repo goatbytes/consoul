@@ -57,6 +57,7 @@ class ChatSession:
         approval_provider: CliToolApprovalProvider | None = None,
         max_tool_iterations: int = 5,
         system_prompt_override: str | None = None,
+        resume_session_id: str | None = None,
     ) -> None:
         """Initialize chat session from Consoul configuration.
 
@@ -68,6 +69,7 @@ class ChatSession:
                 creates a default CliToolApprovalProvider.
             max_tool_iterations: Maximum number of tool call iterations per message (default: 5)
             system_prompt_override: Optional system prompt to prepend to profile's base prompt
+            resume_session_id: Optional session ID to resume existing conversation
 
         Raises:
             MissingAPIKeyError: If required API key is not configured
@@ -81,6 +83,7 @@ class ChatSession:
         self._should_exit = False  # Flag for /exit command
         self.max_tool_iterations = max_tool_iterations
         self.system_prompt_override = system_prompt_override
+        self.resume_session_id = resume_session_id
 
         # Tool execution support
         self.tool_registry = tool_registry
@@ -114,17 +117,31 @@ class ChatSession:
             if hasattr(profile, "conversation")
             else True  # Default to persistence
         )
-        logger.info(f"Initializing conversation history (persist={persist})")
-        self.history = ConversationHistory(
-            model_name=config.current_model,
-            model=self.model,
-            persist=persist,
-        )
-        if profile.system_prompt or self.system_prompt_override:
-            # Build complete system prompt with environment context
-            system_prompt = self._build_system_prompt(profile, config)
-            self.history.add_system_message(system_prompt)
-            logger.debug(f"Added system prompt: {system_prompt[:50]}...")
+
+        if self.resume_session_id:
+            # Resume existing conversation
+            logger.info(f"Resuming conversation: {self.resume_session_id}")
+            self.history = ConversationHistory(
+                model_name=config.current_model,
+                model=self.model,
+                persist=persist,
+                session_id=self.resume_session_id,
+            )
+            # Don't add system message - conversation already loaded from database
+            logger.debug(f"Loaded {len(self.history)} messages from database")
+        else:
+            # Start new conversation
+            logger.info(f"Initializing conversation history (persist={persist})")
+            self.history = ConversationHistory(
+                model_name=config.current_model,
+                model=self.model,
+                persist=persist,
+            )
+            if profile.system_prompt or self.system_prompt_override:
+                # Build complete system prompt with environment context
+                system_prompt = self._build_system_prompt(profile, config)
+                self.history.add_system_message(system_prompt)
+                logger.debug(f"Added system prompt: {system_prompt[:50]}...")
 
     def _build_system_prompt(self, profile: Any, config: ConsoulConfig) -> str:
         """Build complete system prompt with environment context and tool documentation.

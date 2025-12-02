@@ -1636,6 +1636,310 @@ def import_history(import_file: Path, dry_run: bool, db_path: Path | None) -> No
         sys.exit(1)
 
 
+@history.command("resume")
+@click.argument("session_id")
+@click.option(
+    "--db-path",
+    type=click.Path(path_type=Path),
+    help="Path to history database (default: ~/.consoul/history.db)",
+)
+@click.option(
+    "-m",
+    "--model",
+    help="Override model for resumed session",
+)
+@click.option(
+    "--tools/--no-tools",
+    default=None,
+    help="Enable/disable tool execution",
+)
+@click.option(
+    "--multiline",
+    is_flag=True,
+    help="Enable multi-line input mode (use Alt+Enter to submit)",
+)
+@click.option(
+    "--no-stream",
+    is_flag=True,
+    help="Disable streaming responses",
+)
+@click.option(
+    "--no-markdown",
+    is_flag=True,
+    help="Disable markdown rendering",
+)
+@click.pass_context
+def resume_history(
+    ctx: click.Context,
+    session_id: str,
+    db_path: Path | None,
+    model: str | None,
+    tools: bool | None,
+    multiline: bool,
+    no_stream: bool,
+    no_markdown: bool,
+) -> None:
+    """Resume an existing conversation session.
+
+    Load a previous conversation from the database and continue it in an interactive
+    chat session. The session ID is preserved and new messages are appended to the
+    existing conversation.
+
+    Examples:
+        # List conversations to find ID
+        consoul history list
+
+        # Resume a conversation
+        consoul history resume abc123def456
+
+        # Resume with model override
+        consoul history resume abc123def456 --model gpt-4o
+
+        # Resume with tools enabled
+        consoul history resume abc123def456 --tools
+    """
+    import logging
+
+    from rich.console import Console
+    from rich.panel import Panel
+
+    from consoul.ai.database import (
+        ConversationDatabase,
+        ConversationNotFoundError,
+        DatabaseError,
+    )
+    from consoul.cli import ChatSession, CliToolApprovalProvider, get_user_input
+
+    logger = logging.getLogger(__name__)
+    console = Console()
+    config = ctx.obj["config"]
+
+    # Verify session exists and get metadata
+    try:
+        db = ConversationDatabase(db_path or "~/.consoul/history.db")
+        meta = db.get_conversation_metadata(session_id)
+        messages = db.load_conversation(session_id)
+    except ConversationNotFoundError:
+        console.print(f"[red]Error: Session '{session_id}' not found[/red]")
+        console.print(
+            "\n[dim]Use 'consoul history list' to see available sessions[/dim]"
+        )
+        ctx.exit(1)
+    except DatabaseError as e:
+        console.print(f"[red]Database error: {e}[/red]")
+        ctx.exit(1)
+
+    # Show what we're resuming
+    console.print()
+    resume_info = (
+        f"[bold]Session ID:[/bold] {session_id}\n"
+        f"[bold]Original Model:[/bold] {meta['model']}\n"
+        f"[bold]Messages:[/bold] {meta['message_count']}\n"
+        f"[bold]Last Updated:[/bold] {meta['updated_at']}"
+    )
+
+    # Override model if specified
+    if model:
+        from consoul.ai.providers import get_provider_from_model
+
+        config.current_model = model
+        # Auto-detect provider from model name
+        detected_provider = get_provider_from_model(model)
+        if detected_provider:
+            config.current_provider = detected_provider
+            logger.info(
+                f"Model override: {model} (provider: {detected_provider.value})"
+            )
+            resume_info += f"\n[bold]Override Model:[/bold] {model}"
+        else:
+            logger.warning(
+                f"Could not detect provider for model '{model}', using current provider: {config.current_provider.value}"
+            )
+
+    console.print(
+        Panel(
+            resume_info,
+            title="[bold cyan]Resuming Conversation[/bold cyan]",
+            border_style="cyan",
+        )
+    )
+    console.print()
+
+    # Show last few messages for context
+    if messages:
+        console.print("[dim]Last 3 messages for context:[/dim]")
+        console.print("[dim]" + "─" * 60 + "[/dim]")
+        for msg in messages[-3:]:
+            role = msg["role"]
+            content = msg["content"]
+            # Truncate long messages
+            if len(content) > 100:
+                content = content[:97] + "..."
+            console.print(f"[dim]{role.upper()}: {content}[/dim]")
+        console.print("[dim]" + "─" * 60 + "[/dim]")
+        console.print()
+
+    # Setup tool registry if tools enabled
+    tool_registry = None
+    approval_provider = None
+    tools_enabled = (
+        tools
+        if tools is not None
+        else (config.tools.enabled if hasattr(config, "tools") else False)
+    )
+
+    if tools_enabled:
+        try:
+            from consoul.ai.tools import ToolRegistry
+            from consoul.ai.tools.catalog import get_all_tool_names, get_tool_by_name
+
+            # Create approval provider first
+            approval_provider = CliToolApprovalProvider(console=console)
+
+            # Create registry with config settings
+            tool_config = config.tools if hasattr(config, "tools") else None
+            if tool_config:
+                tool_registry = ToolRegistry(
+                    config=tool_config,
+                    approval_provider=approval_provider,
+                )
+
+                # Register available tools based on config filters
+                allowed = tool_config.allowed_tools
+                if allowed is not None:
+                    # Explicit whitelist (may be empty list = no tools)
+                    tools_to_register: list[str] = list(allowed)
+                else:
+                    # No whitelist - use all tools subject to risk filter
+                    tools_to_register = get_all_tool_names()
+
+                for tool_name in tools_to_register:
+                    try:
+                        result = get_tool_by_name(tool_name)
+                        if result is None:
+                            logger.warning(f"Tool {tool_name} not found in catalog")
+                            continue
+
+                        tool, risk_level, _ = result
+
+                        # Apply risk filter if configured
+                        if (
+                            hasattr(tool_config, "risk_filter")
+                            and tool_config.risk_filter
+                        ):
+                            from consoul.ai.tools import RiskLevel
+
+                            # Map risk levels to numeric values for comparison
+                            risk_order = {
+                                RiskLevel.SAFE: 0,
+                                RiskLevel.CAUTION: 1,
+                                RiskLevel.DANGEROUS: 2,
+                                RiskLevel.BLOCKED: 3,
+                            }
+
+                            max_risk = risk_order.get(tool_config.risk_filter, 0)
+                            current_risk = risk_order.get(risk_level, 3)
+
+                            if current_risk > max_risk:
+                                logger.debug(
+                                    f"Skipping {tool_name}: {risk_level.value} > {tool_config.risk_filter.value}"
+                                )
+                                continue
+
+                        tool_registry.register(tool, risk_level=risk_level)
+                    except Exception as e:
+                        logger.warning(f"Could not register tool {tool_name}: {e}")
+
+                logger.info(f"Registered {len(tool_registry)} tools")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not enable tools: {e}[/yellow]")
+            tool_registry = None
+            approval_provider = None
+
+    # Create chat session with resume_session_id
+    try:
+        with console.status("[cyan]Initializing chat model...[/cyan]", spinner="dots"):
+            session = ChatSession(
+                config=config,
+                tool_registry=tool_registry,
+                approval_provider=approval_provider,
+                resume_session_id=session_id,
+            )
+    except Exception as e:
+        console.print(f"[red]Error initializing chat session: {e}[/red]")
+        logger.error(f"Failed to initialize ChatSession: {e}", exc_info=True)
+        ctx.exit(1)
+
+    # Main chat loop (same as chat command)
+    with session:
+        while True:
+            try:
+                # Get user input
+                user_input = get_user_input(
+                    prompt_text="You: ",
+                    multiline=multiline,
+                )
+
+                # Handle exit (Ctrl+D or 'exit' command)
+                if user_input is None:
+                    break
+
+                # Skip empty input (re-prompt)
+                if not user_input:
+                    continue
+
+                # Check for slash commands
+                if session.process_command(user_input):
+                    # Command was handled, check if exit was requested
+                    if session._should_exit:
+                        break
+                    # Otherwise continue to next prompt
+                    continue
+
+                # Send message and get response
+                response = session.send(
+                    user_input,
+                    stream=not no_stream,
+                    render_markdown=not no_markdown,
+                )
+
+                logger.debug(f"Response received: {response[:100]}...")
+
+            except KeyboardInterrupt:
+                # Ctrl+C - exit gracefully
+                console.print("\n[yellow]Cancelled[/yellow]")
+                break
+
+            except Exception as e:
+                # API errors, rate limits, network issues
+                console.print(f"\n[red]Error: {e}[/red]\n")
+                logger.error(f"Chat error: {e}", exc_info=True)
+                # Continue loop, don't exit on errors
+                continue
+
+        # Display session stats on exit
+        console.print()
+        stats = session.get_stats()
+
+        stats_text = (
+            f"[bold]Messages:[/bold] {stats['message_count']}\n"
+            f"[bold]Tokens:[/bold] {stats['token_count']:,}"
+        )
+
+        # Session is always persisted when resuming
+        stats_text += f"\n\n[dim]Session saved (ID: {session_id})[/dim]"
+
+        console.print(
+            Panel(
+                stats_text,
+                title="[bold cyan]Session Summary[/bold cyan]",
+                border_style="cyan",
+            )
+        )
+
+        console.print("\n[dim]Goodbye![/dim]\n")
+
+
 @cli.group()
 @click.pass_context
 def preset(ctx: click.Context) -> None:
