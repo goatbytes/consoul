@@ -118,8 +118,49 @@ class ChatSession:
             persist=persist,
         )
         if profile.system_prompt:
-            self.history.add_system_message(profile.system_prompt)
-            logger.debug(f"Added system prompt: {profile.system_prompt[:50]}...")
+            # Build complete system prompt with environment context
+            system_prompt = self._build_system_prompt(profile, config)
+            self.history.add_system_message(system_prompt)
+            logger.debug(f"Added system prompt: {system_prompt[:50]}...")
+
+    def _build_system_prompt(self, profile: Any, config: ConsoulConfig) -> str:
+        """Build complete system prompt with environment context and tool documentation.
+
+        Args:
+            profile: Active profile configuration
+            config: Complete Consoul configuration
+
+        Returns:
+            Complete system prompt with environment context and tool documentation
+        """
+        from consoul.ai.environment import get_environment_context
+        from consoul.ai.prompt_builder import build_system_prompt
+
+        # Start with base system prompt
+        base_prompt = profile.system_prompt
+
+        # Inject environment context if enabled
+        include_system = (
+            profile.context.include_system_info if hasattr(profile, "context") else True
+        )
+        include_git = (
+            profile.context.include_git_info if hasattr(profile, "context") else True
+        )
+
+        if include_system or include_git:
+            env_context = get_environment_context(
+                include_system_info=include_system,
+                include_git_info=include_git,
+            )
+            if env_context:
+                # Prepend environment context to system prompt
+                base_prompt = f"{env_context}\n\n{base_prompt}"
+                logger.debug(f"Injected environment context ({len(env_context)} chars)")
+
+        # Build final system prompt with tool documentation
+        system_prompt = build_system_prompt(base_prompt, self.tool_registry)
+
+        return system_prompt or base_prompt
 
     def send(
         self,

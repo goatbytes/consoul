@@ -4,18 +4,27 @@ Interactive command-line chat sessions with AI models, featuring streaming respo
 
 ## Overview
 
-CLI chat mode provides a lightweight, terminal-based interface for conversing with AI models. Unlike the full TUI mode, CLI chat focuses on quick, single-session interactions with minimal visual overhead.
+The CLI provides two modes for interacting with AI models:
 
-### When to Use CLI Chat
+1. **Interactive Chat** (`consoul chat`) - Multi-turn conversations with REPL loop
+2. **One-Off Questions** (`consoul ask`) - Single question/response for scripting
 
-**Use CLI chat for:**
+### When to Use Each Mode
 
-- Quick questions and answers
-- Debugging sessions
-- Code assistance conversations
+**Use `consoul ask` for:**
+
+- Quick one-off questions
 - Scripting and automation
-- Remote SSH sessions
-- Minimal terminal environments
+- CI/CD pipelines
+- Shell aliases and functions
+- Single-purpose queries
+
+**Use `consoul chat` for:**
+
+- Multi-turn conversations
+- Interactive debugging sessions
+- Exploratory discussions
+- Context-dependent queries
 
 **Use TUI mode for:**
 
@@ -25,7 +34,80 @@ CLI chat mode provides a lightweight, terminal-based interface for conversing wi
 - Image analysis with attachments
 - Advanced session management
 
-## Getting Started
+## One-Off Questions with `ask`
+
+For quick questions without starting an interactive session, use the `ask` command:
+
+```bash
+consoul ask "What is 2+2?"
+```
+
+### Basic Syntax
+
+```bash
+# Positional argument
+consoul ask "Your question here"
+
+# Or with -m flag
+consoul ask -m "Your question here"
+```
+
+### Common Options
+
+```bash
+# Override model
+consoul ask "Translate to Spanish" --model gpt-4o
+
+# Enable tools
+consoul ask "Find all TODO comments" --tools
+
+# Attach images
+consoul ask "What's in this screenshot?" --attach error.png
+
+# Show token usage
+consoul ask "Quick question" --show-tokens --show-cost
+
+# Save response to file
+consoul ask "Generate template" --output template.txt
+
+# Disable streaming
+consoul ask "Long response" --no-stream
+
+# Disable markdown rendering
+consoul ask "Plain text please" --no-markdown
+```
+
+### Use Cases
+
+**Shell Aliases:**
+```bash
+# Add to ~/.zshrc or ~/.bashrc
+alias ai='consoul ask'
+alias aicode='consoul ask --model claude-3-5-sonnet-20241022 --tools'
+
+# Usage
+ai "What's the weather like?"
+aicode "Refactor this function"
+```
+
+**Git Hooks:**
+```bash
+#!/bin/bash
+# .git/hooks/pre-commit
+STAGED=$(git diff --cached --name-only)
+consoul ask "Review these changes: $STAGED" --tools --no-stream
+```
+
+**CI/CD Pipeline:**
+```yaml
+# .github/workflows/review.yml
+- name: AI Code Review
+  run: |
+    consoul ask "Review this PR and suggest improvements" \
+      --tools --output review.md
+```
+
+## Interactive Chat with `chat`
 
 ### Basic Usage
 
@@ -411,6 +493,7 @@ Assistant: I'll use the bash tool to check...
 ```
 
 2. **You approve or deny:**
+
 - Type `y` and press Enter to approve
 - Type `n` or press Enter to deny
 - (Cancel the session to abort the request)

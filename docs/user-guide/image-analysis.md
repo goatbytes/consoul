@@ -14,6 +14,7 @@ $ consoul chat "What's wrong with this error?" --attach error-screenshot.png
 The AI sees the screenshot, reads the error message, examines the stack trace, and helps you debug—all from the visual context.
 
 **Related Tools:**
+
 - [Code Search](code-search.md) - Find code referenced in screenshots
 - [File Editing](file-editing.md) - Fix issues found in images
 
@@ -138,6 +139,7 @@ Consoul will automatically detect the image path and include it in your message.
 | WebP | `.webp` | Modern format, smaller file sizes |
 
 **File Size Limits:**
+
 - Default maximum: 5 MB per image
 - Configurable via `max_image_size_mb`
 - Total limit: 5 images per query (configurable via `max_images_per_query`)
@@ -171,6 +173,7 @@ tools:
 ```
 
 **File Validation:**
+
 - Extension checking (prevent non-images)
 - Magic byte validation (prevent extension spoofing)
 - Size limits (prevent large uploads)
@@ -225,21 +228,25 @@ tools:
 ### Provider-Specific Considerations
 
 **Anthropic (Claude):**
+
 - Best for detailed analysis and reasoning
 - Supports up to 5 images per request
 - Max image size: 5 MB (base64 encoded)
 
 **OpenAI (GPT-4o):**
+
 - Fast processing
 - Good for general image understanding
 - Supports multiple images
 
 **Google (Gemini):**
+
 - Strong for technical diagrams
 - Supports large context windows
 - Native image understanding
 
 **Ollama (LLaVA):**
+
 - Fully local, no data sent to cloud
 - Requires more VRAM (8GB+)
 - Slower than cloud models
@@ -521,14 +528,17 @@ A: Yes, set `tools.image_analysis.enabled: false` in your config.
 ## See Also
 
 **Other Tools:**
+
 - [Code Search](code-search.md) - Find code referenced in images
 - [File Editing](file-editing.md) - Fix issues discovered visually
 
 **SDK & API:**
+
 - [SDK Tools Overview](../api/tools.md) - Using image analysis programmatically
 - [Tool Configuration](../sdk-tools.md) - Configuring vision tools in your code
 
 **Configuration:**
+
 - [Configuration Guide](configuration.md) - Enable/disable image analysis
 - [Vision-Capable Models](configuration.md#models) - Supported AI models
 

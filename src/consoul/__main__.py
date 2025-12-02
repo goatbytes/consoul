@@ -386,6 +386,328 @@ def chat(
 
 
 @cli.command()
+@click.argument("message", required=False)
+@click.option(
+    "-m",
+    "--message",
+    "message_opt",
+    help="Message to send (alternative to positional arg)",
+)
+@click.option(
+    "--model",
+    help="Model to use (e.g., gpt-4o, claude-3-5-sonnet-20241022, llama3)",
+)
+@click.option(
+    "--attach",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Attach files (images for vision-capable models)",
+)
+@click.option(
+    "--tools/--no-tools",
+    default=None,
+    help="Enable/disable tool execution (overrides config)",
+)
+@click.option(
+    "--no-markdown",
+    is_flag=True,
+    help="Disable markdown rendering (show plain text)",
+)
+@click.option(
+    "--stream/--no-stream",
+    default=True,
+    help="Enable/disable streaming responses (default: stream)",
+)
+@click.option(
+    "--show-tokens",
+    is_flag=True,
+    help="Show token usage statistics",
+)
+@click.option(
+    "--show-cost",
+    is_flag=True,
+    help="Show cost estimate",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    help="Save response to file",
+)
+@click.pass_context
+def ask(
+    ctx: click.Context,
+    message: str | None,
+    message_opt: str | None,
+    model: str | None,
+    attach: tuple[str, ...],
+    tools: bool | None,
+    no_markdown: bool,
+    stream: bool,
+    show_tokens: bool,
+    show_cost: bool,
+    output: str | None,
+) -> None:
+    """Ask a single question and get a response (non-interactive).
+
+    Provides a quick way to get AI responses without starting an interactive
+    chat session. Ideal for scripting, automation, and one-off queries.
+
+    Examples:
+
+        \b
+        # Simple question
+        consoul ask "What is 2+2?"
+
+        \b
+        # Using -m flag
+        consoul ask -m "Explain Python decorators"
+
+        \b
+        # With model override
+        consoul ask "Translate to Spanish" --model gpt-4o
+
+        \b
+        # With tools enabled
+        consoul ask "Find bug in utils.py" --tools
+
+        \b
+        # Analyze image
+        consoul ask "What error is shown?" --attach screenshot.png
+
+        \b
+        # Show usage stats
+        consoul ask "Quick question" --show-tokens --show-cost
+
+        \b
+        # Save response to file
+        consoul ask "Generate report" --output report.txt
+    """
+    import logging
+
+    from rich.console import Console
+
+    from consoul.cli import ChatSession, CliToolApprovalProvider
+
+    logger = logging.getLogger(__name__)
+    console = Console()
+    config = ctx.obj["config"]
+
+    # Handle message from either positional arg or -m flag
+    msg = message or message_opt
+    if not msg:
+        console.print("[red]Error: Message required[/red]")
+        console.print("\nUsage:")
+        console.print("  consoul ask MESSAGE")
+        console.print("  consoul ask -m MESSAGE")
+        console.print("\nExamples:")
+        console.print('  consoul ask "What is 2+2?"')
+        console.print('  consoul ask -m "Explain Python decorators"')
+        ctx.exit(1)
+
+    # Type assertion: msg is guaranteed to be str here
+    assert isinstance(msg, str)
+
+    # Override model if specified
+    if model:
+        from consoul.ai.providers import get_provider_from_model
+
+        config.current_model = model
+        # Auto-detect provider from model name
+        detected_provider = get_provider_from_model(model)
+        if detected_provider:
+            config.current_provider = detected_provider
+            logger.info(
+                f"Model override: {model} (provider: {detected_provider.value})"
+            )
+        else:
+            logger.warning(
+                f"Could not detect provider for model '{model}', using current provider: {config.current_provider.value}"
+            )
+
+    # Setup tools if requested
+    tool_registry = None
+    approval_provider = None
+
+    tools_enabled = (
+        tools
+        if tools is not None
+        else (config.tools.enabled if hasattr(config, "tools") else False)
+    )
+
+    if tools_enabled:
+        try:
+            from consoul.ai.tools import ToolRegistry
+            from consoul.ai.tools.catalog import get_all_tool_names, get_tool_by_name
+
+            # Create approval provider
+            approval_provider = CliToolApprovalProvider(console=console)
+
+            # Create registry with config settings
+            tool_config = config.tools if hasattr(config, "tools") else None
+            if tool_config:
+                tool_registry = ToolRegistry(
+                    config=tool_config,
+                    approval_provider=approval_provider,
+                )
+
+                # Register available tools based on config filters
+                allowed = tool_config.allowed_tools
+                if allowed is not None:
+                    tools_to_register: list[str] = list(allowed)
+                else:
+                    tools_to_register = get_all_tool_names()
+
+                for tool_name in tools_to_register:
+                    try:
+                        result = get_tool_by_name(tool_name)
+                        if result is None:
+                            logger.warning(f"Tool {tool_name} not found in catalog")
+                            continue
+
+                        tool, risk_level, _ = result
+
+                        # Apply risk filter if configured
+                        if (
+                            hasattr(tool_config, "risk_filter")
+                            and tool_config.risk_filter
+                        ):
+                            from consoul.ai.tools import RiskLevel
+
+                            # Map risk levels to numeric values for comparison
+                            risk_order = {
+                                RiskLevel.SAFE: 0,
+                                RiskLevel.CAUTION: 1,
+                                RiskLevel.DANGEROUS: 2,
+                                RiskLevel.BLOCKED: 3,
+                            }
+
+                            max_risk = risk_order.get(tool_config.risk_filter, 0)
+                            current_risk = risk_order.get(risk_level, 3)
+
+                            if current_risk > max_risk:
+                                logger.debug(
+                                    f"Skipping {tool_name}: {risk_level.value} > {tool_config.risk_filter.value}"
+                                )
+                                continue
+
+                        tool_registry.register(tool, risk_level=risk_level)
+                    except Exception as e:
+                        logger.warning(f"Could not register tool {tool_name}: {e}")
+
+                logger.info(f"Registered {len(tool_registry)} tools")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not enable tools: {e}[/yellow]")
+            tool_registry = None
+            approval_provider = None
+
+    # Handle attachments if provided
+    if attach:
+        # Check if model supports vision
+        model_name = config.current_model.lower()
+        vision_capable = any(
+            vm in model_name
+            for vm in ["claude-3", "gpt-4o", "gpt-4-vision", "gemini", "llava"]
+        )
+
+        if not vision_capable:
+            console.print(
+                f"[yellow]Warning: Model '{config.current_model}' may not support image analysis[/yellow]"
+            )
+            console.print(
+                "[yellow]Consider using: claude-3-5-sonnet-20241022, gpt-4o, or gemini-2.0-flash[/yellow]\n"
+            )
+
+    # Get active profile and disable persistence for one-off query
+    active_profile = config.get_active_profile()
+    original_persist = None
+    if hasattr(active_profile, "conversation"):
+        original_persist = active_profile.conversation.persist
+        active_profile.conversation.persist = False
+
+    try:
+        # Create chat session (no persistence for ask command)
+        with console.status("[cyan]Initializing...[/cyan]", spinner="dots"):
+            session = ChatSession(
+                config=config,
+                tool_registry=tool_registry,
+                approval_provider=approval_provider,
+            )
+
+        # Handle attachments by appending to message
+        if attach:
+            # Add attachment references to message
+            attachment_text = " ".join(str(Path(f).resolve()) for f in attach)
+            msg = f"{msg} {attachment_text}"
+
+        # Send message and get response
+        response = session.send(
+            msg,
+            stream=stream,
+            render_markdown=not no_markdown,
+        )
+
+        # Show token usage if requested
+        if show_tokens or show_cost:
+            console.print()
+            stats = session.get_stats()
+
+            if show_tokens:
+                console.print(f"[dim]Tokens: {stats['token_count']:,}[/dim]")
+
+            if show_cost:
+                # Try to get cost info from last response
+                try:
+                    if (
+                        hasattr(session.history, "messages")
+                        and session.history.messages
+                    ):
+                        last_msg = session.history.messages[-1]
+                        if (
+                            hasattr(last_msg, "usage_metadata")
+                            and last_msg.usage_metadata
+                        ):
+                            metadata = last_msg.usage_metadata
+                            input_tokens = metadata.get("input_tokens", 0)
+                            output_tokens = metadata.get("output_tokens", 0)
+
+                            # Simple cost estimation (this is a rough estimate)
+                            # Real implementation would use model-specific pricing
+                            cost_per_m_input = 3.0  # $3 per million input tokens
+                            cost_per_m_output = 15.0  # $15 per million output tokens
+
+                            input_cost = (input_tokens / 1_000_000) * cost_per_m_input
+                            output_cost = (
+                                output_tokens / 1_000_000
+                            ) * cost_per_m_output
+                            total_cost = input_cost + output_cost
+
+                            console.print(f"[dim]Cost: ${total_cost:.4f}[/dim]")
+                except Exception as e:
+                    logger.debug(f"Could not calculate cost: {e}")
+
+        # Save to file if requested
+        if output:
+            output_path = Path(output)
+            output_path.write_text(response, encoding="utf-8")
+            console.print(f"\n[dim]Response saved to: {output}[/dim]")
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Cancelled[/yellow]")
+        ctx.exit(130)
+
+    except Exception as e:
+        console.print(f"\n[red]Error: {e}[/red]")
+        logger.error(f"Ask command error: {e}", exc_info=True)
+        ctx.exit(1)
+
+    finally:
+        # Restore original persistence setting
+        if original_persist is not None and hasattr(active_profile, "conversation"):
+            active_profile.conversation.persist = original_persist
+
+
+@cli.command()
 @click.argument("config_path", type=click.Path(path_type=Path))
 @click.pass_context
 def init(ctx: click.Context, config_path: Path) -> None:

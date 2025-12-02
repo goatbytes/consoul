@@ -9,6 +9,7 @@ This directory contains working examples demonstrating Consoul's file editing ca
 Basic file editing with natural language requests.
 
 **What it demonstrates:**
+
 - Fixing specific lines
 - Adding logging statements
 - Updating configuration values
@@ -22,6 +23,7 @@ python simple_edit.py
 ```
 
 **Key concepts:**
+
 - Natural language file editing
 - Line-based edits
 - Approval workflow
@@ -32,6 +34,7 @@ python simple_edit.py
 Progressive matching with tolerance levels.
 
 **What it demonstrates:**
+
 - **Strict matching**: Exact character-for-character
 - **Whitespace tolerance**: Ignores indentation differences
 - **Fuzzy matching**: Handles typos (≥80% similarity)
@@ -47,6 +50,7 @@ python search_replace.py
 ```
 
 **Key concepts:**
+
 - Progressive matching levels
 - Format preservation
 - Batch replacements
@@ -57,6 +61,7 @@ python search_replace.py
 Complete multi-file refactoring workflows.
 
 **What it demonstrates:**
+
 - Function rename with call site updates
 - Adding type hints to a module
 - Adding error handling to risky operations
@@ -70,6 +75,7 @@ python refactoring.py
 ```
 
 **Key concepts:**
+
 - Multi-step workflows
 - Combining multiple tools (code_search, find_references, file editing)
 - Systematic refactoring approach
@@ -80,6 +86,7 @@ python refactoring.py
 Sample configurations for different environments.
 
 **What it contains:**
+
 - Development environment (permissive)
 - Production environment (restrictive)
 - Balanced environment (recommended)
@@ -98,6 +105,7 @@ cp docs/examples/file-editing/config_examples.yaml ~/.consoul/config.yaml
 ```
 
 **Key concepts:**
+
 - Extension filtering
 - Path blocking
 - Size limits
@@ -160,6 +168,7 @@ Before running these examples:
 ## Safety Tips
 
 ✅ **DO:**
+
 - Use `dry_run=True` to preview changes
 - Start with `permission_policy: paranoid`
 - Review diff previews carefully
@@ -168,6 +177,7 @@ Before running these examples:
 - Test in safe environment first
 
 ❌ **DON'T:**
+
 - Use `permission_policy: unrestricted` in production
 - Disable audit logging
 - Ignore approval prompts

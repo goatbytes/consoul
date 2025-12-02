@@ -14,6 +14,7 @@ $ consoul chat "Find all usages of deprecated_function"
 The AI uses semantic code analysis to locate every call, import, and reference—not just text matches.
 
 **Related Tools:**
+
 - [File Editing](file-editing.md) - Modify code after finding it
 - [Image Analysis](image-analysis.md) - Analyze code in screenshots
 
@@ -53,6 +54,7 @@ These tools are designed to work like an IDE's navigation features, but accessib
 **Purpose:** Fast text pattern matching across files
 
 **Use when:**
+
 - Searching for simple text strings or regex patterns
 - Finding TODO/FIXME comments
 - Searching across any file type (not just code)
@@ -80,6 +82,7 @@ result = grep_search.invoke({
 **Purpose:** Find symbol definitions (functions, classes, methods)
 
 **Use when:**
+
 - Finding where a function/class is defined
 - Locating symbol definitions before reading code
 - Building code inventory or documentation
@@ -105,6 +108,7 @@ result = code_search.invoke({
 **Purpose:** Find all usages/references of a symbol
 
 **Use when:**
+
 - Planning to refactor/rename a function
 - Understanding how a symbol is used
 - Finding dead code (zero references)
@@ -199,6 +203,7 @@ result = find_references.invoke({
 | **C++** | .cpp, .hpp | ✅ | ✅ | ❌ | Use grep_search for references |
 
 **Legend:**
+
 - ✅ Full support - All features work correctly
 - ❌ No support - Tool doesn't work for this language
 
@@ -383,10 +388,12 @@ print(f"Found {usage_count} usages")
 4. **Shared cache:** code_search and find_references share cache instance
 
 **Cache keys:**
+
 - code_search: `tags:{file_path}`
 - find_references: `refs:{file_path}`
 
 **Cache location:**
+
 - Default: `~/.consoul/cache/code-search.v1/`
 - Configurable via CodeSearchCache initialization
 
@@ -559,12 +566,14 @@ print(f"Found {len(unused)} unused functions")
 ### 1. Choose the Right Tool
 
 ✅ **DO:**
+
 - Use grep_search for comments, strings, and documentation
 - Use code_search to find definitions
 - Use find_references to find usages
 - Combine tools for comprehensive analysis
 
 ❌ **DON'T:**
+
 - Use grep_search for finding function calls (use find_references)
 - Use code_search for text in comments (use grep_search)
 - Search entire project when you know the directory
@@ -572,34 +581,40 @@ print(f"Found {len(unused)} unused functions")
 ### 2. Leverage Caching
 
 ✅ **DO:**
+
 - Run searches on same files multiple times to benefit from cache
 - Use code_search before find_references (shares cache)
 - Keep searches in same session for cache benefit
 
 ❌ **DON'T:**
+
 - Clear cache unnecessarily
 - Run searches in separate processes (cache not shared)
 
 ### 3. Scope Appropriately
 
 ✅ **DO:**
+
 - Use file scope when you know the file
 - Use directory scope for package/module searches
 - Use project scope only when necessary
 
 ❌ **DON'T:**
+
 - Default to project scope for everything
 - Search entire codebase for file-specific questions
 
 ### 4. Handle Results Properly
 
 ✅ **DO:**
+
 - Parse JSON results before using
 - Check for empty results
 - Handle errors gracefully
 - Validate file paths exist
 
 ❌ **DON'T:**
+
 - Assume results are always valid
 - Ignore empty result sets
 - Skip error handling
@@ -607,12 +622,14 @@ print(f"Found {len(unused)} unused functions")
 ### 5. Performance Optimization
 
 ✅ **DO:**
+
 - Install ripgrep for faster grep_search
 - Use specific symbol_type filters
 - Warm cache for frequently searched directories
 - Use case-sensitive search when possible
 
 ❌ **DON'T:**
+
 - Search with overly broad patterns
 - Disable caching
 - Search large binary files
@@ -669,6 +686,7 @@ scoop install ripgrep
 **Cause:** File extension not recognized by tree-sitter
 
 **Supported Extensions:**
+
 - Python: .py
 - JavaScript: .js, .jsx
 - TypeScript: .ts, .tsx
@@ -729,6 +747,7 @@ stat src/file.py  # mtime should be stable
 ```
 
 **3. Running in different processes**
+
 - Cache is per-process
 - Solution: Keep searches in same Python session
 
@@ -829,6 +848,7 @@ apt-get install ripgrep  # Ubuntu
 #### Error: "Failed to parse AST"
 
 **Symptoms:**
+
 - code_search returns empty results
 - find_references shows warning: "Failed to parse file.py"
 
@@ -906,14 +926,17 @@ code_search.invoke({"query": "myclass", "case_sensitive": False})
 **Common Issues:**
 
 **Symbol is in comment/string:**
+
 - code_search ignores comments and strings
 - Solution: Use grep_search instead
 
 **Symbol is imported, not defined:**
+
 - code_search finds definitions, not imports
 - Solution: Use find_references to find imports
 
 **Symbol is in unsupported file:**
+
 - Check language support matrix
 - Solution: Use grep_search for unsupported languages
 
@@ -935,6 +958,7 @@ find_references.invoke({"symbol": "myclass", "case_sensitive": False})
 ```
 
 3. **Symbol only used in comments:**
+
 - find_references ignores comments
 - Solution: Use grep_search
 
@@ -1013,6 +1037,7 @@ print(result)
 ```
 
 4. **Report issue:**
+
 - GitHub: https://github.com/goatbytes/consoul/issues
 - Include: Python version, OS, error message, minimal reproduction
 
@@ -1031,12 +1056,15 @@ print(result)
 ## See Also
 
 **Other Tools:**
+
 - [File Editing](file-editing.md) - Edit code after finding it with search
 - [Image Analysis](image-analysis.md) - Analyze code from screenshots
 
 **SDK & API:**
+
 - [SDK Tools Overview](../api/tools.md) - Using search tools programmatically
 - [Tool Configuration](../sdk-tools.md) - Configuring tools in your code
 
 **Configuration:**
+
 - [Configuration Guide](configuration.md) - Enable/disable tools and settings

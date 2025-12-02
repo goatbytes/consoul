@@ -11,6 +11,7 @@ Select AI model and provider.
 ### Opening the Modal
 
 **Methods:**
+
 - Click the model indicator in header
 - Press `^m`
 
@@ -102,6 +103,7 @@ Filter models by name:
 4. Clear with `Esc`
 
 **Search Examples:**
+
 - "sonnet" → Claude Sonnet models
 - "4o" → GPT-4o variants
 - "flash" → Gemini Flash models
@@ -138,6 +140,7 @@ Configure TUI appearance and behavior.
 ### Opening the Modal
 
 **Methods:**
+
 - Press `^comma` (Ctrl+,)
 - Click settings icon (⚙️) in header
 
@@ -175,6 +178,7 @@ Configure TUI appearance and behavior.
 ```
 
 **Options:**
+
 - **Theme**: Choose from available themes (dropdown)
 - **Show Sidebar**: Toggle conversation list visibility
 - **Show Timestamps**: Display message timestamps
@@ -195,6 +199,7 @@ Performance Settings:
 ```
 
 **Options:**
+
 - **Stream Tokens**: Real-time streaming vs batch display
 - **Async Rendering**: Non-blocking UI updates
 - **Virtual Scrolling**: Render only visible messages
@@ -217,6 +222,7 @@ Behavior Settings:
 ```
 
 **Options:**
+
 - **Auto-save Conversations**: Save after each message
 - **Confirm on Quit**: Prompt before quitting
 - **Confirm on Clear**: Prompt before clearing conversation
@@ -239,6 +245,7 @@ Advanced Settings:
 ```
 
 **Options:**
+
 - **Debug Mode**: Enable verbose logging
 - **Log Level**: DEBUG, INFO, WARNING, ERROR
 - **API Timeout**: Seconds before timeout
@@ -259,6 +266,7 @@ Settings saved to:
 ```
 
 **Actions:**
+
 - **Apply**: Save and apply changes
 - **Reset**: Reset to defaults
 - **Cancel**: Discard changes and close
@@ -272,6 +280,7 @@ Manage AI tool permissions and configuration.
 ### Opening the Modal
 
 **Methods:**
+
 - Press `^t`
 - Press `shift+^p` (Permissions)
 - Footer shortcut
@@ -332,6 +341,7 @@ Each tool shows:
 ### Tool Categories
 
 **File Operations:**
+
 - read_file (SAFE)
 - create_file (CAUTION)
 - edit_file_lines (CAUTION)
@@ -340,14 +350,17 @@ Each tool shows:
 - delete_file (DANGEROUS)
 
 **Search & Discovery:**
+
 - grep_search (SAFE)
 - code_search (SAFE)
 - find_references (SAFE)
 
 **Execution:**
+
 - bash_execute (CAUTION)
 
 **Web & Information:**
+
 - read_url (SAFE)
 - web_search (SAFE)
 - wikipedia_search (SAFE)
@@ -363,6 +376,7 @@ Each tool shows:
 ```
 
 **Keyboard Shortcuts:**
+
 - `Space` or `T`: Toggle selected tool
 - `A`: Enable all tools
 - `N`: Disable all tools
@@ -402,11 +416,13 @@ Click or press `Space` on a tool to see details (future):
 ### Saving Configuration
 
 **Temporary (Session Only):**
+
 - Click `Apply` or press `Enter`
 - Tools enabled/disabled for this session
 - Reset on restart
 
 **Permanent (Config File):**
+
 - Press `^s` or click `Save to Config`
 - Writes to `config.yaml`:
 
@@ -429,6 +445,7 @@ Select files to attach to messages.
 ### Opening the Modal
 
 **Methods:**
+
 - Click `+ Attach` button in input area
 
 ### Layout
@@ -473,6 +490,7 @@ Select files to attach to messages.
 ### Navigation
 
 **Tree View:**
+
 - `↑` `↓`: Move selection
 - `→` or `Enter` on directory: Expand
 - `←` or `Enter` on expanded: Collapse
@@ -480,6 +498,7 @@ Select files to attach to messages.
 - `Enter` on file: Toggle selection
 
 **Quick Jump:**
+
 - **✱ Root**: Jump to filesystem root (`/`)
 - **🏠 Home**: Jump to home directory (`~`)
 - **📁 CWD**: Jump to current working directory
@@ -494,17 +513,20 @@ Select files to attach to messages.
 4. Selection count updates at bottom
 
 **Batch Selection:**
+
 - `^a`: Select all visible files (future)
 - `^d`: Deselect all (future)
 
 ### File Display
 
 **Icons:**
+
 - 📁 Directory
 - 📄 File
 - ✓ Selected
 
 **Information:**
+
 - Nested tree structure
 - Expandable/collapsible folders
 - Selected count and file list at bottom
@@ -512,11 +534,13 @@ Select files to attach to messages.
 ### Confirmation
 
 **Attach Files:**
+
 - Click `Attach N File(s)` button
 - Or press `Enter` (confirms selection)
 - Files added as chips in input area
 
 **Cancel:**
+
 - Click `Cancel`
 - Or press `Esc`
 - No files attached
@@ -530,6 +554,7 @@ Export conversation to file.
 ### Opening the Modal
 
 **Methods:**
+
 - Press `^e`
 - Footer shortcut
 - Menu → Export (future)
@@ -599,6 +624,7 @@ Response...
 ```
 
 **Options:**
+
 - **Include Timestamps**: Add message times
 - **Include Token Counts**: Add token metrics
 - **Include Tool Calls**: Export tool executions
@@ -641,11 +667,13 @@ Choose configuration profile (future feature).
 ```
 
 **Selection:**
+
 - `↑` `↓`: Navigate
 - `Enter`: Select profile
 - `Esc`: Cancel
 
 **Profiles:**
+
 - **default**: Balanced settings
 - **creative**: High temperature for brainstorming
 - **coding**: Optimized for code generation

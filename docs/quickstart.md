@@ -50,6 +50,40 @@ You: /tokens
 You: /exit
 ```
 
+### One-Off Questions
+
+For quick questions without starting an interactive session:
+
+```bash
+consoul ask "What is 2+2?"
+```
+
+The `ask` command is ideal for:
+
+- Scripting and automation
+- Quick queries without conversation history
+- CI/CD pipelines
+- Command-line workflows
+
+**Examples:**
+
+```bash
+# Simple question
+consoul ask "Explain Python decorators"
+
+# With tools enabled
+consoul ask "Find all TODO comments in src/" --tools
+
+# Analyze an image
+consoul ask "What's in this screenshot?" --attach error.png
+
+# Show token usage
+consoul ask "Quick question" --show-tokens
+
+# Save response to file
+consoul ask "Generate a README template" --output README.md
+```
+
 ## Common Use Cases
 
 ### Getting Code Help

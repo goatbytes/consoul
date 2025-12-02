@@ -13,6 +13,7 @@ Official Consoul dark theme for comfortable coding sessions.
 ![Consoul Dark](../../assets/screenshots/theme-consoul-dark.png)
 
 **Color Palette:**
+
 - **Primary**: Sky Blue (#0085CC) - Innovation and trust
 - **Secondary**: Deep Purple (#44385E) - Assistant messages
 - **Surface**: Binary Slate (#3D3D3D) - Panels and cards
@@ -21,6 +22,7 @@ Official Consoul dark theme for comfortable coding sessions.
 - **Muted**: Light Gray (#9BA3AB) - Secondary text
 
 **Best For:**
+
 - Low-light environments
 - Reduced eye strain
 - Professional coding sessions
@@ -28,6 +30,7 @@ Official Consoul dark theme for comfortable coding sessions.
 - Night work
 
 **Features:**
+
 - Carefully calibrated contrast ratios
 - Easy on the eyes for long sessions
 - Professional appearance
@@ -40,6 +43,7 @@ Official Consoul light theme for bright environments.
 ![Consoul Light](../../assets/screenshots/theme-consoul-light.png)
 
 **Color Palette:**
+
 - **Primary**: Sky Blue (#0085CC) - Innovation and trust
 - **Secondary**: Binary Slate (#3D3D3D) - Professional foundation
 - **Surface**: Very Light Gray (#F8F9FA) - Panels and cards
@@ -48,6 +52,7 @@ Official Consoul light theme for bright environments.
 - **Muted**: Gray (#6C757D) - Secondary text
 
 **Best For:**
+
 - Bright environments
 - Daytime use
 - High-contrast displays
@@ -55,6 +60,7 @@ Official Consoul light theme for bright environments.
 - Well-lit offices
 
 **Features:**
+
 - Maximum readability in bright light
 - Clean, professional appearance
 - WCAG AA compliant contrast
@@ -65,6 +71,7 @@ Official Consoul light theme for bright environments.
 In addition to the two Consoul custom themes, the TUI also provides access to Textual's built-in themes through the Settings modal.
 
 **Available Built-in Themes:**
+
 - **monokai** - Popular dark theme with vibrant colors
 - **dracula** - Dark theme with purple and pink accents
 - **nord** - Arctic, north-bluish color palette
@@ -178,6 +185,7 @@ printf "\x1b[38;2;255;100;0mTRUECOLOR\x1b[0m\n"
 ```
 
 **Recommended Terminals:**
+
 - iTerm2 (macOS)
 - Alacritty
 - Windows Terminal
@@ -197,37 +205,44 @@ On terminals without 24-bit color:
 ### By Environment
 
 **Bright Office / Daytime:**
+
 - ✅ Consoul Light
 - ✅ Catppuccin Latte
 - ✅ Solarized Light
 
 **Dim/Dark Room / Night:**
+
 - ✅ Consoul Dark (recommended)
 - ✅ Nord
 - ✅ Gruvbox
 - ✅ Tokyo Night
 
 **Variable Lighting:**
+
 - ✅ Consoul Dark (adjustable via screen brightness)
 - ✅ Nord (works in most conditions)
 
 ### By Task
 
 **Professional Work:**
+
 - ✅ Consoul Dark
 - ✅ Consoul Light
 - ✅ Nord
 
 **Coding (Long Sessions):**
+
 - ✅ Consoul Dark
 - ✅ Gruvbox
 - ✅ Tokyo Night
 
 **Writing/Documentation:**
+
 - ✅ Consoul Light
 - ✅ Solarized Light
 
 **Personal Preference / Fun:**
+
 - ✅ Any theme you like!
 
 ## Tips & Tricks

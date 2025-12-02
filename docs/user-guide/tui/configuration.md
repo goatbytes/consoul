@@ -60,6 +60,7 @@ tui:
 ```
 
 **Options:**
+
 - `consoul-dark` (default) - Official Consoul dark theme
 - `consoul-light` - Official Consoul light theme
 - `monokai`, `dracula`, `nord`, `gruvbox`, `tokyo-night`, etc. - Textual built-in themes
@@ -78,6 +79,7 @@ tui:
 ```
 
 **Values:**
+
 - `true`: Show sidebar on startup (default)
 - `false`: Hide sidebar on startup
 
@@ -93,6 +95,7 @@ tui:
 ```
 
 **Values:**
+
 - Percentage: `"20%"`, `"30%"`, etc.
 - Fixed units: `"40"` (characters)
 - Min/Max enforced: 20-40 characters
@@ -107,6 +110,7 @@ tui:
 ```
 
 **Values:**
+
 - `true`: Show timestamp on every message (default)
 - `false`: Hide timestamps for cleaner UI
 
@@ -127,6 +131,7 @@ tui:
 ```
 
 **Values:**
+
 - `true`: Show token metrics (default)
 - `false`: Hide token information
 
@@ -149,6 +154,7 @@ tui:
 ```
 
 **Values:**
+
 - `true`: Shift+Enter creates new line, Enter sends (default)
 - `false`: Enter always sends (legacy behavior)
 
@@ -162,10 +168,12 @@ tui:
 ```
 
 **Values:**
+
 - `true`: Highlight code in input (default)
 - `false`: Plain text (faster on slow terminals)
 
 **Features:**
+
 - Auto-detection of code
 - Python, JavaScript, Shell, and more
 - Theme-aware colors
@@ -182,6 +190,7 @@ tui:
 ```
 
 **Options:**
+
 - `streaming-aware`: Pause GC during streaming, collect after (default)
 - `auto`: Python's default GC behavior
 - `manual`: Periodic GC at intervals
@@ -198,10 +207,12 @@ tui:
 ```
 
 **Values:**
+
 - Range: 5.0 - 300.0 seconds
 - Default: 30.0
 
 **Impact:**
+
 - Lower: More frequent GC, less memory, slight performance hit
 - Higher: Less frequent GC, more memory, smoother performance
 
@@ -215,6 +226,7 @@ tui:
 ```
 
 **Values:**
+
 - `0`: Young objects only (fastest, default)
 - `1`: Young + middle-aged objects
 - `2`: Full collection (slowest, most thorough)
@@ -229,10 +241,12 @@ tui:
 ```
 
 **Values:**
+
 - Range: 50 - 1000 characters
 - Default: 200
 
 **Impact:**
+
 - Lower: More frequent updates, more CPU
 - Higher: Fewer updates, smoother, slight delay
 
@@ -246,10 +260,12 @@ tui:
 ```
 
 **Values:**
+
 - Range: 50 - 500 milliseconds
 - Default: 150
 
 **Impact:**
+
 - Lower: More frequent renders, more CPU
 - Higher: Fewer renders, smoother, slight delay
 
@@ -263,6 +279,7 @@ tui:
 ```
 
 **Options:**
+
 - `markdown`: Rich markdown rendering (default)
 - `richlog`: Simple log-style rendering
 - `hybrid`: Mix of both
@@ -281,10 +298,12 @@ tui:
 ```
 
 **Values:**
+
 - Range: 10 - 200 conversations
 - Default: 50
 
 **Impact:**
+
 - Lower: Faster startup, fewer visible conversations
 - Higher: Slower startup, more conversations immediately visible
 
@@ -298,6 +317,7 @@ tui:
 ```
 
 **Values:**
+
 - `true`: Virtual scrolling (default) - better performance with many conversations
 - `false`: Render all conversations - simpler but slower with 100+ conversations
 
@@ -313,6 +333,7 @@ tui:
 ```
 
 **Values:**
+
 - `true`: Mouse clicks and scrolling enabled (default)
 - `false`: Keyboard-only mode
 
@@ -326,6 +347,7 @@ tui:
 ```
 
 **Values:**
+
 - `true`: Vim keybindings (h/j/k/l navigation)
 - `false`: Standard keybindings (default)
 
@@ -341,6 +363,7 @@ tui:
 ```
 
 **Values:**
+
 - `true`: Auto-generate titles after first exchange (default)
 - `false`: Use generic titles
 
@@ -358,6 +381,7 @@ tui:
 ```
 
 **Provider/Model Options:**
+
 - `auto_title_provider`: `openai`, `anthropic`, `google`, `ollama`, or `null`
 - `auto_title_model`: Specific model name or `null` for default
 
@@ -373,10 +397,12 @@ tui:
 ```
 
 **Values:**
+
 - `true`: Enable debug logging
 - `false`: Normal logging (default)
 
 **Impact:**
+
 - True: Detailed logs, helpful for troubleshooting, slower
 - False: Essential logs only
 
@@ -390,6 +416,7 @@ tui:
 ```
 
 **Values:**
+
 - `null`: Use default (`textual.log` in current directory)
 - `"/path/to/file.log"`: Custom log file path
 

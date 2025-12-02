@@ -98,6 +98,7 @@ console = Consoul(tools="dangerous")  # All tools
 Search file contents using regex patterns.
 
 **Use cases:**
+
 - Find TODO comments
 - Search for error messages
 - Find specific code patterns
@@ -112,6 +113,7 @@ console.chat("Find error handling code")
 ```
 
 **Tool parameters:**
+
 - `pattern` (str): Regex pattern to search
 - `path` (str): Directory or file to search (default: current dir)
 - `glob` (str): File pattern filter (e.g., "*.py")
@@ -123,6 +125,7 @@ console.chat("Find error handling code")
 Find classes, functions, and methods in code.
 
 **Use cases:**
+
 - Find class definitions
 - Locate function implementations
 - Discover method usages
@@ -137,6 +140,7 @@ console.chat("Show me all API route handlers")
 ```
 
 **Tool parameters:**
+
 - `pattern` (str): Code element to find (class/function name)
 - `path` (str): Directory to search (default: current dir)
 - `type_filter` (str): Filter by file type (e.g., "python", "javascript")
@@ -148,6 +152,7 @@ console.chat("Show me all API route handlers")
 Find all usages of a symbol (function, class, variable).
 
 **Use cases:**
+
 - Impact analysis before refactoring
 - Find all callers of a function
 - Track variable usage
@@ -162,6 +167,7 @@ console.chat("Show me all usages of the User class")
 ```
 
 **Tool parameters:**
+
 - `symbol` (str): Symbol name to find references for
 - `path` (str): Directory to search (default: current dir)
 
@@ -172,6 +178,7 @@ console.chat("Show me all usages of the User class")
 Read the full contents of a file.
 
 **Use cases:**
+
 - Examine configuration files
 - Read source code
 - Check file contents before editing
@@ -186,6 +193,7 @@ console.chat("What's in src/main.py?")
 ```
 
 **Tool parameters:**
+
 - `file_path` (str): Path to file to read
 - `start_line` (int, optional): Start reading from line number
 - `end_line` (int, optional): Stop reading at line number
@@ -207,6 +215,7 @@ console.chat("What's in src/main.py?")
 Create a new file with specified content.
 
 **Use cases:**
+
 - Generate boilerplate code
 - Create configuration files
 - Scaffold project structure
@@ -221,6 +230,7 @@ console.chat("Create a README.md with project overview")
 ```
 
 **Tool parameters:**
+
 - `file_path` (str): Path for new file
 - `content` (str): File contents
 - `overwrite` (bool): Overwrite if exists (default: False)
@@ -233,6 +243,7 @@ console.chat("Create a README.md with project overview")
 Replace specific line ranges in a file.
 
 **Use cases:**
+
 - Fix bugs in specific functions
 - Update configuration values
 - Modify specific code sections
@@ -247,6 +258,7 @@ console.chat("Update the version number in setup.py")
 ```
 
 **Tool parameters:**
+
 - `file_path` (str): File to edit
 - `start_line` (int): First line to replace
 - `end_line` (int): Last line to replace
@@ -260,6 +272,7 @@ console.chat("Update the version number in setup.py")
 Find and replace text in files.
 
 **Use cases:**
+
 - Rename variables across files
 - Update API endpoints
 - Fix repeated typos
@@ -274,6 +287,7 @@ console.chat("Fix the misspelling of 'recieve' to 'receive'")
 ```
 
 **Tool parameters:**
+
 - `file_path` (str): File to edit
 - `old_text` (str): Text to find
 - `new_text` (str): Replacement text
@@ -287,6 +301,7 @@ console.chat("Fix the misspelling of 'recieve' to 'receive'")
 Add content to the end of a file.
 
 **Use cases:**
+
 - Add new functions to modules
 - Append log entries
 - Extend configuration files
@@ -301,6 +316,7 @@ console.chat("Add .DS_Store to .gitignore")
 ```
 
 **Tool parameters:**
+
 - `file_path` (str): File to append to
 - `content` (str): Content to add
 - `dry_run` (bool): Preview without appending
@@ -312,6 +328,7 @@ console.chat("Add .DS_Store to .gitignore")
 Permanently delete a file.
 
 **Use cases:**
+
 - Remove obsolete files
 - Clean up generated files
 - Delete temporary files
@@ -326,6 +343,7 @@ console.chat("Delete temporary files in /tmp")
 ```
 
 **Tool parameters:**
+
 - `file_path` (str): File to delete
 - `confirm` (bool): Require confirmation (default: True)
 
@@ -338,6 +356,7 @@ console.chat("Delete temporary files in /tmp")
 Search the web using a search engine.
 
 **Use cases:**
+
 - Find documentation
 - Research libraries and frameworks
 - Look up error messages
@@ -352,6 +371,7 @@ console.chat("Look up 'ModuleNotFoundError: No module named requests'")
 ```
 
 **Tool parameters:**
+
 - `query` (str): Search query
 - `num_results` (int): Number of results to return (default: 5)
 
@@ -362,6 +382,7 @@ console.chat("Look up 'ModuleNotFoundError: No module named requests'")
 Fetch and parse content from a URL.
 
 **Use cases:**
+
 - Read documentation pages
 - Extract article content
 - Fetch API documentation
@@ -376,6 +397,7 @@ console.chat("What does this blog post say about microservices?")
 ```
 
 **Tool parameters:**
+
 - `url` (str): URL to fetch
 - `parse` (bool): Parse and extract main content (default: True)
 
@@ -386,6 +408,7 @@ console.chat("What does this blog post say about microservices?")
 Search and read Wikipedia articles.
 
 **Use cases:**
+
 - Research background information
 - Get definitions and overviews
 - Understand technical concepts
@@ -400,6 +423,7 @@ console.chat("Summarize the REST architectural style")
 ```
 
 **Tool parameters:**
+
 - `query` (str): Search query
 - `sentences` (int): Number of sentences to return (default: 3)
 
@@ -412,6 +436,7 @@ console.chat("Summarize the REST architectural style")
 Execute shell commands with dynamic risk assessment.
 
 **Use cases:**
+
 - Run scripts and build tools
 - Execute git commands
 - Run tests and linters
@@ -426,6 +451,7 @@ console.chat("Install dependencies with pip")
 ```
 
 **Tool parameters:**
+
 - `command` (str): Shell command to execute
 - `working_dir` (str): Directory to run command in
 - `timeout` (int): Command timeout in seconds

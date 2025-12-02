@@ -116,6 +116,7 @@ Consoul includes AI-powered file editing capabilities that require special secur
 File editing tools implement multiple layers of path security:
 
 **1. Path Traversal Protection**
+
 - Blocks `..` in file paths to prevent directory traversal attacks
 - Validates resolved absolute paths before operations
 - Follows symlinks to validate real destination
@@ -181,6 +182,7 @@ Empty list (`[]`) allows all extensions (use with caution).
 ### File Editing Tools
 
 **Available Tools:**
+
 - `edit_file_lines` - Line-based editing (CAUTION)
 - `edit_file_search_replace` - Search/replace with progressive matching (CAUTION)
 - `create_file` - File creation with overwrite protection (CAUTION)
@@ -188,6 +190,7 @@ Empty list (`[]`) allows all extensions (use with caution).
 - `append_to_file` - Content appending (CAUTION)
 
 **Risk Levels:**
+
 - Most file editing tools: CAUTION (requires approval by default)
 - `delete_file`: DANGEROUS (always requires approval, even in trusting mode)
 
@@ -269,6 +272,7 @@ profiles:
 ### Threat Model
 
 **Protected Against:**
+
 - ✅ Path traversal attacks (`../../../etc/passwd`)
 - ✅ Unauthorized file access (blocked paths)
 - ✅ Malicious file types (extension filtering)
@@ -277,6 +281,7 @@ profiles:
 - ✅ File corruption (atomic writes)
 
 **User Responsible For:**
+
 - ⚠️ Reviewing approval prompts carefully
 - ⚠️ Validating diff previews before approval
 - ⚠️ Configuring appropriate extension whitelist

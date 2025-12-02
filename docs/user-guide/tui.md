@@ -101,10 +101,12 @@ Consoul displays different message types with distinct visual styles:
 Consoul provides two official brand themes, plus access to Textual's built-in themes:
 
 **Official Consoul Themes:**
+
 - **Consoul Dark** - Brand dark theme (default)
 - **Consoul Light** - Brand light theme
 
 **Available Textual Themes:**
+
 - Nord, Gruvbox, Tokyo Night, Dracula, Monokai, Catppuccin, Solarized, Flexoki, and more
 
 ![Theme Example](../assets/screenshots/theme-consoul-dark.png)

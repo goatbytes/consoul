@@ -14,6 +14,7 @@ consoul tui
 ```
 
 **Features:**
+
 - Unlimited conversations
 - Automatic persistence
 - Context maintained across messages
@@ -29,6 +30,7 @@ After AI analysis: "Debugging Python Import Error"
 ```
 
 **Title Generation:**
+
 - Triggered after first AI response
 - Based on conversation content and intent
 - Updates conversation card in sidebar
@@ -42,6 +44,7 @@ After AI analysis: "Debugging Python Import Error"
 3. Previous conversation is saved automatically
 
 **Via Keyboard:**
+
 - `^n`: New conversation
 - Navigate sidebar with arrow keys (when focused)
 
@@ -55,6 +58,7 @@ Find conversations quickly:
 4. Clear search with `Esc`
 
 **Search Features:**
+
 - Real-time filtering
 - Case-insensitive
 - Searches conversation titles
@@ -83,6 +87,7 @@ In terminal's grace, a cha█
 ```
 
 **Indicators:**
+
 - Blinking cursor during streaming
 - Character-by-character display
 - Syntax highlighting updates live
@@ -97,6 +102,7 @@ Each message includes rich metadata:
 ```
 
 **Metadata Components:**
+
 - Timestamp (toggleable)
 - Tokens per second
 - Total token count (toggleable)
@@ -171,6 +177,7 @@ For CAUTION and DANGEROUS tools:
 ```
 
 **Approval Options:**
+
 - **Approve**: Execute this time only
 - **Deny**: Reject execution
 - **View Details**: See tool description and arguments
@@ -187,6 +194,7 @@ Freed 1.2 GB
 ```
 
 **Features:**
+
 - Syntax highlighting for code output
 - Scrollable for long output
 - Expandable/collapsible
@@ -234,6 +242,7 @@ Navigate filesystem to select files:
 ```
 
 **Navigation:**
+
 - **↑↓**: Move up/down
 - **→**: Expand directory
 - **←**: Collapse directory
@@ -242,6 +251,7 @@ Navigate filesystem to select files:
 - **Esc**: Cancel
 
 **Quick Jump:**
+
 - **✱ Root**: Navigate to `/`
 - **🏠 Home**: Navigate to `~`
 - **📁 CWD**: Navigate to current working directory
@@ -256,6 +266,7 @@ Selected files shown as chips in input area:
 ```
 
 **Chip Actions:**
+
 - Click `×` to remove file
 - Hover for highlight
 - Auto-wrap to multiple lines if needed
@@ -272,6 +283,7 @@ Attachments:
 ```
 
 **Processing:**
+
 - File contents read automatically
 - Syntax detection
 - Included in AI context
@@ -288,6 +300,7 @@ Toggle message timestamps:
 ```
 
 **Settings → Appearance → Show Timestamps**
+
 - On: Show timestamp on every message
 - Off: Hide timestamps (cleaner UI)
 
@@ -300,6 +313,7 @@ Toggle token usage display:
 ```
 
 **Settings → Appearance → Show Token Count**
+
 - On: Show tokens, rate, and metrics
 - Off: Hide token information
 
@@ -308,12 +322,14 @@ Toggle token usage display:
 Toggle conversation list sidebar:
 
 **Methods:**
+
 - Click conversation count in header
 - Press `^b`
 - Click search bar (auto-shows)
 - Settings → Appearance → Show Sidebar
 
 **Behavior:**
+
 - Persisted across sessions
 - Auto-hides when empty
 - Auto-shows on search
@@ -324,10 +340,12 @@ Toggle conversation list sidebar:
 Toggle code syntax highlighting:
 
 **Settings → Appearance → Input Syntax Highlighting**
+
 - On: Highlight code in input area
 - Off: Plain text (faster on slow terminals)
 
 **Features:**
+
 - Python, JavaScript, Shell, and more
 - Auto-detection
 - Theme-aware colors
@@ -432,6 +450,7 @@ Extended reasoning shown during generation:
 ```
 
 **Features:**
+
 - Real-time streaming of thoughts
 - Collapsible after completion
 - Dashed border for distinction
@@ -450,6 +469,7 @@ Assistant: [Remembers previous /tmp context]
 ```
 
 **Features:**
+
 - Automatic context window management
 - Conversation history included
 - Tool results preserved
@@ -471,6 +491,7 @@ Graceful error display:
 ```
 
 **Error Types:**
+
 - API errors (rate limit, auth, network)
 - Tool execution errors
 - File I/O errors

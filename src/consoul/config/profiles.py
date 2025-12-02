@@ -26,10 +26,14 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
         "default": {
             "name": "default",
             "description": "Default profile with balanced settings for general use",
-            # NOTE: {AVAILABLE_TOOLS} marker will be replaced at runtime with dynamic
-            # tool documentation based on currently enabled tools in the registry
+            # NOTE: Environment context (OS, working directory, git info) is automatically
+            # prepended to this prompt when include_system_info or include_git_info are enabled.
+            # {AVAILABLE_TOOLS} marker will be replaced at runtime with dynamic tool documentation.
             "system_prompt": (
                 "You are a helpful AI assistant with access to powerful tools. "
+                "The environment information above provides details about the user's "
+                "working directory, git repository, and system. Use this context "
+                "to provide more relevant and accurate assistance.\n\n"
                 "Use markdown formatting for terminal rendering. "
                 "Avoid unnecessary preamble or postamble.\n\n"
                 "{AVAILABLE_TOOLS}\n\n"
@@ -60,6 +64,8 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
             "description": "Focused profile for thorough code review",
             "system_prompt": (
                 "You are a senior software engineer conducting a thorough code review. "
+                "Use the environment information above to understand the project context, "
+                "including the repository, current branch, and working directory.\n\n"
                 "Focus on code quality, best practices, potential bugs, security issues, "
                 "and maintainability. Provide specific, actionable feedback.\n\n"
                 "{AVAILABLE_TOOLS}"

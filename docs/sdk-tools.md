@@ -117,6 +117,7 @@ console = Consoul(tools="dangerous")
 ```
 
 **Risk Level Hierarchy:**
+
 - `"safe"` → Only SAFE tools
 - `"caution"` → SAFE + CAUTION tools
 - `"dangerous"` → SAFE + CAUTION + DANGEROUS tools
@@ -399,10 +400,12 @@ your-project/
 ### What Gets Discovered
 
 ✅ **Discovered:**
+
 - Functions decorated with `@tool`
 - Instantiated `BaseTool` objects
 
 ❌ **Not Discovered:**
+
 - `__init__.py` files
 - Files starting with `_` (private)
 - `BaseTool` class definitions (must be instantiated)
@@ -478,18 +481,21 @@ Every tool is classified by its potential impact:
 ### When to Use Which Risk Level
 
 **Assign SAFE to:**
+
 - Read-only operations
 - Web API calls that don't modify state
 - Search and lookup operations
 - Data analysis without side effects
 
 **Assign CAUTION to:**
+
 - File creation/modification
 - Command execution
 - API calls that modify state
 - Operations that can be undone
 
 **Assign DANGEROUS to:**
+
 - File/data deletion
 - Irreversible operations
 - System modifications
@@ -525,6 +531,7 @@ def lookup_data(key: str) -> str:
 ### Best Practices
 
 ✅ **DO:**
+
 - Start with `tools="safe"` for read-only tasks
 - Use specific tool lists instead of `tools=True` when possible
 - Enable only the tools you need
@@ -532,6 +539,7 @@ def lookup_data(key: str) -> str:
 - Test tools in safe environments first
 
 ❌ **DON'T:**
+
 - Use `tools="dangerous"` unless necessary
 - Auto-approve dangerous operations in production
 - Disable audit logging
@@ -787,6 +795,7 @@ Custom tool raises errors when called.
 ---
 
 **Quick Links:**
+
 - [Quick Start](#quick-start) - Get started in 60 seconds
 - [Built-in Tools](#built-in-tools-reference) - See all available tools
 - [Custom Tools](#custom-tools) - Create your own tools

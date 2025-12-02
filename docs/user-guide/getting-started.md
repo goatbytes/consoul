@@ -45,6 +45,7 @@ consoul tui
 ```
 
 **Features:**
+
 - Live streaming responses
 - Syntax highlighting
 - Conversation history
@@ -60,6 +61,7 @@ consoul chat "Your question here"
 ```
 
 **Use cases:**
+
 - Quick questions
 - Scripting and automation
 - Pipeline integration

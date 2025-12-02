@@ -796,21 +796,21 @@ def get_provider_from_model(model_name: str) -> Provider | None:
     """
     model_lower = model_name.lower()
 
-    # Check explicit patterns first (OpenAI, Anthropic, Google, HuggingFace)
+    # Check if it's an Ollama model FIRST (before checking other patterns)
+    # Ollama uses colon-separated tags like "llama3:latest" or "gpt-oss:20b"
+    # This must be checked before OpenAI patterns to prevent "gpt-oss:20b" matching "gpt-"
+    if ":" in model_name:
+        return Provider.OLLAMA
+
+    # Check explicit patterns (OpenAI, Anthropic, Google, HuggingFace)
     for provider, patterns in PROVIDER_PATTERNS.items():
         if provider == Provider.OLLAMA:
             continue  # Handle Ollama separately
         if any(model_lower.startswith(pattern) for pattern in patterns):
             return provider
 
-    # Check if it's an Ollama model by:
-    # 1. Has a colon (tag format like "llama3:latest" or "granite4:3b")
-    # 2. Matches known Ollama model prefixes
-    # 3. Is in the list of installed Ollama models (if Ollama is running)
-    if ":" in model_name:
-        return Provider.OLLAMA
-
     # Check known Ollama model prefixes
+    # For models without tags like "llama3" or "mistral"
     ollama_patterns = PROVIDER_PATTERNS.get(Provider.OLLAMA, [])
     if any(model_lower.startswith(pattern) for pattern in ollama_patterns):
         return Provider.OLLAMA

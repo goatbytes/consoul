@@ -60,30 +60,30 @@ Rich, interactive terminal interface powered by [Textual](https://textual.textua
 ### 🤖 Multi-Provider Support
 Use your favorite AI model or run locally:
 
-- **Anthropic Claude** - Claude 3.5 Sonnet, Opus, Haiku
-- **OpenAI** - GPT-4o, GPT-4, GPT-3.5
-- **Google Gemini** - Gemini 2.0 Flash, Pro
-- **Ollama** - Run models locally (Llama, Mistral, etc.)
-- **LlamaCpp** - GGUF models with GPU acceleration
+- **Anthropic Claude** - Claude 4.5 Sonnet, Opus, Haiku
+- **OpenAI** - GPT-5, GPT-4, GPT-3.5
+- **Google Gemini** - Gemini 3 Flash, Pro
+- **Ollama** - Run models locally (Llama, Qwen, GPT-OSS etc.)
+- **LlamaCpp** - GGUF/MLX models with GPU acceleration
 
 ### 🛠️ AI-Powered Tools
 
 **File Editing**
 Let AI create, modify, and delete files with safety controls:
 ```bash
-consoul chat "Add error handling to calculate_total in src/utils.py"
+consoul ask "Add error handling to calculate_total in src/utils.py" --tools
 ```
 
 **Code Search**
 Navigate your codebase semantically:
 ```bash
-consoul chat "Find all usages of deprecated_function"
+consoul ask "Find all usages of deprecated_function" --tools
 ```
 
 **Image Analysis**
 Debug with screenshots:
 ```bash
-consoul chat "What's wrong with this error?" --attach screenshot.png
+consoul ask "What's wrong with this error?" --attach screenshot.png
 ```
 
 **And More:**
@@ -96,14 +96,11 @@ consoul chat "What's wrong with this error?" --attach screenshot.png
 For quick questions without the TUI:
 
 ```bash
-# Chat mode
-consoul chat
-
 # One-off questions
 consoul ask "Explain Python decorators"
 
-# Attach files
-consoul chat --attach requirements.txt "What dependencies are outdated?"
+# Interactive chat mode
+consoul chat
 ```
 
 ### 🔌 SDK Integration
@@ -122,7 +119,8 @@ console.chat("Create a summary.md file with the results")
 
 # Rich responses with metadata
 response = console.ask("Summarize this project", show_tokens=True)
-print(f"Tokens: {response.tokens}, Cost: ${response.cost:.4f}")
+print(f"Tokens: {response.tokens}")
+print(f"Cost: ${console.last_cost['total_cost']:.4f}")
 ```
 
 ---

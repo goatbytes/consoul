@@ -928,9 +928,13 @@ class ConsoulApp(App[None]):
         logger = logging.getLogger(__name__)
 
         # Add system prompt to conversation (if conversation exists)
-        if self.conversation:
+        logger.info(f"[POST-INIT] Conversation exists: {self.conversation is not None}")
+        if self.conversation is not None:
+            logger.info("[POST-INIT] Calling _add_initial_system_prompt()")
             self._add_initial_system_prompt()
             logger.info("[POST-INIT] Added initial system prompt")
+        else:
+            logger.warning("[POST-INIT] No conversation, skipping system prompt")
 
         # Theme is now applied during initialization (before main UI shows)
         # to prevent background color flash when loading screen is disabled
@@ -1197,23 +1201,50 @@ class ConsoulApp(App[None]):
             )
 
     def _build_current_system_prompt(self) -> str | None:
-        """Build system prompt with current tool registry state.
+        """Build system prompt with environment context and tool documentation.
 
-        Replaces {AVAILABLE_TOOLS} marker in profile's system_prompt with
-        dynamically generated tool documentation based on enabled tools.
+        Injects environment context (OS, working directory, git info) based on
+        profile settings, then replaces {AVAILABLE_TOOLS} marker with dynamically
+        generated tool documentation.
 
         Returns:
-            Complete system prompt with tool documentation, or None if no prompt
+            Complete system prompt with environment context and tool docs, or None
         """
+        from consoul.ai.environment import get_environment_context
         from consoul.ai.prompt_builder import build_system_prompt
 
         if not self.active_profile or not self.active_profile.system_prompt:
             return None
 
-        return build_system_prompt(
-            self.active_profile.system_prompt,
-            self.tool_registry,
+        # Start with base system prompt
+        base_prompt = self.active_profile.system_prompt
+
+        # Inject environment context if enabled
+        include_system = (
+            self.active_profile.context.include_system_info
+            if hasattr(self.active_profile, "context")
+            else True
         )
+        include_git = (
+            self.active_profile.context.include_git_info
+            if hasattr(self.active_profile, "context")
+            else True
+        )
+
+        if include_system or include_git:
+            env_context = get_environment_context(
+                include_system_info=include_system,
+                include_git_info=include_git,
+            )
+            if env_context:
+                # Prepend environment context to system prompt
+                base_prompt = f"{env_context}\n\n{base_prompt}"
+                self.log.debug(
+                    f"Injected environment context ({len(env_context)} chars)"
+                )
+
+        # Build final system prompt with tool documentation
+        return build_system_prompt(base_prompt, self.tool_registry)
 
     def _model_supports_vision(self) -> bool:
         """Check if current model supports vision/multimodal input.

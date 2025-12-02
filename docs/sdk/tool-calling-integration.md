@@ -866,6 +866,7 @@ Complete working examples are available in `examples/sdk/`:
 ### Approval Providers
 
 ✅ **DO:**
+
 - Implement timeout handling
 - Log approval decisions
 - Provide clear context to users
@@ -873,6 +874,7 @@ Complete working examples are available in `examples/sdk/`:
 - Use async/await properly
 
 ❌ **DON'T:**
+
 - Block the event loop with sync I/O
 - Throw exceptions on denial
 - Store secrets in plain text
@@ -881,6 +883,7 @@ Complete working examples are available in `examples/sdk/`:
 ### Audit Loggers
 
 ✅ **DO:**
+
 - Handle logging failures gracefully (don't break tool execution)
 - Use structured logging formats
 - Implement log rotation
@@ -888,6 +891,7 @@ Complete working examples are available in `examples/sdk/`:
 - Batch writes for performance
 
 ❌ **DON'T:**
+
 - Block tool execution on logging errors
 - Log sensitive data (passwords, keys)
 - Use synchronous I/O
@@ -896,6 +900,7 @@ Complete working examples are available in `examples/sdk/`:
 ### Configuration
 
 ✅ **DO:**
+
 - Use environment-specific configs
 - Implement per-user policies
 - Document security implications
@@ -903,6 +908,7 @@ Complete working examples are available in `examples/sdk/`:
 - Validate configuration on startup
 
 ❌ **DON'T:**
+
 - Use UNRESTRICTED in production
 - Hardcode credentials
 - Skip validation

@@ -103,17 +103,20 @@ Each conversation is displayed as a card:
 #### Card States
 
 **Default**
+
 - Gray background
 - Blue left border
 - Two-line title support (wraps automatically)
 - Date in muted gray
 
 **Hover**
+
 - Lighter background
 - Cyan accent border
 - Enhanced visual feedback
 
 **Selected/Active**
+
 - Blue background
 - Purple left border
 - Bold text style
@@ -178,6 +181,7 @@ All messages are displayed as bordered containers with metadata.
 ```
 
 **Characteristics:**
+
 - Blue border (primary color)
 - Title aligned right: "You"
 - Timestamp in bottom left
@@ -200,6 +204,7 @@ All messages are displayed as bordered containers with metadata.
 ```
 
 **Characteristics:**
+
 - Purple border (secondary color #44385E)
 - Title aligned left: "Assistant"
 - Markdown rendering
@@ -217,6 +222,7 @@ All messages are displayed as bordered containers with metadata.
 ```
 
 **Characteristics:**
+
 - Muted border and colors
 - Lighter background
 - Icon-based status indicators
@@ -233,6 +239,7 @@ All messages are displayed as bordered containers with metadata.
 ```
 
 **Characteristics:**
+
 - Red background
 - Thick yellow border
 - Error icon
@@ -298,6 +305,7 @@ When the AI is processing (extended thinking):
 ```
 
 **Features:**
+
 - Dashed blue border
 - Animated dots
 - Real-time streaming of thinking content
@@ -312,7 +320,9 @@ Assistant messages support rich markdown:
 - **Code Blocks** (with syntax highlighting)
 - **Inline Code** (`code`)
 - **Tables**
+
 - **Links**
+
 - **Emphasis** (*italic*, **bold**)
 - **Blockquotes**
 
@@ -328,6 +338,7 @@ Assistant messages support rich markdown:
 ```
 
 **Features:**
+
 - Language detection
 - Syntax highlighting (Pygments)
 - Line numbers (optional)
@@ -371,6 +382,7 @@ Attached files shown as removable chips:
 ```
 
 **Features:**
+
 - File icon
 - Filename
 - Remove button (×)

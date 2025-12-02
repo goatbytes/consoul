@@ -32,6 +32,7 @@ pip install consoul[dev]
 ```
 
 **Requirements:**
+
 - Python 3.10+
 - API keys for your chosen provider (OpenAI, Anthropic, Google, or Ollama)
 

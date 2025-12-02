@@ -14,6 +14,7 @@ $ consoul chat "Add error handling to calculate_total in src/utils.py"
 The AI will find the function, add try/catch blocks, preserve your formatting, and make the change—all without you opening an editor.
 
 **Related Tools:**
+
 - [Code Search](code-search.md) - Find code before editing
 - [Image Analysis](image-analysis.md) - Analyze screenshots and UI
 
@@ -62,6 +63,7 @@ console.chat("Add error handling to the calculate_total function in src/utils.py
 ```
 
 **Benefits:**
+
 - ✅ AI understands context and intent
 - ✅ Preserves formatting (tabs/spaces, line endings)
 - ✅ Generates diff previews for review
@@ -73,6 +75,7 @@ console.chat("Add error handling to the calculate_total function in src/utils.py
 Most file editing tools are classified as **Risk Level: CAUTION**, with the exception of `delete_file` which is **Risk Level: DANGEROUS** due to its destructive nature. All file operations require user approval by default.
 
 **Security layers:**
+
 1. **Path validation**: Blocks `..` traversal and absolute dangerous paths
 2. **Extension filtering**: Whitelist of allowed file extensions
 3. **Size limits**: Prevents runaway edits (max bytes, max edits)
@@ -82,6 +85,7 @@ Most file editing tools are classified as **Risk Level: CAUTION**, with the exce
 ### Quick Start
 
 **Enable in configuration:**
+
 ```yaml
 profiles:
   default:
@@ -91,6 +95,7 @@ profiles:
 ```
 
 **Basic usage:**
+
 ```python
 from consoul import Consoul
 
@@ -109,6 +114,7 @@ console.chat("Add type hints to all functions in src/models.py")
 Edit specific lines or line ranges with exact precision.
 
 **Capabilities:**
+
 - Edit single lines or ranges (e.g., "5-10", "42")
 - Replace multiple non-overlapping ranges in one operation
 - Delete lines by providing empty content
@@ -167,6 +173,7 @@ result = edit_file_lines.invoke({
 ```
 
 **Common Use Cases:**
+
 - Fix specific lines identified by linters
 - Update version numbers or constants
 - Add logging statements
@@ -178,6 +185,7 @@ result = edit_file_lines.invoke({
 Search for content and replace with progressive matching (strict/whitespace/fuzzy).
 
 **Capabilities:**
+
 - **Strict matching**: Exact text match (default)
 - **Whitespace tolerance**: Ignores leading/trailing whitespace and indentation
 - **Fuzzy matching**: Similarity-based matching for typos
@@ -258,6 +266,7 @@ result = edit_file_search_replace.invoke({
 ```
 
 **Common Use Cases:**
+
 - Refactor function signatures
 - Rename classes/variables
 - Update import statements
@@ -269,6 +278,7 @@ result = edit_file_search_replace.invoke({
 Create new files or overwrite existing ones with safety controls.
 
 **Capabilities:**
+
 - Create files with automatic parent directory creation
 - Overwrite protection (disabled by default)
 - Extension validation
@@ -347,6 +357,7 @@ result = create_file.invoke({
 ```
 
 **Common Use Cases:**
+
 - Generate boilerplate code files
 - Create configuration files
 - Initialize project structure
@@ -358,6 +369,7 @@ result = create_file.invoke({
 Safely delete files with validation and approval.
 
 **Capabilities:**
+
 - Delete individual files (not directories)
 - Path validation (blocks dangerous paths)
 - Extension filtering
@@ -415,6 +427,7 @@ delete_file.invoke({"file_path": "important.db"})
 ```
 
 **Common Use Cases:**
+
 - Remove deprecated files
 - Clean up temporary files
 - Delete generated files before regeneration
@@ -426,6 +439,7 @@ delete_file.invoke({"file_path": "important.db"})
 Append content to existing files or create new ones.
 
 **Capabilities:**
+
 - Append to end of existing files
 - Smart newline handling (adds separator if needed)
 - Create file if missing (opt-in via `create_if_missing`)
@@ -499,6 +513,7 @@ append_to_file.invoke({"file_path": "test.txt", "content": "line3"})
 ```
 
 **Common Use Cases:**
+
 - Add changelog entries
 - Append log entries
 - Add test cases
@@ -584,6 +599,7 @@ file_edit:
 ```
 
 **Case-insensitive matching:**
+
 - `.py` matches `.PY`, `.Py`, `.pY`
 - Extension filtering is case-insensitive
 
@@ -633,6 +649,7 @@ file_edit:
 ```
 
 **Validation:**
+
 - `edit_file_lines`: Total size of all `line_edits` values
 - `edit_file_search_replace`: Total size of all `replace` values
 - `create_file`: Size of `content` parameter
@@ -659,10 +676,12 @@ file_edit:
 ### Risk Classification
 
 **Risk Levels:**
+
 - Most file editing tools: **CAUTION** (edit_file_lines, edit_file_search_replace, create_file, append_to_file)
 - `delete_file`: **DANGEROUS** (destructive operation)
 
 **Approval Requirements:**
+
 - CAUTION tools: Require approval with `balanced` or `paranoid`, auto-approved with `trusting`
 - DANGEROUS tools: Always require approval (even with `trusting`), only auto-approved with `unrestricted`
 
@@ -700,6 +719,7 @@ edit_file_lines.invoke({
 ### Extension Validation
 
 **Enforcement:**
+
 - Checked AFTER path traversal validation
 - Case-insensitive comparison
 - Extensionless files require explicit `""` in allowed list
@@ -803,12 +823,14 @@ Progressive matching allows `edit_file_search_replace` to handle variations in w
 ### Strict Matching (Default)
 
 **Behavior:**
+
 - Exact character-for-character match
 - Whitespace must match exactly
 - Line endings must match exactly
 - Fastest matching mode
 
 **Use when:**
+
 - You know the exact content
 - Replacing constants or literals
 - Working with machine-generated code
@@ -828,12 +850,14 @@ edit_file_search_replace.invoke({
 ### Whitespace Tolerance
 
 **Behavior:**
+
 - Ignores leading/trailing whitespace on each line
 - Ignores differences in indentation
 - Preserves original tab/space style
 - Preserves original line endings (CRLF/LF)
 
 **Use when:**
+
 - Search block has different indentation than file
 - Refactoring code with varying indent levels
 - Copying code from documentation
@@ -889,12 +913,14 @@ edit_file_search_replace.invoke({
 ### Fuzzy Matching
 
 **Behavior:**
+
 - Matches based on similarity score (≥80% default)
 - Handles typos in search text
 - Shows confidence score in warning
 - Suggests similar blocks if no match
 
 **Use when:**
+
 - You have a typo in the search text
 - Code has minor formatting differences
 - You want "did you mean?" suggestions
@@ -1150,13 +1176,16 @@ edit_file_lines.invoke({
 ## See Also
 
 **Other Tools:**
+
 - [Code Search](code-search.md) - Find code before editing it
 - [Image Analysis](image-analysis.md) - Review changes visually
 
 **SDK & API:**
+
 - [SDK Tools Overview](../api/tools.md) - Using file editing tools programmatically
 - [Tool Configuration](../sdk-tools.md) - Configuring file editing in your code
 
 **Configuration & Security:**
+
 - [Configuration Guide](configuration.md) - Enable/disable file editing
 - [Security Policy](../SECURITY.md) - Safety controls and best practices
