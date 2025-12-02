@@ -4124,13 +4124,9 @@ class ConsoulApp(App[None]):
 
             # Override default ModalScreen CSS to fill entire screen
             DEFAULT_CSS = """
-            ScreensaverModal {
-                align: stretch;
-            }
-
             ScreensaverModal > LoadingScreen {
                 width: 100%;
-                height: 100%;
+                height: 100vh;
             }
             """
 
