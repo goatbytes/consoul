@@ -1,0 +1,18 @@
+2025-12-01 18:21:45,482 - consoul.tui.cli - INFO - Debug logging enabled, writing to: ./log.txt
+2025-12-01 18:21:45,893 - consoul.tui.app - INFO - [PERF] Step 1 (Load config): 101.4ms
+2025-12-01 18:21:46,728 - consoul.tui.app - INFO - [PERF] Step 2 (Initialize AI model): 835.4ms
+2025-12-01 18:21:46,730 - consoul.tui.app - INFO - [PERF-CONV] Get conversation config: 0.0ms
+2025-12-01 18:21:46,730 - consoul.ai.history - DEBUG - [PERF-HIST] Get model token limit: 0.3ms
+2025-12-01 18:21:46,797 - consoul.ai.history - DEBUG - [PERF-HIST] Create token counter: 67.0ms
+2025-12-01 18:21:46,813 - consoul.ai.history - DEBUG - [PERF-HIST] Create ConversationDatabase: 9.4ms
+2025-12-01 18:21:46,813 - consoul.ai.history - DEBUG - [PERF-HIST] Total ConversationHistory.__init__: 83.2ms
+2025-12-01 18:21:46,813 - consoul.tui.app - INFO - [PERF-CONV] ConversationHistory.__init__: 83.2ms
+2025-12-01 18:21:46,813 - consoul.tui.app - INFO - [PERF] Step 3 (Create conversation): 84.8ms
+2025-12-01 18:21:46,813 - consoul.tui.app - INFO - Initialized AI model: gpt-oss:20b, session: None
+2025-12-01 18:21:46,817 - consoul.tui.app - INFO - [PERF] Step 4 (Load tools): 3.9ms
+2025-12-01 18:21:46,837 - consoul.tui.app - INFO - [PERF] Step 5 (Bind tools): 19.5ms
+2025-12-01 18:21:46,837 - consoul.tui.app - INFO - [PERF] Cleanup old conversations: 0.2ms
+2025-12-01 18:21:46,905 - consoul.tui.app - INFO - [PERF] Initialize title generator: 68.2ms
+2025-12-01 18:21:46,905 - consoul.tui.app - INFO - [PERF] Applied theme: consoul-volcano
+2025-12-01 18:21:47,156 - consoul.tui.app - INFO - [PERF] Apply theme: 250.8ms
+2025-12-01 18:21:47,667 - consoul.tui.app - INFO - [POST-INIT] Post-initialization setup complete

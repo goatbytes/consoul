@@ -4102,8 +4102,14 @@ class ConsoulApp(App[None]):
         from consoul.tui.animations import AnimationStyle
         from consoul.tui.loading import LoadingScreen
 
+        # Check if a screensaver is currently showing
+        # Modal screens are on top of the screen stack
+        if len(self.screen_stack) > 1:
+            # There's a modal screen showing - dismiss it
+            self.pop_screen()
+            return
+
         # Create a modal screen with the loading animation
-        # (modal will dismiss on any key press via on_key handler)
         animation_styles = [
             AnimationStyle.SOUND_WAVE,
             AnimationStyle.MATRIX_RAIN,
@@ -4118,8 +4124,17 @@ class ConsoulApp(App[None]):
 
             CSS = """
             ScreensaverModal {
+                width: 100%;
+                height: 100%;
                 align: center middle;
                 background: $surface;
+                layer: screensaver;
+                layers: screensaver;
+            }
+
+            ScreensaverModal > LoadingScreen {
+                width: 100%;
+                height: 100%;
             }
             """
 
