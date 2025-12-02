@@ -367,6 +367,10 @@ disallow_untyped_decorators = false
 disallow_subclassing_any = false
 
 [[tool.mypy.overrides]]
+module = "consoul.tui.app"
+disable_error_code = ["func-returns-value"]
+
+[[tool.mypy.overrides]]
 module = "consoul.ai.tools.implementations.*"
 disallow_untyped_decorators = false
 

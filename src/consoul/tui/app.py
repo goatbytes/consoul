@@ -3889,7 +3889,6 @@ class ConsoulApp(App[None]):
         """Focus the input area."""
         self.notify("Focus input (Phase 2)")
 
-    # type: ignore[func-returns-value]  # Textual action methods
     async def action_settings(self) -> None:
         """Show settings screen."""
         from consoul.tui.widgets.settings_screen import SettingsScreen
@@ -3898,11 +3897,12 @@ class ConsoulApp(App[None]):
             self.notify("Configuration not loaded", severity="error")
             return None
 
-        result = await self.push_screen(
+        result: bool | None = await self.push_screen(
             SettingsScreen(config=self.config, consoul_config=self.consoul_config)
         )
         if result:
             self.notify("Settings saved successfully", severity="information")
+        return None
 
     async def action_permissions(self) -> None:
         """Show permission manager screen."""
@@ -3914,11 +3914,14 @@ class ConsoulApp(App[None]):
             self.notify("Configuration not loaded", severity="error")
             return None
 
-        result = await self.push_screen(PermissionManagerScreen(self.consoul_config))
+        result: bool | None = await self.push_screen(
+            PermissionManagerScreen(self.consoul_config)
+        )
         if result:
             self.notify(
                 "Permission settings saved successfully", severity="information"
             )
+        return None
 
     async def action_tools(self) -> None:
         """Show tool manager screen."""
@@ -3930,7 +3933,9 @@ class ConsoulApp(App[None]):
 
         logger = logging.getLogger(__name__)
         logger.info("[TOOL_MANAGER] About to push tool manager screen")
-        result = await self.push_screen(ToolManagerScreen(self.tool_registry))
+        result: bool | None = await self.push_screen(
+            ToolManagerScreen(self.tool_registry)
+        )
         logger.info(
             f"[TOOL_MANAGER] Tool manager closed, result={result}, type={type(result)}"
         )
@@ -3944,6 +3949,7 @@ class ConsoulApp(App[None]):
             )
         else:
             logger.info("[TOOL_MANAGER] No changes applied")
+        return None
 
     async def action_view_system_prompt(self) -> None:
         """Show system prompt modal with current or stored prompt."""
