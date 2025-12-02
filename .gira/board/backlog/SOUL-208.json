@@ -1,0 +1,21 @@
+{
+  "created_at": "2025-12-02T11:06:33.846658",
+  "updated_at": "2025-12-02T11:06:33.846665",
+  "id": "SOUL-208",
+  "uuid": "3fc5723b-3c59-48a3-8895-e0f9b188d352",
+  "title": "Add --temperature and --max-tokens flags for model parameter control",
+  "description": "**As a** Consoul user\n**I want** to control temperature and max-tokens per query\n**So that** I can tune creativity and response length dynamically\n\n**Context:**\nDocumentation shows these flags:\n- Line 266-269: consoul chat --temperature 0.2 \"Write a binary search\"\n- Line 278-281: consoul chat --max-tokens 200 \"Brief summary\"\n\nThese allow per-query tuning without config changes.\n\n**Proposed Implementation:**\n\nAdd both flags to ask and chat commands:\n- --temperature: Float 0.0-2.0 (control randomness)\n- --max-tokens: Integer (control response length)\n\nExamples:\nconsoul ask --temperature 0.1 \"Generate production code\"\nconsoul ask --temperature 0.9 \"Brainstorm project names\"\nconsoul ask --max-tokens 100 \"Brief answer only\"\n\n**Acceptance Criteria:**\n- --temperature accepts 0.0-2.0, validates range\n- --max-tokens accepts positive integers\n- Invalid values show clear error messages\n- Flags override profile defaults\n- Work with both ask and chat commands\n\n**Story Points:** 1",
+  "status": "backlog",
+  "type": "feature",
+  "priority": "low",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

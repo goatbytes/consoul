@@ -77,6 +77,72 @@ consoul ask "Long response" --no-stream
 consoul ask "Plain text please" --no-markdown
 ```
 
+### Pipeline Integration with --stdin
+
+The `--stdin` flag enables Unix pipeline patterns, allowing you to pipe command output directly to Consoul for AI analysis:
+
+**Basic Usage:**
+```bash
+# Analyze command output
+docker ps | consoul ask --stdin "Which containers are using most resources?"
+
+# Debug test failures
+pytest tests/ 2>&1 | consoul ask --stdin "Explain these test failures"
+
+# Code review
+git diff main..feature | consoul ask --stdin "Review this diff for bugs"
+
+# Error analysis
+python script.py 2>&1 | consoul ask --stdin "What's causing this error?"
+```
+
+**With Interactive Chat:**
+```bash
+# Load context then discuss interactively
+tail -100 app.log | consoul chat --stdin
+# Stdin content is loaded, then you're prompted for your question
+# After first message, continues as normal interactive chat
+```
+
+**Combining with Other Flags:**
+```bash
+# With file attachments
+git diff | consoul ask --stdin "Review this" --attach README.md --tools
+
+# With model override
+curl https://api.example.com | consoul ask --stdin "Analyze this API response" --model gpt-4o
+
+# Save analysis to file
+docker stats --no-stream | consoul ask --stdin "Summarize resource usage" --output report.txt
+```
+
+**Common Patterns:**
+```bash
+# Log monitoring
+tail -f app.log | consoul ask --stdin "Alert me on errors"
+
+# Performance analysis
+time ./benchmark.sh 2>&1 | consoul ask --stdin "How can I optimize this?"
+
+# Security review
+git show HEAD | consoul ask --stdin "Security review this commit"
+
+# Data transformation
+cat data.json | consoul ask --stdin "Convert this to CSV format"
+```
+
+**Shell Redirection:**
+```bash
+# Read from file
+consoul ask --stdin "Analyze this log" < error.log
+
+# Here document
+consoul ask --stdin "Fix these issues" <<EOF
+Error 1: Connection timeout
+Error 2: Memory leak
+EOF
+```
+
 ### Use Cases
 
 **Shell Aliases:**

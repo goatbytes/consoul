@@ -141,6 +141,11 @@ def cli(
     is_flag=True,
     help="Enable multi-line input mode (use Alt+Enter to submit)",
 )
+@click.option(
+    "--stdin",
+    is_flag=True,
+    help="Read initial message from stdin (for piping command output)",
+)
 @click.pass_context
 def chat(
     ctx: click.Context,
@@ -149,6 +154,7 @@ def chat(
     no_markdown: bool,
     tools: bool | None,
     multiline: bool,
+    stdin: bool,
 ) -> None:
     """Start an interactive chat session with streaming responses.
 
@@ -309,19 +315,64 @@ def chat(
         logger.error(f"Failed to initialize ChatSession: {e}", exc_info=True)
         ctx.exit(1)
 
+    # Read from stdin if flag is set (only for first message)
+    initial_stdin: str | None = None
+    if stdin:
+        from consoul.cli.stdin_reader import read_stdin
+
+        try:
+            initial_stdin = read_stdin()
+            if initial_stdin is None:
+                console.print(
+                    "[yellow]Warning: --stdin flag set but no data on stdin[/yellow]"
+                )
+            else:
+                logger.debug(
+                    f"Read {len(initial_stdin)} bytes from stdin for initial message"
+                )
+        except ValueError as e:
+            console.print(f"[yellow]Warning: Could not read stdin: {e}[/yellow]")
+
     # Main chat loop
+    first_iteration = True
     with session:
         while True:
             try:
-                # Get user input with history
-                user_input = get_user_input(
-                    prompt_text="You: ",
-                    multiline=multiline,
-                )
+                user_input: str | None
 
-                # Handle exit (Ctrl+D or 'exit' command)
-                if user_input is None:
-                    break
+                # If we have stdin content on first iteration, use it
+                if first_iteration and initial_stdin:
+                    from consoul.cli.stdin_reader import format_stdin_message
+
+                    console.print(
+                        "[dim]Stdin content loaded. Enter your question:[/dim]"
+                    )
+                    question = get_user_input(
+                        prompt_text="You: ",
+                        multiline=multiline,
+                    )
+
+                    # Handle exit
+                    if question is None:
+                        break
+
+                    # Use default question if empty
+                    if not question.strip():
+                        question = "Analyze this content"
+
+                    user_input = format_stdin_message(initial_stdin, question)
+                    first_iteration = False
+                else:
+                    # Normal input flow
+                    user_input = get_user_input(
+                        prompt_text="You: ",
+                        multiline=multiline,
+                    )
+                    first_iteration = False
+
+                    # Handle exit (Ctrl+D or 'exit' command)
+                    if user_input is None:
+                        break
 
                 # Skip empty input (re-prompt)
                 if not user_input:
@@ -434,6 +485,11 @@ def chat(
     type=click.Path(),
     help="Save response to file",
 )
+@click.option(
+    "--stdin",
+    is_flag=True,
+    help="Read input from stdin (for piping command output)",
+)
 @click.pass_context
 def ask(
     ctx: click.Context,
@@ -447,6 +503,7 @@ def ask(
     show_tokens: bool,
     show_cost: bool,
     output: str | None,
+    stdin: bool,
 ) -> None:
     """Ask a single question and get a response (non-interactive).
 
@@ -482,6 +539,11 @@ def ask(
         \b
         # Save response to file
         consoul ask "Generate report" --output report.txt
+
+        \b
+        # Pipe command output
+        git diff | consoul ask --stdin "Review this diff"
+        docker ps | consoul ask --stdin "Which containers are using most memory?"
     """
     import logging
 
@@ -507,6 +569,31 @@ def ask(
 
     # Type assertion: msg is guaranteed to be str here
     assert isinstance(msg, str)
+
+    # Read from stdin if flag is set
+    if stdin:
+        from consoul.cli.stdin_reader import format_stdin_message, read_stdin
+
+        try:
+            stdin_content = read_stdin()
+            if stdin_content is None:
+                console.print("[red]Error: --stdin flag set but no data on stdin[/red]")
+                console.print("\nUsage:")
+                console.print('  echo "data" | consoul ask --stdin "question"')
+                console.print('  command | consoul ask --stdin "analyze this"')
+                console.print('  consoul ask --stdin "analyze" < file.txt')
+                ctx.exit(1)
+
+            # Type assertion: stdin_content is guaranteed to be str here
+            assert isinstance(stdin_content, str)
+
+            # Format message with stdin content prepended
+            msg = format_stdin_message(stdin_content, msg)
+            logger.debug(f"Read {len(stdin_content)} bytes from stdin")
+
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            ctx.exit(1)
 
     # Override model if specified
     if model:

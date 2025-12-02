@@ -1,0 +1,21 @@
+{
+  "created_at": "2025-12-02T11:06:49.389390",
+  "updated_at": "2025-12-02T11:06:49.389397",
+  "id": "SOUL-209",
+  "uuid": "4d37bf92-7759-494d-bec2-088593cfeab8",
+  "title": "Implement consoul history command for conversation management",
+  "description": "**As a** Consoul user  \n**I want** a history command to list/resume/export conversations\n**So that** I can manage and revisit previous AI conversations\n\n**Context:**\nDocumentation shows history subcommand (lines 287-294):\n- consoul history list - List all conversations\n- consoul history resume <id> - Resume a conversation\n- consoul history export <id> --format markdown - Export to file\n\nCurrently no history command exists. Conversations are stored in SQLite but not accessible via CLI.\n\n**Proposed Implementation:**\n\nAdd consoul history subcommand with:\n1. list - Show all conversations with ID, date, message count, preview\n2. resume <id> - Load conversation and start interactive chat\n3. export <id> - Export conversation (formats: markdown, json, txt)\n4. delete <id> - Delete a conversation\n5. search <query> - Search conversation content\n6. stats - Show usage statistics\n\nExamples:\nconsoul history list\nconsoul history resume abc123\nconsoul history export abc123 --format markdown > chat.md\nconsoul history search \"Python decorators\"\n\n**Acceptance Criteria:**\n- history list shows conversations with metadata\n- resume loads conversation context correctly\n- export supports multiple formats (markdown, json, txt)\n- delete removes conversation from database\n- search finds relevant conversations\n- stats shows token usage, costs, message counts\n\n**Story Points:** 5",
+  "status": "backlog",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}
