@@ -3775,6 +3775,10 @@ class ConsoulApp(App[None]):
             # Clear chat view
             await self.chat_view.clear_messages()
 
+            # Clear conversation list selection
+            if self.conversation_list:
+                self.conversation_list.clear_selection()
+
             # Create new conversation with same model and profile settings
             from consoul.ai import ConversationHistory
 

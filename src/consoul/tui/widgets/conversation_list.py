@@ -346,6 +346,14 @@ class ConversationList(Container):
         self.selected_id = conversation_id
         self.post_message(self.ConversationSelected(conversation_id))
 
+    def clear_selection(self) -> None:
+        """Clear the current conversation selection."""
+        # Deselect all cards
+        for card in self.cards_container.query(ConversationCard):
+            card.is_selected = False
+
+        self.selected_id = None
+
     async def search(self, query: str) -> None:
         """Search conversations using FTS5.
 
