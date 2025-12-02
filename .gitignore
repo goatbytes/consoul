@@ -218,3 +218,8 @@ __marimo__/
 # Local/Dev Files
 .local
 docs/assets/screenshots/consoul-themes.gif
+
+# Debug/Log files
+consoul-log.txt
+log.txt
+scroll-log-*.txt
