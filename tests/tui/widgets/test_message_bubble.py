@@ -229,7 +229,7 @@ class TestMessageBubbleMetadata:
             widget = app.query_one(MessageBubble)
             footer = widget._build_metadata_text()
             assert "14:30:45" in str(footer)
-            assert "🕐" in str(footer)
+            assert "⏱" in str(footer)
 
     async def test_metadata_footer_with_token_count(self) -> None:
         """Test metadata footer includes token count."""
