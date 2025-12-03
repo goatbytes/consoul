@@ -25,7 +25,7 @@ class FileChipTestApp(App[None]):
 
     def compose(self) -> ComposeResult:
         """Compose test app - widgets added dynamically in tests."""
-        pass
+        return []
 
     def on_file_chip_remove_requested(self, event: FileChip.RemoveRequested) -> None:
         """Handle RemoveRequested events."""
@@ -38,10 +38,10 @@ class TestFileChipInitialization:
     async def test_file_chip_mounts_with_image(self) -> None:
         """Test FileChip can be mounted with image file."""
         app = FileChipTestApp()
-        async with app.run_test():
+        async with app.run_test() as pilot:
             chip = FileChip("/path/to/image.png", "image")
             await app.mount(chip)
-            await app.call_from_thread(app.refresh)
+            await pilot.pause()
 
             assert chip.file_path == "/path/to/image.png"
             assert chip.file_type == "image"
@@ -86,7 +86,7 @@ class TestFileChipDisplay:
                 # Query for label
                 label = chip.query_one("#file-info", Label)
                 assert label is not None
-                assert Path(tmp_path).name in label.renderable
+                assert Path(tmp_path).name in str(label.render())
         finally:
             Path(tmp_path).unlink()
 
@@ -117,7 +117,7 @@ class TestFileChipDisplay:
                 await app.mount(chip)
 
                 label = chip.query_one("#file-info", Label)
-                assert "🖼️" in label.renderable
+                assert "🖼️" in str(label.render())
         finally:
             Path(tmp_path).unlink()
 
@@ -135,7 +135,7 @@ class TestFileChipDisplay:
                 await app.mount(chip)
 
                 label = chip.query_one("#file-info", Label)
-                assert "💾" in label.renderable
+                assert "💾" in str(label.render())
         finally:
             Path(tmp_path).unlink()
 
@@ -153,7 +153,7 @@ class TestFileChipDisplay:
                 await app.mount(chip)
 
                 label = chip.query_one("#file-info", Label)
-                assert "📄" in label.renderable
+                assert "📄" in str(label.render())
         finally:
             Path(tmp_path).unlink()
 
@@ -171,7 +171,7 @@ class TestFileChipDisplay:
                 await app.mount(chip)
 
                 label = chip.query_one("#file-info", Label)
-                assert "📊" in label.renderable
+                assert "📊" in str(label.render())
         finally:
             Path(tmp_path).unlink()
 
@@ -183,7 +183,7 @@ class TestFileChipDisplay:
             await app.mount(chip)
 
             label = chip.query_one("#file-info", Label)
-            assert "📎" in label.renderable
+            assert "📎" in str(label.render())
 
 
 class TestFileChipSizeFormatting:
@@ -203,7 +203,8 @@ class TestFileChipSizeFormatting:
                 await app.mount(chip)
 
                 label = chip.query_one("#file-info", Label)
-                assert "100B" in label.renderable or "0.1KB" in label.renderable
+                label_text = str(label.render())
+                assert "100B" in label_text or "0.1KB" in label_text
         finally:
             Path(tmp_path).unlink()
 
@@ -221,7 +222,7 @@ class TestFileChipSizeFormatting:
                 await app.mount(chip)
 
                 label = chip.query_one("#file-info", Label)
-                assert "KB" in label.renderable
+                assert "KB" in str(label.render())
         finally:
             Path(tmp_path).unlink()
 
@@ -239,7 +240,7 @@ class TestFileChipSizeFormatting:
                 await app.mount(chip)
 
                 label = chip.query_one("#file-info", Label)
-                assert "MB" in label.renderable
+                assert "MB" in str(label.render())
         finally:
             Path(tmp_path).unlink()
 
@@ -264,10 +265,10 @@ class TestFileChipRemoval:
         async with app.run_test() as pilot:
             chip = FileChip("/path/to/file.png", "image")
             await app.mount(chip)
+            await pilot.pause()
 
             # Click remove button
-            button = chip.query_one("#remove-chip", Button)
-            await button.press()
+            await pilot.click("#remove-chip")
             await pilot.pause()
 
             # Should post RemoveRequested message
@@ -280,14 +281,14 @@ class TestFileChipRemoval:
         async with app.run_test() as pilot:
             chip = FileChip("/path/to/file.png", "image")
             await app.mount(chip)
+            await pilot.pause()
 
             # Verify chip is in DOM
             chips = app.query(FileChip)
             assert len(chips) == 1
 
             # Click remove button
-            button = chip.query_one("#remove-chip", Button)
-            await button.press()
+            await pilot.click("#remove-chip")
             await pilot.pause()
 
             # Chip should be removed from DOM
@@ -303,10 +304,11 @@ class TestFileChipRemoval:
             chip3 = FileChip("/path/to/file3.json", "data")
 
             await app.mount(chip1, chip2, chip3)
+            await pilot.pause()
 
             # Remove second chip
             button2 = chip2.query_one("#remove-chip", Button)
-            await button2.press()
+            await pilot.click(button2)
             await pilot.pause()
 
             # Should have 2 chips remaining
@@ -401,9 +403,10 @@ class TestFileChipMessages:
             file_path = "/path/to/test.png"
             chip = FileChip(file_path, "image")
             await app.mount(chip)
+            await pilot.pause()
 
             button = chip.query_one("#remove-chip", Button)
-            await button.press()
+            await pilot.click(button)
             await pilot.pause()
 
             # Verify message content
@@ -423,11 +426,12 @@ class TestFileChipMessages:
 
             for chip in chips:
                 await app.mount(chip)
+            await pilot.pause()
 
             # Remove all chips
             for chip in chips:
                 button = chip.query_one("#remove-chip", Button)
-                await button.press()
+                await pilot.click(button)
                 await pilot.pause()
 
             # Should have 3 removal messages
