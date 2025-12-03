@@ -1,0 +1,41 @@
+{
+  "created_at": "2025-11-29T08:25:15.369395",
+  "updated_at": "2025-11-29T23:33:32.311504Z",
+  "id": "SOUL-184",
+  "uuid": "afbd2193-f7da-4ee0-8ac9-3d5f8b71be38",
+  "title": "Implement accurate token usage tracking from AIMessage.usage_metadata",
+  "description": "## Problem\nThe current `console.last_cost` implementation uses rough approximations:\n- 60/40 input/output token split (inaccurate)\n- Hard-coded Claude pricing for all models\n- No access to actual token counts from API responses\n\n## Solution\nExtract actual token usage from LangChain's `AIMessage.usage_metadata`:\n\n```python\nresponse = model.invoke(messages)\nif hasattr(response, 'usage_metadata') and response.usage_metadata:\n    input_tokens = response.usage_metadata['input_tokens']\n    output_tokens = response.usage_metadata['output_tokens']\n    total_tokens = response.usage_metadata['total_tokens']\n```\n\n## Implementation Details\n\n### UsageMetadata Structure (langchain-core)\n```python\nclass UsageMetadata(TypedDict):\n    input_tokens: int          # Count of input/prompt tokens\n    output_tokens: int         # Count of output/completion tokens\n    total_tokens: int          # Sum of input + output\n    input_token_details: NotRequired[InputTokenDetails]  # Cache reads, etc.\n    output_token_details: NotRequired[OutputTokenDetails]  # Reasoning tokens, etc.\n```\n\n### Changes Required\n\n1. **Update `sdk.py`:**\n   - Store `_last_response` in `chat()` method\n   - Extract `usage_metadata` from AIMessage\n   - Fallback to conversation history token counting if unavailable\n\n2. **Update `last_cost` property:**\n   ```python\n   @property\n   def last_cost(self) -> dict[str, Any]:\n       if not self._last_response:\n           return {\"input_tokens\": 0, \"output_tokens\": 0, \"total_tokens\": 0}\n       \n       # Try to get actual usage metadata\n       if hasattr(self._last_response, 'usage_metadata'):\n           metadata = self._last_response.usage_metadata\n           if metadata:\n               return {\n                   \"input_tokens\": metadata.get('input_tokens', 0),\n                   \"output_tokens\": metadata.get('output_tokens', 0),\n                   \"total_tokens\": metadata.get('total_tokens', 0),\n                   \"model\": self.model_name,\n               }\n       \n       # Fallback to token counting\n       # ... existing logic\n   ```\n\n3. **Add tests:**\n   - Test with real model responses\n   - Test fallback behavior\n   - Test across providers (OpenAI, Anthropic, Google)\n\n## Provider Support\n\nAll major providers populate `usage_metadata`:\n- \u2705 Anthropic Claude (via `_create_usage_metadata`)\n- \u2705 OpenAI GPT models\n- \u2705 Google Gemini\n- \u2705 Ollama (may vary)\n\n## References\n- LangChain UsageMetadata: `langchain_core.messages.ai.UsageMetadata`\n- Anthropic implementation: `langchain_anthropic.chat_models._create_usage_metadata`\n- LangSmith docs: https://docs.langchain.com/langsmith/cost-tracking",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-29T15:33:30.557167",
+      "updated_at": "2025-11-29T15:33:30.557168",
+      "id": "20251129153330-2e0b506f",
+      "ticket_id": "SOUL-184",
+      "author": "jared@goatbytes.io",
+      "content": "Code review completed. Accurate token usage tracking successfully implemented:\n\n\u2705 Implementation (18fed79):\n- Extracts actual token counts from AIMessage.usage_metadata\n- Supports all major providers: Anthropic, OpenAI, Google, Ollama\n- Backward compatible fallback to 60/40 approximation\n- Tracks _last_response to capture final token counts\n- Integrated with pricing module for accurate cost calculation\n\n\u2705 Data Quality Transparency:\n- 'source' field indicates data accuracy:\n  * 'usage_metadata' = accurate from API\n  * 'approximation' = 60/40 split fallback\n  * 'none' = no response yet\n- Helps users understand cost accuracy\n\n\u2705 Token Metadata:\n- input_tokens: Actual prompt tokens\n- output_tokens: Actual completion tokens\n- total_tokens: Sum or from metadata\n- estimated_cost: From pricing module (with cache support)\n- model: Model name for context\n\n\u2705 Testing:\n- 5 comprehensive unit tests (all passing)\n- Integration tests for real API calls\n- Tests fallback behavior\n- Tests all providers\n\n\u2705 Foundation Work:\n- Enables SOUL-185 (accurate pricing)\n- Enables SOUL-186 (cache tracking)\n- Future: InputTokenDetails, OutputTokenDetails support\n\nAll acceptance criteria met. Production ready.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:11.961511",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

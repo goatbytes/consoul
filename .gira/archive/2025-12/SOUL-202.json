@@ -1,0 +1,55 @@
+{
+  "created_at": "2025-12-01T19:58:41.573237",
+  "updated_at": "2025-12-01T20:09:31.197341",
+  "id": "SOUL-202",
+  "uuid": "87c0e2ad-2b63-4295-9b91-b2c67d7486b8",
+  "title": "Issue: Syntax Highlighting Does Not Match Consoul Theme",
+  "description": "Given: the user is on a light theme\nWhen: streaming an assistant response that has code (in code blocks) and RichLog is rendering markdown\nThen: the consoul color scheme/theme does not match the syntax highlighting theme\n\n---\n\nopen questions:\n\n1. can we map syntax highligthing themes to consoul/textual themes?",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-01T20:04:00.663841",
+      "updated_at": "2025-12-01T20:04:00.663842",
+      "id": "20251201200400-7546b03a",
+      "ticket_id": "SOUL-202",
+      "author": "jared@goatbytes.io",
+      "content": "Implemented theme-matched syntax highlighting for code blocks in message bubbles. Created mapping between Consoul themes and appropriate Pygments styles (monokai for dark themes, friendly for light theme, github-dark for OLED, etc.). Code blocks now automatically use syntax highlighting that matches the current Consoul theme.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-01T20:09:31.197262",
+      "updated_at": "2025-12-01T20:09:31.197263",
+      "id": "20251201200931-abe8dfd4",
+      "ticket_id": "SOUL-202",
+      "author": "jared@goatbytes.io",
+      "content": "Also updated StreamingResponse widget to use theme-matched syntax highlighting during streaming. Rich's Markdown constructor accepts code_theme parameter just like Textual's Markdown widget.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 2,
+  "story_points": 1,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:12.565382",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

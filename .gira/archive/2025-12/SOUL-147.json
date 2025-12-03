@@ -1,0 +1,32 @@
+{
+  "created_at": "2025-11-23T13:19:14.079290",
+  "updated_at": "2025-11-24T20:09:48.918620Z",
+  "id": "SOUL-147",
+  "uuid": "b201eb1b-7f0a-4603-b5ab-bbfc48594a51",
+  "title": "Integrate reasoning extraction into AI response handling",
+  "description": "**As a** Consoul developer\n**I want** reasoning extraction automatically applied to AI responses\n**So that** thinking content is separated and passed to MessageBubble for display\n\n**Context:**\nThis ticket connects SOUL-145 (reasoning extraction) with SOUL-146 (thinking UI) and SOUL-147 (config). When AI responses are received (both streaming and complete), we need to:\n1. Detect if reasoning is present\n2. Extract it using the reasoning module\n3. Pass both thinking and response to MessageBubble\n4. Respect user configuration for display preferences\n\nIntegration points:\n- src/consoul/tui/app.py - Response handling (lines 1775-1916)\n- src/consoul/ai/conversation.py - Core conversation management\n- StreamingResponse widget - Token-by-token display\n\n**Technical Notes:**\n- Import from src/consoul/ai/reasoning import extract_reasoning\n- Apply extraction after full response is collected\n- Pass thinking_content to MessageBubble constructor\n- Handle both streaming and non-streaming responses\n- Check config.show_thinking setting\n- Consider model name for extraction hints\n- Extract before persisting to database\n- Store thinking separately in database (optional)\n\n**Acceptance Criteria:**\n\n**Given** I receive an AI response with `<think>` tags\n**When** the response is processed\n**Then** thinking is extracted and passed to MessageBubble\n\n**Given** I receive a response without thinking\n**When** the response is processed\n**Then** MessageBubble receives thinking_content=None\n\n**Given** show_thinking config is set to \"never\"\n**When** processing a response with thinking\n**Then** thinking is still extracted but thinking_content=None passed to bubble\n\n**Given** I'm using a streaming response\n**When** the full response is collected\n**Then** reasoning extraction happens before creating final MessageBubble\n\n**Given** multiple responses in a conversation\n**When** each has different thinking patterns\n**Then** each is correctly extracted and displayed\n\n**Testing Considerations:**\n- Test with responses containing thinking\n- Test with responses without thinking\n- Test with different tag formats\n- Test config show_thinking=\"always|auto|never|collapsed\"\n- Test streaming vs non-streaming\n- Integration test with actual model responses\n- Verify database persistence (if implemented)\n\n**Implementation Hints:**\n```python\n# src/consoul/tui/app.py (around line 1909)\n\nfrom consoul.ai.reasoning import extract_reasoning\n\n# After collecting full_response\nif full_response.strip():\n    # Extract reasoning/thinking\n    thinking, response_text = extract_reasoning(\n        full_response, \n        model_name=self.conversation.model  # type: ignore\n    )\n    \n    # Check config\n    config = self.consoul_config\n    show_thinking = config.show_thinking if config else \"auto\"\n    \n    # Determine if we should display thinking\n    thinking_to_display = None\n    if show_thinking == \"always\" or (show_thinking == \"auto\" and thinking):\n        thinking_to_display = thinking\n    elif show_thinking == \"never\":\n        thinking_to_display = None\n    # \"collapsed\" is handled by MessageBubble default behavior\n    \n    # Create assistant bubble with thinking\n    assistant_bubble = MessageBubble(\n        response_text,  # Main response without thinking tags\n        role=\"assistant\",\n        show_metadata=True,\n        token_count=token_count,\n        tool_calls=tool_calls_list,\n        message_id=self._current_assistant_message_id,\n        thinking_content=thinking_to_display,  # NEW\n    )\n    await self.chat_view.add_message(assistant_bubble)\n```\n\nFiles to modify:\n- src/consoul/tui/app.py (response handling section)\n- Potentially src/consoul/ai/conversation.py (if core extraction)\n\nDependencies: SOUL-145 (reasoning extraction), SOUL-146 (thinking UI), SOUL-147 (config)",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "ai",
+    "tui",
+    "enhancement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:12.810797",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

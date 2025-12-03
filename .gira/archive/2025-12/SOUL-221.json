@@ -1,0 +1,47 @@
+{
+  "created_at": "2025-12-02T16:31:11.363633",
+  "updated_at": "2025-12-03T23:08:50.356132Z",
+  "id": "SOUL-221",
+  "uuid": "b3f2fdbe-caed-4c17-8b52-0b6f19523ef8",
+  "title": "Create v0.2.0 git tag and GitHub release",
+  "description": "**As a** project maintainer\n**I want** to create an official v0.2.0 release\n**So that** users can download and reference a stable version\n\n**Context:**\nAfter all pre-release tickets are complete:\n1. Create annotated git tag v0.2.0\n2. Push tag to GitHub\n3. Create GitHub release with release notes\n4. Publish to PyPI\n\nThis ticket focuses on git tagging and GitHub release creation.\n\n**Technical Notes:**\n- Use annotated tags (not lightweight): `git tag -a v0.2.0 -m \"Release v0.2.0\"`\n- Tag message should summarize release\n- GitHub release should include:\n  - Release notes from CHANGELOG.md\n  - Installation instructions\n  - Upgrade notes\n  - Link to documentation\n- Consider pre-release flag if still testing\n\n**Acceptance Criteria:**\n\n**Given** all v0.2.0 tickets are complete\n**When** I create the git tag\n**Then** an annotated tag v0.2.0 exists with descriptive message\n\n**Given** the tag is created\n**When** I push to GitHub\n**Then** the tag appears in the releases page\n\n**Given** I create a GitHub release\n**When** users visit releases page\n**Then** v0.2.0 is listed with complete release notes\n\n**Testing Considerations:**\n- Verify tag is annotated (not lightweight)\n- Check tag message is descriptive\n- Ensure release notes are formatted properly on GitHub\n- Test download links work\n- Verify installation instructions are accurate\n\n**Implementation Hints:**\n```bash\n# 1. Ensure all changes committed\ngit status\n\n# 2. Create annotated tag\ngit tag -a v0.2.0 -m \"Release v0.2.0: First public release\n\nMajor features:\n- Complete TUI with conversation history\n- CLI commands (ask, chat, history, config)\n- Multi-provider AI support (OpenAI, Anthropic, Google, Ollama)\n- Tool calling system with safety controls\n- Comprehensive documentation\n\nSee CHANGELOG.md for full details.\"\n\n# 3. Push tag\ngit push origin v0.2.0\n\n# 4. Create GitHub release via web UI or gh CLI\ngh release create v0.2.0 \\\n  --title \"v0.2.0 - First Public Release\" \\\n  --notes-file CHANGELOG.md \\\n  --discussion-category \"Announcements\"\n```\n\n**Dependencies:**\n- SOUL-214: Version update must be complete\n- SOUL-217: CHANGELOG.md must be updated\n- SOUL-213, SOUL-215, SOUL-218, SOUL-219: All cleanup complete",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "release",
+    "git",
+    "github"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-010",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-02T18:34:17.177271",
+      "updated_at": "2025-12-02T18:34:17.177272",
+      "id": "20251202183417-aab16dad",
+      "ticket_id": "SOUL-221",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed reactive state initialization by removing overriding assignments in ConsoulApp.__init__. \n\nTest Results:\n\u2705 test_reactive_state_initialization - PASSES\n\u274c 3 other tests still need mock config fixes for async initialization\n\nThe core reactive state issue is FIXED.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 1,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:10:23.799572",
+    "archived_from_status": "todo",
+    "archived_by": "gira-cli"
+  }
+}

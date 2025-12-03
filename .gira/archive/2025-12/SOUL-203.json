@@ -1,0 +1,46 @@
+{
+  "created_at": "2025-12-02T08:31:55.379986",
+  "updated_at": "2025-12-02T22:51:40.169361Z",
+  "id": "SOUL-203",
+  "uuid": "6236806c-b0ee-4412-8ef6-3c81ee398492",
+  "title": "Add consoul ask command for one-off questions",
+  "description": "**As a** Consoul user\n**I want** a `consoul ask` command for one-off questions\n**So that** I can get quick AI responses without starting an interactive chat session\n\n**Context:**\nUsers expect to ask quick questions without entering interactive mode, as shown in documentation examples. The `consoul chat` command only supports interactive sessions with a REPL loop. This creates UX friction for scripting, automation, and quick queries.\n\nCurrent workaround requires the Python SDK:\n```python\npython -c \"from consoul import Consoul; print(Consoul().chat('What is 2+2?'))\"\n```\n\nSimilar tools provide this pattern:\n- **aider**: `aider --message \"fix bug\"` (non-interactive mode)\n- **llm** (Simon Willison): `llm \"explain this\"` (primary interface)\n- **shell-gpt**: `sgpt \"translate to Spanish\"` (one-off queries)\n\nThe README currently shows incorrect examples using non-existent syntax.\n\n**Technical Notes:**\n- src/consoul/__main__.py:118-386 - Add new `ask` command after `chat` command\n- Reuse ChatSession class for consistency (lines 299-310)\n- Single message/response (no REPL loop)\n- No conversation persistence by default (stateless)\n- Support all `chat` options: --model, --tools, --attach, --no-markdown\n- Add --show-tokens and --show-cost for usage stats\n- Pattern similar to chat command but exits after one response\n- Consider --output flag for saving response to file\n\n**Acceptance Criteria:**\n\n**Given** I run `consoul ask \"What is 2+2?\"`\n**When** the command executes\n**Then** I get the AI response printed to stdout and the command exits\n\n**Given** I run `consoul ask -m \"Explain Python decorators\"`\n**When** the message is processed\n**Then** the response is displayed with markdown rendering\n\n**Given** I run `consoul ask \"Analyze this\" --attach screenshot.png`\n**When** the command executes with vision-capable model\n**Then** the image is analyzed and response is returned\n\n**Given** I run `consoul ask \"Find bug in utils.py\" --tools`\n**When** tools are enabled\n**Then** file operations tools are available and can be approved\n\n**Given** I run `consoul ask \"Quick question\" --show-tokens --show-cost`\n**When** response completes\n**Then** token usage and cost estimate are displayed\n\n**Given** I run `consoul ask \"Long response\" --no-stream`\n**When** streaming is disabled\n**Then** full response appears at once\n\n**Given** I run `consoul ask \"Test\" --model gpt-4o`\n**When** model override is specified\n**Then** GPT-4o is used instead of config default\n\n**Testing Considerations:**\n- Test with/without message flag (-m)\n- Test streaming vs non-streaming modes\n- Test with file attachments (--attach)\n- Test with tools enabled/disabled\n- Test model override functionality\n- Test markdown rendering on/off\n- Test token/cost display\n- Test error handling (no message, invalid model, etc.)\n- Verify no conversation persistence\n- Test output to file (if --output implemented)\n\n**Implementation Hints:**\nAdd command to src/consoul/__main__.py after line 386 (after chat command).\n\nFiles to modify:\n- src/consoul/__main__.py - Add ask command\n- README.md - Update examples to use ask command\n- docs/cli-reference/index.md - Document ask command\n- docs/quickstart.md - Use ask in quick examples\n\n**Dependencies:**\n- ChatSession class (already implemented)\n- Tool registry system (EPIC-004, completed)\n- CLI approval provider (implemented)\n\n**Related Issues:**\n- README contains incorrect command examples\n- Users expect one-off query capability\n- Scripting/automation use cases not well-supported",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "cli",
+    "enhancement",
+    "ux-improvement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-02T08:40:27.460292",
+      "updated_at": "2025-12-02T08:40:27.460293",
+      "id": "20251202084027-178ad48e",
+      "ticket_id": "SOUL-203",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation completed successfully!\n\n## What was implemented:\n\n### 1. Core Command (src/consoul/__main__.py:388-697)\n- Added `ask` command with full option support\n- Message via positional arg or -m flag\n- Model override (--model)\n- Tool execution (--tools/--no-tools)\n- File attachments (--attach)\n- Streaming control (--stream/--no-stream)\n- Token/cost display (--show-tokens, --show-cost)\n- Output to file (--output)\n- Markdown rendering control (--no-markdown)\n- No conversation persistence (stateless)\n- Vision model detection and warnings\n- Proper error handling\n\n### 2. Testing\n- Verified help text displays correctly\n- Tested simple question: `consoul ask \"What is 2+2?\" --show-tokens`\n- Tested -m flag: `consoul ask -m \"What is the capital of France?\" --no-stream`\n- Tested error handling: Missing message shows helpful usage\n\n### 3. Documentation Updates\n\n**README.md:**\n- Updated File Editing example to use `ask --tools`\n- Updated Code Search example to use `ask --tools`\n- Updated Image Analysis example to use `ask --attach`\n- Updated CLI section to show `ask` as primary one-off interface\n\n**docs/quickstart.md:**\n- Added \"One-Off Questions\" section\n- Included 6 practical examples\n- Documented use cases (scripting, automation, CI/CD)\n\n**docs/user-guide/cli-chat.md:**\n- Reorganized to distinguish `ask` vs `chat`\n- Added comprehensive `ask` command section\n- Included shell alias examples\n- Added Git hooks example\n- Added CI/CD pipeline example\n- Documented all command options\n\n## Usage Examples:\n```bash\n# Simple question\nconsoul ask \"What is 2+2?\"\n\n# With model override\nconsoul ask \"Translate to Spanish\" --model gpt-4o\n\n# With tools enabled\nconsoul ask \"Find bug in utils.py\" --tools\n\n# Analyze image\nconsoul ask \"What error is shown?\" --attach screenshot.png\n\n# Show usage stats\nconsoul ask \"Quick question\" --show-tokens --show-cost\n\n# Save to file\nconsoul ask \"Generate README template\" --output README.md\n```\n\nAll acceptance criteria from SOUL-203 have been met.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:12.906562",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

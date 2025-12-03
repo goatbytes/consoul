@@ -1,0 +1,93 @@
+{
+  "created_at": "2025-11-24T23:32:56.113891",
+  "updated_at": "2025-11-26T17:52:57.776734Z",
+  "id": "SOUL-164",
+  "uuid": "3e4bf424-52c8-4a94-86a5-0031aa72d7cb",
+  "title": "Add Ollama model discovery from ollama.com",
+  "description": "**As a** Consoul user\n**I want** to browse and discover Ollama models from ollama.com\n**So that** I can easily find and pull new models without leaving the TUI\n\n**Context:**\nCurrently, users can only see models they've already pulled to their local Ollama instance. There's no way to discover new models available on ollama.com within the TUI. Users have to go to the website, find a model, remember the name, come back to the terminal, and run 'ollama pull'.\n\nParllama (https://github.com/paulrobello/parllama) has implemented this feature by scraping ollama.com to show available models with their descriptions, pull counts, tags, and update dates.\n\n**Proposed Solution:**\nAdd a new tab/section in the Model Picker to show available models from ollama.com that can be pulled.\n\n**Technical Approach:**\n1. Scrape ollama.com using BeautifulSoup (similar to parllama implementation)\n2. Cache results for 24 hours to be respectful of ollama.com servers\n3. Show models in categories: Popular, Featured, Newest\n4. Display metadata: name, description, pulls, tags, last updated\n5. Allow users to pull models directly from the UI\n\n**Acceptance Criteria:**\n\n**Given** I open the Model Picker\n**When** I navigate to the Ollama Library tab/section\n**Then** I see a list of available models from ollama.com\n\n**Given** I'm viewing Ollama Library models\n**When** I browse the list\n**Then** I see model descriptions, pull counts, and tags\n\n**Given** I select a model from Ollama Library\n**When** I press Enter or click Pull\n**Then** the model is downloaded to my local Ollama instance\n\n**Given** I've fetched Ollama Library models\n**When** less than 24 hours have passed\n**Then** cached results are used (no new HTTP request)\n\n**Implementation Details:**\n\n1. **New Module: src/consoul/ai/providers/ollama_library.py**\n   - fetch_library_models(namespace, category, force_refresh)\n   - Cache management (24-hour expiry)\n   - BeautifulSoup HTML parsing\n   - Model metadata extraction\n\n2. **Update Model Picker Modal:**\n   - Add Ollama Library provider option\n   - Show pull counts and metadata in table\n   - Add Pull Model action\n   - Progress indicator for model pulling\n\n3. **Dependencies:**\n   - beautifulsoup4 (for HTML parsing)\n   - Already have: httpx/requests\n\n4. **Cache Location:**\n   - ~/.consoul/cache/ollama_library_{namespace}.json\n   - Include last_update timestamp\n   - Auto-refresh after 24 hours\n\n**Reference Implementation:**\n- Parllama: src/parllama/ollama_data_manager.py:refresh_site_models()\n- URL: https://ollama.com/library or https://ollama.com/models?sort=popular\n\n**Future Enhancements:**\n- Search within Ollama Library\n- Filter by tags\n- Show model size before pulling\n- Pull progress with streaming updates",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-24T23:50:31.676081",
+      "updated_at": "2025-11-24T23:50:31.676082",
+      "id": "20251124235031-d84c8d3f",
+      "ticket_id": "SOUL-164",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation complete. Added Ollama Library tab to Model Picker with web scraping, 24-hour caching, and model pull functionality. Models are fetched from ollama.com/library and displayed with descriptions and pull counts. Users can press Enter on any model to pull it directly to their local Ollama instance.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-25T12:02:25.579846",
+      "updated_at": "2025-11-25T12:02:25.579846",
+      "id": "20251125120225-b58c250c",
+      "ticket_id": "SOUL-164",
+      "author": "jared@goatbytes.io",
+      "content": "Redesigned as beautiful standalone modal with card-based UI. Press Ctrl+O to open the Ollama Library browser. Click any model card to view it on ollama.com. Features search/filter, 24-hour caching, and keyboard shortcuts (Escape=close, Ctrl+R=refresh, /=search).",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-25T12:13:25.433658",
+      "updated_at": "2025-11-25T12:13:25.433658",
+      "id": "20251125121325-2c1e8949",
+      "ticket_id": "SOUL-164",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed duplicate /library in URLs. If you see wrong URLs, clear cache with: rm ~/.consoul/cache/ollama_library_*.json",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-25T12:20:33.819346",
+      "updated_at": "2025-11-25T12:20:33.819348",
+      "id": "20251125122033-834faa5c",
+      "ticket_id": "SOUL-164",
+      "author": "jared@goatbytes.io",
+      "content": "Made beautifulsoup4 an optional dependency to keep SDK lightweight. Install with: pip install consoul[ollama-library]. Without it, Ctrl+O shows helpful installation message.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-25T12:30:32.168621",
+      "updated_at": "2025-11-25T12:30:32.168622",
+      "id": "20251125123032-3a54202e",
+      "ticket_id": "SOUL-164",
+      "author": "jared@goatbytes.io",
+      "content": "Made TUI dependencies optional for SDK users. Install options: 'pip install consoul' (SDK only), 'pip install consoul[tui]' (with TUI), or 'pip install consoul[all]' (all features). This allows other projects to use Consoul as an SDK without installing textual, click, pyperclip, and pillow.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:12.372381",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

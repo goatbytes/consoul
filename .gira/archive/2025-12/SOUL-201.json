@@ -1,0 +1,87 @@
+{
+  "created_at": "2025-11-30T23:59:27.538511",
+  "updated_at": "2025-12-02T22:51:40.172601Z",
+  "id": "SOUL-201",
+  "uuid": "19e954f8-97be-4762-a466-6ce93d7aee2a",
+  "title": "Enhance tool call display with argument visibility in header",
+  "description": "**As a** Consoul user\n**I want** to see tool call arguments directly in the tool widget header\n**So that** I can immediately understand what command/operation is being executed without expanding details\n\n**Context:**\nCurrently, the ToolCallWidget shows only the tool name in the header (e.g., \"\ud83d\udd27 Tool: bash_execute\"), with arguments displayed in a separate collapsible section below. This requires users to look at two places to understand what's happening. For security, transparency, and user experience, showing the actual command/arguments in the header provides immediate visibility into what the AI is executing.\n\nResearch shows this pattern is valuable:\n- **Security**: Users can immediately see destructive commands (e.g., \"bash_execute(\\\"rm -rf /\\\")\" vs \"bash_execute(\\\"ls .\\\")\")\n- **Understanding**: No need to expand details to understand what's running\n- **Trust**: Transparency about AI actions\n- **Debugging**: Quickly identify problematic commands when things fail\n\nSimilar tools (aider, cursor) show the actual operation being performed, not just the tool name.\n\n**Technical Notes:**\n- src/consoul/tui/widgets/tool_call_widget.py:84-91 - Header composition in compose()\n- src/consoul/tui/widgets/tool_call_widget.py:126-154 - _format_arguments() already handles formatting\n- Current header: \"\ud83d\udd27 Tool: {tool_name}\"\n- Proposed: \"\ud83d\udd27 bash_execute(\\\"ls .\\\")\" or \"\ud83d\udd27 grep_search(pattern=\\\"TODO\\\")\"\n- Need to handle argument truncation for long values (file contents, large JSON)\n- Consider max width (e.g., 100 chars) with ellipsis for long arguments\n- Maintain existing collapsible arguments section for full details\n- Special formatting for common tools:\n  - bash_execute: Show command inline\n  - grep_search/code_search: Show pattern/query\n  - read_file/write_file: Show filename\n  - General: Show JSON-like format for other tools\n\n**Current Implementation:**\n```python\n# Line 87-91: Current header\nyield Static(\n    f\"\ud83d\udd27 Tool: {self.tool_name}\",\n    id=\"tool-header\",\n    classes=\"tool-header\",\n)\n```\n\n**Proposed Implementation:**\n```python\nyield Static(\n    self._format_tool_header(),\n    id=\"tool-header\", \n    classes=\"tool-header\",\n)\n\ndef _format_tool_header(self) -> Text:\n    \"\"\"Format tool header with arguments.\"\"\"\n    header = Text()\n    header.append(\"\ud83d\udd27 \", style=\"bold\")\n    \n    # Format based on tool type\n    if self.tool_name == \"bash_execute\" and \"command\" in self.arguments:\n        cmd = self.arguments[\"command\"]\n        truncated = self._truncate_arg(cmd, max_len=80)\n        header.append(f'bash_execute(\"{truncated}\")', style=\"bold cyan\")\n    elif len(self.arguments) == 1:\n        # Single arg - show inline\n        key, value = next(iter(self.arguments.items()))\n        truncated = self._truncate_arg(str(value), max_len=60)\n        header.append(f'{self.tool_name}({key}=\"{truncated}\")', style=\"bold cyan\")\n    else:\n        # Multiple args - show abbreviated\n        args_preview = \", \".join(f\"{k}=...\" for k in list(self.arguments.keys())[:3])\n        if len(self.arguments) > 3:\n            args_preview += \", ...\"\n        header.append(f\"{self.tool_name}({args_preview})\", style=\"bold cyan\")\n    \n    return header\n```\n\n**Acceptance Criteria:**\n\n**Given** a bash_execute tool call with command \"ls -la\"\n**When** the tool widget is displayed\n**Then** the header shows '\ud83d\udd27 bash_execute(\"ls -la\")'\n\n**Given** a bash_execute tool call with a very long command (>80 chars)\n**When** the tool widget is displayed  \n**Then** the header shows the command truncated with ellipsis (e.g., '\ud83d\udd27 bash_execute(\"find /very/long/path/...\")')\n\n**Given** a grep_search tool call with pattern=\"TODO\" and path=\"src/\"\n**When** the tool widget is displayed\n**Then** the header shows '\ud83d\udd27 grep_search(pattern=\"TODO\", path=\"src/\")'\n\n**Given** a tool call with multiple complex arguments\n**When** the tool widget is displayed\n**Then** the header shows abbreviated format like '\ud83d\udd27 tool_name(arg1=..., arg2=..., arg3=...)'\n\n**Given** a write_file tool call with large content\n**When** the tool widget is displayed\n**Then** the header shows only filename, not entire content (e.g., '\ud83d\udd27 write_file(path=\"test.py\", content=...)')\n\n**Given** the user wants full argument details\n**When** they expand the arguments section\n**Then** the full formatted arguments are visible (unchanged from current behavior)\n\n**Testing Considerations:**\n- Test truncation logic for various argument lengths\n- Test different tool types (bash, file ops, search, generic)\n- Test edge cases (empty args, very long strings, nested objects)\n- Test Rich Text rendering with syntax highlighting\n- Verify header remains readable on narrow terminals\n- Test that existing collapsible arguments section still works\n- Manual testing with actual tool calls in TUI\n\n**Implementation Hints:**\n1. Add `_format_tool_header()` method to ToolCallWidget\n2. Add `_truncate_arg(value: str, max_len: int) -> str` helper\n3. Update compose() to use new header formatter\n4. Consider configuration option for max header length\n5. Maintain backward compatibility with existing styling\n6. Use Rich Text for syntax-aware truncation (don't break in middle of escape codes)\n7. Consider adding tooltip/hover for full args on header (future enhancement)\n\n**Future Enhancements:**\n- Add click handler on header to copy full command to clipboard\n- Add config option to toggle between verbose/compact header modes\n- Add syntax highlighting in header (currently only in arguments section)",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "ux-improvement",
+    "tools",
+    "enhancement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-008",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-01T00:04:36.513018",
+      "updated_at": "2025-12-01T00:04:36.513020",
+      "id": "20251201000436-1e7b1164",
+      "ticket_id": "SOUL-201",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation completed successfully.\n\nAdded three new methods to ToolCallWidget:\n- _truncate_arg(value, max_len): Truncates long arguments with ellipsis\n- _format_tool_header(): Formats header with tool name and arguments\n- _format_generic_header(): Handles multi-argument tools\n\nSpecial formatting implemented for:\n- bash_execute: Shows command inline (e.g., bash_execute(\"ls -la\"))\n- File operations: Shows path prominently with other args abbreviated\n- Search tools: Shows pattern/query and optional path\n- Single arg tools: Shows argument inline\n- Multi-arg tools: Shows first 3 args with ellipsis\n\nTruncation limits:\n- bash_execute commands: 80 chars\n- File paths: 60 chars\n- Search patterns: 50 chars\n- Single args: 60 chars\n\nAll acceptance criteria verified through testing.\nBenefits: Immediate security visibility, transparency, better UX.\n\nCommit: 595be9e",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-01T00:11:35.736251",
+      "updated_at": "2025-12-01T00:11:35.736252",
+      "id": "20251201001135-e7964ada",
+      "ticket_id": "SOUL-201",
+      "author": "jared@goatbytes.io",
+      "content": "Additional fix: Integrated ToolCallWidget into actual tool execution flow.\n\nThe initial implementation added the header formatting to ToolCallWidget,\nbut the TUI was using simple MessageBubbles instead of ToolCallWidget\nfor tool execution display.\n\nSecond commit (fc86b93) fixes this by:\n- Replacing MessageBubble with ToolCallWidget in _stream_ai_response\n- Storing widget references in _tool_widgets dict\n- Updating widget status during execution (PENDING \u2192 EXECUTING \u2192 SUCCESS/ERROR/DENIED)\n- Displaying each tool call as a separate widget with full argument visibility\n\nNow users will see the enhanced headers like:\n- \ud83d\udd27 bash_execute(\"ls -la\")\n- \ud83d\udd27 read_file(path=\"/path/to/file.txt\")\n- \ud83d\udd27 grep_search(pattern=\"TODO\", path=\"src/\")\n\nWith collapsible sections for full arguments and output.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-01T00:22:54.727034",
+      "updated_at": "2025-12-01T00:22:54.727035",
+      "id": "20251201002254-fe9506c9",
+      "ticket_id": "SOUL-201",
+      "author": "jared@goatbytes.io",
+      "content": "Final simplification: Extracted formatting logic to standalone utility.\n\nPer user feedback, simplified tool execution display to show ONLY the formatted header without additional metadata sections.\n\nThird commit creates:\n- tool_formatter.py: Standalone utility module with format_tool_header() function\n- Extracts all formatting logic from ToolCallWidget for reuse\n- Updates app.py to use MessageBubble with formatted header text\n- Removes ToolCallWidget instantiation and status tracking code\n\nResult: Minimal, clean tool execution display showing only:\n\ud83d\udd27 bash_execute(\"ls -la\")\n\ud83d\udd27 read_file(path=\"/path/to/file.txt\")\n\ud83d\udd27 grep_search(pattern=\"TODO\", path=\"src/\")\n\nNo collapsible sections, no status indicators - just immediate visibility\nof what tool is being executed with what arguments.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-01T08:11:50.379692",
+      "updated_at": "2025-12-01T08:11:50.379693",
+      "id": "20251201081150-9cd123e3",
+      "ticket_id": "SOUL-201",
+      "author": "jared@goatbytes.io",
+      "content": "Bug fix: Corrected file_path display for file operations.\n\nIssue: read_file and similar tools were showing ellipsis instead of actual file paths:\n- Old: read_file(end_page=..., file_path=..., limit=..., ...)\n- Expected: read_file(file_path=\"README.md\")\n\nRoot cause: Formatter was checking for 'path' key, but these tools use 'file_path'.\n\nSolution (commit b2da84f):\n- Updated formatter to check both 'file_path' and 'path' keys\n- Simplified display to show only the file path (most important info)\n- Hide null/default parameters that add no value\n- Added create_file to file operations list\n\nResult: Clean, focused display showing what matters:\n- \ud83d\udd27 read_file(file_path=\"README.md\")\n- \ud83d\udd27 write_file(file_path=\"/path/to/file.txt\")\n- \ud83d\udd27 create_file(file_path=\"new_file.py\")\n\nUser-reported issue resolved.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 4,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:10.519534",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

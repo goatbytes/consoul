@@ -1,0 +1,32 @@
+{
+  "created_at": "2025-11-29T13:24:04.783603",
+  "updated_at": "2025-11-29T21:44:39.623459Z",
+  "id": "SOUL-189",
+  "uuid": "24639f9c-3671-441a-9398-969d30f6a1d9",
+  "title": "Extract initialization logic from __init__ into async methods",
+  "description": "**As a** Consoul developer\n**I want** app initialization logic extracted from __init__ into separate async methods\n**So that** we can show progress during initialization without blocking the UI\n\n**Context:**\nCurrently, ConsoulApp.__init__ (lines 133-358 in src/consoul/tui/app.py) performs all initialization synchronously, causing a 0.5-5 second freeze before the UI appears. This includes:\n- Loading config from file (I/O)\n- Initializing AI model (network API call)\n- Creating conversation history\n- Setting up tool registry (10+ tool imports)\n- Auto-resuming conversations (database query)\n\nThis work needs to be extracted into separate methods that can be called asynchronously with progress tracking.\n\n**Technical Notes:**\n- File: src/consoul/tui/app.py:133-358 (__init__ method)\n- Extract to new methods: _load_config(), _initialize_ai_model(), _initialize_conversation(), _initialize_tool_registry(), _auto_resume_if_enabled()\n- Keep only lightweight setup in __init__ (config objects, thread pool, flags)\n- Make extracted methods async-compatible using run_in_thread()\n- Maintain all existing functionality (no behavior changes)\n- Store consoul_config for later async init instead of loading immediately\n\n**Acceptance Criteria:**\n\n**Given** ConsoulApp is instantiated\n**When** __init__ completes\n**Then** no heavy I/O or network calls have been made\n\n**Given** the extracted async methods exist\n**When** each method is called\n**Then** it performs only one specific initialization task\n\n**Given** the app runs normally\n**When** all initialization completes\n**Then** the app behaves exactly as before refactoring\n\n**Testing Considerations:**\n- Unit test each extracted method independently\n- Test __init__ completes in <50ms\n- Integration test full initialization flow\n- Verify no regression in existing functionality\n- Test error handling in each method\n\n**Implementation Hints:**\n- Create _load_config() -> ConsoulConfig\n- Create _initialize_ai_model(config) -> BaseChatModel\n- Create _initialize_conversation(config, model) -> ConversationHistory\n- Create _initialize_tool_registry(config) -> ToolRegistry\n- Create _auto_resume_if_enabled(conversation, profile) -> None\n- Each method should use await self.run_in_thread() for blocking calls\n- Store _consoul_config instead of immediately loading in __init__\n- Add _initialization_complete flag to track state",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "tui",
+    "core",
+    "refactor"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:11.676641",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}
