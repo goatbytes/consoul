@@ -7,6 +7,7 @@ from textual.app import App, ComposeResult
 from textual.widgets import Label
 
 from consoul.tui.widgets.chat_view import ChatView
+from consoul.tui.widgets.message_bubble import MessageBubble
 
 # Mark all tests in this module as async
 pytestmark = pytest.mark.asyncio
@@ -51,14 +52,16 @@ class TestChatViewMessageManagement:
         app = ChatViewTestApp()
         async with app.run_test() as pilot:
             chat_view = app.query_one(ChatView)
-            message = Label("Test message")
+            message = MessageBubble("Test message", role="user")
 
             await chat_view.add_message(message)
             await pilot.pause()
 
             assert chat_view.message_count == 1
             assert chat_view.border_title == "Conversation (1 messages)"
-            assert message in chat_view.children
+            # Check if message widget is in children
+            messages = list(chat_view.query(MessageBubble))
+            assert len(messages) == 1
 
     async def test_add_multiple_messages(self) -> None:
         """Test adding multiple messages increments counter correctly."""
@@ -67,12 +70,13 @@ class TestChatViewMessageManagement:
             chat_view = app.query_one(ChatView)
 
             for i in range(5):
-                await chat_view.add_message(Label(f"Message {i}"))
+                await chat_view.add_message(MessageBubble(f"Message {i}", role="user"))
                 await pilot.pause()
 
             assert chat_view.message_count == 5
             assert chat_view.border_title == "Conversation (5 messages)"
-            assert len(chat_view.children) == 5
+            messages = list(chat_view.query(MessageBubble))
+            assert len(messages) == 5
 
     async def test_clear_messages(self) -> None:
         """Test clearing all messages resets state."""
@@ -82,7 +86,7 @@ class TestChatViewMessageManagement:
 
             # Add some messages
             for i in range(3):
-                await chat_view.add_message(Label(f"Message {i}"))
+                await chat_view.add_message(MessageBubble(f"Message {i}", role="assistant"))
                 await pilot.pause()
 
             assert chat_view.message_count == 3
@@ -93,7 +97,8 @@ class TestChatViewMessageManagement:
 
             assert chat_view.message_count == 0
             assert chat_view.border_title == "Conversation"
-            assert len(chat_view.children) == 0
+            messages = list(chat_view.query(MessageBubble))
+            assert len(messages) == 0
 
     async def test_clear_empty_chat_view(self) -> None:
         """Test clearing an already empty ChatView doesn't cause errors."""
@@ -121,12 +126,12 @@ class TestChatViewBorderTitle:
             assert chat_view.border_title == "Conversation"
 
             # Add one message
-            await chat_view.add_message(Label("First"))
+            await chat_view.add_message(MessageBubble("First", role="user"))
             await pilot.pause()
             assert chat_view.border_title == "Conversation (1 messages)"
 
             # Add more messages
-            await chat_view.add_message(Label("Second"))
+            await chat_view.add_message(MessageBubble("Second", role="assistant"))
             await pilot.pause()
             assert chat_view.border_title == "Conversation (2 messages)"
 
@@ -141,7 +146,7 @@ class TestChatViewBorderTitle:
         async with app.run_test() as pilot:
             chat_view = app.query_one(ChatView)
 
-            await chat_view.add_message(Label("Message"))
+            await chat_view.add_message(MessageBubble("Message", role="user"))
             await pilot.pause()
             title = chat_view.border_title
             assert title is not None and "messages" in title
@@ -178,7 +183,7 @@ class TestChatViewAutoScroll:
             chat_view.auto_scroll = True
 
             # Add message - should not raise error
-            await chat_view.add_message(Label("Message"))
+            await chat_view.add_message(MessageBubble("Message", role="user"))
             await pilot.pause()
 
             assert chat_view.message_count == 1
@@ -191,7 +196,7 @@ class TestChatViewAutoScroll:
             chat_view.auto_scroll = False
 
             # Add message - should not raise error
-            await chat_view.add_message(Label("Message"))
+            await chat_view.add_message(MessageBubble("Message", role="assistant"))
             await pilot.pause()
 
             assert chat_view.message_count == 1
@@ -211,7 +216,7 @@ class TestChatViewReactiveProperties:
             assert initial_count == 0
 
             # Add message - reactive should update
-            await chat_view.add_message(Label("Test"))
+            await chat_view.add_message(MessageBubble("Test", role="user"))
             await pilot.pause()
 
             assert chat_view.message_count == 1
