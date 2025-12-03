@@ -1,10 +1,23 @@
 """Tests for HuggingFace tokenizer-based token counting."""
 
 import json
-from unittest.mock import Mock, patch
+import sys
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
+
+@pytest.fixture(autouse=True)
+def mock_transformers():
+    """Mock transformers module for all tests."""
+    # Create mock transformers module
+    mock_transformers_module = MagicMock()
+    mock_auto_tokenizer = MagicMock()
+    mock_transformers_module.AutoTokenizer = mock_auto_tokenizer
+
+    with patch.dict(sys.modules, {"transformers": mock_transformers_module}):
+        yield mock_auto_tokenizer
 
 
 class TestHuggingFaceTokenCounter:
@@ -225,7 +238,7 @@ class TestCreateHuggingFaceTokenCounter:
             call[0][0] for call in mock_auto_tokenizer.from_pretrained.call_args_list
         ]
         assert "ibm-granite/granite-4.0-micro" in calls
-        assert "meta-llama/Llama-3.3-8B-Instruct" in calls
+        assert "meta-llama/Llama-3.1-8B-Instruct" in calls  # llama3:8b maps to 3.1
         assert "Qwen/Qwen2.5-7B-Instruct" in calls
 
 

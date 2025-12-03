@@ -423,7 +423,9 @@ class TestWhitelistIntegration:
 
     def test_is_whitelisted_regex_pattern(self):
         """Test whitelisting with regex pattern."""
-        config = BashToolConfig(whitelist_patterns=["git.*", "npm (install|ci)"])
+        config = BashToolConfig(
+            whitelist_patterns=["regex:git.*", "regex:npm (install|ci)"]
+        )
         assert is_whitelisted("git status", config)
         assert is_whitelisted("git log", config)
         assert is_whitelisted("npm install", config)
@@ -477,13 +479,13 @@ class TestWhitelistIntegration:
 
     def test_whitelist_pattern_detection(self):
         """Test automatic regex pattern detection."""
-        # Patterns with regex special chars should be detected as regex
+        # Patterns with regex special chars should use regex: prefix
         config = BashToolConfig(
             whitelist_patterns=[
                 "git status",  # Exact (no special chars)
-                "git.*",  # Regex (contains .*)
-                "npm (install|ci)",  # Regex (contains () and |)
-                "^echo.*",  # Regex (contains ^)
+                "regex:git.*",  # Regex (contains .*)
+                "regex:npm (install|ci)",  # Regex (contains () and |)
+                "regex:^echo.*",  # Regex (contains ^)
             ]
         )
 

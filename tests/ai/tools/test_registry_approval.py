@@ -3,7 +3,7 @@
 import pytest
 from langchain_core.tools import tool
 
-from consoul.ai.tools import RiskLevel, ToolRegistry
+from consoul.ai.tools import PermissionPolicy, RiskLevel, ToolRegistry
 from consoul.config.models import ToolConfig
 
 # Import mock providers from test_approval
@@ -50,7 +50,8 @@ class TestRegistryApprovalIntegration:
     async def test_registry_with_deny_provider(self, sample_tool):
         """Test registry handles denial."""
         provider = MockDenyProvider()
-        config = ToolConfig(enabled=True)
+        # Use PARANOID policy to always require approval
+        config = ToolConfig(enabled=True, permission_policy=PermissionPolicy.PARANOID)
         registry = ToolRegistry(config, approval_provider=provider)
 
         registry.register(sample_tool)
@@ -67,7 +68,10 @@ class TestRegistryApprovalIntegration:
     async def test_approval_caching_once_per_session(self, sample_tool):
         """Test once_per_session mode caches approvals."""
         provider = MockApproveProvider()
-        config = ToolConfig(enabled=True, approval_mode="once_per_session")
+        # Use legacy approval logic for once_per_session caching
+        config = ToolConfig(
+            enabled=True, permission_policy=None, approval_mode="once_per_session"
+        )
         registry = ToolRegistry(config, approval_provider=provider)
         registry.register(sample_tool)
 
@@ -86,12 +90,13 @@ class TestRegistryApprovalIntegration:
             tool_call_id="call_2",
         )
         assert response2.approved is True
-        assert "Cached" in response2.reason
+        assert "cached" in response2.reason.lower()
 
     async def test_provider_error_returns_denial(self, sample_tool):
         """Test provider exceptions are handled as denial."""
         provider = MockRaisingProvider()
-        config = ToolConfig(enabled=True)
+        # Use PARANOID policy to always require approval
+        config = ToolConfig(enabled=True, permission_policy=PermissionPolicy.PARANOID)
         registry = ToolRegistry(config, approval_provider=provider)
         registry.register(sample_tool)
 

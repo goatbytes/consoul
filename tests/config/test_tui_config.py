@@ -15,7 +15,7 @@ class TestTuiConfigDefaults:
     def test_default_config(self) -> None:
         """Test TuiConfig with default values."""
         config = TuiConfig()
-        assert config.theme == "monokai"
+        assert config.theme == "consoul-dark"
         assert config.gc_mode == "streaming-aware"
         assert config.stream_buffer_size == 200
         assert config.stream_debounce_ms == 150
@@ -223,7 +223,7 @@ class TestConsoulConfigIntegration:
                 )
             }
         )
-        assert config.tui.theme == "monokai"
+        assert config.tui.theme == "consoul-dark"
         assert config.tui.gc_mode == "streaming-aware"
         assert config.tui.stream_buffer_size == 200
 

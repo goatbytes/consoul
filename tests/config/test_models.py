@@ -318,7 +318,7 @@ class TestContextConfig:
     def test_default_values(self):
         """Test default context configuration."""
         config = ContextConfig()
-        assert config.max_context_tokens == 4096
+        assert config.max_context_tokens == 0  # 0 = auto-size to 75% of model capacity
         assert config.include_system_info is True
         assert config.include_git_info is True
         assert config.custom_context_files == []
@@ -364,10 +364,10 @@ class TestContextConfig:
         assert "must be a string, Path, or list/tuple" in str(exc_info.value)
 
     def test_max_context_tokens_validation(self):
-        """Test max_context_tokens must be positive."""
+        """Test max_context_tokens must be non-negative."""
         with pytest.raises(ValidationError) as exc_info:
-            ContextConfig(max_context_tokens=0)
-        assert "greater than 0" in str(exc_info.value)
+            ContextConfig(max_context_tokens=-1)
+        assert "greater than or equal to 0" in str(exc_info.value)
 
 
 class TestProfileConfig:

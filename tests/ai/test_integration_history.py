@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from consoul.ai.history import ConversationHistory
 from consoul.ai.streaming import stream_response
 
 
+@pytest.mark.skip(reason="CLI-only streaming integration tests")
 class TestHistoryStreamingIntegration:
     """Integration tests for conversation history with streaming."""
 

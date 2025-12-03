@@ -178,8 +178,10 @@ class TestGetApiKey:
         api_key = get_api_key(Provider.OLLAMA)
         assert api_key is None
 
-    def test_get_api_key_missing_returns_none(self):
+    def test_get_api_key_missing_returns_none(self, monkeypatch: pytest.MonkeyPatch):
         """Test that missing API key returns None."""
+        # Clear environment to ensure no keys are set
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         api_key = get_api_key(Provider.ANTHROPIC)
         assert api_key is None
 
@@ -275,6 +277,9 @@ class TestEnvFileIntegration:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
         """Test loading .env file from project root."""
+        # Clear environment variables to ensure .env file is used
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
         env_file = tmp_path / ".env"
         env_file.write_text("ANTHROPIC_API_KEY=sk-ant-project-root")
 
@@ -309,6 +314,9 @@ class TestEnvFileIntegration:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
         """Test that project .env overrides ~/.consoul/.env."""
+        # Clear environment variables to ensure .env files are used
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
         # Create .env in ~/.consoul/
         consoul_dir = tmp_path / "home" / ".consoul"
         consoul_dir.mkdir(parents=True)

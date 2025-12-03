@@ -20,11 +20,12 @@ class TestToolCatalog:
 
     def test_catalog_structure(self) -> None:
         """Test that catalog entries have correct structure."""
-        for name, (tool, risk_level) in TOOL_CATALOG.items():
+        for name, (tool, risk_level, categories) in TOOL_CATALOG.items():
             assert isinstance(name, str)
             assert hasattr(tool, "name")
             assert hasattr(tool, "run")
             assert isinstance(risk_level, RiskLevel)
+            assert isinstance(categories, list)
 
     def test_expected_tools_present(self) -> None:
         """Test that expected tools are in catalog."""
@@ -51,7 +52,7 @@ class TestGetToolByName:
         """Test getting bash tool by name."""
         result = get_tool_by_name("bash")
         assert result is not None
-        tool, risk_level = result
+        tool, risk_level, _categories = result
         assert tool.name == "bash_execute"
         assert risk_level == RiskLevel.CAUTION
 
@@ -59,7 +60,7 @@ class TestGetToolByName:
         """Test getting grep tool by name."""
         result = get_tool_by_name("grep")
         assert result is not None
-        tool, risk_level = result
+        tool, risk_level, _categories = result
         assert tool.name == "grep_search"
         assert risk_level == RiskLevel.SAFE
 
@@ -68,7 +69,7 @@ class TestGetToolByName:
         for alias, canonical in TOOL_ALIASES.items():
             result = get_tool_by_name(alias)
             assert result is not None, f"Alias '{alias}' should resolve"
-            tool, _ = result
+            tool, _, _ = result
             expected_result = TOOL_CATALOG[canonical]
             assert tool == expected_result[0]
 
@@ -90,7 +91,7 @@ class TestGetToolsByRiskLevel:
         """Test getting only safe tools."""
         tools = get_tools_by_risk_level("safe")
         assert len(tools) > 0
-        for _, risk_level in tools:
+        for _, risk_level, _ in tools:
             assert risk_level == RiskLevel.SAFE
 
     def test_caution_includes_safe(self) -> None:
@@ -101,8 +102,8 @@ class TestGetToolsByRiskLevel:
         assert len(caution_tools) > len(safe_tools)
 
         # All safe tools should be in caution list (compare by name)
-        safe_tool_names = {tool.name for tool, _ in safe_tools}
-        caution_tool_names = {tool.name for tool, _ in caution_tools}
+        safe_tool_names = {tool.name for tool, _, _ in safe_tools}
+        caution_tool_names = {tool.name for tool, _, _ in caution_tools}
         assert safe_tool_names.issubset(caution_tool_names)
 
     def test_dangerous_includes_all(self) -> None:
@@ -116,7 +117,7 @@ class TestGetToolsByRiskLevel:
         """Test using RiskLevel enum instead of string."""
         tools = get_tools_by_risk_level(RiskLevel.SAFE)
         assert len(tools) > 0
-        for _, risk_level in tools:
+        for _, risk_level, _ in tools:
             assert risk_level == RiskLevel.SAFE
 
     def test_specific_risk_levels(self) -> None:
@@ -126,16 +127,16 @@ class TestGetToolsByRiskLevel:
         dangerous_tools = get_tools_by_risk_level("dangerous")
 
         # Verify expected tools at each level
-        safe_names = {tool.name for tool, _ in safe_tools}
+        safe_names = {tool.name for tool, _, _ in safe_tools}
         assert "grep_search" in safe_names
         assert "code_search" in safe_names
         assert "find_references" in safe_names
 
-        caution_names = {tool.name for tool, _ in caution_tools}
+        caution_names = {tool.name for tool, _, _ in caution_tools}
         assert "bash_execute" in caution_names
         assert "create_file" in caution_names
 
-        dangerous_names = {tool.name for tool, _ in dangerous_tools}
+        dangerous_names = {tool.name for tool, _, _ in dangerous_tools}
         assert "delete_file" in dangerous_names
 
 

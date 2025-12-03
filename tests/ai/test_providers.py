@@ -799,10 +799,16 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
+    @patch("importlib.util.find_spec")
     @patch("langchain_huggingface.ChatHuggingFace")
     @patch("langchain_huggingface.HuggingFacePipeline")
-    def test_get_chat_model_huggingface_local(self, mock_pipeline, mock_chat_hf):
+    def test_get_chat_model_huggingface_local(
+        self, mock_pipeline, mock_chat_hf, mock_find_spec
+    ):
         """Test local execution with HuggingFacePipeline."""
+        # Mock dependencies as installed
+        mock_find_spec.return_value = MagicMock()
+
         mock_llm = MagicMock()
         mock_pipeline.from_model_id.return_value = mock_llm
         mock_chat_model = MagicMock()
@@ -832,12 +838,16 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
+    @patch("importlib.util.find_spec")
     @patch("langchain_huggingface.ChatHuggingFace")
     @patch("langchain_huggingface.HuggingFacePipeline")
     def test_get_chat_model_huggingface_local_with_device(
-        self, mock_pipeline, mock_chat_hf
+        self, mock_pipeline, mock_chat_hf, mock_find_spec
     ):
         """Test local execution with device specification."""
+        # Mock dependencies as installed
+        mock_find_spec.return_value = MagicMock()
+
         mock_llm = MagicMock()
         mock_pipeline.from_model_id.return_value = mock_llm
         mock_chat_model = MagicMock()
@@ -858,48 +868,64 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("transformers.BitsAndBytesConfig")
-    @patch("langchain_huggingface.ChatHuggingFace")
-    @patch("langchain_huggingface.HuggingFacePipeline")
-    def test_get_chat_model_huggingface_local_with_quantization(
-        self, mock_pipeline, mock_chat_hf, mock_quant_config
-    ):
+    def test_get_chat_model_huggingface_local_with_quantization(self):
         """Test local execution with 4-bit quantization."""
-        mock_llm = MagicMock()
-        mock_pipeline.from_model_id.return_value = mock_llm
-        mock_chat_model = MagicMock()
-        mock_chat_hf.return_value = mock_chat_model
+        import sys
+        from unittest.mock import MagicMock
+
+        # Create mock transformers module with BitsAndBytesConfig
+        mock_transformers = MagicMock()
+        mock_quant_config = MagicMock()
         mock_quant_instance = MagicMock()
         mock_quant_config.return_value = mock_quant_instance
+        mock_transformers.BitsAndBytesConfig = mock_quant_config
 
-        config = HuggingFaceModelConfig(
-            model="meta-llama/Llama-3.1-8B-Instruct",
-            local=True,
-            quantization="4bit",
-        )
+        with (
+            patch.dict(sys.modules, {"transformers": mock_transformers}),
+            patch("importlib.util.find_spec") as mock_find_spec,
+            patch("langchain_huggingface.HuggingFacePipeline") as mock_pipeline,
+            patch("langchain_huggingface.ChatHuggingFace") as mock_chat_hf,
+        ):
+            # Mock dependencies as installed
+            mock_find_spec.return_value = MagicMock()
 
-        result = get_chat_model(config)
+            mock_llm = MagicMock()
+            mock_pipeline.from_model_id.return_value = mock_llm
+            mock_chat_model = MagicMock()
+            mock_chat_hf.return_value = mock_chat_model
 
-        assert result == mock_chat_model
-        # Verify BitsAndBytesConfig was created with load_in_4bit=True
-        mock_quant_config.assert_called_once_with(load_in_4bit=True)
-        # Verify quantization config was added to model_kwargs
-        pipeline_kwargs = mock_pipeline.from_model_id.call_args.kwargs
-        assert "model_kwargs" in pipeline_kwargs
-        assert (
-            pipeline_kwargs["model_kwargs"]["quantization_config"]
-            == mock_quant_instance
-        )
+            config = HuggingFaceModelConfig(
+                model="meta-llama/Llama-3.1-8B-Instruct",
+                local=True,
+                quantization="4bit",
+            )
+
+            result = get_chat_model(config)
+
+            assert result == mock_chat_model
+            # Verify BitsAndBytesConfig was created with load_in_4bit=True
+            mock_quant_config.assert_called_once_with(load_in_4bit=True)
+            # Verify quantization config was added to model_kwargs
+            pipeline_kwargs = mock_pipeline.from_model_id.call_args.kwargs
+            assert "model_kwargs" in pipeline_kwargs
+            assert (
+                pipeline_kwargs["model_kwargs"]["quantization_config"]
+                == mock_quant_instance
+            )
 
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
+    @patch("importlib.util.find_spec")
     @patch("langchain_huggingface.ChatHuggingFace")
     @patch("langchain_huggingface.HuggingFacePipeline")
     def test_get_chat_model_huggingface_local_all_generation_params(
-        self, mock_pipeline, mock_chat_hf
+        self, mock_pipeline, mock_chat_hf, mock_find_spec
     ):
         """Test that all generation parameters go to pipeline_kwargs."""
+        # Mock dependencies as installed
+        mock_find_spec.return_value = MagicMock()
+
         mock_llm = MagicMock()
         mock_pipeline.from_model_id.return_value = mock_llm
         mock_chat_model = MagicMock()

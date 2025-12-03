@@ -43,6 +43,11 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "# Security\n"
                 "Provide assistance with defensive security tasks only."
             ),
+            "model": {
+                "provider": "anthropic",
+                "model": "claude-3-5-sonnet-20241022",
+                "temperature": 1.0,
+            },
             "conversation": {
                 "persist": True,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
@@ -70,6 +75,11 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "and maintainability. Provide specific, actionable feedback.\n\n"
                 "{AVAILABLE_TOOLS}"
             ),
+            "model": {
+                "provider": "anthropic",
+                "model": "claude-3-5-sonnet-20241022",
+                "temperature": 0.3,
+            },
             "conversation": {
                 "persist": True,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
@@ -94,6 +104,11 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "brainstorming. Think outside the box, explore unconventional solutions, "
                 "and encourage creative thinking."
             ),
+            "model": {
+                "provider": "anthropic",
+                "model": "claude-3-5-sonnet-20241022",
+                "temperature": 1.5,
+            },
             "conversation": {
                 "persist": True,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),
@@ -117,6 +132,11 @@ def get_builtin_profiles() -> dict[str, dict[str, Any]]:
                 "You are a helpful AI assistant. Be concise and to the point.\n\n"
                 "{AVAILABLE_TOOLS}"
             ),
+            "model": {
+                "provider": "anthropic",
+                "model": "claude-3-5-haiku-20241022",
+                "temperature": 1.0,
+            },
             "conversation": {
                 "persist": True,
                 "db_path": str(Path.home() / ".consoul" / "history.db"),

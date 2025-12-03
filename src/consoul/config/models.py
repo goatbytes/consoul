@@ -1385,7 +1385,7 @@ class ProfileConfig(BaseModel):
     """Configuration profile with conversation and context settings.
 
     Profiles define HOW to use AI (system prompts, context, conversation settings),
-    not WHICH AI to use (model/provider are configured separately).
+    including WHICH AI model to use.
     """
 
     model_config = ConfigDict(
@@ -1403,6 +1403,9 @@ class ProfileConfig(BaseModel):
     system_prompt: str | None = Field(
         default=None,
         description="Custom system prompt for this profile",
+    )
+    model: ModelConfigUnion = Field(
+        description="Model configuration for this profile",
     )
     conversation: ConversationConfig = Field(
         default_factory=ConversationConfig,

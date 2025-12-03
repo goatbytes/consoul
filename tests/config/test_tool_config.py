@@ -5,6 +5,7 @@ import pytest
 from consoul.config.models import (
     ConsoulConfig,
     FileEditToolConfig,
+    OpenAIModelConfig,
     ProfileConfig,
     ReadToolConfig,
     ToolConfig,
@@ -75,7 +76,11 @@ class TestToolConfig:
         # Create a minimal ConsoulConfig with tools
         config = ConsoulConfig(
             profiles={
-                "default": ProfileConfig(name="default", description="Default profile")
+                "default": ProfileConfig(
+                    name="default",
+                    description="Default profile",
+                    model=OpenAIModelConfig(model="gpt-4o"),
+                )
             },
             active_profile="default",
             tools=ToolConfig(
@@ -93,7 +98,11 @@ class TestToolConfig:
         """Test ToolConfig uses defaults in ConsoulConfig."""
         config = ConsoulConfig(
             profiles={
-                "default": ProfileConfig(name="default", description="Default profile")
+                "default": ProfileConfig(
+                    name="default",
+                    description="Default profile",
+                    model=OpenAIModelConfig(model="gpt-4o"),
+                )
             },
             active_profile="default",
         )

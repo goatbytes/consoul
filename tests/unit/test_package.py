@@ -12,7 +12,7 @@ class TestPackageMetadata:
         """Test that __version__ is defined."""
         assert hasattr(consoul, "__version__")
         assert isinstance(consoul.__version__, str)
-        assert consoul.__version__ == "0.1.0"
+        assert consoul.__version__ == "0.2.0"
 
     def test_author_exists(self) -> None:
         """Test that __author__ is defined."""

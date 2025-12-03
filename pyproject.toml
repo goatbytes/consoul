@@ -239,6 +239,7 @@ consoul = "consoul.__main__:main"
 # Pytest configuration
 [tool.pytest.ini_options]
 minversion = "7.4"
+pythonpath = ["src"]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]

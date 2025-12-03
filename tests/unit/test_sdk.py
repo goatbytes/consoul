@@ -145,7 +145,7 @@ class TestConsoulToolSpecification:
 
         assert console.tools_spec is True
         assert console.tools_enabled is True
-        assert mock_registry.register.call_count == 9  # All 9 tools
+        assert mock_registry.register.call_count == 13  # All 13 tools in catalog
 
     @patch("consoul.sdk.get_chat_model")
     @patch("consoul.sdk.ToolRegistry")
@@ -287,7 +287,7 @@ class TestConsoulToolSpecification:
         mock_model = Mock()
         mock_get_model.return_value = mock_model
 
-        with pytest.raises(ValueError, match="Unknown tool 'invalid_tool'"):
+        with pytest.raises(ValueError, match="Unknown tool or category 'invalid_tool'"):
             Consoul(tools=["invalid_tool"], persist=False)
 
     @patch("consoul.sdk.get_chat_model")
@@ -629,8 +629,8 @@ class TestConsoulToolDiscovery:
 
         Consoul(tools=True, discover_tools=True, persist=False)
 
-        # Should have registered 10 tools: 9 built-in + 1 discovered
-        assert mock_registry.register.call_count == 10
+        # Should have registered 14 tools: 13 built-in + 1 discovered
+        assert mock_registry.register.call_count == 14
 
     @patch("consoul.sdk.get_chat_model")
     @patch("consoul.sdk.discover_tools_from_directory")
