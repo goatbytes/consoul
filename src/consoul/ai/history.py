@@ -235,6 +235,7 @@ class ConversationHistory:
             ... )
         """
         import time
+
         init_start = time.time()
 
         self.model_name = model_name
@@ -242,7 +243,9 @@ class ConversationHistory:
         # Calculate context window size
         step_start = time.time()
         model_limit = get_model_token_limit(model_name)
-        logger.debug(f"[PERF-HIST] Get model token limit: {(time.time() - step_start)*1000:.1f}ms")
+        logger.debug(
+            f"[PERF-HIST] Get model token limit: {(time.time() - step_start) * 1000:.1f}ms"
+        )
 
         if max_tokens is None or max_tokens == 0:
             # Auto-size: use 75% of model's context window
@@ -254,7 +257,9 @@ class ConversationHistory:
 
         step_start = time.time()
         self._token_counter = create_token_counter(model_name, model)
-        logger.debug(f"[PERF-HIST] Create token counter: {(time.time() - step_start)*1000:.1f}ms")
+        logger.debug(
+            f"[PERF-HIST] Create token counter: {(time.time() - step_start) * 1000:.1f}ms"
+        )
 
         self._model = model
 
@@ -275,17 +280,29 @@ class ConversationHistory:
 
                 step_start = time.time()
                 self._db = ConversationDatabase(self._db_path)
-                logger.debug(f"[PERF-HIST] Create ConversationDatabase: {(time.time() - step_start)*1000:.1f}ms")
+                logger.debug(
+                    f"[PERF-HIST] Create ConversationDatabase: {(time.time() - step_start) * 1000:.1f}ms"
+                )
 
                 if session_id:
                     # Resume existing conversation
                     step_start = time.time()
                     self._load_from_db(session_id)
-                    logger.debug(f"[PERF-HIST] Load from DB: {(time.time() - step_start)*1000:.1f}ms")
+                    logger.debug(
+                        f"[PERF-HIST] Load from DB: {(time.time() - step_start) * 1000:.1f}ms"
+                    )
                     self._conversation_created = True
                     # Use fast token counting for loaded conversations to avoid hangs
                     self._use_fast_token_counting = True
-                # else: Defer conversation creation until first user message
+                else:
+                    # Create new conversation session immediately
+                    step_start = time.time()
+                    self.session_id = self._db.create_conversation(model_name)
+                    self._conversation_created = True
+                    logger.debug(
+                        f"[PERF-HIST] Create new conversation: {(time.time() - step_start) * 1000:.1f}ms"
+                    )
+                    logger.info(f"Created new conversation session: {self.session_id}")
 
             except Exception as e:
                 # Graceful fallback to in-memory mode
@@ -318,13 +335,17 @@ class ConversationHistory:
                     keep_recent=keep_recent,
                     summary_model=summary_model,
                 )
-                logger.debug(f"[PERF-HIST] Create ConversationSummarizer: {(time.time() - step_start)*1000:.1f}ms")
+                logger.debug(
+                    f"[PERF-HIST] Create ConversationSummarizer: {(time.time() - step_start) * 1000:.1f}ms"
+                )
                 logger.info(
                     f"Initialized summarization: threshold={summarize_threshold}, "
                     f"keep_recent={keep_recent}"
                 )
 
-        logger.debug(f"[PERF-HIST] Total ConversationHistory.__init__: {(time.time() - init_start)*1000:.1f}ms")
+        logger.debug(
+            f"[PERF-HIST] Total ConversationHistory.__init__: {(time.time() - init_start) * 1000:.1f}ms"
+        )
 
     def _load_from_db(self, session_id: str) -> None:
         """Load conversation from database.
@@ -432,14 +453,14 @@ class ConversationHistory:
             return None
 
         try:
-            # Get role from message
+            # Normalize role from LangChain types to standard format
             role_map = {
-                SystemMessage: "system",
-                HumanMessage: "user",
-                AIMessage: "assistant",
-                ToolMessage: "tool",
+                "system": "system",
+                "human": "user",
+                "ai": "assistant",
+                "tool": "tool",
             }
-            role = role_map.get(type(message), message.type)
+            role = role_map.get(message.type, message.type)
 
             # Count tokens for this message
             # For performance: use simple estimation instead of expensive token counting
@@ -507,8 +528,8 @@ class ConversationHistory:
             # Insert at beginning
             self.messages.insert(0, system_message)
 
-        # Note: Persistence is handled by add_user_message when conversation is created
-        # System messages added during initialization are persisted later
+        # Persist if enabled (blocking for sync SDK)
+        self._persist_message_sync(system_message)
 
     def store_system_prompt_metadata(
         self, profile_name: str | None = None, tool_count: int | None = None
@@ -566,20 +587,19 @@ class ConversationHistory:
             >>> len(history)
             1
         """
-        # Create conversation in DB on first user message if not already created
-        if self.persist and self._db and not self._conversation_created:
+        # Persist any existing system messages that were added before first user message
+        # (only needed if conversation was created but system messages not yet persisted)
+        if self.persist and self._db and self._conversation_created and self.session_id:
+            # Check if this is the first user message by looking at persisted messages
             try:
-                self.session_id = self._db.create_conversation(self.model_name)
-                self._conversation_created = True
-                logger.info(f"Created new conversation session: {self.session_id}")
-
-                # Persist any existing system messages that were added before first user message
-                for msg in self.messages:
-                    if isinstance(msg, SystemMessage):
-                        self._persist_message_sync(msg)
+                existing_messages = self._db.load_conversation(self.session_id)
+                if not existing_messages:
+                    # No messages persisted yet - persist system messages if any
+                    for msg in self.messages:
+                        if isinstance(msg, SystemMessage):
+                            self._persist_message_sync(msg)
             except Exception as e:
-                logger.warning(f"Failed to create conversation in database: {e}")
-                self.persist = False
+                logger.debug(f"Could not check existing messages: {e}")
 
         message = HumanMessage(content=content)
         self.messages.append(message)
@@ -602,8 +622,20 @@ class ConversationHistory:
             return
 
         try:
-            role = message.type
-            tokens = self._token_counter([message])
+            # Normalize role from LangChain types to standard format
+            role_map = {
+                "system": "system",
+                "human": "user",
+                "ai": "assistant",
+                "tool": "tool",
+            }
+            role = role_map.get(message.type, message.type)
+
+            # Use fast token estimation to avoid hangs/timeouts
+            # Token counting can be expensive, especially for certain models
+            content_str = str(message.content) if message.content else ""
+            tokens = len(content_str) // 4  # Rough estimate: 1 token ≈ 4 chars
+
             # Handle both string and complex content types
             content = message.content
             if isinstance(content, list):
@@ -699,12 +731,7 @@ class ConversationHistory:
         if role_lower == "system":
             self.add_system_message(content)
         elif role_lower in ("user", "human"):
-            # Note: This is synchronous wrapper - just add to memory without persistence
-            # Use add_user_message() directly for async/persistence support
-            from langchain_core.messages import HumanMessage
-
-            message = HumanMessage(content=content)
-            self.messages.append(message)
+            self.add_user_message(content)
         elif role_lower in ("assistant", "ai"):
             self.add_assistant_message(content)
         else:
