@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-12-02T16:30:06.915760",
+  "updated_at": "2025-12-02T16:30:06.915769",
+  "id": "SOUL-218",
+  "uuid": "80bf73b1-3b65-465e-af98-bbb2b5facbf3",
+  "title": "Audit codebase for sensitive data before public release",
+  "description": "**As a** project maintainer\n**I want** to verify no sensitive data exists in the codebase\n**So that** API keys, secrets, and private data aren't exposed publicly\n\n**Context:**\nBefore making the repository public, must ensure:\n- No API keys (sk-, pk-, api_key=)\n- No private email addresses or credentials\n- No internal URLs or development endpoints\n- No commented-out secrets\n- .gitignore properly excludes sensitive files\n- Example configs use placeholders only\n\nInitial scan found no actual API keys, but need comprehensive review.\n\n**Technical Notes:**\n- Search patterns: sk-, pk-, AKIA, ghp_, xox, secret, password, token\n- Check files: .env.example, pyproject.toml, docs/**, tests/**\n- Verify .gitignore includes: .env, *.key, credentials.json, etc.\n- Scan git history for previously committed secrets\n- Use tools: gitleaks, truffleHog, or git-secrets\n\n**Acceptance Criteria:**\n\n**Given** I search the codebase for \"sk-\"\n**When** the search completes\n**Then** only example/placeholder values are found\n\n**Given** I check .gitignore\n**When** I review its contents\n**Then** all sensitive file patterns are excluded\n\n**Given** I scan git history\n**When** I search for API key patterns\n**Then** no actual secrets are found in any commit\n\n**Given** documentation and examples\n**When** I review API key references\n**Then** only placeholders like \"your-key-here\" are used\n\n**Testing Considerations:**\n- Run automated secret scanning tools\n- Manual review of:\n  - .env.example (should have no real values)\n  - Example configurations\n  - Documentation snippets\n  - Test fixtures\n- Check git history: `git log -p | grep -i \"api_key\"`\n- Verify environment variable documentation\n\n**Implementation Hints:**\n```bash\n# Search for common secret patterns\ngrep -r \"sk-\" . --include=\"*.py\" --include=\"*.md\" --exclude-dir=\".git\"\ngrep -r \"AKIA\" . --include=\"*.py\" --include=\"*.yaml\"\ngrep -r \"xox\" . --include=\"*.py\"\n\n# Check .env files\ncat .env 2>/dev/null || echo \"No .env file (good)\"\ncat .env.example\n\n# Verify .gitignore\ngrep -E \"\\.env|\\.key|credentials|secret\" .gitignore\n\n# Scan git history (install gitleaks first)\ngitleaks detect --source . --verbose\n```",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "security",
+    "audit"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-010",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

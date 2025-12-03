@@ -1,8 +1,0 @@
-{
-  "prompt": "Explain how HTTPS works in simple terms",
-  "response": "HTTPS (Hyper Text Transfer Protocol Secure) is an extension of the HTTP protocol that adds security to your data transmissions. It uses SSL/TLS encryption, which encrypts your data before sending it over the internet, ensuring it can't be intercepted or read by unauthorized parties.",
-  "error": null,
-  "timestamp": "2025-11-28T22:33:34.388458",
-  "model": "granite4:3b",
-  "success": true
-}

@@ -1,9 +1,0 @@
-{
-  "model": "granite4:3b",
-  "temperature": 0.7,
-  "output": "output",
-  "system_prompt_file": "system_prompts/concise_expert.txt",
-  "prompts_file": "example_prompts.json",
-  "preset": null,
-  "system_prompt": null
-}

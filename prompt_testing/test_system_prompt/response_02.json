@@ -1,8 +1,0 @@
-{
-  "prompt": "Explain the difference between == and === in JavaScript",
-  "response": "In JavaScript, \"==\" checks for equality after converting operands to their respective types, whereas \"===\" (strict equality) checks for both equality and type without performing any conversion. In other words, \"==\" is loose equality while \"===\" is strict or identity equality.",
-  "error": null,
-  "timestamp": "2025-11-28T22:33:20.230344",
-  "model": "granite4:3b",
-  "success": true
-}

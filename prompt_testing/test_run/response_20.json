@@ -1,8 +1,0 @@
-{
-  "prompt": "Write a Python decorator to measure function execution time",
-  "response": "```python\nimport time\n\ndef timing(func):\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        result = func(*args, **kwargs)\n        end = time.time()\n        print(f\"{func.__name__} took {end - start:.6f}s\")\n        return result\n    return wrapper\n```\n\nThis decorator measures the execution time of a function by recording the start and end times using `time.time()` before and after calling the decorated function. The elapsed time is then printed, providing insight into how long the function takes to execute.",
-  "error": null,
-  "timestamp": "2025-11-28T23:13:29.098675",
-  "model": "granite4:3b",
-  "success": true
-}

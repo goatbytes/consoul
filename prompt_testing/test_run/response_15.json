@@ -1,8 +1,0 @@
-{
-  "prompt": "Explain how HTTPS works in simple terms",
-  "response": "HTTPS encrypts data sent between your browser and the website server, ensuring privacy and security. It uses SSL/TLS protocols to establish a secure connection before transmitting any sensitive information like passwords or credit card details.",
-  "error": null,
-  "timestamp": "2025-11-28T23:13:21.525999",
-  "model": "granite4:3b",
-  "success": true
-}

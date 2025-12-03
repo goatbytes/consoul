@@ -1,9 +1,0 @@
-{
-  "model": "granite4:3b",
-  "temperature": 0.8,
-  "output": "results/beginner",
-  "system_prompt_file": "system_prompts/beginner_friendly.txt",
-  "prompts_file": "example_prompts_detailed.json",
-  "preset": null,
-  "system_prompt": null
-}

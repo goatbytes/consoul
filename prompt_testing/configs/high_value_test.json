@@ -1,9 +1,0 @@
-{
-  "model": "granite4:3b",
-  "temperature": 0.5,
-  "output": "results/high_value",
-  "system_prompt_file": "system_prompts/senior_engineer.txt",
-  "prompts_file": null,
-  "preset": "high-value",
-  "system_prompt": null
-}

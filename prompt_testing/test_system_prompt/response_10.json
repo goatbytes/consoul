@@ -1,8 +1,0 @@
-{
-  "prompt": "Create a responsive CSS grid with 3 columns that collapses to 1 on mobile",
-  "response": "```css\n.container {\n    display: grid;\n    grid-template-columns: repeat(3, 1fr);\n}\n\n@media screen and (max-width: 600px) {\n    .container {\n        grid-template-columns: 100%;\n    }\n}\n```\n\nThis CSS code creates a responsive grid layout with three columns that collapse into one column on screens smaller than 600 pixels wide.",
-  "error": null,
-  "timestamp": "2025-11-28T22:33:29.034859",
-  "model": "granite4:3b",
-  "success": true
-}

@@ -1,8 +1,0 @@
-{
-  "prompt": "Write a Python decorator to measure function execution time",
-  "response": "Here's a simple Python decorator that measures the execution time of a function:\n\n```python\nimport time\n\ndef timer(func):\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        result = func(*args, **kwargs)\n        end = time.time()\n\n        print(f\"Execution time: {end - start} seconds\")\n        return result\n\n    return wrapper\n```\n\nTo use the decorator, simply apply it to a function:\n\n```python\n@timer\ndef my_function():\n    # Your code here\n```",
-  "error": null,
-  "timestamp": "2025-11-28T22:33:40.949401",
-  "model": "granite4:3b",
-  "success": true
-}

@@ -1,8 +1,0 @@
-{
-  "prompt": "Write a function to reverse a string in Python without using built-in methods",
-  "response": "```python\ndef reverse_string(s):\n    reversed_str = ''\n    for i in range(len(s)-1, -1, -1):\n        reversed_str += s[i]\n    return reversed_str\n```\n\nThis function iterates through the input string `s` from the last character to the first using a negative step of -1. It builds the reversed string by appending each character to `reversed_str`.",
-  "error": null,
-  "timestamp": "2025-11-28T23:13:13.674860",
-  "model": "granite4:3b",
-  "success": true
-}

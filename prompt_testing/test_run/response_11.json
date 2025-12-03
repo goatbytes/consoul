@@ -1,8 +1,0 @@
-{
-  "prompt": "Explain Big O notation with examples",
-  "response": "Big O notation describes the performance of an algorithm, measuring how its runtime or space grows relative to input size. For example, a linear search has O(n) complexity because it checks each element once; quadratic sorting algorithms like bubble sort have O(n^2) complexity due to nested loops.\n\nExamples:\n1. Linear search: O(n)\n2. Bubble sort: O(n^2)\n\nBig O notation focuses on the highest order term and ignores constants, focusing only on how growth rates increase with input size.",
-  "error": null,
-  "timestamp": "2025-11-28T23:13:17.957267",
-  "model": "granite4:3b",
-  "success": true
-}

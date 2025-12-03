@@ -1,8 +1,0 @@
-{
-  "prompt": "What's the difference between Process and Thread?",
-  "response": "A process is an independent program running in its own memory space, while a thread is part of a process and shares its memory space. In other words, multiple threads can run concurrently within a single process, whereas processes operate independently from each other.",
-  "error": null,
-  "timestamp": "2025-11-28T22:33:22.097471",
-  "model": "granite4:3b",
-  "success": true
-}

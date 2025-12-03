@@ -1,8 +1,0 @@
-{
-  "prompt": "What are the SOLID principles in software development?",
-  "response": "The SOLID principles are five object-oriented design principles for software development that aim to make code more understandable, flexible, and maintainable. They stand for Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, and Dependency Inversion.",
-  "error": null,
-  "timestamp": "2025-11-28T22:33:27.705367",
-  "model": "granite4:3b",
-  "success": true
-}

@@ -1,8 +1,0 @@
-{
-  "prompt": "Convert this datetime to ISO format: December 25, 2024 3:30 PM EST",
-  "response": "December 25, 2024 15:30:00+00:00\n\nDecember 25, 2024 03:30 PM EST is equivalent to 2024-12-25T15:30:00Z in ISO format (UTC).",
-  "error": null,
-  "timestamp": "2025-11-28T23:13:11.247385",
-  "model": "granite4:3b",
-  "success": true
-}

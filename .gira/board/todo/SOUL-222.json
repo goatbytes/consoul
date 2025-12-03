@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-02T16:31:33.334918",
+  "updated_at": "2025-12-02T16:31:33.334925",
+  "id": "SOUL-222",
+  "uuid": "4e6723f7-5121-4518-be08-1f4c30064700",
+  "title": "Publish v0.2.0 to PyPI",
+  "description": "**As a** Python developer\n**I want** Consoul available on PyPI\n**So that** I can install it with `pip install consoul`\n\n**Context:**\nAfter v0.2.0 git tag is created, publish the package to PyPI. This is the first public PyPI release (0.1.0 may have been test/private).\n\nRequirements:\n- PyPI account with 2FA enabled\n- API token configured\n- Package builds successfully\n- All metadata correct in pyproject.toml\n\n**Technical Notes:**\n- Build with: `poetry build`\n- Publish with: `poetry publish` or `twine upload dist/*`\n- Test on TestPyPI first (optional but recommended)\n- Verify package metadata on PyPI after upload\n- Check that documentation links work\n\n**Acceptance Criteria:**\n\n**Given** I build the package\n**When** I run `poetry build`\n**Then** wheel and sdist are created without errors\n\n**Given** the package is published\n**When** I run `pip install consoul`\n**Then** version 0.2.0 is installed successfully\n\n**Given** I visit pypi.org/project/consoul\n**When** I check the project page\n**Then** all metadata is correct and links work\n\n**Given** a user installs consoul\n**When** they run `consoul --version`\n**Then** it shows version 0.2.0\n\n**Testing Considerations:**\n- Test build process locally first\n- Check PKG-INFO metadata\n- Verify all dependencies are correct\n- Test installation in clean virtual environment\n- Check that extras install correctly (`pip install consoul[tui]`)\n- Verify README renders correctly on PyPI\n\n**Implementation Hints:**\n```bash\n# 1. Clean previous builds\nrm -rf dist/ build/ *.egg-info\n\n# 2. Build package\npoetry build\n\n# 3. Check build artifacts\nls -lh dist/\ntar -tzf dist/consoul-0.2.0.tar.gz | head -20\n\n# 4. Test on TestPyPI (optional)\npoetry config repositories.testpypi https://test.pypi.org/legacy/\npoetry publish -r testpypi\npip install --index-url https://test.pypi.org/simple/ consoul\n\n# 5. Publish to PyPI\npoetry publish\n\n# 6. Verify\npip install --upgrade consoul\npython -c \"import consoul; print(consoul.__version__)\"\n```\n\n**Dependencies:**\n- SOUL-214: Version must be updated to 0.2.0\n- SOUL-213: Documentation URLs must be correct\n- SOUL-221: Git tag v0.2.0 must exist\n- All EPIC-010 tickets should be complete\n\n**Post-Publish Checklist:**\n- [ ] Package appears on https://pypi.org/project/consoul/\n- [ ] pip install works\n- [ ] Version displays correctly\n- [ ] Documentation link works\n- [ ] All extras install (tui, pdf, ollama-library, etc.)",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "release",
+    "pypi",
+    "publishing"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-010",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

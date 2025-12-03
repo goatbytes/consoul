@@ -1,8 +1,0 @@
-{
-  "prompt": "Explain REST API status codes: 200, 201, 400, 401, 403, 404, 500",
-  "response": "200 OK - Request successful.\n201 Created - Resource created successfully.\n400 Bad Request - Invalid request data.\n401 Unauthorized - Authentication required.\n403 Forbidden - Insufficient permissions.\n404 Not Found - Resource not found.\n500 Internal Server Error - Unexpected server error.",
-  "error": null,
-  "timestamp": "2025-11-28T23:13:12.273360",
-  "model": "granite4:3b",
-  "success": true
-}

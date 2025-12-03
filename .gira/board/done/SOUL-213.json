@@ -1,11 +1,11 @@
 {
   "created_at": "2025-12-02T16:28:15.337932",
-  "updated_at": "2025-12-02T16:28:15.337947",
+  "updated_at": "2025-12-03T00:41:24.710337Z",
   "id": "SOUL-213",
   "uuid": "247bff2a-ad50-47f8-89a6-d47b7cce699f",
   "title": "Fix documentation URL mismatch in pyproject.toml",
   "description": "**As a** potential contributor or user\n**I want** consistent documentation URLs across the project\n**So that** I can easily find the official documentation\n\n**Context:**\npyproject.toml currently points to `https://consoul.readthedocs.io` but README.md and all documentation references use `https://consoul.goatbytes.io`. This creates confusion and broken links.\n\n**Technical Notes:**\n- File: `pyproject.toml` lines 110, 128\n- Current: `Documentation = \"https://consoul.readthedocs.io\"`\n- Correct: `Documentation = \"https://consoul.goatbytes.io\"`\n- Also check `documentation` field in `[tool.poetry]` section\n\n**Acceptance Criteria:**\n\n**Given** the pyproject.toml file\n**When** I check the documentation URLs\n**Then** all URLs point to https://consoul.goatbytes.io\n\n**Given** a user visits pypi.org/project/consoul\n**When** they click the documentation link\n**Then** they land on the correct documentation site\n\n**Testing Considerations:**\n- Verify URL in both [project.urls] and [tool.poetry] sections\n- Check that MkDocs site is actually deployed at consoul.goatbytes.io\n- Confirm PyPI metadata will update on next publish\n\n**Implementation Hints:**\n- Update line 110: `Documentation = \"https://consoul.goatbytes.io\"`\n- Update line 128: `documentation = \"https://consoul.goatbytes.io\"`\n- Verify with: `poetry build` and check PKG-INFO",
-  "status": "todo",
+  "status": "done",
   "type": "bug",
   "priority": "high",
   "labels": [
@@ -17,10 +17,24 @@
   "epic_id": "EPIC-010",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-12-02T16:41:15.915728",
+      "updated_at": "2025-12-02T16:41:15.915729",
+      "id": "20251202164115-8921b7f0",
+      "ticket_id": "SOUL-213",
+      "author": "jared@goatbytes.io",
+      "content": "Successfully fixed documentation URLs in pyproject.toml. Changed both [project.urls] and [tool.poetry] documentation fields from https://consoul.readthedocs.io to https://consoul.goatbytes.io. Verified with grep and committed.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "order": 0,
   "custom_fields": {}
 }
