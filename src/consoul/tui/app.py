@@ -208,11 +208,12 @@ class ConsoulApp(App[None]):
         self.chat_model: BaseChatModel | None = None
         self.conversation: ConversationHistory | None = None
         self.active_profile: ProfileConfig | None = None
-        self.current_profile: str | None = None  # type: ignore[assignment]
-        self.current_model: str | None = None  # type: ignore[assignment]
+        # NOTE: Don't override reactive properties here - they have proper defaults
+        # self.current_profile is set to "default" by reactive declaration
+        # self.current_model is set to "" by reactive declaration
+        # self.conversation_id is set to None by reactive declaration
         self.tool_registry: ToolRegistry | None = None
         self.title_generator: TitleGenerator | None = None
-        self.conversation_id: str | None = None
 
         # Streaming state
         self._current_stream: StreamingResponse | None = None

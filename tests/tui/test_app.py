@@ -171,24 +171,50 @@ class TestConsoulAppAIIntegration:
     @pytest.mark.asyncio
     async def test_app_initializes_with_mock_config(self) -> None:
         """Test app initializes AI components with valid config."""
-        # Mock config
+        # Mock config with proper structure
         mock_config = Mock()
         mock_profile = Mock()
         mock_profile.name = "test-profile"
         mock_profile.model.model = "gpt-4o"
         mock_profile.system_prompt = "You are helpful."
+        mock_profile.conversation.persist = False  # Disable persistence for test
         mock_config.get_active_profile.return_value = mock_profile
+        mock_config.current_model = "gpt-4o"
+
+        # Mock tools config properly
+        mock_config.tools.allowed_tools = []  # Empty tools list
+        mock_config.tools.file_edit = None  # No file edit config
+        mock_config.tools.image_analysis = None  # No image analysis config
+        mock_config.tools.risk_filter = None  # No risk filter
 
         # Mock get_chat_model
         mock_chat_model = Mock()
         mock_conversation = Mock()
         mock_conversation.session_id = "test-session"
 
+        # Mock ToolRegistry to avoid complex initialization
+        mock_tool_registry = Mock()
+        mock_tool_registry.list_tools.return_value = []
+
         with (
             patch("consoul.ai.get_chat_model", return_value=mock_chat_model),
             patch("consoul.ai.ConversationHistory", return_value=mock_conversation),
+            patch("consoul.ai.tools.ToolRegistry", return_value=mock_tool_registry),
         ):
             app = ConsoulApp(consoul_config=mock_config, test_mode=True)
+
+            # Run the app to trigger async initialization
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                # Wait for initialization to complete (with timeout)
+                import asyncio
+
+                timeout_seconds = 5
+                start = asyncio.get_event_loop().time()
+                while not app._initialization_complete:
+                    if asyncio.get_event_loop().time() - start > timeout_seconds:
+                        break
+                    await pilot.pause(0.1)
 
             assert app.chat_model is mock_chat_model
             assert app.conversation is mock_conversation
@@ -232,15 +258,38 @@ class TestConsoulAppAIIntegration:
         mock_profile.model.model = "gpt-4o"
         mock_profile.model.max_tokens = 4096
         mock_profile.system_prompt = None
+        mock_profile.conversation.persist = False  # Disable persistence for test
         mock_config.get_active_profile.return_value = mock_profile
+        mock_config.current_model = "gpt-4o"
+
+        # Mock tools config properly
+        mock_config.tools.allowed_tools = []  # Empty tools list
+        mock_config.tools.file_edit = None  # No file edit config
+        mock_config.tools.image_analysis = None  # No image analysis config
+        mock_config.tools.risk_filter = None  # No risk filter
+
+        # Mock ToolRegistry to avoid complex initialization
+        mock_tool_registry = Mock()
+        mock_tool_registry.list_tools.return_value = []
 
         with (
             patch("consoul.ai.get_chat_model", return_value=mock_chat_model),
             patch("consoul.ai.ConversationHistory", return_value=mock_conversation),
+            patch("consoul.ai.tools.ToolRegistry", return_value=mock_tool_registry),
         ):
             app = ConsoulApp(consoul_config=mock_config, test_mode=True)
 
             async with app.run_test() as pilot:
+                # Wait for initialization to complete (with timeout)
+                import asyncio
+
+                timeout_seconds = 5
+                start = asyncio.get_event_loop().time()
+                while not app._initialization_complete:
+                    if asyncio.get_event_loop().time() - start > timeout_seconds:
+                        break
+                    await pilot.pause(0.1)
+
                 # Post message submit event
                 event = InputArea.MessageSubmit("Hello AI")
                 await app.on_input_area_message_submit(event)
@@ -306,15 +355,38 @@ class TestConsoulAppAIIntegration:
         mock_profile.name = "test"
         mock_profile.model.model = "gpt-4o"
         mock_profile.system_prompt = None
+        mock_profile.conversation.persist = False  # Disable persistence for test
         mock_config.get_active_profile.return_value = mock_profile
+        mock_config.current_model = "gpt-4o"
+
+        # Mock tools config properly
+        mock_config.tools.allowed_tools = []  # Empty tools list
+        mock_config.tools.file_edit = None  # No file edit config
+        mock_config.tools.image_analysis = None  # No image analysis config
+        mock_config.tools.risk_filter = None  # No risk filter
+
+        # Mock ToolRegistry to avoid complex initialization
+        mock_tool_registry = Mock()
+        mock_tool_registry.list_tools.return_value = []
 
         with (
             patch("consoul.ai.get_chat_model", return_value=mock_chat_model),
             patch("consoul.ai.ConversationHistory", return_value=mock_old_conversation),
+            patch("consoul.ai.tools.ToolRegistry", return_value=mock_tool_registry),
         ):
             app = ConsoulApp(consoul_config=mock_config, test_mode=True)
 
             async with app.run_test() as pilot:
+                # Wait for initialization to complete (with timeout)
+                import asyncio
+
+                timeout_seconds = 5
+                start = asyncio.get_event_loop().time()
+                while not app._initialization_complete:
+                    if asyncio.get_event_loop().time() - start > timeout_seconds:
+                        break
+                    await pilot.pause(0.1)
+
                 # Create new conversation
                 mock_new_conversation = Mock()
                 mock_new_conversation.session_id = "new-session"
