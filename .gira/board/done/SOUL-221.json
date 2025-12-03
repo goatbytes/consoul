@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-02T18:09:06.246415",
+  "updated_at": "2025-12-02T18:09:06.246424",
+  "id": "SOUL-221",
+  "uuid": "dc68b0b9-4e04-4f22-9967-cf4808baad58",
+  "title": "Fix TUI app initialization and reactive state tests",
+  "description": "**As a** Consoul developer\n**I want** TUI app initialization tests to pass\n**So that** we can ensure the Textual app starts correctly\n\n**Context:**\n4 tests in tests/tui/test_app.py are failing due to app initialization and reactive state issues. These tests verify the ConsoulApp (Textual TUI) initializes correctly with AI integration.\n\n**Technical Notes:**\n- tests/tui/test_app.py - TUI app tests\n- src/consoul/tui/app.py - ConsoulApp implementation\n- Textual framework - async app lifecycle\n\n**Acceptance Criteria:**\n\n**Given** ConsoulApp is initialized\n**When** reactive state is checked\n**Then** all reactive properties should be properly initialized\n\n**Given** ConsoulApp is initialized with mock config\n**When** AI integration is verified\n**Then** model and history should be configured\n\n**Given** a message is submitted\n**When** AI processes it\n**Then** user and assistant messages should display\n\n**Failing Tests:**\n- test_reactive_state_initialization\n- test_app_initializes_with_mock_config\n- test_message_submit_with_ai_displays_user_message\n- test_new_conversation_creates_new_session\n\n**Testing Considerations:**\n- Use Textual's pilot for async testing\n- Mock AI provider calls\n- Verify widget mounting and reactive updates\n\n**Implementation Hints:**\n- Ensure app.run_test() context is used\n- Mock get_chat_model to avoid real API calls\n- Verify reactive properties have default values\n- Check widget composition in on_mount",
+  "status": "todo",
+  "type": "bug",
+  "priority": "medium",
+  "labels": [
+    "testing",
+    "bug",
+    "tui"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "parent_id": "SOUL-214",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

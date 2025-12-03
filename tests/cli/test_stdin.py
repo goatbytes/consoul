@@ -8,17 +8,32 @@ import pytest
 from consoul.cli.stdin_reader import format_stdin_message, read_stdin
 
 
+class MockStdin:
+    """Mock stdin object with buffer attribute for testing."""
+
+    def __init__(self, buffer, is_tty=False):
+        """Initialize mock stdin.
+
+        Args:
+            buffer: BytesIO object to use as buffer
+            is_tty: Whether stdin should behave like a TTY
+        """
+        self.buffer = buffer
+        self._is_tty = is_tty
+
+    def isatty(self):
+        """Check if this is a TTY."""
+        return self._is_tty
+
+
 class TestReadStdin:
     """Test read_stdin function."""
 
     def test_read_stdin_with_content(self, monkeypatch):
         """Test reading content from stdin."""
         test_data = "test content\nline 2"
-        fake_stdin = io.BytesIO(test_data.encode("utf-8"))
-
-        # Mock stdin attributes
-        fake_stdin.isatty = lambda: False
-
+        fake_buffer = io.BytesIO(test_data.encode("utf-8"))
+        fake_stdin = MockStdin(fake_buffer)
         monkeypatch.setattr(sys, "stdin", fake_stdin)
 
         content = read_stdin()
@@ -26,9 +41,8 @@ class TestReadStdin:
 
     def test_read_stdin_empty(self, monkeypatch):
         """Test reading empty stdin."""
-        fake_stdin = io.BytesIO(b"")
-        fake_stdin.isatty = lambda: False
-
+        fake_buffer = io.BytesIO(b"")
+        fake_stdin = MockStdin(fake_buffer)
         monkeypatch.setattr(sys, "stdin", fake_stdin)
 
         content = read_stdin()
@@ -36,9 +50,8 @@ class TestReadStdin:
 
     def test_read_stdin_from_tty(self, monkeypatch):
         """Test that stdin from tty returns None."""
-        fake_stdin = io.BytesIO(b"data")
-        fake_stdin.isatty = lambda: True  # Simulate interactive terminal
-
+        fake_buffer = io.BytesIO(b"data")
+        fake_stdin = MockStdin(fake_buffer, is_tty=True)
         monkeypatch.setattr(sys, "stdin", fake_stdin)
 
         content = read_stdin()
@@ -48,10 +61,8 @@ class TestReadStdin:
         """Test size limit enforcement."""
         # Create data that exceeds 1KB limit
         large_data = b"x" * 1025
-
-        fake_stdin = io.BytesIO(large_data)
-        fake_stdin.isatty = lambda: False
-
+        fake_buffer = io.BytesIO(large_data)
+        fake_stdin = MockStdin(fake_buffer)
         monkeypatch.setattr(sys, "stdin", fake_stdin)
 
         with pytest.raises(ValueError, match="exceeds maximum size"):
@@ -61,10 +72,8 @@ class TestReadStdin:
         """Test handling of invalid UTF-8."""
         # Invalid UTF-8 sequence
         invalid_data = b"\xff\xfe invalid utf-8"
-
-        fake_stdin = io.BytesIO(invalid_data)
-        fake_stdin.isatty = lambda: False
-
+        fake_buffer = io.BytesIO(invalid_data)
+        fake_stdin = MockStdin(fake_buffer)
         monkeypatch.setattr(sys, "stdin", fake_stdin)
 
         with pytest.raises(ValueError, match="invalid UTF-8"):
@@ -73,9 +82,8 @@ class TestReadStdin:
     def test_read_stdin_multiline(self, monkeypatch):
         """Test reading multi-line content."""
         test_data = "line 1\nline 2\nline 3"
-        fake_stdin = io.BytesIO(test_data.encode("utf-8"))
-        fake_stdin.isatty = lambda: False
-
+        fake_buffer = io.BytesIO(test_data.encode("utf-8"))
+        fake_stdin = MockStdin(fake_buffer)
         monkeypatch.setattr(sys, "stdin", fake_stdin)
 
         content = read_stdin()

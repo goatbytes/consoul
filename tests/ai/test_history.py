@@ -85,7 +85,7 @@ class TestConversationHistoryBasics:
         history = ConversationHistory("gpt-4o", persist=False)
 
         assert history.model_name == "gpt-4o"
-        assert history.max_tokens == 128_000  # gpt-4o's limit
+        assert history.max_tokens == 96_000  # gpt-4o's limit (128k) * 0.75 safety margin
         assert len(history.messages) == 0
 
     def test_initialization_custom_token_limit(self):
@@ -351,7 +351,7 @@ class TestConversationHistoryTrimming:
         # Verify custom strategy was used
         call_args = mock_trim_messages.call_args
         assert call_args[1]["strategy"] == "first"
-        assert call_args[1]["max_tokens"] == 128_000 - 500
+        assert call_args[1]["max_tokens"] == 96_000 - 500  # 96k (75% of 128k) - 500
 
 
 class TestConversationHistoryClear:
@@ -430,7 +430,7 @@ class TestConversationHistoryMagicMethods:
             assert "gpt-4o" in repr_str
             assert "messages=1" in repr_str
             assert "tokens=100" in repr_str
-            assert "128000" in repr_str  # max_tokens
+            assert "96000" in repr_str  # max_tokens (75% of 128k)
 
 
 class TestConversationHistoryWithModel:
