@@ -20,6 +20,24 @@ from consoul.config.loader import load_config
 from consoul.config.profiles import get_builtin_profiles, get_profile_description
 
 
+def validate_temperature(ctx: click.Context, param: click.Parameter, value: float | None) -> float | None:
+    """Validate temperature parameter is in range 0.0-2.0."""
+    if value is None:
+        return value
+    if not 0.0 <= value <= 2.0:
+        raise click.BadParameter("Temperature must be between 0.0 and 2.0")
+    return value
+
+
+def validate_max_tokens(ctx: click.Context, param: click.Parameter, value: int | None) -> int | None:
+    """Validate max_tokens parameter is positive."""
+    if value is None:
+        return value
+    if value <= 0:
+        raise click.BadParameter("Max tokens must be greater than 0")
+    return value
+
+
 @click.group(invoke_without_command=True)
 @click.option(
     "--profile",
@@ -35,6 +53,7 @@ from consoul.config.profiles import get_builtin_profiles, get_profile_descriptio
 @click.option(
     "--temperature",
     type=float,
+    callback=validate_temperature,
     help="Override model temperature (0.0-2.0)",
 )
 @click.option(
@@ -44,6 +63,7 @@ from consoul.config.profiles import get_builtin_profiles, get_profile_descriptio
 @click.option(
     "--max-tokens",
     type=int,
+    callback=validate_max_tokens,
     help="Override maximum tokens to generate",
 )
 @click.pass_context
