@@ -5,13 +5,16 @@ from pathlib import Path
 
 from consoul.ai.tools.implementations.code_search import code_search
 
+# Get fixtures directory relative to this test file
+FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "code_search"
+
 
 class TestRealFileSearch:
     """Test search with real fixture files."""
 
     def test_search_python_functions(self) -> None:
         """Test searching for Python functions."""
-        fixtures_path = Path("tests/fixtures/code_search/python")
+        fixtures_path = FIXTURES_DIR / "python"
 
         result = code_search.invoke(
             {
@@ -30,7 +33,7 @@ class TestRealFileSearch:
 
     def test_search_python_classes(self) -> None:
         """Test searching for Python classes."""
-        fixtures_path = Path("tests/fixtures/code_search/python")
+        fixtures_path = FIXTURES_DIR / "python"
 
         result = code_search.invoke(
             {
@@ -50,7 +53,7 @@ class TestRealFileSearch:
 
     def test_search_case_insensitive(self) -> None:
         """Test case-insensitive search."""
-        fixtures_path = Path("tests/fixtures/code_search/python")
+        fixtures_path = FIXTURES_DIR / "python"
 
         result = code_search.invoke(
             {
@@ -68,7 +71,7 @@ class TestRealFileSearch:
 
     def test_search_javascript_classes(self) -> None:
         """Test searching JavaScript classes."""
-        fixtures_path = Path("tests/fixtures/code_search/javascript")
+        fixtures_path = FIXTURES_DIR / "javascript"
 
         result = code_search.invoke(
             {
@@ -87,7 +90,7 @@ class TestRealFileSearch:
 
     def test_search_go_functions(self) -> None:
         """Test searching Go functions."""
-        fixtures_path = Path("tests/fixtures/code_search/go")
+        fixtures_path = FIXTURES_DIR / "go"
 
         result = code_search.invoke(
             {
@@ -106,7 +109,7 @@ class TestRealFileSearch:
 
     def test_search_multi_language(self) -> None:
         """Test searching across multiple languages."""
-        fixtures_path = Path("tests/fixtures/code_search")
+        fixtures_path = FIXTURES_DIR
 
         result = code_search.invoke(
             {
@@ -125,7 +128,7 @@ class TestRealFileSearch:
 
     def test_output_structure(self) -> None:
         """Test output has required structure."""
-        fixtures_path = Path("tests/fixtures/code_search/python")
+        fixtures_path = FIXTURES_DIR / "python"
 
         result = code_search.invoke(
             {
@@ -157,7 +160,7 @@ class TestRealFileSearch:
 
     def test_line_numbers_valid(self) -> None:
         """Test line numbers are positive."""
-        fixtures_path = Path("tests/fixtures/code_search/python")
+        fixtures_path = FIXTURES_DIR / "python"
 
         result = code_search.invoke(
             {

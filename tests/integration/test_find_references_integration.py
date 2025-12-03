@@ -5,13 +5,16 @@ from pathlib import Path
 
 from consoul.ai.tools.implementations.find_references import find_references
 
+# Get fixtures directory relative to this test file
+FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "code_search"
+
 
 class TestRealFileReferenceSearch:
     """Test finding references in real code files."""
 
     def test_find_python_function_calls(self) -> None:
         """Test finding Python function call references."""
-        fixtures_path = Path("tests/fixtures/code_search/python")
+        fixtures_path = FIXTURES_DIR / "python"
 
         # simple.py has calculate_total function that's likely called
         result = find_references.invoke(
@@ -38,7 +41,7 @@ class TestRealFileReferenceSearch:
 
     def test_find_with_include_definition(self) -> None:
         """Test finding references with definition included."""
-        fixtures_path = Path("tests/fixtures/code_search/python/simple.py")
+        fixtures_path = FIXTURES_DIR / "python" / "simple.py"
 
         # Find ShoppingCart references with definition
         result = find_references.invoke(
@@ -63,7 +66,7 @@ class TestRealFileReferenceSearch:
 
     def test_find_case_insensitive(self) -> None:
         """Test case-insensitive reference search."""
-        fixtures_path = Path("tests/fixtures/code_search/python")
+        fixtures_path = FIXTURES_DIR / "python"
 
         result = find_references.invoke(
             {
@@ -81,7 +84,7 @@ class TestRealFileReferenceSearch:
 
     def test_find_javascript_references(self) -> None:
         """Test finding JavaScript/TypeScript references."""
-        fixtures_path = Path("tests/fixtures/code_search/javascript")
+        fixtures_path = FIXTURES_DIR / "javascript"
 
         if not fixtures_path.exists():
             return  # Skip if fixtures don't exist
@@ -105,7 +108,7 @@ class TestRealFileReferenceSearch:
 
     def test_output_structure(self) -> None:
         """Test that output has correct structure."""
-        fixtures_path = Path("tests/fixtures/code_search/python/simple.py")
+        fixtures_path = FIXTURES_DIR / "python" / "simple.py"
 
         result = find_references.invoke(
             {
@@ -133,7 +136,7 @@ class TestRealFileReferenceSearch:
 
     def test_line_numbers_valid(self) -> None:
         """Test that line numbers are valid."""
-        fixtures_path = Path("tests/fixtures/code_search/python/simple.py")
+        fixtures_path = FIXTURES_DIR / "python" / "simple.py"
 
         result = find_references.invoke(
             {
@@ -151,7 +154,7 @@ class TestRealFileReferenceSearch:
 
     def test_empty_results_for_nonexistent_symbol(self) -> None:
         """Test that searching for nonexistent symbol returns empty list."""
-        fixtures_path = Path("tests/fixtures/code_search/python")
+        fixtures_path = FIXTURES_DIR / "python"
 
         result = find_references.invoke(
             {
