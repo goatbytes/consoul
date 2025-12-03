@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-02T18:07:20.333628",
+  "updated_at": "2025-12-02T18:07:20.333637",
+  "id": "SOUL-215",
+  "uuid": "801ab755-1fa2-4406-a54a-4704239d382a",
+  "title": "Fix ConversationHistory token limit initialization tests",
+  "description": "**As a** Consoul developer\n**I want** ConversationHistory token limit tests to pass\n**So that** we can ensure correct token management behavior\n\n**Context:**\nThree tests in tests/ai/test_history.py are failing due to a mismatch between expected and actual token limits. Tests expect 128000 tokens for gpt-4o, but the implementation applies a 0.75 multiplier (resulting in 96000) when max_tokens is None or 0.\n\nRoot cause: src/consoul/ai/history.py:247-249 applies a 0.75 safety margin by default.\n\n**Technical Notes:**\n- src/consoul/ai/history.py:247-249 - Default token limit calculation\n- src/consoul/ai/context.py:222 - gpt-4o model limit is 128000\n- tests/ai/test_history.py:88 - Failing assertion expects 128000\n\n**Acceptance Criteria:**\n\n**Given** a ConversationHistory is initialized with \"gpt-4o\" and no max_tokens\n**When** the token limit is checked\n**Then** it should match the documented behavior\n\n**Given** custom trimming strategies are used\n**When** messages are trimmed\n**Then** the strategy should respect the actual max_tokens value\n\n**Testing Considerations:**\n- Verify all 3 failing tests pass\n- Ensure token limit calculation is consistent\n\n**Implementation Hints:**\n- Option 1: Update tests to expect 96000 (75% of 128000)\n- Option 2: Remove 0.75 multiplier and use full model limit\n- Option 3: Make the safety margin configurable\n\n**Failing Tests:**\n- test_initialization_default_token_limit\n- test_get_trimmed_messages_custom_strategy\n- test_repr_shows_stats",
+  "status": "todo",
+  "type": "bug",
+  "priority": "high",
+  "labels": [
+    "testing",
+    "bug",
+    "ai",
+    "core"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "parent_id": "SOUL-214",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

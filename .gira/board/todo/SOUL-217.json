@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-02T18:08:05.589240",
+  "updated_at": "2025-12-02T18:08:05.589251",
+  "id": "SOUL-217",
+  "uuid": "362a9b8f-9145-4337-9a14-02108ad21947",
+  "title": "Fix conversation persistence and session tests",
+  "description": "**As a** Consoul developer\n**I want** conversation persistence tests to pass\n**So that** we can ensure messages are correctly saved and loaded\n\n**Context:**\n7 tests in tests/ai/test_persistence.py and tests/ai/test_integration_history.py are failing. Tests expect persistence to be enabled by default and messages to be saved to the database, but this behavior may have changed.\n\n**Technical Notes:**\n- tests/ai/test_persistence.py - Persistence tests\n- tests/ai/test_integration_history.py - Integration tests\n- src/consoul/ai/history.py - ConversationHistory with persistence\n- src/consoul/ai/database.py - Database operations\n\n**Acceptance Criteria:**\n\n**Given** ConversationHistory is initialized with default settings\n**When** persistence is checked\n**Then** it should be enabled by default (or tests should match actual behavior)\n\n**Given** messages are added to history\n**When** persistence is enabled\n**Then** messages should be saved to database\n\n**Failing Tests:**\n- test_persistence_enabled_by_default\n- test_persistence_enabled_creates_session\n- test_user_message_persisted\n- test_assistant_message_persisted\n- test_system_message_persisted\n- test_multiple_messages_persisted\n- test_generic_add_message_persisted\n- test_complete_conversation_flow\n- test_cross_provider_token_counting\n\n**Testing Considerations:**\n- Verify database file creation\n- Check session ID generation\n- Ensure message persistence doesn't affect in-memory operations\n\n**Implementation Hints:**\n- Check if persist=False is default now\n- Verify database connection in test setup\n- Ensure session IDs are properly generated",
+  "status": "todo",
+  "type": "bug",
+  "priority": "high",
+  "labels": [
+    "testing",
+    "bug",
+    "ai",
+    "persistence"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "parent_id": "SOUL-214",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}
