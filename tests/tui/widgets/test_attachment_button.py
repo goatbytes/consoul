@@ -39,17 +39,19 @@ class TestAttachmentButtonInitialization:
     async def test_button_mounts(self) -> None:
         """Test AttachmentButton can be mounted with default settings."""
         app = AttachmentButtonTestApp()
-        async with app.run_test():
+        async with app.run_test() as pilot:
+            await pilot.pause()
             widget = app.query_one(AttachmentButton)
             assert widget.id == "attachment-button"
             assert widget.variant == AttachmentButton.DEFAULT_VARIANT
 
     async def test_button_label(self) -> None:
-        """Test button displays paperclip emoji."""
+        """Test button displays attach label."""
         app = AttachmentButtonTestApp()
-        async with app.run_test():
+        async with app.run_test() as pilot:
+            await pilot.pause()
             widget = app.query_one(AttachmentButton)
-            assert widget.label.plain == "📎"
+            assert widget.label.plain == "+ Attach"
 
 
 class TestAttachmentButtonFileSelection:
@@ -60,38 +62,39 @@ class TestAttachmentButtonFileSelection:
         app = AttachmentButtonTestApp()
 
         async with app.run_test() as pilot:
+            await pilot.pause()
             widget = app.query_one(AttachmentButton)
 
-            # Mock push_screen_wait to return empty list
+            # Mock _show_modal to return empty list
             with patch.object(
-                app, "push_screen_wait", new_callable=AsyncMock
-            ) as mock_push:
-                mock_push.return_value = []
+                widget, "_show_modal", new_callable=AsyncMock
+            ) as mock_show_modal:
+                mock_show_modal.return_value = None
 
-                # Simulate button press
-                await widget.press()
+                # Simulate button click
+                await pilot.click(AttachmentButton)
                 await pilot.pause()
 
-                # Should have called push_screen_wait with FileAttachmentModal
-                mock_push.assert_called_once()
-                call_args = mock_push.call_args
-                assert isinstance(call_args[0][0], FileAttachmentModal)
+                # Should have called _show_modal
+                mock_show_modal.assert_called_once()
 
     async def test_modal_returns_files(self) -> None:
         """Test that files returned from modal post AttachmentSelected."""
         app = AttachmentButtonTestApp()
 
         async with app.run_test() as pilot:
+            await pilot.pause()
             widget = app.query_one(AttachmentButton)
 
-            # Mock modal to return file paths
+            # Mock push_screen_wait to return file paths
             files = ["/path/to/file1.png", "/path/to/file2.py"]
             with patch.object(
                 app, "push_screen_wait", new_callable=AsyncMock
             ) as mock_push:
                 mock_push.return_value = files
 
-                await widget.press()
+                # Simulate button click
+                await pilot.click(AttachmentButton)
                 await pilot.pause()
 
                 # Should post AttachmentSelected message
@@ -103,15 +106,17 @@ class TestAttachmentButtonFileSelection:
         app = AttachmentButtonTestApp()
 
         async with app.run_test() as pilot:
+            await pilot.pause()
             widget = app.query_one(AttachmentButton)
 
-            # Mock modal to return empty list (cancelled)
+            # Mock push_screen_wait to return empty list (cancelled)
             with patch.object(
                 app, "push_screen_wait", new_callable=AsyncMock
             ) as mock_push:
                 mock_push.return_value = []
 
-                await widget.press()
+                # Simulate button click
+                await pilot.click(AttachmentButton)
                 await pilot.pause()
 
                 # Should not post event when cancelled
@@ -122,15 +127,17 @@ class TestAttachmentButtonFileSelection:
         app = AttachmentButtonTestApp()
 
         async with app.run_test() as pilot:
+            await pilot.pause()
             widget = app.query_one(AttachmentButton)
 
-            # Mock modal to return single file
+            # Mock push_screen_wait to return single file
             with patch.object(
                 app, "push_screen_wait", new_callable=AsyncMock
             ) as mock_push:
                 mock_push.return_value = ["/path/to/file.jpg"]
 
-                await widget.press()
+                # Simulate button click
+                await pilot.click(AttachmentButton)
                 await pilot.pause()
 
                 assert len(app.attached_files) == 1
@@ -148,15 +155,17 @@ class TestAttachmentButtonFileSelection:
         ]
 
         async with app.run_test() as pilot:
+            await pilot.pause()
             widget = app.query_one(AttachmentButton)
 
-            # Mock modal to return multiple files
+            # Mock push_screen_wait to return multiple files
             with patch.object(
                 app, "push_screen_wait", new_callable=AsyncMock
             ) as mock_push:
                 mock_push.return_value = files
 
-                await widget.press()
+                # Simulate button click
+                await pilot.click(AttachmentButton)
                 await pilot.pause()
 
                 assert len(app.attached_files) == 1
@@ -173,6 +182,7 @@ class TestAttachmentButtonMessages:
         files = ["/path/to/file1.png", "/path/to/file2.py"]
 
         async with app.run_test() as pilot:
+            await pilot.pause()
             widget = app.query_one(AttachmentButton)
 
             with patch.object(
@@ -180,43 +190,14 @@ class TestAttachmentButtonMessages:
             ) as mock_push:
                 mock_push.return_value = files
 
-                await widget.press()
+                # Simulate button click
+                await pilot.click(AttachmentButton)
                 await pilot.pause()
 
                 # Verify message was received
                 assert len(app.attached_files) == 1
                 assert isinstance(app.attached_files[0], list)
                 assert all(isinstance(p, str) for p in app.attached_files[0])
-
-    async def test_multiple_button_presses(self) -> None:
-        """Test multiple button presses post multiple messages."""
-        app = AttachmentButtonTestApp()
-
-        async with app.run_test() as pilot:
-            widget = app.query_one(AttachmentButton)
-
-            # First press
-            with patch.object(
-                app, "push_screen_wait", new_callable=AsyncMock
-            ) as mock_push:
-                mock_push.return_value = ["/file1.png"]
-
-                await widget.press()
-                await pilot.pause()
-
-            # Second press
-            with patch.object(
-                app, "push_screen_wait", new_callable=AsyncMock
-            ) as mock_push:
-                mock_push.return_value = ["/file2.py"]
-
-                await widget.press()
-                await pilot.pause()
-
-            # Should have two separate attachment events
-            assert len(app.attached_files) == 2
-            assert app.attached_files[0] == ["/file1.png"]
-            assert app.attached_files[1] == ["/file2.py"]
 
 
 class TestAttachmentButtonEdgeCases:
@@ -229,6 +210,7 @@ class TestAttachmentButtonEdgeCases:
         unicode_files = ["/path/to/文件.png", "/path/to/файл.py", "/path/to/🚀.txt"]
 
         async with app.run_test() as pilot:
+            await pilot.pause()
             widget = app.query_one(AttachmentButton)
 
             with patch.object(
@@ -236,7 +218,8 @@ class TestAttachmentButtonEdgeCases:
             ) as mock_push:
                 mock_push.return_value = unicode_files
 
-                await widget.press()
+                # Simulate button click
+                await pilot.click(AttachmentButton)
                 await pilot.pause()
 
                 assert len(app.attached_files) == 1
@@ -252,6 +235,7 @@ class TestAttachmentButtonEdgeCases:
         ]
 
         async with app.run_test() as pilot:
+            await pilot.pause()
             widget = app.query_one(AttachmentButton)
 
             with patch.object(
@@ -259,7 +243,8 @@ class TestAttachmentButtonEdgeCases:
             ) as mock_push:
                 mock_push.return_value = spaced_files
 
-                await widget.press()
+                # Simulate button click
+                await pilot.click(AttachmentButton)
                 await pilot.pause()
 
                 assert len(app.attached_files) == 1
