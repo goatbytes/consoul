@@ -130,7 +130,10 @@ class TestInputAreaMessageSending:
             widget = app.query_one(InputArea)
 
             widget.text_area.text = "Test message"
-            await widget._send_message()
+            # Trigger the Submitted event
+            widget.on_sendable_text_area_submitted(
+                widget.text_area.Submitted("Test message")
+            )
             await pilot.pause()
 
             assert len(app.messages) == 1
@@ -143,7 +146,10 @@ class TestInputAreaMessageSending:
             widget = app.query_one(InputArea)
 
             widget.text_area.text = "Test message"
-            await widget._send_message()
+            # Trigger the Submitted event
+            widget.on_sendable_text_area_submitted(
+                widget.text_area.Submitted("Test message")
+            )
             await pilot.pause()
 
             assert widget.text_area.text == ""
@@ -157,7 +163,8 @@ class TestInputAreaMessageSending:
             widget = app.query_one(InputArea)
 
             widget.text_area.text = ""
-            await widget._send_message()
+            # Trigger the Submitted event with empty text
+            widget.on_sendable_text_area_submitted(widget.text_area.Submitted(""))
             await pilot.pause()
 
             assert len(app.messages) == 0
@@ -170,7 +177,10 @@ class TestInputAreaMessageSending:
             widget = app.query_one(InputArea)
 
             widget.text_area.text = "   \n\t  "
-            await widget._send_message()
+            # Trigger the Submitted event with whitespace text
+            widget.on_sendable_text_area_submitted(
+                widget.text_area.Submitted("   \n\t  ")
+            )
             await pilot.pause()
 
             assert len(app.messages) == 0
@@ -183,7 +193,10 @@ class TestInputAreaMessageSending:
             widget = app.query_one(InputArea)
 
             widget.text_area.text = "  Test message  \n"
-            await widget._send_message()
+            # Trigger the Submitted event
+            widget.on_sendable_text_area_submitted(
+                widget.text_area.Submitted("  Test message  \n")
+            )
             await pilot.pause()
 
             assert len(app.messages) == 1
@@ -198,7 +211,8 @@ class TestInputAreaMessageSending:
 
             multiline = "Line 1\nLine 2\nLine 3"
             widget.text_area.text = multiline
-            await widget._send_message()
+            # Trigger the Submitted event
+            widget.on_sendable_text_area_submitted(widget.text_area.Submitted(multiline))
             await pilot.pause()
 
             assert len(app.messages) == 1
@@ -303,7 +317,10 @@ class TestInputAreaEdgeCases:
 
             unicode_text = "Hello 世界 🌍 🚀"
             widget.text_area.text = unicode_text
-            await widget._send_message()
+            # Trigger the Submitted event
+            widget.on_sendable_text_area_submitted(
+                widget.text_area.Submitted(unicode_text)
+            )
             await pilot.pause()
 
             assert len(app.messages) == 1
@@ -318,7 +335,8 @@ class TestInputAreaEdgeCases:
 
             long_text = "Lorem ipsum " * 1000
             widget.text_area.text = long_text
-            await widget._send_message()
+            # Trigger the Submitted event
+            widget.on_sendable_text_area_submitted(widget.text_area.Submitted(long_text))
             await pilot.pause()
 
             assert len(app.messages) == 1
@@ -333,7 +351,8 @@ class TestInputAreaEdgeCases:
 
             special = "Special: @#$%^&*()_+-=[]{}|;':\",./<>?`~"
             widget.text_area.text = special
-            await widget._send_message()
+            # Trigger the Submitted event
+            widget.on_sendable_text_area_submitted(widget.text_area.Submitted(special))
             await pilot.pause()
 
             assert len(app.messages) == 1
@@ -348,17 +367,17 @@ class TestInputAreaEdgeCases:
 
             # Send first message
             widget.text_area.text = "First"
-            await widget._send_message()
+            widget.on_sendable_text_area_submitted(widget.text_area.Submitted("First"))
             await pilot.pause()
 
             # Send second message
             widget.text_area.text = "Second"
-            await widget._send_message()
+            widget.on_sendable_text_area_submitted(widget.text_area.Submitted("Second"))
             await pilot.pause()
 
             # Send third message
             widget.text_area.text = "Third"
-            await widget._send_message()
+            widget.on_sendable_text_area_submitted(widget.text_area.Submitted("Third"))
             await pilot.pause()
 
             assert len(app.messages) == 3
@@ -409,7 +428,9 @@ class TestInputAreaEdgeCases:
             assert "12 chars" in widget.border_title
 
             # Send message (which calls clear internally)
-            await widget._send_message()
+            widget.on_sendable_text_area_submitted(
+                widget.text_area.Submitted("Test message")
+            )
             await pilot.pause()
 
             # Border title should be reset
