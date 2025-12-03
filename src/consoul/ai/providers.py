@@ -430,7 +430,8 @@ def get_mlx_cache_dir() -> Path:
     """
     from pathlib import Path
 
-    # TODO: Make this configurable via MLXConfig
+    # NOTE: MLX cache directory - future enhancement: make configurable via MLXConfig
+    # Currently uses ~/.cache/mlx for model conversions and quantizations
     cache_dir = Path.home() / ".cache" / "mlx"
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir

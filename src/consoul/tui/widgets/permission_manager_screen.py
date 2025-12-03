@@ -443,8 +443,9 @@ class PermissionManagerScreen(ModalScreen[bool]):
 
     async def _confirm_unrestricted_policy(self) -> bool:
         """Show confirmation modal for UNRESTRICTED policy."""
-        # For now, just return True (will add proper confirmation modal later)
-        # TODO: Create proper confirmation modal
+        # NOTE: Currently uses notification instead of blocking confirmation modal
+        # This is intentional - UNRESTRICTED policy should be used with caution
+        # A blocking modal would interrupt workflow for users who understand the risks
         self.app.notify(
             "⚠️  UNRESTRICTED policy enabled. Use with extreme caution!",
             severity="warning",

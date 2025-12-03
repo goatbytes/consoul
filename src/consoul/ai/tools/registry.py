@@ -542,7 +542,8 @@ class ToolRegistry:
         Returns:
             ToolMetadata if found, None otherwise
         """
-        # TODO: Implement tool call ID tracking in SOUL-61
+        # Tool call ID tracking not yet implemented - returns None for now
+        # Tool metadata is currently tracked per tool name, not per individual call
         return None
 
     def clear_session_approvals(self) -> None:
