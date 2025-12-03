@@ -107,7 +107,7 @@ all = ["textual>=6.6.0", "click>=8.3.1", "pyperclip>=1.11.0", "pillow>=10.0.0", 
 
 [project.urls]
 Homepage = "https://github.com/goatbytes/consoul"
-Documentation = "https://consoul.readthedocs.io"
+Documentation = "https://consoul.goatbytes.io"
 Repository = "https://github.com/goatbytes/consoul"
 Issues = "https://github.com/goatbytes/consoul/issues"
 Changelog = "https://github.com/goatbytes/consoul/blob/main/CHANGELOG.md"
@@ -125,7 +125,7 @@ license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/goatbytes/consoul"
 repository = "https://github.com/goatbytes/consoul"
-documentation = "https://consoul.readthedocs.io"
+documentation = "https://consoul.goatbytes.io"
 keywords = ["ai", "assistant", "terminal", "tui", "cli", "chatgpt", "claude", "langchain", "textual"]
 classifiers = [
     "Development Status :: 3 - Alpha",
