@@ -145,6 +145,21 @@ ENV/
 env.bak/
 venv.bak/
 
+# Security - API keys, secrets, and credentials
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+*.crt
+*secrets.yaml
+*secrets.yml
+credentials.json
+*credentials*.json
+*.local.yaml
+*.local.yml
+config.local.*
+
 # Spyder project settings
 .spyderproject
 .spyproject
