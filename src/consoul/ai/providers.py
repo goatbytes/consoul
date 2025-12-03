@@ -1687,7 +1687,22 @@ def get_chat_model(
             f"[STREAM_OPTIONS] OpenAI init params: model_kwargs={model_kwargs}"
         )
 
-        return ChatOpenAI(**openai_params)  # type: ignore[no-any-return]
+        try:
+            return ChatOpenAI(**openai_params)  # type: ignore[no-any-return]
+        except ImportError as e:
+            # Dependency import failed (shouldn't happen after validation)
+            raise MissingDependencyError(
+                f"Failed to import langchain-openai: {e}\n\n"
+                f"Install with: pip install langchain-openai"
+            ) from e
+        except ValueError as e:
+            # Invalid model name or configuration
+            error_msg = str(e)
+            raise InvalidModelError(
+                f"Invalid model '{model_config.model}' for OpenAI.\n\n"
+                f"Error: {error_msg}\n\n"
+                f"See available models: https://platform.openai.com/docs/models"
+            ) from e
 
     # Initialize the model using init_chat_model for other providers
     # Use LANGCHAIN_PROVIDER_NAMES mapping to get correct provider name
