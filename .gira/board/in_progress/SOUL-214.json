@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-12-02T16:28:39.820348",
+  "updated_at": "2025-12-02T16:28:39.820354",
+  "id": "SOUL-214",
+  "uuid": "45ae4798-6774-4610-8df5-68a660d1bc6e",
+  "title": "Update project version to 0.2.0 for public release",
+  "description": "**As a** project maintainer\n**I want** to update the version number to 0.2.0\n**So that** the first public release has a meaningful version number\n\n**Context:**\nCurrent version is 0.1.0 (Alpha). The project is now ready for public release with:\n- Complete TUI with conversation history\n- Full CLI command suite (ask, chat, history, config)\n- Multi-provider AI support (OpenAI, Anthropic, Google, Ollama)\n- Tool calling system with file operations, code search, image analysis\n- Comprehensive documentation\n- 70+ completed tickets across 7 epics\n\nVersion 0.2.0 signifies:\n- Still pre-1.0 (not production-ready/stable API)\n- Significant progress from 0.1.0\n- First public-facing release\n- Beta quality software\n\n**Technical Notes:**\n- File: `pyproject.toml` lines 7, 121\n- Current: `version = \"0.1.0\"`\n- Target: `version = \"0.2.0\"`\n- Also update src/consoul/__init__.py if __version__ exists\n- Check for version in any other files (setup.py, conf.py, etc.)\n\n**Acceptance Criteria:**\n\n**Given** I run `poetry version`\n**When** the command completes\n**Then** it shows version 0.2.0\n\n**Given** I import consoul in Python\n**When** I check `consoul.__version__`\n**Then** it returns \"0.2.0\"\n\n**Given** I run `consoul --version`\n**When** the command completes\n**Then** it displays \"consoul version 0.2.0\"\n\n**Testing Considerations:**\n- Verify version in PKG-INFO after `poetry build`\n- Check version appears correctly in PyPI metadata\n- Ensure no hardcoded \"0.1.0\" strings remain\n- Test --version flag if it exists\n\n**Implementation Hints:**\n- Update pyproject.toml line 7 AND line 121 (both [project] and [tool.poetry] sections)\n- Search codebase for \"0.1.0\" to find any hardcoded references\n- Use: `poetry version 0.2.0` to update automatically\n- Verify with: `grep -r \"0.1.0\" . --include=\"*.py\" --include=\"*.toml\"`",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "release",
+    "versioning"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-010",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 1,
+  "order": 0,
+  "custom_fields": {}
+}
