@@ -78,10 +78,11 @@ def test_chat_session_initialization(
     # Verify ConversationHistory was initialized
     mock_history_class.assert_called_once()
 
-    # Verify system prompt was added
-    mock_history.add_system_message.assert_called_once_with(
-        "You are a helpful assistant."
-    )
+    # Verify system prompt was added (includes environment context + profile prompt)
+    mock_history.add_system_message.assert_called_once()
+    call_args = mock_history.add_system_message.call_args[0][0]
+    # System prompt should end with the profile's prompt
+    assert call_args.endswith("You are a helpful assistant.")
 
 
 @patch("consoul.cli.chat_session.get_chat_model")
@@ -123,8 +124,9 @@ def test_chat_session_send_streaming(
     mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
     mock_history_class.return_value = mock_history
 
-    # Mock stream_response to return complete text
-    mock_stream_response.return_value = "Hello! How can I help you?"
+    # Mock stream_response to return tuple (response_text, ai_message)
+    mock_ai_message = AIMessage(content="Hello! How can I help you?")
+    mock_stream_response.return_value = ("Hello! How can I help you?", mock_ai_message)
 
     session = ChatSession(mock_config)
     response = session.send("Hello", stream=True)
@@ -175,13 +177,32 @@ def test_chat_session_get_stats(
     """Test getting conversation statistics."""
     mock_get_chat_model.return_value = mock_chat_model
     mock_history = Mock()
-    mock_history.__len__ = Mock(return_value=5)
+
+    # Create mock messages (2 system, 3 user, 2 assistant = 5 user+assistant)
+    system_msg1 = Mock()
+    system_msg1.type = "system"
+    system_msg2 = Mock()
+    system_msg2.type = "system"
+    user_msg1 = Mock()
+    user_msg1.type = "human"
+    ai_msg1 = Mock()
+    ai_msg1.type = "ai"
+    user_msg2 = Mock()
+    user_msg2.type = "human"
+    ai_msg2 = Mock()
+    ai_msg2.type = "ai"
+    user_msg3 = Mock()
+    user_msg3.type = "human"
+
+    mock_history.messages = [system_msg1, system_msg2, user_msg1, ai_msg1, user_msg2, ai_msg2, user_msg3]
+    mock_history.__len__ = Mock(return_value=7)
     mock_history.count_tokens = Mock(return_value=150)
     mock_history_class.return_value = mock_history
 
     session = ChatSession(mock_config)
     stats = session.get_stats()
 
+    # Should count only human and ai messages (5 total), not system messages (2)
     assert stats == {"message_count": 5, "token_count": 150}
 
 
@@ -284,9 +305,10 @@ def test_chat_session_markdown_rendering_streaming(
     )
     mock_history_class.return_value = mock_history
 
-    # Mock stream_response to return markdown content
+    # Mock stream_response to return tuple (response_text, ai_message)
     response_text = "```python\nprint('test')\n```"
-    mock_stream_response.return_value = response_text
+    mock_ai_message = AIMessage(content=response_text)
+    mock_stream_response.return_value = (response_text, mock_ai_message)
 
     session = ChatSession(mock_config)
     response = session.send("Show me code", stream=True, render_markdown=True)
@@ -314,7 +336,9 @@ def test_chat_session_plain_text_streaming(
     mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
     mock_history_class.return_value = mock_history
 
-    mock_stream_response.return_value = "Hello! How can I help you?"
+    # Mock stream_response to return tuple (response_text, ai_message)
+    mock_ai_message = AIMessage(content="Hello! How can I help you?")
+    mock_stream_response.return_value = ("Hello! How can I help you?", mock_ai_message)
 
     session = ChatSession(mock_config)
     response = session.send("Hello", stream=True, render_markdown=False)
