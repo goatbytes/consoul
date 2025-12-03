@@ -596,8 +596,8 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
-    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    @patch("langchain_huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.HuggingFaceEndpoint")
     def test_get_chat_model_huggingface(self, mock_endpoint, mock_chat_hf):
         """Test initializing HuggingFace chat model."""
         mock_llm = MagicMock()
@@ -632,8 +632,8 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
-    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    @patch("langchain_huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.HuggingFaceEndpoint")
     def test_get_chat_model_huggingface_with_params(self, mock_endpoint, mock_chat_hf):
         """Test initializing HuggingFace model with all parameters."""
         mock_llm = MagicMock()
@@ -670,7 +670,7 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    @patch("langchain_huggingface.HuggingFaceEndpoint")
     @patch("consoul.config.env.get_api_key")
     def test_get_chat_model_huggingface_missing_api_key(
         self, mock_get_api_key, mock_endpoint
@@ -694,7 +694,7 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    @patch("langchain_huggingface.HuggingFaceEndpoint")
     def test_get_chat_model_huggingface_invalid_model(self, mock_endpoint):
         """Test that invalid HuggingFace model raises InvalidModelError."""
         mock_endpoint.side_effect = Exception("Model not found (404)")
@@ -715,8 +715,8 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
-    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    @patch("langchain_huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.HuggingFaceEndpoint")
     def test_get_chat_model_huggingface_max_tokens(self, mock_endpoint, mock_chat_hf):
         """Test that max_tokens is mapped to max_length."""
         mock_llm = MagicMock()
@@ -739,8 +739,8 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
-    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    @patch("langchain_huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.HuggingFaceEndpoint")
     def test_get_chat_model_huggingface_stop_sequences(
         self, mock_endpoint, mock_chat_hf
     ):
@@ -765,8 +765,8 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
-    @patch("langchain_huggingface.llms.huggingface_endpoint.HuggingFaceEndpoint")
+    @patch("langchain_huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.HuggingFaceEndpoint")
     def test_get_chat_model_huggingface_no_extra_params(
         self, mock_endpoint, mock_chat_hf
     ):
@@ -799,8 +799,8 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
-    @patch("langchain_huggingface.llms.huggingface_pipeline.HuggingFacePipeline")
+    @patch("langchain_huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.HuggingFacePipeline")
     def test_get_chat_model_huggingface_local(self, mock_pipeline, mock_chat_hf):
         """Test local execution with HuggingFacePipeline."""
         mock_llm = MagicMock()
@@ -832,8 +832,8 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
-    @patch("langchain_huggingface.llms.huggingface_pipeline.HuggingFacePipeline")
+    @patch("langchain_huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.HuggingFacePipeline")
     def test_get_chat_model_huggingface_local_with_device(
         self, mock_pipeline, mock_chat_hf
     ):
@@ -859,8 +859,8 @@ class TestGetChatModel:
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
     @patch("transformers.BitsAndBytesConfig")
-    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
-    @patch("langchain_huggingface.llms.huggingface_pipeline.HuggingFacePipeline")
+    @patch("langchain_huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.HuggingFacePipeline")
     def test_get_chat_model_huggingface_local_with_quantization(
         self, mock_pipeline, mock_chat_hf, mock_quant_config
     ):
@@ -894,8 +894,8 @@ class TestGetChatModel:
     @pytest.mark.skipif(
         not HAS_HUGGINGFACE, reason="langchain_huggingface not installed"
     )
-    @patch("langchain_huggingface.chat_models.huggingface.ChatHuggingFace")
-    @patch("langchain_huggingface.llms.huggingface_pipeline.HuggingFacePipeline")
+    @patch("langchain_huggingface.ChatHuggingFace")
+    @patch("langchain_huggingface.HuggingFacePipeline")
     def test_get_chat_model_huggingface_local_all_generation_params(
         self, mock_pipeline, mock_chat_hf
     ):
@@ -1722,7 +1722,7 @@ class TestGoogleProvider:
         assert result == mock_chat_model
         mock_init.assert_called_once()
         call_kwargs = mock_init.call_args.kwargs
-        assert call_kwargs["model_provider"] == "google"
+        assert call_kwargs["model_provider"] == "google_genai"
         assert call_kwargs["model"] == "gemini-2.5-pro"
         assert call_kwargs["temperature"] == 0.8
         assert call_kwargs["max_tokens"] == 2048
@@ -1741,7 +1741,7 @@ class TestGoogleProvider:
         assert result == mock_chat_model
         mock_init.assert_called_once()
         call_kwargs = mock_init.call_args.kwargs
-        assert call_kwargs["model_provider"] == "google"
+        assert call_kwargs["model_provider"] == "google_genai"
         assert call_kwargs["model"] == "gemini-2.5-flash"
 
     @patch("consoul.ai.providers.init_chat_model")
@@ -1764,7 +1764,8 @@ class TestGoogleProvider:
         assert call_kwargs["top_p"] == 0.9
         assert call_kwargs["top_k"] == 40
 
-    def test_get_chat_model_google_missing_api_key(self):
+    @patch("consoul.config.env.get_api_key", return_value=None)
+    def test_get_chat_model_google_missing_api_key(self, mock_get_api_key):
         """Test error when Google API key is missing."""
         config = GoogleModelConfig(
             model="gemini-pro",
@@ -1961,7 +1962,7 @@ class TestLlamaCppProvider:
         assert config.n_ctx == 2048
 
     @patch("consoul.ai.providers.find_gguf_for_model")
-    @patch("consoul.ai.providers.ChatLlamaCpp")
+    @patch("langchain_community.chat_models.ChatLlamaCpp")
     def test_get_chat_model_llamacpp_autodetect(
         self, mock_chat_llamacpp, mock_find_gguf
     ):
@@ -1992,7 +1993,7 @@ class TestLlamaCppProvider:
         assert call_kwargs["max_tokens"] == 512
         assert call_kwargs["verbose"] is False
 
-    @patch("consoul.ai.providers.ChatLlamaCpp")
+    @patch("langchain_community.chat_models.ChatLlamaCpp")
     def test_get_chat_model_llamacpp_explicit_path(self, mock_chat_llamacpp):
         """Test get_chat_model with explicit model_path."""
         mock_chat_model = MagicMock()
