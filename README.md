@@ -49,7 +49,7 @@ print(console.chat("What is 2+2?"))
 ### 🎨 Beautiful TUI
 Rich, interactive terminal interface powered by [Textual](https://textual.textualize.io/)
 
-![Consoul TUI](docs/assets/screenshots/consoul-themes.gif)
+![Consoul TUI](.art/consoul-demo.gif)
 
 - Multi-turn conversations with streaming responses
 - Conversation history and search
