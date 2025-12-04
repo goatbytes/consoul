@@ -1763,30 +1763,8 @@ class ConsoulApp(App[None]):
 
         # Move EVERYTHING to a background worker to keep UI responsive
         async def _process_and_stream() -> None:
-            # Persist to DB in background
-            if (
-                self.conversation is not None
-                and is_first_message
-                and self.conversation._db
-            ):
-                try:
-                    import asyncio
-
-                    loop = asyncio.get_event_loop()
-                    self.conversation.session_id = await loop.run_in_executor(
-                        self._executor,
-                        self.conversation._db.create_conversation,
-                        self.conversation.model_name,
-                    )
-                    self.conversation._conversation_created = True
-                    # Sync conversation_id with the session_id
-                    self.conversation_id = self.conversation.session_id
-                    logger.info(
-                        f"Created conversation session: {self.conversation.session_id}"
-                    )
-                except Exception as e:
-                    logger.warning(f"Failed to create conversation in DB: {e}")
-                    self.conversation.persist = False
+            # Note: Conversation creation is now handled in ConversationHistory.add_user_message_async()
+            # on first message, so we don't need to do it here anymore.
 
             # Persist message to DB and save attachments
             if self.conversation is not None and self.conversation.persist:
