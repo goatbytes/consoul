@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-02T16:31:33.334918",
-  "updated_at": "2025-12-03T17:41:57.492978",
+  "updated_at": "2025-12-03T17:52:47.067283",
   "id": "SOUL-222",
   "uuid": "4e6723f7-5121-4518-be08-1f4c30064700",
   "title": "Publish v0.2.0 to PyPI",
@@ -31,11 +31,24 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-03T17:52:47.067186",
+      "updated_at": "2025-12-03T17:52:47.067187",
+      "id": "20251203175247-c1a16be8",
+      "ticket_id": "SOUL-222",
+      "author": "jared@goatbytes.io",
+      "content": "Successfully published v0.2.0 to PyPI, then discovered and fixed a critical dependency issue.\n\n**v0.2.0 Publication:**\n✅ Built and published to PyPI\n✅ Available at https://pypi.org/project/consoul/0.2.0/\n\n**Issue Discovered:**\n❌ Fresh pip install failed with: ModuleNotFoundError: No module named 'rich'\n- Cause: rich library used by src/consoul/ai/streaming.py but not listed in core dependencies\n- Impact: Users couldn't import consoul after installation\n\n**v0.2.1 Hotfix:**\n✅ Added rich>=14.2.0 to core dependencies in pyproject.toml\n✅ Updated version to 0.2.1\n✅ Rebuilt and published to PyPI\n✅ Verified installation works in isolated environment\n✅ Updated CHANGELOG.md\n\nUsers can now successfully install with:\npip install consoul\n\nPackage works correctly with version 0.2.1\\!",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 1,
+  "comment_count": 2,
   "story_points": 2,
   "order": 0,
   "custom_fields": {}
