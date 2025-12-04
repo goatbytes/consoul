@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.1] - 2025-12-03
+
+**Hotfix Release**
+
+### Fixed
+- **Missing dependency** - Added `rich>=14.2.0` as core dependency (was causing import errors in fresh installations)
+
+---
+
 ## [0.2.0] - 2025-12-02
 
 **First Public Release** 🎉
