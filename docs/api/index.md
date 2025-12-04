@@ -389,9 +389,10 @@ consoul init  # Create config file
 ## Learning Path
 
 1. **[Tutorial](tutorial.md)** - Learn SDK fundamentals step-by-step
-2. **[Tools](tools.md)** - Master all 13 built-in tools
-3. **[Building Agents](agents.md)** - Create specialized AI agents
-4. **[API Reference](reference.md)** - Complete API documentation
+2. **[Integration Guide](integration-guide.md)** - Real-world project integration patterns
+3. **[Tools](tools.md)** - Master all 13 built-in tools
+4. **[Building Agents](agents.md)** - Create specialized AI agents
+5. **[API Reference](reference.md)** - Complete API documentation
 
 ## Examples
 

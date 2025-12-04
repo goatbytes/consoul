@@ -193,6 +193,7 @@ nav:
   - SDK:
     - Overview: api/index.md
     - Tutorial: api/tutorial.md
+    - Integration Guide: api/integration-guide.md
     - Tools: api/tools.md
     - Tool Configuration: sdk-tools.md
     - Building Agents: api/agents.md
