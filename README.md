@@ -15,6 +15,10 @@ Bring modern AI assistance directly to your terminal. Chat with Claude, GPT-4, G
 ### Installation
 
 ```bash
+# Install with TUI (recommended)
+pip install consoul[tui]
+
+# Or install SDK/CLI only
 pip install consoul
 ```
 

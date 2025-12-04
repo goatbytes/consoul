@@ -23,7 +23,7 @@ if _platform.system() == "Darwin":
     del _apply_fixes
 del _platform
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 __author__ = "GoatBytes.IO"
 __license__ = "Apache-2.0"
 

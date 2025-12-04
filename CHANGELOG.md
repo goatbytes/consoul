@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.2] - 2025-12-03
+
+**Documentation Fix**
+
+### Changed
+- **Installation instructions** - Updated README to show `pip install consoul[tui]` as the recommended installation method, clarifying that the TUI requires optional extras
+
+---
+
 ## [0.2.1] - 2025-12-03
 
 **Hotfix Release**
