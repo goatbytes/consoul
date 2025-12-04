@@ -1404,8 +1404,9 @@ class ProfileConfig(BaseModel):
         default=None,
         description="Custom system prompt for this profile",
     )
-    model: ModelConfigUnion = Field(
-        description="Model configuration for this profile",
+    model: ModelConfigUnion | None = Field(
+        default=None,
+        description="Model configuration for this profile (optional, can be specified at runtime)",
     )
     conversation: ConversationConfig = Field(
         default_factory=ConversationConfig,

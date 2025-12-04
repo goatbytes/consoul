@@ -208,16 +208,16 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
                         classes="setting-control",
                     )
 
-                    yield Label("Model:", classes="setting-label")
+                    yield Label("Model (optional):", classes="setting-label")
                     yield Input(
-                        placeholder="e.g., claude-3-5-sonnet-20241022",
+                        placeholder="e.g., claude-3-5-sonnet-20241022 (leave empty to use default)",
                         id="profile-model",
                         classes="setting-control",
                     )
 
-                    yield Label("Temperature:", classes="setting-label")
+                    yield Label("Temperature (optional):", classes="setting-label")
                     yield Input(
-                        placeholder="0.7",
+                        placeholder="0.7 (leave empty to use default)",
                         id="profile-temperature",
                         classes="setting-control",
                     )
@@ -368,10 +368,11 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
         # Basic Info
         self.query_one("#profile-name", Input).value = profile.name
         self.query_one("#profile-description", Input).value = profile.description
-        self.query_one("#profile-model", Input).value = profile.model.model
-        self.query_one("#profile-temperature", Input).value = str(
-            profile.model.temperature
-        )
+        if profile.model:
+            self.query_one("#profile-model", Input).value = profile.model.model
+            self.query_one("#profile-temperature", Input).value = str(
+                profile.model.temperature
+            )
 
         # System Prompt
         if profile.system_prompt:
@@ -457,17 +458,19 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
             "include_git_info": self.query_one("#ctx-git-info", Switch).value,
         }
 
-        # Model config - detect provider from model name
-        from consoul.providers import detect_provider
+        # Model config (optional) - only create if model name is provided
+        model = None
+        if model_name:
+            from consoul.providers import detect_provider
 
-        temperature = float(temperature_str) if temperature_str else 0.7
-        provider = detect_provider(model_name) if model_name else "anthropic"
+            temperature = float(temperature_str) if temperature_str else 0.7
+            provider = detect_provider(model_name)
 
-        model = {
-            "provider": provider,
-            "model": model_name or "claude-3-5-sonnet-20241022",
-            "temperature": temperature,
-        }
+            model = {
+                "provider": provider,
+                "model": model_name,
+                "temperature": temperature,
+            }
 
         return {
             "name": name,
