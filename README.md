@@ -16,11 +16,13 @@ Bring modern AI assistance directly to your terminal. Chat with Claude, GPT-4, G
 
 ```bash
 # Install with TUI (recommended)
-pip install consoul[tui]
+pip install 'consoul[tui]'
 
 # Or install SDK/CLI only
 pip install consoul
 ```
+
+> **Note for zsh users:** Use quotes around `'consoul[tui]'` to avoid `zsh: no matches found` error.
 
 ### Set Your API Key
 
