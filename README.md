@@ -30,7 +30,7 @@ export GOOGLE_API_KEY=your-key-here     # Gemini
 ### Launch the TUI
 
 ```bash
-consoul
+consoul tui
 ```
 
 ### Or Use the SDK
