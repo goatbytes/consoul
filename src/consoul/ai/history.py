@@ -273,6 +273,9 @@ class ConversationHistory:
         self._db: ConversationDatabase | None = None
         self._db_path = db_path or "~/.consoul/history.db"
         self._conversation_created = False  # Track if DB conversation was created
+        self._pending_metadata: dict[
+            str, Any
+        ] = {}  # Metadata to store when conversation is created
 
         if persist:
             try:
@@ -295,14 +298,15 @@ class ConversationHistory:
                     # Use fast token counting for loaded conversations to avoid hangs
                     self._use_fast_token_counting = True
                 else:
-                    # Create new conversation session immediately
-                    step_start = time.time()
-                    self.session_id = self._db.create_conversation(model_name)
-                    self._conversation_created = True
+                    # Don't create conversation immediately - defer until first message
+                    # This prevents empty conversations from cluttering the database
+                    import uuid
+
+                    self.session_id = str(uuid.uuid4())
+                    self._conversation_created = False
                     logger.debug(
-                        f"[PERF-HIST] Create new conversation: {(time.time() - step_start) * 1000:.1f}ms"
+                        "[PERF-HIST] Generated session ID, will create conversation on first message"
                     )
-                    logger.info(f"Created new conversation session: {self.session_id}")
 
             except Exception as e:
                 # Graceful fallback to in-memory mode
@@ -449,7 +453,12 @@ class ConversationHistory:
         Returns:
             The database message ID if persisted successfully, None otherwise.
         """
-        if not self.persist or not self._db or not self.session_id:
+        if (
+            not self.persist
+            or not self._db
+            or not self.session_id
+            or not self._conversation_created
+        ):
             return None
 
         try:
@@ -539,6 +548,9 @@ class ConversationHistory:
         Call this after adding the system message to persist the prompt content
         and metadata (profile, tool count) for later retrieval/debugging.
 
+        Note: If the conversation hasn't been created yet (deferred until first message),
+        this will cache the metadata and store it when the conversation is created.
+
         Args:
             profile_name: Name of the profile used (optional)
             tool_count: Number of tools enabled when prompt was created (optional)
@@ -547,6 +559,7 @@ class ConversationHistory:
             >>> history = ConversationHistory("gpt-4o", persist=True)
             >>> history.add_system_message("You are helpful...")
             >>> history.store_system_prompt_metadata("default", 10)
+            >>> history.add_user_message("Hello!")  # Creates conversation and stores metadata
         """
         if not self.persist or not self._db or not self.session_id:
             return
@@ -569,6 +582,13 @@ class ConversationHistory:
         if tool_count is not None:
             metadata["tool_count"] = tool_count
 
+        # If conversation not created yet, cache metadata for later
+        if not self._conversation_created:
+            self._pending_metadata.update(metadata)
+            logger.debug("Cached system prompt metadata (conversation not yet created)")
+            return
+
+        # Store immediately if conversation exists
         try:
             self._db.update_conversation_metadata(self.session_id, metadata)
             logger.info(f"Stored system prompt metadata for {self.session_id}")
@@ -587,19 +607,33 @@ class ConversationHistory:
             >>> len(history)
             1
         """
-        # Persist any existing system messages that were added before first user message
-        # (only needed if conversation was created but system messages not yet persisted)
-        if self.persist and self._db and self._conversation_created and self.session_id:
-            # Check if this is the first user message by looking at persisted messages
+        # Create conversation in DB on first user message if not already created
+        if self.persist and self._db and not self._conversation_created:
             try:
-                existing_messages = self._db.load_conversation(self.session_id)
-                if not existing_messages:
-                    # No messages persisted yet - persist system messages if any
-                    for msg in self.messages:
-                        if isinstance(msg, SystemMessage):
-                            self._persist_message_sync(msg)
+                self.session_id = self._db.create_conversation(self.model_name)
+                self._conversation_created = True
+                logger.info(f"Created new conversation session: {self.session_id}")
+
+                # Store any pending metadata that was cached before conversation creation
+                if self._pending_metadata:
+                    try:
+                        self._db.update_conversation_metadata(
+                            self.session_id, self._pending_metadata
+                        )
+                        logger.info(
+                            f"Stored pending metadata for {self.session_id}: {list(self._pending_metadata.keys())}"
+                        )
+                        self._pending_metadata.clear()
+                    except Exception as e:
+                        logger.warning(f"Failed to store pending metadata: {e}")
+
+                # Persist any existing system messages that were added before first user message
+                for msg in self.messages:
+                    if isinstance(msg, SystemMessage):
+                        self._persist_message_sync(msg)
             except Exception as e:
-                logger.debug(f"Could not check existing messages: {e}")
+                logger.warning(f"Failed to create conversation in database: {e}")
+                self.persist = False
 
         message = HumanMessage(content=content)
         self.messages.append(message)
@@ -618,7 +652,12 @@ class ConversationHistory:
             message: Message to persist
             metadata: Optional metadata dict (e.g., streaming metrics)
         """
-        if not self.persist or not self._db or not self.session_id:
+        if (
+            not self.persist
+            or not self._db
+            or not self.session_id
+            or not self._conversation_created
+        ):
             return
 
         try:
@@ -676,6 +715,22 @@ class ConversationHistory:
                 )
                 self._conversation_created = True
                 logger.info(f"Created new conversation session: {self.session_id}")
+
+                # Store any pending metadata that was cached before conversation creation
+                if self._pending_metadata:
+                    try:
+                        await loop.run_in_executor(
+                            None,
+                            self._db.update_conversation_metadata,
+                            self.session_id,
+                            self._pending_metadata,
+                        )
+                        logger.info(
+                            f"Stored pending metadata for {self.session_id}: {list(self._pending_metadata.keys())}"
+                        )
+                        self._pending_metadata.clear()
+                    except Exception as e:
+                        logger.warning(f"Failed to store pending metadata: {e}")
 
                 # Persist any existing system messages that were added before first user message
                 for msg in self.messages:

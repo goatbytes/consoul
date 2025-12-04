@@ -849,6 +849,22 @@ class ConsoulApp(App[None]):
                     f"[PERF] Cleanup old conversations: {(time.time() - step_start) * 1000:.1f}ms"
                 )
 
+            # One-time cleanup of empty conversations from old versions
+            # (Before deferred conversation creation was implemented)
+            if self.conversation and self.conversation._db:
+                step_start = time.time()
+                try:
+                    deleted = await self._run_in_thread(
+                        self.conversation._db.delete_empty_conversations
+                    )
+                    if deleted > 0:
+                        logger.info(f"Cleaned up {deleted} legacy empty conversations")
+                except Exception as e:
+                    logger.warning(f"Failed to cleanup empty conversations: {e}")
+                logger.info(
+                    f"[PERF] Cleanup empty conversations: {(time.time() - step_start) * 1000:.1f}ms"
+                )
+
             # Initialize title generator
             step_start = time.time()
             self.title_generator = await self._run_in_thread(

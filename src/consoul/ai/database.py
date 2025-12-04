@@ -958,6 +958,7 @@ class ConversationDatabase:
                     FROM conversations c
                     LEFT JOIN messages m ON c.session_id = m.conversation_id
                     GROUP BY c.session_id
+                    HAVING message_count > 0
                     ORDER BY c.updated_at DESC
                     LIMIT ? OFFSET ?
                     """,
@@ -1171,6 +1172,38 @@ class ConversationDatabase:
             raise
         except Exception as e:
             raise DatabaseError(f"Failed to delete conversation: {e}") from e
+
+    def delete_empty_conversations(self) -> int:
+        """Delete conversations that have no messages.
+
+        Empty conversations are created when the app initializes but the user
+        never sends a message. This cleans them up to avoid clutter.
+
+        Returns:
+            Number of empty conversations deleted
+
+        Raises:
+            DatabaseError: If delete operation fails
+
+        Example:
+            >>> db = ConversationDatabase()
+            >>> deleted_count = db.delete_empty_conversations()
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Enable foreign keys for CASCADE delete
+                conn.execute("PRAGMA foreign_keys=ON")
+                cursor = conn.execute(
+                    """
+                    DELETE FROM conversations
+                    WHERE session_id NOT IN (
+                        SELECT DISTINCT conversation_id FROM messages
+                    )
+                    """
+                )
+                return cursor.rowcount
+        except Exception as e:
+            raise DatabaseError(f"Failed to delete empty conversations: {e}") from e
 
     def delete_conversations_older_than(self, days: int) -> int:
         """Delete conversations older than specified number of days.
