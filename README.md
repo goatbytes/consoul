@@ -6,7 +6,7 @@
 
 Bring modern AI assistance directly to your terminal. Chat with Claude, GPT-4, Gemini, and local models using a rich interactive interface or simple CLI commands.
 
-📖 **[Full Documentation](https://consoul.goatbytes.io)** | 🚀 [Quick Start](#quick-start) | 🎨 [Features](#features)
+📖 **[Full Documentation](https://consoul.goatbytes.io)**
 
 ---
 
@@ -35,6 +35,12 @@ export GOOGLE_API_KEY=your-key-here     # Gemini
 
 ```bash
 consoul tui
+```
+
+### Use the CLI
+
+```bash
+git diff | consoul ask --stdin "create a commit message and commit"
 ```
 
 ### Or Use the SDK
