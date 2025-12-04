@@ -208,6 +208,20 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
                         classes="setting-control",
                     )
 
+                    yield Label("Model:", classes="setting-label")
+                    yield Input(
+                        placeholder="e.g., claude-3-5-sonnet-20241022",
+                        id="profile-model",
+                        classes="setting-control",
+                    )
+
+                    yield Label("Temperature:", classes="setting-label")
+                    yield Input(
+                        placeholder="0.7",
+                        id="profile-temperature",
+                        classes="setting-control",
+                    )
+
                     if (
                         self.is_edit_mode
                         and self.original_name in self.builtin_profile_names
@@ -354,6 +368,10 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
         # Basic Info
         self.query_one("#profile-name", Input).value = profile.name
         self.query_one("#profile-description", Input).value = profile.description
+        self.query_one("#profile-model", Input).value = profile.model.model
+        self.query_one("#profile-temperature", Input).value = str(
+            profile.model.temperature
+        )
 
         # System Prompt
         if profile.system_prompt:
@@ -402,6 +420,8 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
         # Basic Info
         name = self.query_one("#profile-name", Input).value.strip()
         description = self.query_one("#profile-description", Input).value.strip()
+        model_name = self.query_one("#profile-model", Input).value.strip()
+        temperature_str = self.query_one("#profile-temperature", Input).value.strip()
 
         # System Prompt
         system_prompt_text = self.query_one("#system-prompt", TextArea).text.strip()
@@ -437,10 +457,23 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
             "include_git_info": self.query_one("#ctx-git-info", Switch).value,
         }
 
+        # Model config - detect provider from model name
+        from consoul.providers import detect_provider
+
+        temperature = float(temperature_str) if temperature_str else 0.7
+        provider = detect_provider(model_name) if model_name else "anthropic"
+
+        model = {
+            "provider": provider,
+            "model": model_name or "claude-3-5-sonnet-20241022",
+            "temperature": temperature,
+        }
+
         return {
             "name": name,
             "description": description,
             "system_prompt": system_prompt,
+            "model": model,
             "conversation": conversation,
             "context": context,
         }
