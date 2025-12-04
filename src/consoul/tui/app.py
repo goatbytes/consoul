@@ -1759,17 +1759,28 @@ class ConsoulApp(App[None]):
         input_area.attached_files.clear()
         input_area._update_file_chips()
 
-        self.conversation.messages.append(message)
-
         # Move EVERYTHING to a background worker to keep UI responsive
         async def _process_and_stream() -> None:
-            # Note: Conversation creation is now handled in ConversationHistory.add_user_message_async()
-            # on first message, so we don't need to do it here anymore.
+            # Add user message (this will create conversation on first message if needed)
+            if self.conversation is not None:
+                await self.conversation.add_user_message_async(message.content)
 
-            # Persist message to DB and save attachments
-            if self.conversation is not None and self.conversation.persist:
+            # Get the message that was just added for persisting attachments
+            user_message_id = None
+            if (
+                self.conversation is not None
+                and self.conversation.persist
+                and self.conversation._db
+                and self.conversation.session_id
+            ):
+                # The message was already persisted in add_user_message_async, get its ID
+                # by checking the last persisted message
                 try:
-                    user_message_id = await self.conversation._persist_message(message)
+                    messages = self.conversation._db.load_conversation(
+                        self.conversation.session_id
+                    )
+                    if messages:
+                        user_message_id = messages[-1].get("id")
                     logger.debug(f"Persisted user message with ID: {user_message_id}")
                     # Save attachments linked to this user message
                     if user_message_id and attached_files:
