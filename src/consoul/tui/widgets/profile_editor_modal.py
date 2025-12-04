@@ -220,11 +220,12 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
                 # Tab 2: System Prompt
                 with TabPane("System Prompt", id="prompt-tab"):
                     yield Label(
-                        "Custom system prompt (optional):",
+                        "Custom system prompt (optional, supports markdown):",
                         classes="info-label",
                     )
                     yield TextArea(
                         id="system-prompt",
+                        language="markdown",
                     )
 
                 # Tab 3: Conversation Settings

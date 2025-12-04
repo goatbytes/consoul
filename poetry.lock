@@ -2877,7 +2877,6 @@ files = [
     {file = "markdown_it_py-4.0.0-py3-none-any.whl", hash = "sha256:87327c59b172c5011896038353a81343b6754500a08cd7a4973bb48c6d578147"},
     {file = "markdown_it_py-4.0.0.tar.gz", hash = "sha256:cb0a2b4aa34f932c007117b194e945bd74e0ec24133ceb5bac59009cda1cb9f3"},
 ]
-markers = {main = "extra == \"tui\" or extra == \"all\""}
 
 [package.dependencies]
 linkify-it-py = {version = ">=1,<3", optional = true, markers = "extra == \"linkify\""}
@@ -3044,7 +3043,6 @@ files = [
     {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
     {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
 ]
-markers = {main = "extra == \"tui\" or extra == \"all\""}
 
 [[package]]
 name = "mergedeep"
@@ -5265,7 +5263,6 @@ files = [
     {file = "pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b"},
     {file = "pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887"},
 ]
-markers = {main = "extra == \"tui\" or extra == \"all\""}
 
 [package.extras]
 windows-terminal = ["colorama (>=0.4.6)"]
@@ -5722,7 +5719,6 @@ files = [
     {file = "rich-14.2.0-py3-none-any.whl", hash = "sha256:76bc51fe2e57d2b1be1f96c524b890b816e334ab4c1e45888799bfaab0021edd"},
     {file = "rich-14.2.0.tar.gz", hash = "sha256:73ff50c7c0c1c77c8243079283f4edb376f0f6442433aecb8ce7e6d0b92d1fe4"},
 ]
-markers = {main = "extra == \"tui\" or extra == \"all\""}
 
 [package.dependencies]
 markdown-it-py = ">=2.2.0"
@@ -7769,4 +7765,4 @@ tui = ["click", "pillow", "pyperclip", "textual"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "e02d6300f8cc4dd7f630ef6de5ee98c2b51a05696fcaec5d56b5125384d84ca6"
+content-hash = "2fc2636f4183b6ac9a215ca85ca368ee35ab5eac29c7b6e5001a13b084950bde"
