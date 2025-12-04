@@ -22,8 +22,6 @@ pip install 'consoul[tui]'
 pip install consoul
 ```
 
-> **Note for zsh users:** Use quotes around `'consoul[tui]'` to avoid `zsh: no matches found` error.
-
 ### Set Your API Key
 
 ```bash

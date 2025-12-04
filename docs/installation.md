@@ -18,6 +18,10 @@ This guide will help you install Consoul on your system.
 Install the latest stable release from PyPI:
 
 ```bash
+# Install with TUI (recommended)
+pip install 'consoul[tui]'
+
+# Or install SDK/CLI only
 pip install consoul
 ```
 
@@ -52,8 +56,8 @@ For an isolated installation that doesn't affect your system Python:
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 
-# Install Consoul
-pipx install consoul
+# Install Consoul with TUI
+pipx install 'consoul[tui]'
 ```
 
 ## Verify Installation
