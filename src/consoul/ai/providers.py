@@ -1295,7 +1295,15 @@ def get_chat_model(
             llama_params["stop"] = params["stop"]
 
         try:
-            return ChatLlamaCpp(**llama_params)  # type: ignore[no-any-return]
+            model = ChatLlamaCpp(**llama_params)
+
+            # Cache the n_ctx value for future context limit lookups
+            # This prevents falling back to conservative 4096 default
+            from consoul.ai.context import save_llamacpp_context_length
+
+            save_llamacpp_context_length(model_path, llama_params["n_ctx"])
+
+            return model  # type: ignore[no-any-return]
         except ImportError as e:
             raise MissingDependencyError(
                 f"Failed to import llama-cpp-python: {e}\n\n"

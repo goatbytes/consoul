@@ -306,3 +306,113 @@ class TestOllamaModelDetection:
         # tiktoken should give accurate count (not char approximation)
         # "Hello world" = ~8 tokens with tiktoken, not 11//4 = 2
         assert tokens > 2
+
+
+class TestLlamaCppContextCaching:
+    """Tests for LlamaCpp GGUF model context size caching."""
+
+    def test_save_and_retrieve_llamacpp_context(self, tmp_path, monkeypatch):
+        """Test saving and retrieving context size for GGUF model."""
+        from consoul.ai.context import (
+            _get_llamacpp_context_length,
+            save_llamacpp_context_length,
+        )
+
+        # Use tmp_path for cache file
+        monkeypatch.setenv("HOME", str(tmp_path))
+
+        # Create .consoul directory
+        (tmp_path / ".consoul").mkdir()
+
+        # Test model path
+        model_path = "/Users/test/.lmstudio/models/test-model.gguf"
+        n_ctx = 8192
+
+        # Save context size
+        save_llamacpp_context_length(model_path, n_ctx)
+
+        # Retrieve context size
+        retrieved = _get_llamacpp_context_length(model_path)
+        assert retrieved == n_ctx
+
+    def test_llamacpp_context_uses_absolute_path(self, tmp_path, monkeypatch):
+        """Test that relative and absolute paths both work."""
+        import os
+
+        from consoul.ai.context import (
+            _get_llamacpp_context_length,
+            save_llamacpp_context_length,
+        )
+
+        # Use tmp_path for cache file
+        monkeypatch.setenv("HOME", str(tmp_path))
+        (tmp_path / ".consoul").mkdir()
+
+        # Create a test GGUF file
+        test_file = tmp_path / "model.gguf"
+        test_file.touch()
+
+        # Change to tmp_path directory so relative path works
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+
+            # Save with relative path
+            save_llamacpp_context_length("model.gguf", 16384)
+
+            # Retrieve with absolute path should work
+            retrieved = _get_llamacpp_context_length(str(test_file))
+            assert retrieved == 16384
+
+            # Retrieve with relative path should also work
+            retrieved2 = _get_llamacpp_context_length("model.gguf")
+            assert retrieved2 == 16384
+        finally:
+            os.chdir(original_cwd)
+
+    def test_get_token_limit_for_gguf_path(self, tmp_path, monkeypatch):
+        """Test get_model_token_limit works with GGUF file paths."""
+        from consoul.ai.context import (
+            get_model_token_limit,
+            save_llamacpp_context_length,
+        )
+
+        # Use tmp_path for cache
+        monkeypatch.setenv("HOME", str(tmp_path))
+        (tmp_path / ".consoul").mkdir()
+
+        model_path = "/path/to/custom-model.gguf"
+        n_ctx = 32768
+
+        # Cache the context size
+        save_llamacpp_context_length(model_path, n_ctx)
+
+        # get_model_token_limit should find it
+        limit = get_model_token_limit(model_path)
+        assert limit == n_ctx
+
+    def test_gguf_path_without_cache_returns_default(self):
+        """Test that uncached GGUF paths return default limit."""
+        from consoul.ai.context import get_model_token_limit
+
+        # Path that doesn't exist in cache
+        limit = get_model_token_limit("/nonexistent/model.gguf")
+        assert limit == 4096  # DEFAULT_TOKEN_LIMIT
+
+    def test_llamacpp_cache_handles_errors_gracefully(self, monkeypatch):
+        """Test that cache operations handle errors gracefully."""
+        from consoul.ai.context import (
+            _get_llamacpp_context_length,
+            save_llamacpp_context_length,
+        )
+
+        # Make Path operations fail
+        def mock_path_fail(*args, **kwargs):
+            raise OSError("Permission denied")
+
+        monkeypatch.setattr("pathlib.Path.resolve", mock_path_fail)
+
+        # Should not raise exceptions
+        save_llamacpp_context_length("/some/path.gguf", 8192)
+        result = _get_llamacpp_context_length("/some/path.gguf")
+        assert result is None

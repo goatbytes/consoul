@@ -201,6 +201,70 @@ def _get_ollama_context_length(model_name: str) -> int | None:
     return None
 
 
+def save_llamacpp_context_length(model_path: str, n_ctx: int) -> None:
+    """Cache the context length for a LlamaCpp GGUF model.
+
+    Stores the context size in the same cache file as Ollama models for simplicity.
+    Uses absolute path as key to avoid issues with relative paths.
+
+    Args:
+        model_path: Path to the GGUF model file
+        n_ctx: Context length in tokens
+    """
+    global _OLLAMA_CONTEXT_CACHE
+
+    try:
+        from pathlib import Path
+
+        # Normalize to absolute path for consistent cache keys
+        abs_path = str(Path(model_path).resolve())
+
+        # Load existing cache
+        if not _OLLAMA_CONTEXT_CACHE:
+            _OLLAMA_CONTEXT_CACHE = _load_ollama_cache()
+
+        # Update cache
+        _OLLAMA_CONTEXT_CACHE[abs_path] = n_ctx
+
+        # Save to disk
+        _save_ollama_cache(_OLLAMA_CONTEXT_CACHE)
+    except Exception:
+        # Silently fail - caching is optional
+        pass
+
+
+def _get_llamacpp_context_length(model_path: str) -> int | None:
+    """Retrieve cached context length for a LlamaCpp GGUF model.
+
+    Args:
+        model_path: Path to the GGUF model file
+
+    Returns:
+        Cached context length in tokens, or None if not found
+    """
+    global _OLLAMA_CONTEXT_CACHE
+
+    try:
+        from pathlib import Path
+
+        # Normalize to absolute path for consistent cache keys
+        abs_path = str(Path(model_path).resolve())
+
+        # Check in-memory cache first
+        if abs_path in _OLLAMA_CONTEXT_CACHE:
+            return _OLLAMA_CONTEXT_CACHE[abs_path]
+
+        # Load disk cache if not already loaded
+        if not _OLLAMA_CONTEXT_CACHE:
+            _OLLAMA_CONTEXT_CACHE = _load_ollama_cache()
+            if abs_path in _OLLAMA_CONTEXT_CACHE:
+                return _OLLAMA_CONTEXT_CACHE[abs_path]
+    except Exception:
+        pass
+
+    return None
+
+
 def get_model_token_limit(model_name: str) -> int:
     """Get the maximum context window size (in tokens) for a model.
 
@@ -211,8 +275,12 @@ def get_model_token_limit(model_name: str) -> int:
     For Ollama models, attempts to query the Ollama API for the actual
     context length before falling back to hardcoded values.
 
+    For LlamaCpp models (GGUF files), checks the cache for previously saved
+    context sizes from model initialization.
+
     Args:
         model_name: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet", "qwen3:30b")
+                   or path to GGUF file (e.g., "/path/to/model.gguf")
 
     Returns:
         Maximum number of tokens the model can handle in its context window.
@@ -224,6 +292,8 @@ def get_model_token_limit(model_name: str) -> int:
         128000
         >>> get_model_token_limit("qwen3:30b")  # Queries Ollama API
         262144
+        >>> get_model_token_limit("/path/to/model.gguf")  # Checks cache
+        8192
         >>> get_model_token_limit("unknown-model")
         4096
     """
@@ -252,6 +322,15 @@ def get_model_token_limit(model_name: str) -> int:
         ollama_context = _get_ollama_context_length(model_name)
         if ollama_context:
             return ollama_context
+
+    # Check if this looks like a GGUF file path (LlamaCpp model)
+    # File paths typically contain "/" or "\" and end with .gguf
+    if ("/" in model_name or "\\" in model_name) and model_name.lower().endswith(
+        ".gguf"
+    ):
+        llamacpp_context = _get_llamacpp_context_length(model_name)
+        if llamacpp_context:
+            return llamacpp_context
 
     # Warn about unknown model using conservative default
     import logging
