@@ -20,7 +20,9 @@ from consoul.config.loader import load_config
 from consoul.config.profiles import get_builtin_profiles, get_profile_description
 
 
-def validate_temperature(ctx: click.Context, param: click.Parameter, value: float | None) -> float | None:
+def validate_temperature(
+    ctx: click.Context, param: click.Parameter, value: float | None
+) -> float | None:
     """Validate temperature parameter is in range 0.0-2.0."""
     if value is None:
         return value
@@ -29,7 +31,9 @@ def validate_temperature(ctx: click.Context, param: click.Parameter, value: floa
     return value
 
 
-def validate_max_tokens(ctx: click.Context, param: click.Parameter, value: int | None) -> int | None:
+def validate_max_tokens(
+    ctx: click.Context, param: click.Parameter, value: int | None
+) -> int | None:
     """Validate max_tokens parameter is positive."""
     if value is None:
         return value
@@ -166,7 +170,7 @@ def cli(
     "files",
     multiple=True,
     type=click.Path(exists=True, dir_okay=False, readable=True),
-    help="Include text file content in first message (can be used multiple times)",
+    help="Include text file or PDF content in first message (can be used multiple times)",
 )
 @click.option(
     "--glob",
@@ -579,14 +583,14 @@ def chat(
     "files",
     multiple=True,
     type=click.Path(exists=True, dir_okay=False, readable=True),
-    help="Include text file content in message (can be used multiple times)",
+    help="Include text file or PDF content in message (can be used multiple times)",
 )
 @click.option(
     "--glob",
     "globs",
     multiple=True,
     type=str,
-    help="Include files matching glob pattern (e.g., '*.py', 'src/**/*.ts')",
+    help="Include files matching glob pattern (e.g., '*.py', '**/*.pdf', 'src/**/*.ts')",
 )
 @click.option(
     "--tools/--no-tools",

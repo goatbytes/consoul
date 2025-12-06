@@ -85,6 +85,128 @@ class TestReadFileContent:
         assert result == content
 
 
+class TestPDFSupport:
+    """Tests for PDF file reading."""
+
+    def test_read_simple_pdf(self, tmp_path: Path) -> None:
+        """Test reading a simple PDF file."""
+        pytest.importorskip("pypdf")
+        import pypdf
+
+        # Create a simple PDF
+        file_path = tmp_path / "test.pdf"
+        writer = pypdf.PdfWriter()
+        writer.add_blank_page(width=200, height=200)
+
+        # PDFs created programmatically may not have extractable text
+        # So we'll just test that it doesn't raise an error
+        with open(file_path, "wb") as f:
+            writer.write(f)
+
+        # Should not raise an error for PDFs
+        result = read_file_content(file_path)
+        assert isinstance(result, str)
+        assert "Page 1" in result
+
+    def test_pdf_missing_library(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test graceful error when pypdf is not installed."""
+        file_path = tmp_path / "test.pdf"
+        file_path.write_bytes(b"%PDF-1.4\n")  # Minimal PDF header
+
+        # Mock pypdf import failure
+        import sys
+
+        monkeypatch.setitem(sys.modules, "pypdf", None)
+
+        with pytest.raises(ValueError, match="PDF support requires 'pypdf' library"):
+            read_file_content(file_path)
+
+    def test_pdf_with_text(self, tmp_path: Path) -> None:
+        """Test reading PDF with actual text content."""
+        pytest.importorskip("pypdf")
+        pytest.importorskip("reportlab")
+
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+
+        # Create PDF with text using reportlab
+        file_path = tmp_path / "with_text.pdf"
+        c = canvas.Canvas(str(file_path), pagesize=letter)
+        c.drawString(100, 750, "Hello from page 1")
+        c.showPage()
+        c.drawString(100, 750, "Hello from page 2")
+        c.save()
+
+        result = read_file_content(file_path)
+
+        # Should contain page markers and text
+        assert "=== Page 1 ===" in result
+        assert "=== Page 2 ===" in result
+        assert "Hello from page 1" in result
+        assert "Hello from page 2" in result
+
+    def test_pdf_page_limit(self, tmp_path: Path) -> None:
+        """Test PDF page limit is enforced."""
+        pytest.importorskip("pypdf")
+        pytest.importorskip("reportlab")
+
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+
+        # Create PDF with many pages (more than default limit of 50)
+        file_path = tmp_path / "many_pages.pdf"
+        c = canvas.Canvas(str(file_path), pagesize=letter)
+
+        # Create 60 pages
+        for i in range(60):
+            c.drawString(100, 750, f"Page {i + 1}")
+            c.showPage()
+        c.save()
+
+        result = read_file_content(file_path)
+
+        # Should only read first 50 pages
+        assert "=== Page 50 ===" in result
+        assert "=== Page 51 ===" not in result
+        assert "Truncated: showing 50 of 60 pages" in result
+
+    def test_empty_pdf(self, tmp_path: Path) -> None:
+        """Test reading PDF with no pages."""
+        pytest.importorskip("pypdf")
+        import pypdf
+
+        file_path = tmp_path / "empty.pdf"
+        writer = pypdf.PdfWriter()
+
+        with open(file_path, "wb") as f:
+            writer.write(f)
+
+        result = read_file_content(file_path)
+        assert "no pages" in result.lower()
+
+    def test_pdf_glob_pattern(self, tmp_path: Path) -> None:
+        """Test glob pattern matches PDF files."""
+        pytest.importorskip("pypdf")
+        import pypdf
+
+        # Create multiple PDFs
+        for i in range(3):
+            file_path = tmp_path / f"doc{i}.pdf"
+            writer = pypdf.PdfWriter()
+            writer.add_blank_page(width=200, height=200)
+            with open(file_path, "wb") as f:
+                writer.write(f)
+
+        # Expand glob pattern for PDFs
+        pattern = str(tmp_path / "*.pdf")
+        files = expand_glob_pattern(pattern)
+
+        assert len(files) == 3
+        assert all(f.suffix == ".pdf" for f in files)
+
+
 class TestExpandGlobPattern:
     """Tests for expand_glob_pattern function."""
 

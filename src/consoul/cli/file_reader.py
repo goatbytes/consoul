@@ -1,9 +1,10 @@
 """Utilities for reading and formatting file content in CLI commands.
 
-This module provides functions for reading text files and formatting them
+This module provides functions for reading text files and PDFs, formatting them
 for inclusion in AI conversation context. It handles:
 - File reading with encoding detection and fallback
-- Binary file detection and rejection
+- PDF text extraction with page markers
+- Binary file detection and rejection (except PDFs)
 - Glob pattern expansion with limits
 - Size limit enforcement (per-file and total)
 - Line numbering for code references
@@ -14,6 +15,87 @@ from __future__ import annotations
 
 import glob as glob_module
 from pathlib import Path
+
+
+def _is_pdf_file(path: Path) -> bool:
+    """Check if file is a PDF by extension.
+
+    Args:
+        path: Path to file to check
+
+    Returns:
+        True if file has .pdf extension
+    """
+    return path.suffix.lower() == ".pdf"
+
+
+def _read_pdf(path: Path, max_pages: int = 50) -> str:
+    """Read PDF file and extract text with page markers.
+
+    Args:
+        path: Path to PDF file
+        max_pages: Maximum number of pages to read (default: 50)
+
+    Returns:
+        Extracted text with page markers, formatted as:
+        === Page 1 ===
+        <text from page 1>
+
+        === Page 2 ===
+        <text from page 2>
+
+    Raises:
+        ValueError: If PDF cannot be read or pypdf is not installed
+    """
+    # Try to import pypdf
+    try:
+        import pypdf
+    except ImportError:
+        raise ValueError(
+            "PDF support requires 'pypdf' library. "
+            "Install with: pip install 'consoul[pdf]'"
+        ) from None
+
+    try:
+        # Open PDF reader
+        reader = pypdf.PdfReader(str(path))
+        total_pages = len(reader.pages)
+
+        if total_pages == 0:
+            return "[PDF contains no pages]"
+
+        # Apply page limit
+        pages_to_read = min(total_pages, max_pages)
+
+        # Extract text from pages
+        result = []
+        for page_num in range(pages_to_read):
+            page = reader.pages[page_num]
+            text = page.extract_text()
+
+            # Add page marker
+            page_header = f"=== Page {page_num + 1} ==="
+            result.append(page_header)
+            result.append(text.strip() if text else "[No text on this page]")
+
+        # Join with blank lines between pages
+        extracted_text = "\n\n".join(result)
+
+        # Add truncation notice if needed
+        if pages_to_read < total_pages:
+            extracted_text += (
+                f"\n\n[Truncated: showing {pages_to_read} of {total_pages} pages. "
+                f"Use --file with individual pages or increase max_pages.]"
+            )
+
+        return extracted_text
+
+    except pypdf.errors.PdfReadError as e:
+        raise ValueError(
+            f"Failed to read PDF. File may be corrupted or encrypted: {e}"
+        ) from e
+    except Exception as e:
+        raise ValueError(f"Error reading PDF: {e}") from e
 
 
 def _is_binary_file(path: Path) -> bool:
@@ -38,18 +120,18 @@ def read_file_content(
     max_size: int = 100_000,
     include_line_numbers: bool = True,
 ) -> str:
-    """Read and format single file content.
+    """Read and format single file content (text files and PDFs).
 
     Args:
         file_path: Path to file to read
         max_size: Maximum file size in bytes (default: 100KB)
-        include_line_numbers: Whether to add line numbers (default: True)
+        include_line_numbers: Whether to add line numbers for text files (default: True)
 
     Returns:
         Formatted file content as string
 
     Raises:
-        ValueError: If file is binary, too large, or cannot be read
+        ValueError: If file is binary (except PDF), too large, or cannot be read
     """
     # Check file exists and is readable
     if not file_path.exists():
@@ -58,7 +140,11 @@ def read_file_content(
     if not file_path.is_file():
         raise ValueError(f"Path is not a file: {file_path}")
 
-    # Check file size
+    # Check if PDF file first (before size check, before binary check)
+    if _is_pdf_file(file_path):
+        return _read_pdf(file_path, max_pages=50)
+
+    # Check file size (for text files)
     file_size = file_path.stat().st_size
     if file_size > max_size:
         raise ValueError(
@@ -66,9 +152,11 @@ def read_file_content(
             f"{file_size:,} bytes (max: {max_size:,} bytes)"
         )
 
-    # Check if binary
+    # Check if binary (non-PDF files only)
     if _is_binary_file(file_path):
-        raise ValueError(f"Binary files are not supported: {file_path.name}")
+        raise ValueError(
+            f"Binary files are not supported: {file_path.name} (except PDFs)"
+        )
 
     # Read file content with encoding fallback
     try:

@@ -1,11 +1,11 @@
 {
   "created_at": "2025-12-02T14:09:50.355677",
-  "updated_at": "2025-12-02T22:51:48.117606Z",
+  "updated_at": "2025-12-06T08:09:53.611806Z",
   "id": "SOUL-211",
   "uuid": "e009ded2-812d-4c0f-a9e5-acc5fb78db05",
   "title": "Add PDF support to --file and --glob flags",
   "description": "The read_file tool supports PDFs but the new --file and --glob flags reject binary files including PDFs. Should align with read_file tool capabilities.",
-  "status": "todo",
+  "status": "in_progress",
   "type": "feature",
   "priority": "medium",
   "labels": [],
