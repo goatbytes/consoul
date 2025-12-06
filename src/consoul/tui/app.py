@@ -927,9 +927,15 @@ class ConsoulApp(App[None]):
                 except Exception as pop_err:
                     logger.error(f"[LOADING] Failed to pop screen: {pop_err}")
 
-            # Show error screen (will be created in Phase 5)
-            # For now, log the error and allow app to start with degraded functionality
-            logger.info("[LOADING] Setting degraded mode (no AI functionality)")
+            # Show error screen with troubleshooting guidance
+            from consoul.tui.widgets.initialization_error_screen import (
+                InitializationErrorScreen,
+            )
+
+            logger.info("[LOADING] Showing initialization error screen")
+            self.push_screen(InitializationErrorScreen(error=e, app_instance=self))
+
+            # Set degraded mode (no AI functionality)
             self.chat_model = None
             self.conversation = None
             self._initialization_complete = False

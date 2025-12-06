@@ -17,6 +17,7 @@ from consoul.tui.widgets.file_chip import FileChip
 from consoul.tui.widgets.help_modal import HelpModal
 from consoul.tui.widgets.historical_file_chip import HistoricalFileChip
 from consoul.tui.widgets.import_modal import ImportModal
+from consoul.tui.widgets.initialization_error_screen import InitializationErrorScreen
 from consoul.tui.widgets.input_area import InputArea
 from consoul.tui.widgets.message_bubble import MessageBubble
 from consoul.tui.widgets.mlx_conversion_modal import MLXConversionModal
@@ -46,6 +47,7 @@ __all__ = [
     "HelpModal",
     "HistoricalFileChip",
     "ImportModal",
+    "InitializationErrorScreen",
     "InputArea",
     "MLXConversionModal",
     "MessageBubble",
