@@ -56,6 +56,7 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "pyyaml (>=6.0.3,<7.0.0)",
     "requests>=2.32.5",
+    "urllib3>=2.6.0",
     "tiktoken>=0.12.0",
     "grep-ast>=0.9.0",
     "tree-sitter>=0.25.2",
@@ -98,8 +99,8 @@ pdf = ["pypdf>=6.2.0"]
 ollama-library = ["beautifulsoup4>=4.12.0"]
 
 # Local model execution
-huggingface-local = ["transformers>=4.45.0", "torch>=2.4.0,<2.5.0", "accelerate>=1.2.0"]
-huggingface-quantization = ["transformers>=4.45.0", "torch>=2.4.0,<2.5.0", "accelerate>=1.2.0", "bitsandbytes>=0.45.0"]
+huggingface-local = ["transformers>=4.45.0", "torch>=2.8.0", "accelerate>=1.2.0"]
+huggingface-quantization = ["transformers>=4.45.0", "torch>=2.8.0", "accelerate>=1.2.0", "bitsandbytes>=0.45.0"]
 llamacpp = ["llama-cpp-python>=0.3.0"]
 mlx = ["mlx-lm>=0.28.0"]
 
@@ -161,6 +162,7 @@ pydantic-settings = "^2.12.0"
 python-dotenv = "^1.2.1"
 pyyaml = ">=6.0.3,<7.0.0"
 requests = "^2.32.5"
+urllib3 = "^2.6.0"  # Security fix for CVE-2025-66471, CVE-2025-66418
 tiktoken = "^0.12.0"
 
 # TUI dependencies (optional)
@@ -176,7 +178,7 @@ beautifulsoup4 = {version = "^4.12.0", optional = true}
 
 # HuggingFace local execution dependencies
 transformers = {version = "^4.45.0", optional = true}
-torch = {version = "~2.4.0", optional = true}  # 2.5+ has segfault issues on macOS
+torch = {version = ">=2.8.0,<3.0.0", optional = true, python = "<3.14"}  # Updated for CVE-2025-32434, CVE-2025-3730, CVE-2025-2953
 accelerate = {version = "^1.2.0", optional = true}
 bitsandbytes = {version = "^0.45.0", optional = true}
 
@@ -204,7 +206,7 @@ pdf = ["pypdf"]
 ollama-library = ["beautifulsoup4"]
 
 # Local model execution
-huggingface-local = ["transformers", "torch", "accelerate"]  # torch pinned to 2.4.x due to macOS segfaults in 2.5+
+huggingface-local = ["transformers", "torch", "accelerate"]  # torch updated to 2.8+ for security fixes
 huggingface-quantization = ["transformers", "torch", "accelerate", "bitsandbytes"]
 llamacpp = ["llama-cpp-python"]  # Recommended for local execution on macOS
 mlx = ["mlx-lm"]  # Apple Silicon optimized, best for M-series Macs
