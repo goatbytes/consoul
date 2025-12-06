@@ -1297,11 +1297,17 @@ def get_chat_model(
         try:
             model = ChatLlamaCpp(**llama_params)
 
-            # Cache the n_ctx value for future context limit lookups
-            # This prevents falling back to conservative 4096 default
+            # Extract and cache the actual n_ctx value from the loaded model
+            # The model.client is the underlying llama_cpp.Llama instance
+            # which has n_ctx() method that returns the actual context size
             from consoul.ai.context import save_llamacpp_context_length
 
-            save_llamacpp_context_length(model_path, llama_params["n_ctx"])
+            try:
+                actual_n_ctx = model.client.n_ctx()
+                save_llamacpp_context_length(model_path, actual_n_ctx)
+            except Exception:
+                # Fallback to configured value if extraction fails
+                save_llamacpp_context_length(model_path, llama_params["n_ctx"])
 
             return model  # type: ignore[no-any-return]
         except ImportError as e:

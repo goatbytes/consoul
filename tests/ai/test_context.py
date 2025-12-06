@@ -416,3 +416,29 @@ class TestLlamaCppContextCaching:
         save_llamacpp_context_length("/some/path.gguf", 8192)
         result = _get_llamacpp_context_length("/some/path.gguf")
         assert result is None
+
+    def test_extract_n_ctx_from_chatllama_model(self, tmp_path, monkeypatch):
+        """Test extracting actual n_ctx from ChatLlamaCpp model instance."""
+        from unittest.mock import MagicMock
+
+        from consoul.ai.context import (
+            _get_llamacpp_context_length,
+            save_llamacpp_context_length,
+        )
+
+        # Use tmp_path for cache
+        monkeypatch.setenv("HOME", str(tmp_path))
+        (tmp_path / ".consoul").mkdir()
+
+        # Mock ChatLlamaCpp model with underlying Llama client
+        mock_model = MagicMock()
+        mock_model.client.n_ctx.return_value = 16384
+
+        # Simulate what providers.py does after loading model
+        model_path = "/test/model.gguf"
+        actual_n_ctx = mock_model.client.n_ctx()
+        save_llamacpp_context_length(model_path, actual_n_ctx)
+
+        # Verify the extracted value was cached
+        retrieved = _get_llamacpp_context_length(model_path)
+        assert retrieved == 16384

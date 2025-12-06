@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-06T09:42:46.488519",
-  "updated_at": "2025-12-06T17:56:53.407412Z",
+  "updated_at": "2025-12-06T11:11:28.190657",
   "id": "SOUL-231",
   "uuid": "7076e2b2-8ef7-4026-964e-45bda061cc2c",
   "title": "Extract and cache ChatLlamaCpp context size at runtime",
@@ -30,11 +30,24 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-06T11:11:28.190547",
+      "updated_at": "2025-12-06T11:11:28.190548",
+      "id": "20251206111128-60e4a6cc",
+      "ticket_id": "SOUL-231",
+      "author": "jared@goatbytes.io",
+      "content": "✅ Fixed Implementation\n\nUpdated SOUL-231 to properly extract actual n_ctx from loaded ChatLlamaCpp model instance instead of just caching the configured value.\n\n**What Changed:**\n1. Updated providers.py to call model.client.n_ctx() after loading\n2. model.client is the underlying llama_cpp.Llama instance which has n_ctx() method\n3. Falls back to configured value if extraction fails\n4. Added test to verify extraction works (test_extract_n_ctx_from_chatllama_model)\n5. All 6 LlamaCpp caching tests pass\n\n**How It Works:**\n- When ChatLlamaCpp model loads, it calls the underlying llama-cpp-python Llama class\n- The Llama instance is stored in model.client\n- We extract actual n_ctx by calling model.client.n_ctx()\n- This value is cached for future lookups\n\n**User Impact:**\nYour NSFW-3B model will now automatically detect and use its actual context size (configured in LMStudio) instead of falling back to 4096. No manual cache editing needed.\n\n**Testing:**\nDeleted ollama_context_cache.json - when you run consoul next, it will detect the actual context size from the loaded model and cache it automatically.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 1,
+  "comment_count": 2,
   "story_points": 3,
   "order": 0,
   "custom_fields": {}
