@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-03T21:17:04.704385",
-  "updated_at": "2025-12-06T17:11:12.212813Z",
+  "updated_at": "2025-12-06T09:28:04.653288",
   "id": "SOUL-228",
   "uuid": "b1658451-f4cc-4b1d-904b-e20a32c7b5d1",
   "title": "Fix dependency vulnerabilities reported by GitHub",
@@ -39,11 +39,24 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-06T09:28:04.653196",
+      "updated_at": "2025-12-06T09:28:04.653197",
+      "id": "20251206092804-208d1d72",
+      "ticket_id": "SOUL-228",
+      "author": "jared@goatbytes.io",
+      "content": "✅ Torch 2.9.1 Testing Results (macOS Apple Silicon):\n\nAll tests PASSED - no segfaults detected!\n\nTest 1: Basic Import ✅\n- torch 2.9.1 imported successfully\n- MPS backend available and built\n\nTest 2: CPU Tensor Operations ✅\n- Matrix multiplication (100x100): Success\n- No crashes or segfaults\n\nTest 3: MPS Backend (GPU) ✅\n- Tensor creation on MPS device: Success\n- Matrix multiplication on GPU: Success\n- CPU ↔ GPU transfer: Success\n\nTest 4: Transformers Model Inference ✅\n- Model: sentence-transformers/all-MiniLM-L6-v2\n- Tokenizer loading: Success\n- Model loading: Success\n- Inference: Success (output shape: [1, 11, 384])\n\nConclusion: The macOS segfault issues that existed in torch 2.5 appear to be RESOLVED in torch 2.9.1. The dependency update is safe.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 2,
+  "comment_count": 3,
   "order": 0,
   "custom_fields": {}
 }
