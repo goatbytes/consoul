@@ -93,7 +93,7 @@ class InitializationErrorScreen(Screen[None]):
         tip = self._get_troubleshooting_tip(error_type, error_msg)
 
         with Vertical(id="error-container"):
-            yield Static("⚠️  Initialization Failed", id="error-title")
+            yield Static("Initialization Failed", id="error-title")
             yield Static(
                 f"[b]{error_type}[/b]\n\n{error_msg}\n\n{tip}",
                 id="error-message",
