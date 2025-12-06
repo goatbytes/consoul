@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-11-26T14:57:04.388075",
+  "updated_at": "2025-12-06T07:54:46.988792Z",
+  "id": "SOUL-179",
+  "uuid": "cd494503-ef3f-4932-a5cb-5e67b590fb28",
+  "title": "Implement tabbed examples for TUI/CLI/SDK comparisons",
+  "description": "**As a** documentation reader\n**I want** tabbed code examples showing TUI/CLI/SDK alternatives\n**So that** I can see how to accomplish the same task in my preferred mode\n\n**Context:**\nConsoul has three distinct interfaces (TUI, CLI, SDK) but documentation shows examples in only one format. Tabbed examples let users compare approaches and find their preferred method.\n\n**Reference Analysis (.local repos):**\n\n**Typer** (.local/typer/mkdocs.yml:198):\n```yaml\npymdownx.blocks.tab:\n  alternate_style: True\n```\nUses tabbed blocks extensively for:\n- Python version differences\n- Alternative approaches\n- Before/after examples\n\n**MkDocs Material** (pymdownx.tabbed:164-170):\n```yaml\npymdownx.tabbed:\n  alternate_style: true\n  combine_header_slug: true\n```\n\n**Already Configured** (mkdocs.yml:164-166):\n```yaml\npymdownx.tabbed:\n  alternate_style: true\n```\n\u2705 Ready to use!\n\n**Tabbed Example Pattern:**\n\n````markdown\n=== \"TUI Mode\"\n\n    Launch the interactive terminal interface:\n\n    ```bash\n    consoul tui\n    ```\n\n    Then interact with the rich UI, using mouse and keyboard.\n\n=== \"CLI Chat\"\n\n    Start a lightweight chat session:\n\n    ```bash\n    consoul chat\n    ```\n\n    Type your message and press Enter.\n\n=== \"SDK\"\n\n    Use the Python API:\n\n    ```python\n    from consoul import Consoul\n    \n    console = Consoul()\n    response = console.chat(\"Your message\")\n    print(response)\n    ```\n````\n\n**Examples to Tabify:**\n\n1. **Getting Started** (docs/quickstart.md):\n   - Installation methods\n   - First conversation (TUI/CLI/SDK)\n   - Configuration approaches\n\n2. **User Guide** (docs/user-guide/getting-started.md):\n   - Working with context (files, stdin)\n   - Model switching\n   - Temperature control\n   - Profile usage\n\n3. **Features**:\n   - Tool calling examples (TUI approval vs SDK provider)\n   - Code search (interactive vs programmatic)\n   - Image analysis (attach vs API)\n   - File editing workflows\n\n4. **Configuration** (docs/user-guide/configuration.md):\n   - Setting options (UI vs YAML vs CLI)\n   - Profile switching\n\n**Provider Comparison Tabs:**\n\n````markdown\n=== \"Anthropic Claude\"\n\n    ```yaml\n    provider: anthropic\n    model: claude-3-5-sonnet-20241022\n    ```\n\n=== \"OpenAI\"\n\n    ```yaml\n    provider: openai\n    model: gpt-4o\n    ```\n\n=== \"Google Gemini\"\n\n    ```yaml\n    provider: google\n    model: gemini-2.0-flash\n    ```\n\n=== \"Ollama (Local)\"\n\n    ```yaml\n    provider: ollama\n    model: llama3\n    ```\n````\n\n**Files to Modify:**\n- docs/quickstart.md - Add TUI/CLI/SDK tabs for examples\n- docs/user-guide/getting-started.md - Tab-based workflow examples\n- docs/user-guide/configuration.md - Configuration method tabs\n- docs/user-guide/code-search.md - Interactive vs programmatic tabs\n- docs/user-guide/image-analysis.md - Attach vs API tabs\n- docs/tools.md - Add provider-specific examples in tabs\n\n**Acceptance Criteria:**\n\n**Given** I read the Quick Start guide\n**When** I view \"First Conversation\" section\n**Then** I see tabs for TUI, CLI, and SDK with equivalent examples\n\n**Given** I read configuration docs\n**When** I view \"Setting Options\"\n**Then** I see tabs for different config methods (UI, YAML, CLI flags, ENV vars)\n\n**Given** I read feature documentation\n**When** I view examples\n**Then** I see tabs showing TUI and SDK approaches\n\n**Given** I click a tab\n**When** tab activates\n**Then** content switches smoothly and URL updates (content.tabs.link)\n\n**Given** I'm on mobile\n**When** viewing tabbed content\n**Then** tabs are scrollable and content is readable\n\n**Testing Considerations:**\n- Test tab switching functionality\n- Verify content.tabs.link syncs tabs across pages\n- Check mobile tab scrolling\n- Ensure code syntax highlighting works in all tabs\n- Test with keyboard navigation\n- Verify print styles show all tabs\n\n**Implementation Hints:**\n1. Use `=== \"Tab Title\"` syntax (three equals)\n2. Indent content under tabs (4 spaces or 1 tab)\n3. Keep tab titles consistent (TUI Mode, CLI Chat, SDK)\n4. Ensure code blocks have proper language tags\n5. Add provider tabs for multi-provider examples\n6. Consider \"Simple\" vs \"Advanced\" tabs for complexity\n7. Use content.tabs.link (already enabled) for synchronized tabs\n\n**Advanced Patterns:**\n\n**Nested Tabs:**\n````markdown\n=== \"TUI Mode\"\n\n    === \"Basic\"\n        Simple example\n    \n    === \"Advanced\"\n        Complex example\n````\n\n**Before/After:**\n````markdown\n=== \"Before\"\n    Original code\n\n=== \"After\"\n    Improved code\n````\n\n**Story Points:** 5\n**Labels:** documentation, feature, content, ux-improvement\n\n**Dependencies:**\n- None - pymdownx.tabbed already configured\n- Enhances: All example-heavy documentation\n\n**References:**\n- .local/typer (extensive tab usage)\n- mkdocs.yml:164-166 (already configured)\n- pymdownx.tabbed docs",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-009",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-06T00:45:30.037601",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

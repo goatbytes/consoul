@@ -25,7 +25,7 @@
       "id": "20251202183417-aab16dad",
       "ticket_id": "SOUL-221",
       "author": "jared@goatbytes.io",
-      "content": "Fixed reactive state initialization by removing overriding assignments in ConsoulApp.__init__. \n\nTest Results:\n✅ test_reactive_state_initialization - PASSES\n❌ 3 other tests still need mock config fixes for async initialization\n\nThe core reactive state issue is FIXED.",
+      "content": "Fixed reactive state initialization by removing overriding assignments in ConsoulApp.__init__. \n\nTest Results:\n\u2705 test_reactive_state_initialization - PASSES\n\u274c 3 other tests still need mock config fixes for async initialization\n\nThe core reactive state issue is FIXED.",
       "edited": false,
       "edit_count": 0,
       "is_ai_generated": false,
@@ -38,7 +38,7 @@
       "id": "20251203173934-1e4737e5",
       "ticket_id": "SOUL-221",
       "author": "jared@goatbytes.io",
-      "content": "Created v0.2.0 release successfully:\n\n✅ Created annotated git tag v0.2.0 with descriptive message\n✅ Pushed tag to GitHub\n✅ GitHub release published at https://github.com/goatbytes/consoul/releases/tag/v0.2.0\n\nRelease includes:\n- Complete release notes from CHANGELOG.md\n- Installation instructions\n- Quick start guide\n- Documentation links\n- Feature highlights\n\nAll acceptance criteria met.",
+      "content": "Created v0.2.0 release successfully:\n\n\u2705 Created annotated git tag v0.2.0 with descriptive message\n\u2705 Pushed tag to GitHub\n\u2705 GitHub release published at https://github.com/goatbytes/consoul/releases/tag/v0.2.0\n\nRelease includes:\n- Complete release notes from CHANGELOG.md\n- Installation instructions\n- Quick start guide\n- Documentation links\n- Feature highlights\n\nAll acceptance criteria met.",
       "edited": false,
       "edit_count": 0,
       "is_ai_generated": false,
@@ -51,5 +51,10 @@
   "comment_count": 2,
   "story_points": 1,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-06T00:45:29.907487",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

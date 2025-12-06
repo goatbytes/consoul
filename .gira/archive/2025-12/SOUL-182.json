@@ -19,5 +19,10 @@
   "attachment_count": 0,
   "comment_count": 0,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-06T00:45:29.725650",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

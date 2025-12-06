@@ -1,11 +1,11 @@
 {
   "created_at": "2025-11-09T20:16:29.532220",
-  "updated_at": "2025-11-16T16:17:28.412682Z",
+  "updated_at": "2025-12-06T08:45:50.837559Z",
   "id": "SOUL-54",
   "uuid": "bf8bfb91-b209-4b3b-9eab-4738efc71309",
   "title": "Write TUI documentation and user guide",
   "description": "Create TUI user guide. Document keyboard shortcuts, features, configuration options. Add screenshots/screencasts, troubleshooting section, API docs for library usage (Gira integration).",
-  "status": "backlog",
+  "status": "todo",
   "type": "task",
   "priority": "medium",
   "labels": [
