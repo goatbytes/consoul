@@ -1,3 +1,8 @@
+---
+title: CLI Chat Mode
+description: Interactive CLI chat with AI models. Multi-turn conversations, streaming responses, slash commands, model switching, tool execution, and history management.
+---
+
 # CLI Chat Mode
 
 Interactive command-line chat sessions with AI models, featuring streaming responses, slash commands, and tool execution.

@@ -1,3 +1,10 @@
+---
+title: Terminal User Interface (TUI)
+description: Rich interactive TUI for AI chat built with Textual. Features real-time streaming, conversation management, file attachments, tool execution, and customizable themes.
+search:
+  boost: 1.1
+---
+
 # Terminal User Interface (TUI)
 
 Consoul's Terminal User Interface provides a rich, interactive chat experience directly in your terminal. Built with [Textual](https://textual.textualize.io/), it offers a modern, responsive interface similar to ChatGPT or Claude, but with the convenience and power of staying in your command-line workflow.

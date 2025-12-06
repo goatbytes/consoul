@@ -1,3 +1,8 @@
+---
+title: Tools Deep Dive
+description: Complete guide to Consoul's 13 built-in LangChain tools. File operations, code search, grep, web search, bash execution, risk levels, categories, and custom tool integration.
+---
+
 # Tools Deep Dive
 
 Master Consoul's 13 built-in tools for file operations, code search, web research, and command execution.

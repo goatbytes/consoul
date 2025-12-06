@@ -1,3 +1,10 @@
+---
+title: CLI Reference
+description: Complete command-line interface reference for Consoul. Includes chat, history, init, preset, and TUI commands with all options and examples.
+search:
+  boost: 1.1
+---
+
 # CLI Reference
 
 Complete reference for all Consoul commands and options.

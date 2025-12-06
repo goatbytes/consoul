@@ -1,3 +1,10 @@
+---
+title: Quick Start
+description: Get started with Consoul in minutes. Learn to use TUI mode, CLI chat, and ask commands. Quick examples for common workflows including code help, debugging, and configuration.
+search:
+  boost: 1.2
+---
+
 # Quick Start
 
 Get up and running with Consoul in just a few minutes!

@@ -77,6 +77,12 @@ theme:
 # Plugins
 plugins:
   - search:
+      # Search word separator regex for optimal tokenization:
+      # - [\s\-,:!=\[\]()"`/]+ : Split on whitespace and special characters
+      # - \.(?!\d) : Split on periods (except in version numbers like 3.12)
+      # - &[lg]t; : Split on HTML entities (&lt; &gt;)
+      # - (?!\b)(?=[A-Z][a-z]) : Split camelCase/PascalCase (TUI, SDK, etc.)
+      # This ensures terms like "TUI", "CLI", "SDK" are searchable as complete tokens
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
       lang: en
   - glightbox:

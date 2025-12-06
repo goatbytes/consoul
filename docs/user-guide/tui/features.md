@@ -1,3 +1,8 @@
+---
+title: TUI Features
+description: Complete TUI features guide. Conversation management, streaming responses, file attachments, tool execution with approval, themes, export formats, keyboard shortcuts, and auto-save.
+---
+
 # TUI Features
 
 This guide explores the powerful features available in the Consoul Terminal User Interface.

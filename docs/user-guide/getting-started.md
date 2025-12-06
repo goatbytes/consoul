@@ -1,3 +1,8 @@
+---
+title: Getting Started
+description: Comprehensive guide to Consoul usage. Learn about providers (OpenAI, Anthropic, Google, Ollama), modes (TUI, CLI, pipeline), configuration, and best practices for terminal AI assistance.
+---
+
 # Getting Started
 
 Welcome to Consoul! This guide will help you get the most out of your AI-powered terminal assistant.

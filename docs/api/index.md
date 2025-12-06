@@ -1,3 +1,10 @@
+---
+title: SDK Overview
+description: Consoul Python SDK for building AI-powered applications. Simple API for LangChain integration, tool calling, OpenAI, Anthropic, Google models, conversation history, and custom tools.
+search:
+  boost: 1.15
+---
+
 # SDK Overview
 
 Build AI-powered applications with the Consoul SDK - a simple, powerful Python library for integrating language models and tool calling into your projects.

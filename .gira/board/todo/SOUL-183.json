@@ -1,6 +1,6 @@
 {
   "created_at": "2025-11-26T14:57:12.301363",
-  "updated_at": "2025-11-29T16:40:37.010868Z",
+  "updated_at": "2025-12-06T08:57:44.241599",
   "id": "SOUL-183",
   "uuid": "81e9264f-8f71-46fb-8a83-50c79d2a60f0",
   "title": "Improve search configuration and metadata",
@@ -14,10 +14,24 @@
   "epic_id": "EPIC-009",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-12-06T08:57:44.241507",
+      "updated_at": "2025-12-06T08:57:44.241508",
+      "id": "20251206085744-4e9c1cf6",
+      "ticket_id": "SOUL-183",
+      "author": "jared@goatbytes.io",
+      "content": "Completed search configuration improvements:\n\n✅ Added inline documentation to mkdocs.yml explaining search separator regex\n✅ Added YAML frontmatter metadata to 9 key documentation pages:\n   - TUI overview and features\n   - CLI reference and chat mode\n   - SDK overview and tools guide\n   - Quick start and getting started\n✅ Configured search boost values (SDK: 1.15, Quickstart: 1.2, TUI/CLI: 1.1)\n✅ Tested search queries - all common terms return relevant results:\n   - TUI: 107 matches\n   - CLI: 75 matches\n   - SDK: 42 matches\n   - tools: 318 matches\n   - chat: 158 matches\n\nSearch separator correctly tokenizes technical terms (TUI, CLI, SDK) and handles camelCase.\nAll 1,305 docs indexed successfully in 603KB search index.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "order": 0,
   "custom_fields": {}
 }
