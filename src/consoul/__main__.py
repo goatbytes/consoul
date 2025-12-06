@@ -42,6 +42,38 @@ def validate_max_tokens(
     return value
 
 
+def _read_system_prompt_file(file_path: str, max_size: int = 10_000) -> str:
+    """Read system prompt from file with size limit.
+
+    Args:
+        file_path: Path to file containing system prompt
+        max_size: Maximum file size in bytes (default: 10KB)
+
+    Returns:
+        File content as string (stripped of leading/trailing whitespace)
+
+    Raises:
+        ValueError: If file too large or cannot be read
+    """
+    path = Path(file_path).resolve()
+
+    # Check file size
+    file_size = path.stat().st_size
+    if file_size > max_size:
+        raise ValueError(
+            f"System prompt file too large: {file_size:,} bytes "
+            f"(max: {max_size:,} bytes)"
+        )
+
+    # Read file with UTF-8 encoding
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except UnicodeDecodeError as e:
+        raise ValueError(f"Cannot read system prompt file: not valid UTF-8: {e}") from e
+    except Exception as e:
+        raise ValueError(f"Cannot read system prompt file: {e}") from e
+
+
 @click.group(invoke_without_command=True)
 @click.option(
     "--profile",
@@ -190,6 +222,12 @@ def cli(
     type=str,
     help="Override system prompt for this session",
 )
+@click.option(
+    "--system-file",
+    "system_prompt_file",
+    type=click.Path(exists=True, dir_okay=False, readable=True),
+    help="Read system prompt from file (mutually exclusive with --system)",
+)
 @click.pass_context
 def chat(
     ctx: click.Context,
@@ -202,6 +240,7 @@ def chat(
     globs: tuple[str, ...],
     stdin: bool,
     system_prompt: str | None,
+    system_prompt_file: str | None,
 ) -> None:
     """Start an interactive chat session with streaming responses.
 
@@ -230,6 +269,24 @@ def chat(
     console = Console()
     config = ctx.obj["config"]
     active_profile = config.get_active_profile()
+
+    # Validate mutually exclusive system prompt options
+    if system_prompt and system_prompt_file:
+        console.print(
+            "[red]Error: --system and --system-file are mutually exclusive[/red]"
+        )
+        ctx.exit(1)
+
+    # Read system prompt from file if provided
+    if system_prompt_file:
+        try:
+            system_prompt = _read_system_prompt_file(system_prompt_file)
+            logger.debug(
+                f"Loaded system prompt from {system_prompt_file} ({len(system_prompt)} chars)"
+            )
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            ctx.exit(1)
 
     # Override model if specified
     if model:
@@ -634,6 +691,12 @@ def chat(
     type=str,
     help="Override system prompt for this query",
 )
+@click.option(
+    "--system-file",
+    "system_prompt_file",
+    type=click.Path(exists=True, dir_okay=False, readable=True),
+    help="Read system prompt from file (mutually exclusive with --system)",
+)
 @click.pass_context
 def ask(
     ctx: click.Context,
@@ -651,6 +714,7 @@ def ask(
     output: str | None,
     stdin: bool,
     system_prompt: str | None,
+    system_prompt_file: str | None,
 ) -> None:
     """Ask a single question and get a response (non-interactive).
 
@@ -701,6 +765,24 @@ def ask(
     logger = logging.getLogger(__name__)
     console = Console()
     config = ctx.obj["config"]
+
+    # Validate mutually exclusive system prompt options
+    if system_prompt and system_prompt_file:
+        console.print(
+            "[red]Error: --system and --system-file are mutually exclusive[/red]"
+        )
+        ctx.exit(1)
+
+    # Read system prompt from file if provided
+    if system_prompt_file:
+        try:
+            system_prompt = _read_system_prompt_file(system_prompt_file)
+            logger.debug(
+                f"Loaded system prompt from {system_prompt_file} ({len(system_prompt)} chars)"
+            )
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            ctx.exit(1)
 
     # Handle message from either positional arg or -m flag
     msg = message or message_opt

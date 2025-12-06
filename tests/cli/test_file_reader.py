@@ -171,6 +171,7 @@ class TestPDFSupport:
         assert "=== Page 50 ===" in result
         assert "=== Page 51 ===" not in result
         assert "Truncated: showing 50 of 60 pages" in result
+        assert "Split the PDF" in result
 
     def test_empty_pdf(self, tmp_path: Path) -> None:
         """Test reading PDF with no pages."""
@@ -205,6 +206,18 @@ class TestPDFSupport:
 
         assert len(files) == 3
         assert all(f.suffix == ".pdf" for f in files)
+
+    def test_pdf_size_limit(self, tmp_path: Path) -> None:
+        """Test large PDFs are rejected before parsing."""
+        file_path = tmp_path / "large.pdf"
+
+        from consoul.cli.file_reader import PDF_MAX_FILE_SIZE
+
+        # Create a large PDF-like file just over the limit without requiring pypdf
+        file_path.write_bytes(b"%PDF-1.4\n" + b"0" * (PDF_MAX_FILE_SIZE + 1))
+
+        with pytest.raises(ValueError, match="exceeds size limit"):
+            read_file_content(file_path)
 
 
 class TestExpandGlobPattern:

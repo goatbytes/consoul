@@ -247,3 +247,147 @@ Prioritize security and performance."""
     assert "expert programmer" in system_prompt
     assert "code quality" in system_prompt
     assert "security and performance" in system_prompt
+
+
+# Tests for --system-file flag
+
+
+@patch("consoul.cli.chat_session.get_chat_model")
+@patch("consoul.cli.chat_session.ConversationHistory")
+def test_system_file_basic(
+    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model, tmp_path
+):
+    """Test --system-file flag reads from file."""
+    mock_get_chat_model.return_value = mock_chat_model
+    mock_history = Mock()
+    mock_history_class.return_value = mock_history
+
+    # Create test file
+    prompt_file = tmp_path / "prompt.txt"
+    prompt_content = "You are a Python expert.\nFocus on best practices."
+    prompt_file.write_text(prompt_content, encoding="utf-8")
+
+    # Import _read_system_prompt_file
+    from consoul.__main__ import _read_system_prompt_file
+
+    system_prompt = _read_system_prompt_file(str(prompt_file))
+
+    _ = ChatSession(mock_config, system_prompt_override=system_prompt)
+
+    assert mock_history.add_system_message.called
+    call_args = mock_history.add_system_message.call_args[0]
+    result = call_args[0]
+
+    assert "Python expert" in result
+    assert "best practices" in result
+
+
+def test_system_file_too_large(tmp_path):
+    """Test --system-file rejects files over 10KB."""
+
+    from consoul.__main__ import _read_system_prompt_file
+
+    # Create file larger than 10KB
+    prompt_file = tmp_path / "large_prompt.txt"
+    large_content = "x" * 11_000  # 11KB
+    prompt_file.write_text(large_content, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="too large"):
+        _read_system_prompt_file(str(prompt_file))
+
+
+def test_system_file_utf8(tmp_path):
+    """Test --system-file handles UTF-8 content."""
+
+    from consoul.__main__ import _read_system_prompt_file
+
+    prompt_file = tmp_path / "utf8_prompt.txt"
+    utf8_content = "You are an expert. 你好 🌍"
+    prompt_file.write_text(utf8_content, encoding="utf-8")
+
+    result = _read_system_prompt_file(str(prompt_file))
+
+    assert "你好" in result
+    assert "🌍" in result
+
+
+def test_system_file_empty(tmp_path):
+    """Test --system-file with empty file returns empty string."""
+
+    from consoul.__main__ import _read_system_prompt_file
+
+    prompt_file = tmp_path / "empty.txt"
+    prompt_file.write_text("", encoding="utf-8")
+
+    result = _read_system_prompt_file(str(prompt_file))
+
+    assert result == ""
+
+
+def test_system_file_whitespace_only(tmp_path):
+    """Test --system-file strips whitespace."""
+
+    from consoul.__main__ import _read_system_prompt_file
+
+    prompt_file = tmp_path / "whitespace.txt"
+    prompt_file.write_text("  \n\n  You are helpful  \n\n  ", encoding="utf-8")
+
+    result = _read_system_prompt_file(str(prompt_file))
+
+    assert result == "You are helpful"
+
+
+def test_system_file_multiline(tmp_path):
+    """Test --system-file preserves multiline content."""
+
+    from consoul.__main__ import _read_system_prompt_file
+
+    prompt_file = tmp_path / "multiline.txt"
+    multiline_content = """You are a code reviewer.
+
+Rules:
+1. Check for bugs
+2. Verify tests
+3. Review documentation
+
+Focus on quality."""
+    prompt_file.write_text(multiline_content, encoding="utf-8")
+
+    result = _read_system_prompt_file(str(prompt_file))
+
+    assert "code reviewer" in result
+    assert "Rules:" in result
+    assert "1. Check for bugs" in result
+    assert "Focus on quality" in result
+
+
+@patch("consoul.cli.chat_session.get_chat_model")
+@patch("consoul.cli.chat_session.ConversationHistory")
+def test_system_file_prepends_to_profile(
+    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model, tmp_path
+):
+    """Test --system-file prepends to profile prompt (same as --system)."""
+
+    mock_get_chat_model.return_value = mock_chat_model
+    mock_history = Mock()
+    mock_history_class.return_value = mock_history
+
+    prompt_file = tmp_path / "prepend_test.txt"
+    prompt_file.write_text("Override instruction.", encoding="utf-8")
+
+    from consoul.__main__ import _read_system_prompt_file
+
+    override = _read_system_prompt_file(str(prompt_file))
+
+    _ = ChatSession(mock_config, system_prompt_override=override)
+
+    assert mock_history.add_system_message.called
+    call_args = mock_history.add_system_message.call_args[0]
+    system_prompt = call_args[0]
+
+    # Verify override is prepended to profile prompt
+    assert "Override instruction" in system_prompt
+    assert "You are a helpful AI assistant." in system_prompt
+    assert system_prompt.index("Override instruction") < system_prompt.index(
+        "You are a helpful AI assistant."
+    )

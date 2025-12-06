@@ -16,6 +16,10 @@ from __future__ import annotations
 import glob as glob_module
 from pathlib import Path
 
+# Defaults for PDF handling
+PDF_MAX_PAGES = 50
+PDF_MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB hard cap to avoid costly parsing
+
 
 def _is_pdf_file(path: Path) -> bool:
     """Check if file is a PDF by extension.
@@ -29,7 +33,7 @@ def _is_pdf_file(path: Path) -> bool:
     return path.suffix.lower() == ".pdf"
 
 
-def _read_pdf(path: Path, max_pages: int = 50) -> str:
+def _read_pdf(path: Path, max_pages: int = PDF_MAX_PAGES) -> str:
     """Read PDF file and extract text with page markers.
 
     Args:
@@ -85,7 +89,7 @@ def _read_pdf(path: Path, max_pages: int = 50) -> str:
         if pages_to_read < total_pages:
             extracted_text += (
                 f"\n\n[Truncated: showing {pages_to_read} of {total_pages} pages. "
-                f"Use --file with individual pages or increase max_pages.]"
+                "Split the PDF or narrow to specific pages to include more content.]"
             )
 
         return extracted_text
@@ -118,13 +122,17 @@ def _is_binary_file(path: Path) -> bool:
 def read_file_content(
     file_path: Path,
     max_size: int = 100_000,
+    pdf_max_size: int = PDF_MAX_FILE_SIZE,
+    pdf_max_pages: int = PDF_MAX_PAGES,
     include_line_numbers: bool = True,
 ) -> str:
     """Read and format single file content (text files and PDFs).
 
     Args:
         file_path: Path to file to read
-        max_size: Maximum file size in bytes (default: 100KB)
+        max_size: Maximum text file size in bytes (default: 100KB)
+        pdf_max_size: Maximum PDF file size in bytes (default: 10MB)
+        pdf_max_pages: Maximum PDF pages to read (default: 50)
         include_line_numbers: Whether to add line numbers for text files (default: True)
 
     Returns:
@@ -140,12 +148,19 @@ def read_file_content(
     if not file_path.is_file():
         raise ValueError(f"Path is not a file: {file_path}")
 
-    # Check if PDF file first (before size check, before binary check)
+    # Check size once for both text and PDF
+    file_size = file_path.stat().st_size
+
+    # Handle PDFs with dedicated limits before parsing
     if _is_pdf_file(file_path):
-        return _read_pdf(file_path, max_pages=50)
+        if file_size > pdf_max_size:
+            raise ValueError(
+                f"PDF {file_path.name} exceeds size limit: "
+                f"{file_size:,} bytes (max: {pdf_max_size:,} bytes)"
+            )
+        return _read_pdf(file_path, max_pages=pdf_max_pages)
 
     # Check file size (for text files)
-    file_size = file_path.stat().st_size
     if file_size > max_size:
         raise ValueError(
             f"File {file_path.name} exceeds size limit: "
