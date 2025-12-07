@@ -65,6 +65,34 @@ class TestModelTokenLimits:
         assert get_model_token_limit("claude-3-sonnet-20240229") == 200_000
         assert get_model_token_limit("claude-3-haiku-20240307") == 200_000
 
+    def test_pattern_based_claude_detection(self):
+        """Test pattern-based detection for new Claude models."""
+        # Claude 3.7 Sonnet (hardcoded)
+        assert get_model_token_limit("claude-3-7-sonnet-20250219") == 200_000
+        # Claude 3.8 (hypothetical - should use pattern)
+        assert get_model_token_limit("claude-3-8-sonnet-20250301") == 200_000
+        # Claude 4.2 (hypothetical - should use pattern)
+        assert get_model_token_limit("claude-4-2-haiku") == 200_000
+        # Claude 5.0 (hypothetical - should use pattern)
+        assert get_model_token_limit("claude-5-0-opus") == 200_000
+
+    def test_pattern_based_gpt_detection(self):
+        """Test pattern-based detection for new GPT models."""
+        # GPT-4 variants (should use 128K pattern)
+        # Note: gpt-4-turbo is hardcoded but gpt-4-turbo-new is not
+        assert get_model_token_limit("gpt-4-turbo-new") == 128_000
+        # GPT-5 variants (should use 400K pattern)
+        assert get_model_token_limit("gpt-5-mini-2025") == 400_000
+        assert get_model_token_limit("gpt-5-turbo") == 400_000
+        assert get_model_token_limit("gpt-5-preview-202601") == 400_000
+
+    def test_pattern_based_gemini_detection(self):
+        """Test pattern-based detection for new Gemini models."""
+        # Gemini 2.x variants (should use 1M pattern)
+        assert get_model_token_limit("gemini-2.7-pro") == 1_000_000
+        assert get_model_token_limit("gemini2-flash") == 1_000_000
+        assert get_model_token_limit("gemini-2-ultra") == 1_000_000
+
 
 class TestTokenCounterCreation:
     """Tests for token counter factory."""

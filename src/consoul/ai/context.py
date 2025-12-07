@@ -77,6 +77,10 @@ MODEL_TOKEN_LIMITS: dict[str, int] = {
     "claude-opus-4-1": 200_000,  # Opus 4.1: 200K context
     "claude-opus-4": 200_000,  # Opus 4: 200K context
     "claude-sonnet-4": 1_000_000,  # Beta/enterprise: 1M context
+    # Anthropic models - Claude 3.7 (February 2025)
+    "claude-3-7-sonnet": 200_000,  # Sonnet 3.7: 200K context
+    "claude-3-7-opus": 200_000,  # Opus 3.7: 200K context (if released)
+    "claude-3-7-haiku": 200_000,  # Haiku 3.7: 200K context (if released)
     # Anthropic models - Claude 3.5
     "claude-3-5-sonnet": 200_000,
     # Anthropic models - Claude 3
@@ -332,13 +336,51 @@ def get_model_token_limit(model_name: str) -> int:
         if llamacpp_context:
             return llamacpp_context
 
-    # Warn about unknown model using conservative default
+    # Use pattern-based intelligent defaults before falling back to conservative limit
+    # This handles new model releases without requiring code updates
     import logging
+    import re
 
     logger = logging.getLogger(__name__)
+
+    # Extract version numbers from Claude models (e.g., "claude-3-7-sonnet" -> 3.7)
+    claude_match = re.match(r"claude[- ](\d+)[- ](\d+)", key_normalized)
+    if claude_match:
+        major = int(claude_match.group(1))
+        minor = int(claude_match.group(2))
+        # Claude 3.x and newer: 200K tokens (conservative default for all Claude 3+ models)
+        if major >= 3:
+            default_limit = 200_000
+            logger.info(
+                f"Unknown Claude model '{model_name}' detected as Claude {major}.{minor} - "
+                f"using {default_limit:,} token default (standard for Claude 3+)"
+            )
+            return default_limit
+
+    # GPT-4.x and GPT-5+ models: Use version-based defaults
+    gpt_match = re.match(r"gpt[- ]([45])", key_normalized)
+    if gpt_match:
+        version = int(gpt_match.group(1))
+        default_limit = 400_000 if version == 5 else 128_000  # GPT-5: 400K, GPT-4: 128K
+        logger.info(
+            f"Unknown GPT model '{model_name}' detected as GPT-{version} - "
+            f"using {default_limit:,} token default"
+        )
+        return default_limit
+
+    # Gemini 2.x models: Default to 1M
+    if "gemini-2" in key_normalized or "gemini2" in key_normalized:
+        default_limit = 1_000_000
+        logger.info(
+            f"Unknown Gemini model '{model_name}' detected as Gemini 2.x - "
+            f"using {default_limit:,} token default"
+        )
+        return default_limit
+
+    # Warn about truly unknown model using conservative default
     logger.warning(
-        f"Unknown model '{model_name}' - using conservative {DEFAULT_TOKEN_LIMIT} token limit. "
-        f"This may cause message trimming issues. Please add this model to MODEL_TOKEN_LIMITS "
+        f"Unknown model '{model_name}' - using conservative {DEFAULT_TOKEN_LIMIT:,} token limit. "
+        f"This may cause message trimming issues. Consider adding this model to MODEL_TOKEN_LIMITS "
         f"in consoul/ai/context.py for proper support."
     )
 
