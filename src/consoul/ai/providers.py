@@ -882,8 +882,8 @@ def build_model_params(model_config: ModelConfig) -> dict[str, Any]:
             params["response_format"] = model_config.response_format
         if model_config.service_tier is not None:
             params["service_tier"] = model_config.service_tier
-        # Enable streaming usage metadata for cost calculation via stream_options
-        params["model_kwargs"] = {"stream_options": {"include_usage": True}}
+        # LangChain handles stream_options automatically for streaming calls
+        # Non-streaming calls include usage metadata by default
 
     elif isinstance(model_config, AnthropicModelConfig):
         if model_config.top_p is not None:
@@ -1682,25 +1682,23 @@ def get_chat_model(
                         f"See available models: https://huggingface.co/models"
                     ) from e
 
-    # Special handling for OpenAI to properly set stream_options
-    # ChatOpenAI expects stream_options in model_kwargs, not as direct parameter
+    # Special handling for OpenAI
+    # ChatOpenAI expects model_kwargs as direct parameter
     if provider == Provider.OPENAI:
         from langchain_openai import ChatOpenAI
 
-        # Extract or create model_kwargs with stream_options
+        # Extract model_kwargs if present
         model_kwargs = params.pop("model_kwargs", {})
-        if "stream_options" not in model_kwargs:
-            model_kwargs["stream_options"] = {"include_usage": True}
 
         # Build ChatOpenAI params with model_kwargs
-        openai_params = {**params, "model_kwargs": model_kwargs}
+        openai_params = (
+            {**params, "model_kwargs": model_kwargs} if model_kwargs else params
+        )
 
         import logging
 
         logger = logging.getLogger(__name__)
-        logger.debug(
-            f"[STREAM_OPTIONS] OpenAI init params: model_kwargs={model_kwargs}"
-        )
+        logger.debug(f"[OPENAI_INIT] OpenAI init params: model_kwargs={model_kwargs}")
 
         try:
             return ChatOpenAI(**openai_params)  # type: ignore[no-any-return]

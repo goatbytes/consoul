@@ -528,9 +528,8 @@ class TestGetChatModel:
         assert call_kwargs["model"] == "gpt-4o"
         assert call_kwargs["temperature"] == 0.7
         assert call_kwargs["openai_api_key"] == "sk-test123"
-        # Verify stream_options is set correctly
-        assert "model_kwargs" in call_kwargs
-        assert call_kwargs["model_kwargs"]["stream_options"] == {"include_usage": True}
+        # LangChain handles stream_options automatically - no need for model_kwargs
+        assert "model_kwargs" not in call_kwargs or call_kwargs["model_kwargs"] == {}
 
     @patch("consoul.ai.providers.init_chat_model")
     def test_get_chat_model_anthropic(self, mock_init):
