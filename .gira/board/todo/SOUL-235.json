@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-07T19:38:34.424768",
+  "updated_at": "2025-12-07T19:38:34.424775",
+  "id": "SOUL-235",
+  "uuid": "ee6db69c-060e-4428-a77c-c6662e3788e1",
+  "title": "Make approval provider configurable in Consoul SDK",
+  "description": "**As a** backend developer using Consoul SDK\n**I want** to provide custom approval providers (WebSocket, HTTP, etc.)\n**So that** tool approval works in web applications instead of terminal-only\n\n**Context:**\nConsoul SDK currently hardcodes CliApprovalProvider in sdk.py:447. For backend use, developers need to supply WebSocketApprovalProvider or HTTPApprovalProvider that sends approval requests to frontend clients.\n\nAn excellent WebApprovalProvider example already exists (examples/sdk/web_approval_provider.py:35-129) showing the pattern, but there's no way to use it from Consoul.__init__().\n\n**Technical Notes:**\n- Current hardcode: src/consoul/sdk.py:447\n- Change to: approval_provider parameter in __init__()\n- Default: CliApprovalProvider() for backward compatibility\n- Example exists: examples/sdk/web_approval_provider.py:35-129\n- Base interface: src/consoul/ai/tools/approval.py (ToolApprovalRequest/Response)\n- Pattern: Same as other pluggable components (model, config, etc.)\n\n**Acceptance Criteria:**\n\n**Given** I create Consoul with custom approval provider\n**When** I pass approval_provider=MyWebProvider()\n**Then** tool approvals use my custom provider\n\n**Given** I create Consoul without approval_provider parameter\n**When** tools are enabled\n**Then** defaults to CliApprovalProvider (backward compatible)\n\n**Given** I create Consoul with tools=False\n**When** no tools are enabled\n**Then** approval_provider is ignored (no error)\n\n**Testing Considerations:**\n- Test custom approval provider integration\n- Test default CliApprovalProvider behavior\n- Test with tools disabled\n- Verify backward compatibility\n- Test with WebApprovalProvider example\n- Mock approval requests in tests\n\n**Implementation Hints:**\n- Add approval_provider: ToolApprovalProvider | None = None parameter to Consoul.__init__()\n- Default to CliApprovalProvider(show_arguments=True) if None\n- Pass to ToolRegistry in _setup_tools() method (line 449)\n- Update docstring with approval_provider parameter docs\n- Add example to examples/sdk/backend_usage.py\n- Reference existing pattern: model, profile, tools parameters",
+  "status": "todo",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "refactor",
+    "tools",
+    "backend"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-011",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

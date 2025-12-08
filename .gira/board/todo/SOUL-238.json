@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-07T19:39:59.534549",
+  "updated_at": "2025-12-07T19:39:59.534558",
+  "id": "SOUL-238",
+  "uuid": "03a18347-594b-4fc2-ad9c-8934d2b15724",
+  "title": "Add WebSocket streaming with event-based protocol",
+  "description": "**As a** frontend developer consuming Consoul backend\n**I want** WebSocket streaming that sends tokens and tool calls as events\n**So that** I can display real-time AI responses with tool execution visibility\n\n**Context:**\nChatGPT analysis emphasizes WebSocket streaming as critical for modern AI UX (lines 2357-2384). Clients need progressive token display, not just final responses.\n\nCurrent stream_response() (streaming.py:137-287) works only for CLI. Need WebSocket implementation that:\n- Sends events as JSON over WebSocket\n- Handles tool approval via bi-directional communication\n- Integrates with tool execution loop from sdk.py:547-606\n- Uses async streaming from SOUL-234\n\n**Technical Notes:**\n- Depends on: SOUL-234 (async streaming primitives)\n- Create: src/consoul/web/websocket.py\n- Event types: \"token\", \"tool_call\", \"tool_result\", \"approval_request\", \"done\", \"error\"\n- Pattern: async def stream_chat_websocket(websocket, consoul, request)\n- Tool loop: Integrate with _execute_tool_loop (sdk.py:547-606)\n- Approval: Bi-directional - send approval_request, wait for response\n- FastAPI: WebSocket endpoint using starlette.websockets\n\n**Event Protocol:**\n```json\n{\"type\": \"token\", \"data\": {\"text\": \"Hello\"}}\n{\"type\": \"tool_call\", \"data\": {\"name\": \"bash\", \"args\": {...}, \"id\": \"call_123\"}}\n{\"type\": \"approval_request\", \"data\": {\"tool\": \"bash\", \"args\": {...}, \"id\": \"call_123\"}}\n{\"type\": \"tool_result\", \"data\": {\"tool_call_id\": \"call_123\", \"result\": \"...\"}}\n{\"type\": \"done\", \"data\": {\"message\": {...}, \"usage\": {...}}}\n{\"type\": \"error\", \"data\": {\"message\": \"...\", \"code\": \"...\"}}\n```\n\n**Acceptance Criteria:**\n\n**Given** client connects to WebSocket endpoint\n**When** client sends ChatRequest JSON\n**Then** receives stream of events until \"done\" event\n\n**Given** AI is generating response\n**When** tokens arrive\n**Then** each token sent as {\"type\": \"token\", \"data\": {\"text\": \"...\"}}\n\n**Given** AI makes tool call\n**When** tool requires approval\n**Then** sends {\"type\": \"approval_request\"} and waits for client response\n\n**Given** client approves tool\n**When** sends {\"approved\": true} response\n**Then** executes tool and sends {\"type\": \"tool_result\"}\n\n**Given** streaming completes\n**When** final AIMessage ready\n**Then** sends {\"type\": \"done\"} with complete message and usage\n\n**Given** error occurs during streaming\n**When** exception is raised\n**Then** sends {\"type\": \"error\"} and closes WebSocket gracefully\n\n**Testing Considerations:**\n- Test with FastAPI WebSocketTestSession\n- Mock async_stream_events from SOUL-234\n- Test tool approval workflow (request -> wait -> execute)\n- Test error handling and connection close\n- Test reconnection scenarios\n- Integration test with real model (optional)\n- Test concurrent WebSocket connections\n\n**Implementation Hints:**\n- FastAPI pattern: @app.websocket(\"/ws/chat\")\n- Accept initial JSON: await websocket.receive_json()\n- Use async_stream_events() from SOUL-234\n- Tool approval: Store pending in dict, await response\n- Send events: await websocket.send_json(event)\n- Error handling: try/except with error event + close\n- Session: create_session() from SOUL-236 per connection\n- Reference: ChatGPT WebSocket design (lines 2357-2384)\n- Example: examples/backend/websocket_chat.py with React client",
+  "status": "todo",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "backend",
+    "websocket",
+    "streaming",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-011",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {}
+}
