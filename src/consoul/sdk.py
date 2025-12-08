@@ -719,11 +719,41 @@ class Consoul:
         if self._last_response and hasattr(self._last_response, "usage_metadata"):
             metadata = self._last_response.usage_metadata
             if metadata:
+                # IMPORTANT: For Anthropic models, input_tokens represents only tokens
+                # AFTER the last cache breakpoint (not total input). Total input is:
+                # input_tokens + cache_read_input_tokens + cache_creation_input_tokens
                 input_tokens = metadata.get("input_tokens", 0)
                 output_tokens = metadata.get("output_tokens", 0)
                 total_tokens = metadata.get(
                     "total_tokens", input_tokens + output_tokens
                 )
+
+                # Extract cache details from input_token_details (Anthropic)
+                cache_read_tokens = 0
+                cache_write_5m_tokens = 0
+                cache_write_1h_tokens = 0
+                cache_creation_total = 0
+
+                input_token_details = metadata.get("input_token_details", {})
+                if isinstance(input_token_details, dict):
+                    cache_read_tokens = input_token_details.get("cache_read", 0)
+                    cache_creation_total = input_token_details.get("cache_creation", 0)
+                    cache_write_5m_tokens = input_token_details.get(
+                        "ephemeral_5m_input_tokens", 0
+                    )
+                    cache_write_1h_tokens = input_token_details.get(
+                        "ephemeral_1h_input_tokens", 0
+                    )
+
+                # Fallback: if TTL breakdown not available but total exists, use worst-case
+                # This handles streaming responses where TTL-specific tokens may be missing
+                if (
+                    cache_creation_total > 0
+                    and cache_write_5m_tokens == 0
+                    and cache_write_1h_tokens == 0
+                ):
+                    # Use worst-case (1-hour) pricing for streaming
+                    cache_write_1h_tokens = cache_creation_total
 
                 # Calculate accurate cost using pricing data
                 from consoul.pricing import calculate_cost
@@ -732,11 +762,13 @@ class Consoul:
                     self.model_name,
                     input_tokens,
                     output_tokens,
-                    cached_tokens=metadata.get("cache_read_input_tokens", 0),
+                    cache_read_tokens=cache_read_tokens,
+                    cache_write_5m_tokens=cache_write_5m_tokens,
+                    cache_write_1h_tokens=cache_write_1h_tokens,
                 )
                 estimated_cost = cost_info["total_cost"]
 
-                return {
+                result = {
                     "input_tokens": input_tokens,
                     "output_tokens": output_tokens,
                     "total_tokens": total_tokens,
@@ -744,6 +776,25 @@ class Consoul:
                     "model": self.model_name,
                     "source": "usage_metadata",  # Indicates accurate token counts
                 }
+
+                # Add cache details if available
+                if cache_read_tokens > 0 or cache_creation_total > 0:
+                    result["cache_read_tokens"] = cache_read_tokens
+                    result["cache_creation_tokens"] = cache_creation_total
+                    if cache_write_5m_tokens > 0:
+                        result["cache_write_5m_tokens"] = cache_write_5m_tokens
+                    if cache_write_1h_tokens > 0:
+                        result["cache_write_1h_tokens"] = cache_write_1h_tokens
+
+                # Add Anthropic-specific cache cost breakdown if available
+                if "cache_read_cost" in cost_info:
+                    result["cache_read_cost"] = round(cost_info["cache_read_cost"], 6)
+                if "cache_write_cost" in cost_info:
+                    result["cache_write_cost"] = round(cost_info["cache_write_cost"], 6)
+                if "cache_savings" in cost_info:
+                    result["cache_savings"] = round(cost_info["cache_savings"], 6)
+
+                return result
 
         # Fallback: Calculate from conversation history (approximation)
         tokens_before = self._last_request.get("tokens_before", 0)

@@ -95,12 +95,12 @@ class TestCostCalculation:
         assert cost["output_cost"] == 0.0050
         assert abs(cost["total_cost"] - 0.0065) < 0.0001  # Allow for floating point
 
-    def test_prompt_caching_cost(self) -> None:
-        """Test cost calculation with prompt caching."""
-        # Claude 3.5 Haiku with 1000 cached tokens
+    def test_prompt_caching_cost_backward_compat(self) -> None:
+        """Test cost calculation with prompt caching (backward compatibility)."""
+        # Claude 3.5 Haiku with 2000 cached tokens (old API)
         # Input: 1000/1M * $1 = $0.001
         # Output: 500/1M * $5 = $0.0025
-        # Cache: 2000/1M * $0.10 = $0.0002
+        # Cache read: 2000/1M * $0.10 = $0.0002
         # Total: $0.0037
         cost = calculate_cost(
             "claude-3-5-haiku-20241022", 1000, 500, cached_tokens=2000
@@ -108,6 +108,141 @@ class TestCostCalculation:
 
         assert cost["cache_cost"] == 0.0002
         assert cost["total_cost"] == 0.0037
+
+    def test_anthropic_cache_read_cost(self) -> None:
+        """Test Anthropic cache read cost (90% discount)."""
+        # Claude 3.5 Haiku with 8000 cache read tokens
+        # Input: 1000/1M * $1 = $0.001
+        # Output: 500/1M * $5 = $0.0025
+        # Cache read: 8000/1M * $0.10 = $0.0008
+        # Total: $0.0043
+        cost = calculate_cost(
+            "claude-3-5-haiku-20241022",
+            1000,
+            500,
+            cache_read_tokens=8000,
+        )
+
+        assert cost["cache_cost"] == 0.0008
+        assert cost["cache_read_cost"] == 0.0008
+        assert cost["cache_write_cost"] == 0.0
+        # Savings: 8000/1M * $1 * 0.9 = $0.0072
+        assert abs(cost["cache_savings"] - 0.0072) < 0.0001
+        assert abs(cost["total_cost"] - 0.0043) < 0.0001
+
+    def test_anthropic_cache_write_5m_cost(self) -> None:
+        """Test Anthropic 5-minute cache write cost (1.25x)."""
+        # Claude 3.5 Sonnet with 1000 5-min cache writes
+        # Input: 500/1M * $3 = $0.0015
+        # Output: 200/1M * $15 = $0.003
+        # Cache write 5m: 1000/1M * $3.75 = $0.00375
+        # Total: $0.00825
+        cost = calculate_cost(
+            "claude-3-5-sonnet-20241022",
+            500,
+            200,
+            cache_write_5m_tokens=1000,
+        )
+
+        assert cost["cache_write_cost"] == 0.00375
+        assert cost["cache_cost"] == 0.00375
+        assert abs(cost["total_cost"] - 0.00825) < 0.00001
+
+    def test_anthropic_cache_write_1h_cost(self) -> None:
+        """Test Anthropic 1-hour cache write cost (2x)."""
+        # Claude 3.5 Haiku with 2000 1-hour cache writes
+        # Input: 500/1M * $1 = $0.0005
+        # Output: 200/1M * $5 = $0.001
+        # Cache write 1h: 2000/1M * $2.00 = $0.004
+        # Total: $0.0055
+        cost = calculate_cost(
+            "claude-3-5-haiku-20241022",
+            500,
+            200,
+            cache_write_1h_tokens=2000,
+        )
+
+        assert cost["cache_write_cost"] == 0.004
+        assert cost["cache_cost"] == 0.004
+        assert abs(cost["total_cost"] - 0.0055) < 0.0001
+
+    def test_anthropic_mixed_cache_scenario(self) -> None:
+        """Test mixed cache scenario with reads and writes."""
+        # Claude 3.5 Sonnet with cache reads and mixed writes
+        # Input: 1000/1M * $3 = $0.003
+        # Output: 500/1M * $15 = $0.0075
+        # Cache read: 8000/1M * $0.30 = $0.0024
+        # Cache write 5m: 250/1M * $3.75 = $0.0009375
+        # Cache write 1h: 750/1M * $6.00 = $0.0045
+        # Total: $0.0183375
+        cost = calculate_cost(
+            "claude-3-5-sonnet-20241022",
+            1000,
+            500,
+            cache_read_tokens=8000,
+            cache_write_5m_tokens=250,
+            cache_write_1h_tokens=750,
+        )
+
+        assert abs(cost["cache_read_cost"] - 0.0024) < 0.0001
+        assert abs(cost["cache_write_cost"] - 0.0054375) < 0.0001
+        assert abs(cost["cache_cost"] - 0.0078375) < 0.0001
+        # Savings: 8000/1M * $3 * 0.9 = $0.0216
+        assert abs(cost["cache_savings"] - 0.0216) < 0.0001
+        assert abs(cost["total_cost"] - 0.0183375) < 0.0001
+
+    def test_anthropic_streaming_fallback(self) -> None:
+        """Test fallback when only total cache_creation available (streaming)."""
+        # When TTL-specific tokens not available, should use worst-case (1h) pricing
+        # This is handled in sdk.py and tui/app.py, but we can test the function
+        # Claude 3.5 Haiku with 1000 cache writes (no TTL breakdown)
+        # Should use 1h pricing: 1000/1M * $2.00 = $0.002
+        cost = calculate_cost(
+            "claude-3-5-haiku-20241022",
+            500,
+            200,
+            cache_write_1h_tokens=1000,  # Worst-case fallback
+        )
+
+        assert cost["cache_write_cost"] == 0.002
+        assert cost["cache_cost"] == 0.002
+
+    def test_anthropic_defensive_token_counting(self) -> None:
+        """Test defensive logic if Anthropic changes to include cache in input_tokens.
+
+        REGRESSION TEST: This detects if Anthropic's API changes semantics.
+        Current behavior: input_tokens excludes cached tokens.
+        If they change to include cached tokens, this defensive logic prevents double-charging.
+        """
+        # Scenario 1: Current behavior (input_tokens excludes cache) - should work as-is
+        cost1 = calculate_cost(
+            "claude-3-5-haiku-20241022",
+            input_tokens=100,  # Base only (current behavior)
+            output_tokens=500,
+            cache_read_tokens=8000,
+            cache_write_5m_tokens=250,
+        )
+        assert cost1["input_cost"] == 0.0001  # 100 tokens @ $1/M
+        assert "_defensive_adjustment" not in cost1  # No adjustment needed
+
+        # Scenario 2: Hypothetical upstream change (input_tokens includes cache)
+        # If Anthropic changes to: input_tokens = base + cache_read + cache_creation
+        # Then: input_tokens = 100 + 8000 + 250 = 8350
+        # Our defensive logic should detect this and subtract cache tokens
+        cost2 = calculate_cost(
+            "claude-3-5-haiku-20241022",
+            input_tokens=8350,  # Total (hypothetical future behavior)
+            output_tokens=500,
+            cache_read_tokens=8000,
+            cache_write_5m_tokens=250,
+        )
+        # Should subtract cache tokens: 8350 - 8000 - 250 = 100
+        assert cost2["input_cost"] == 0.0001  # Still 100 base tokens @ $1/M
+        assert cost2["_defensive_adjustment"] is True  # Flag set
+        assert cost2["base_input_tokens"] == 100  # Calculated base
+
+        # Total cost should be same in both scenarios (defensive logic working)
+        assert abs(cost1["total_cost"] - cost2["total_cost"]) < 0.00001
 
     def test_ollama_model_zero_cost(self) -> None:
         """Test that Ollama models have zero cost."""

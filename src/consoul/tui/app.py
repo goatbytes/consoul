@@ -2829,6 +2829,8 @@ class ConsoulApp(App[None]):
                                 from consoul.pricing import calculate_cost
 
                                 usage = final_message.usage_metadata
+                                # IMPORTANT: For Anthropic, input_tokens = tokens after last cache breakpoint only
+                                # Total input = input_tokens + cache_read + cache_creation
                                 input_tokens = usage.get("input_tokens", 0)
                                 output_tokens = usage.get("output_tokens", 0)
 
@@ -2836,14 +2838,50 @@ class ConsoulApp(App[None]):
                                     f"[COST] Token usage: input={input_tokens}, output={output_tokens}"
                                 )
 
-                                # Extract cached tokens if available
-                                cached_tokens = 0
+                                # Extract cache tokens if available
+                                cache_read_tokens = 0
+                                cache_write_5m_tokens = 0
+                                cache_write_1h_tokens = 0
+                                cache_creation_total = 0
+
                                 if "input_token_details" in usage:
                                     input_details = usage["input_token_details"]
                                     if isinstance(input_details, dict):
-                                        cached_tokens = input_details.get(
+                                        cache_read_tokens = input_details.get(
                                             "cache_read", 0
                                         )
+                                        cache_creation_total = input_details.get(
+                                            "cache_creation", 0
+                                        )
+                                        cache_write_5m_val = input_details.get(
+                                            "ephemeral_5m_input_tokens", 0
+                                        )
+                                        cache_write_5m_tokens = (
+                                            int(cache_write_5m_val)
+                                            if isinstance(
+                                                cache_write_5m_val, (int, float)
+                                            )
+                                            else 0
+                                        )
+                                        cache_write_1h_val = input_details.get(
+                                            "ephemeral_1h_input_tokens", 0
+                                        )
+                                        cache_write_1h_tokens = (
+                                            int(cache_write_1h_val)
+                                            if isinstance(
+                                                cache_write_1h_val, (int, float)
+                                            )
+                                            else 0
+                                        )
+
+                                # Fallback: if TTL breakdown not available but total exists
+                                if (
+                                    cache_creation_total > 0
+                                    and cache_write_5m_tokens == 0
+                                    and cache_write_1h_tokens == 0
+                                ):
+                                    # Use worst-case (1-hour) pricing
+                                    cache_write_1h_tokens = cache_creation_total
 
                                 # Get service_tier for OpenAI models
                                 service_tier = None
@@ -2857,7 +2895,9 @@ class ConsoulApp(App[None]):
                                     self.current_model,
                                     input_tokens,
                                     output_tokens,
-                                    cached_tokens=cached_tokens,
+                                    cache_read_tokens=cache_read_tokens,
+                                    cache_write_5m_tokens=cache_write_5m_tokens,
+                                    cache_write_1h_tokens=cache_write_1h_tokens,
                                     service_tier=service_tier,
                                 )
 

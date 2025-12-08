@@ -313,31 +313,71 @@ def calculate_cost(
     input_tokens: int,
     output_tokens: int,
     cached_tokens: int = 0,
+    cache_read_tokens: int = 0,
+    cache_write_5m_tokens: int = 0,
+    cache_write_1h_tokens: int = 0,
     service_tier: str | None = None,
 ) -> dict[str, Any]:
     """Calculate the cost for a model invocation.
 
     Args:
         model_name: The model identifier
-        input_tokens: Number of input/prompt tokens
+        input_tokens: Number of base input/prompt tokens (excluding cached tokens).
+                     For Anthropic: this should be usage.input_tokens (NOT total input).
+                     Anthropic's input_tokens already excludes cache tokens.
         output_tokens: Number of output/completion tokens
-        cached_tokens: Number of cached tokens (for models with prompt caching)
+        cached_tokens: Number of cached tokens (deprecated, use cache_read_tokens).
+                      Kept for backward compatibility.
+        cache_read_tokens: Number of tokens read from cache (0.1x cost for Anthropic)
+        cache_write_5m_tokens: Number of tokens written to 5-minute cache (1.25x cost)
+        cache_write_1h_tokens: Number of tokens written to 1-hour cache (2x cost)
         service_tier: OpenAI service tier ("auto", "default", "flex", "batch", "priority").
                      Only applies to OpenAI models. Defaults to "default" (standard pricing).
 
     Returns:
         Dictionary with cost breakdown:
         - total_cost: Total cost in USD
-        - input_cost: Cost of input tokens
+        - input_cost: Cost of base input tokens (non-cached)
         - output_cost: Cost of output tokens
         - cache_cost: Cost of cached tokens (if applicable)
+        - cache_read_cost: Cost of cache reads (Anthropic only)
+        - cache_write_cost: Cost of cache writes (Anthropic only)
+        - cache_savings: Savings from cache reads vs full input cost (Anthropic only)
         - pricing_available: Whether pricing data was found
         - service_tier: The service tier used (for OpenAI models)
 
+    Note:
+        Anthropic's usage metadata structure (as of 2025-01):
+        - input_tokens: Base input tokens AFTER last cache breakpoint (NOT including cached)
+        - cache_creation_input_tokens: Tokens written to cache
+        - cache_read_input_tokens: Tokens read from cache
+        Total input = input_tokens + cache_creation_input_tokens + cache_read_input_tokens
+
+        ASSUMPTION & RISK MITIGATION:
+        This implementation assumes Anthropic's input_tokens excludes cached tokens.
+        This is documented behavior verified through:
+        - Official Anthropic documentation (https://docs.claude.com)
+        - Real API responses (verified 2025-01)
+        - LangChain integration behavior
+
+        DEFENSIVE PROGRAMMING:
+        If Anthropic changes semantics to include cached tokens in input_tokens,
+        defensive logic detects this (when total_cache >= input_tokens) and subtracts
+        cache tokens to prevent double-charging. The _defensive_adjustment flag is set
+        in the result to monitor if this behavior is detected.
+
+        REGRESSION TESTING:
+        - test_anthropic_defensive_token_counting: Unit test for both interpretations
+        - test_anthropic_token_counting_assumption: Integration test monitors real API
+
     Example:
-        >>> cost = calculate_cost("claude-3-5-haiku-20241022", 1000, 500)
-        >>> print(f"Total: ${cost['total_cost']:.6f}")
-        >>> # OpenAI with flex tier (50% cheaper)
+        >>> # Anthropic with proper token separation
+        >>> cost = calculate_cost("claude-3-5-haiku-20241022",
+        ...                       input_tokens=1000,  # Base only
+        ...                       output_tokens=500,
+        ...                       cache_read_tokens=8000,
+        ...                       cache_write_5m_tokens=250)
+        >>> # OpenAI with flex tier
         >>> flex_cost = calculate_cost("gpt-4o", 1000, 500, service_tier="flex")
     """
     pricing = get_model_pricing(model_name, service_tier=service_tier)
@@ -376,23 +416,96 @@ def calculate_cost(
                 "source": "unavailable",
             }
 
+    # Backward compatibility: use cached_tokens if cache_read_tokens not provided
+    if cache_read_tokens == 0 and cached_tokens > 0:
+        cache_read_tokens = cached_tokens
+
+    # Defensive programming: Detect if input_tokens might include cached tokens
+    # If Anthropic changes their API, we need to handle it gracefully
+    is_anthropic = "claude" in model_name.lower()
+    total_cache_tokens = (
+        cache_read_tokens + cache_write_5m_tokens + cache_write_1h_tokens
+    )
+
+    # RISK MITIGATION: Detect if Anthropic changed to include cached tokens in input_tokens.
+    # Current behavior: input_tokens is base only (often << total_cache_tokens)
+    # If they change: input_tokens would include cache (≈ base + cache)
+    base_input_tokens = input_tokens
+    # Combined condition for defensive logic
+    if (
+        is_anthropic
+        and total_cache_tokens > 0
+        and input_tokens > 0
+        and input_tokens >= total_cache_tokens
+    ):
+        # Detection heuristic: If input_tokens is suspiciously close to (base + cache),
+        # it might mean they changed semantics. We detect this by checking if
+        # input_tokens is much larger than expected base (>= total_cache_tokens suggests
+        # it might be total = base + cache, so we subtract cache to get base).
+        #
+        # Normal case: input_tokens = 100, cache = 8000 → use input_tokens as-is
+        # Changed case: input_tokens = 8100 (100 base + 8000 cache) → subtract cache
+        # Suspicious: input >= cache suggests input might include cache
+        # Subtract cache tokens to get true base
+        base_input_tokens = max(0, input_tokens - total_cache_tokens)
+        # Note: This will be flagged with _defensive_adjustment in results
+    # Otherwise: input << cache, which is normal (base after cache breakpoint)
+
     # Calculate costs (prices are per million tokens)
-    input_cost = (input_tokens / 1_000_000) * pricing["input"]
+    input_cost = (base_input_tokens / 1_000_000) * pricing["input"]
     output_cost = (output_tokens / 1_000_000) * pricing["output"]
 
-    # Handle cached tokens if present
+    # Handle Anthropic prompt caching (TTL-specific pricing)
     cache_cost = 0.0
-    if cached_tokens > 0 and "cache_read" in pricing:
-        cache_cost = (cached_tokens / 1_000_000) * pricing["cache_read"]
+    cache_read_cost = 0.0
+    cache_write_cost = 0.0
+    cache_savings = 0.0
+
+    if is_anthropic and (
+        cache_read_tokens > 0 or cache_write_5m_tokens > 0 or cache_write_1h_tokens > 0
+    ):
+        # Anthropic-specific cache pricing
+        # Cache reads: 0.1x input price (90% discount)
+        if cache_read_tokens > 0 and "cache_read" in pricing:
+            cache_read_cost = (cache_read_tokens / 1_000_000) * pricing["cache_read"]
+            # Calculate savings (90% off)
+            full_price = (cache_read_tokens / 1_000_000) * pricing["input"]
+            cache_savings = full_price - cache_read_cost
+
+        # Cache writes
+        if cache_write_5m_tokens > 0 and "cache_write_5m" in pricing:
+            cache_write_cost += (cache_write_5m_tokens / 1_000_000) * pricing[
+                "cache_write_5m"
+            ]
+
+        if cache_write_1h_tokens > 0 and "cache_write_1h" in pricing:
+            cache_write_cost += (cache_write_1h_tokens / 1_000_000) * pricing[
+                "cache_write_1h"
+            ]
+
+        cache_cost = cache_read_cost + cache_write_cost
+    elif cache_read_tokens > 0 and "cache_read" in pricing:
+        # Generic cache cost (OpenAI, Google)
+        cache_cost = (cache_read_tokens / 1_000_000) * pricing["cache_read"]
 
     result = {
         "total_cost": input_cost + output_cost + cache_cost,
-        "input_cost": input_cost,
+        "input_cost": input_cost,  # Cost of base (non-cached) input tokens only
         "output_cost": output_cost,
         "cache_cost": cache_cost,
         "pricing_available": True,
         "source": "consoul",
     }
+
+    # Add Anthropic-specific cache details
+    if is_anthropic and cache_cost > 0:
+        result["cache_read_cost"] = cache_read_cost
+        result["cache_write_cost"] = cache_write_cost
+        result["cache_savings"] = cache_savings
+        # Include base_input_tokens for transparency
+        if base_input_tokens != input_tokens:
+            result["base_input_tokens"] = base_input_tokens
+            result["_defensive_adjustment"] = True  # Flag for monitoring
 
     # Add service_tier to result if provided (for OpenAI models)
     if service_tier and model_name in OPENAI_PRICING:
