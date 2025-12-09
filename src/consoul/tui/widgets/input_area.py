@@ -7,6 +7,7 @@ with Enter to send and Shift+Enter for newlines, plus file attachment functional
 from __future__ import annotations
 
 import mimetypes
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
@@ -132,6 +133,24 @@ class InputArea(Container):
             super().__init__()
             self.content = content
 
+    class CommandExecuteRequested(Message):
+        """Message posted when user requests inline command execution.
+
+        Posted when user enters !command syntax.
+
+        Attributes:
+            command: The shell command to execute
+        """
+
+        def __init__(self, command: str) -> None:
+            """Initialize CommandExecuteRequested.
+
+            Args:
+                command: The shell command to execute
+            """
+            super().__init__()
+            self.command = command
+
     # Reactive state
     character_count: reactive[int] = reactive(0)
 
@@ -198,6 +217,32 @@ class InputArea(Container):
         """Action to clear the input (bound to Escape key)."""
         self.clear()
 
+    def _extract_command(self, text: str) -> str | None:
+        """Extract shell command from inline command syntax.
+
+        Supports two formats:
+        - !command
+        - !`command`
+
+        Args:
+            text: Input text to parse
+
+        Returns:
+            Extracted command string, or None if not a command
+        """
+        # Pattern: !`command` or !command (but not ! followed by whitespace or empty content)
+        pattern = r"^!\s*`(.+)`\s*$|^!\s*([^\s].*)$"
+        match = re.match(pattern, text)
+
+        if match:
+            # Return first non-None group (backtick or non-backtick)
+            cmd = match.group(1) or match.group(2)
+            # Filter out empty commands or just backticks
+            if cmd and cmd.strip() and cmd.strip() != "``":
+                return cmd
+
+        return None
+
     def on_sendable_text_area_submitted(
         self, event: SendableTextArea.Submitted
     ) -> None:
@@ -211,7 +256,16 @@ class InputArea(Container):
         if not content:
             return  # Don't send empty messages
 
-        # Post message event
+        # Check for inline command syntax: !command or !`command`
+        command = self._extract_command(content)
+        if command:
+            # Post command execution request
+            self.post_message(self.CommandExecuteRequested(command))
+            # Clear input
+            self.clear()
+            return
+
+        # Post message event for regular messages
         self.post_message(self.MessageSubmit(content))
 
         # Clear input

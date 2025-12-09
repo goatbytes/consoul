@@ -741,3 +741,54 @@ ScrollbarCorner {
     padding: 0 1;
     margin-bottom: 1;
 }
+
+/* ============================================================================
+ * Command Output Bubble
+ * ============================================================================ */
+
+CommandOutputBubble {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    margin: 1 2 1 0;
+    border: solid $accent;
+    border-title-color: $accent;
+}
+
+CommandOutputBubble.command-success {
+    border: solid $success;
+    border-title-color: $success;
+}
+
+CommandOutputBubble.command-error {
+    border: solid $error;
+    border-title-color: $error;
+}
+
+CommandOutputBubble .command-header {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+}
+
+CommandOutputBubble .command-text {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+}
+
+CommandOutputBubble .command-status {
+    width: 100%;
+    height: auto;
+    margin-top: 1;
+}
+
+CommandOutputBubble .command-output {
+    width: 100%;
+    height: auto;
+}
+
+CommandOutputBubble #command-output-collapsible {
+    width: 100%;
+    height: auto;
+}

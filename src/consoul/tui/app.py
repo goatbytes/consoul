@@ -227,6 +227,9 @@ class ConsoulApp(App[None]):
         self._max_tool_iterations = 5
         self._current_assistant_message_id: int | None = None
 
+        # Inline command execution state
+        self._pending_command_output: tuple[str, str] | None = None
+
         # Initialization state flag
         self._initialization_complete = False
 
@@ -1602,6 +1605,15 @@ class ConsoulApp(App[None]):
         from consoul.tui.widgets import MessageBubble
 
         user_message = event.content
+
+        # Inject pending command output if available
+        if self._pending_command_output:
+            command, output = self._pending_command_output
+            prefix = f"--- user executed `{command}` ---\n{output}\n--- end of output ---\n\n"
+            user_message = prefix + user_message
+            # Clear buffer after injection
+            self._pending_command_output = None
+            self.log.info("[COMMAND_INJECT] Injected command output into user message")
 
         # Check if AI model is available
         if self.chat_model is None or self.conversation is None:
@@ -3117,6 +3129,114 @@ class ConsoulApp(App[None]):
             # Return error as tool result (AI can see it and respond appropriately)
             self.log.error(f"Tool execution error: {e}", exc_info=True)
             return f"Tool execution failed: {e}"
+
+    async def on_input_area_command_execute_requested(
+        self, event: InputArea.CommandExecuteRequested
+    ) -> None:
+        """Handle inline shell command execution request.
+
+        Args:
+            event: CommandExecuteRequested event containing the command
+        """
+        import subprocess
+        import time
+
+        from consoul.tui.widgets.command_output_bubble import CommandOutputBubble
+
+        command = event.command
+        self.log.info(f"[COMMAND_EXEC] Executing inline command: {command}")
+
+        # Execute command in background to avoid blocking UI
+        start_time = time.time()
+
+        try:
+            # Run command with timeout
+            result = await self._run_in_thread(
+                subprocess.run,
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=30,  # 30 second timeout
+                cwd=Path.cwd(),
+            )
+
+            execution_time = time.time() - start_time
+
+            stdout = result.stdout
+            stderr = result.stderr
+            exit_code = result.returncode
+
+            # Truncate output if too long (prevent UI freeze)
+            max_lines = 1000
+            if stdout:
+                lines = stdout.split("\n")
+                if len(lines) > max_lines:
+                    first = lines[:50]
+                    last = lines[-50:]
+                    truncated = [
+                        *first,
+                        f"\n... truncated {len(lines) - 100} lines ...\n",
+                        *last,
+                    ]
+                    stdout = "\n".join(truncated)
+
+            # Create output bubble
+            output_bubble = CommandOutputBubble(
+                command=command,
+                stdout=stdout,
+                stderr=stderr,
+                exit_code=exit_code,
+                execution_time=execution_time,
+            )
+
+            # Add to chat view
+            await self.chat_view.add_message(output_bubble)
+
+            # Store output in buffer for next user message
+            output_text = stdout
+            if stderr:
+                output_text += f"\n\n=== STDERR ===\n{stderr}"
+
+            self._pending_command_output = (command, output_text)
+
+            self.log.info(
+                f"[COMMAND_EXEC] Command completed with exit code {exit_code} in {execution_time:.2f}s"
+            )
+
+        except subprocess.TimeoutExpired:
+            # Command timed out
+            execution_time = time.time() - start_time
+
+            error_bubble = CommandOutputBubble(
+                command=command,
+                stdout="",
+                stderr="Command timed out after 30 seconds",
+                exit_code=124,  # Standard timeout exit code
+                execution_time=execution_time,
+            )
+
+            await self.chat_view.add_message(error_bubble)
+
+            self.log.warning(f"[COMMAND_EXEC] Command timed out: {command}")
+            self.notify("Command timed out after 30 seconds", severity="warning")
+
+        except Exception as e:
+            # Execution failed
+            execution_time = time.time() - start_time
+
+            error_bubble = CommandOutputBubble(
+                command=command,
+                stdout="",
+                stderr=f"Execution failed: {e}",
+                exit_code=1,
+                execution_time=execution_time,
+            )
+
+            await self.chat_view.add_message(error_bubble)
+
+            self.log.error(f"[COMMAND_EXEC] Execution failed: {e}", exc_info=True)
+            self.notify(f"Command execution failed: {e}", severity="error")
 
     async def on_continue_with_tool_results(
         self, message: ContinueWithToolResults

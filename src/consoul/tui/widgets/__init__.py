@@ -9,6 +9,7 @@ from __future__ import annotations
 from consoul.tui.widgets.attachment_button import AttachmentButton
 from consoul.tui.widgets.center_middle import CenterMiddle
 from consoul.tui.widgets.chat_view import ChatView
+from consoul.tui.widgets.command_output_bubble import CommandOutputBubble
 from consoul.tui.widgets.contextual_top_bar import ContextualTopBar
 from consoul.tui.widgets.conversation_list import ConversationList
 from consoul.tui.widgets.export_modal import ExportModal
@@ -39,6 +40,7 @@ __all__ = [
     "AttachmentButton",
     "CenterMiddle",
     "ChatView",
+    "CommandOutputBubble",
     "ContextualTopBar",
     "ConversationList",
     "ExportModal",
