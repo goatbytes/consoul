@@ -9,6 +9,128 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2025-12-08
+
+**Feature Release - Inline Command Execution**
+
+This release introduces a powerful inline shell command execution feature, allowing users to run shell commands directly from the chat interface and automatically include their output in AI conversations. Also includes security fixes and AI provider improvements.
+
+### Added
+
+#### Inline Command Execution (SOUL-196)
+- 🚀 **Inline shell command execution** with `!`-prefix syntax
+  - Standalone mode: `!ls -la` executes command and displays output
+  - Inline mode: `Here is the file: !`cat README.md`` embeds output in message
+  - Support for complex commands with pipes, redirects, and arguments
+  - Automatic output truncation for large results (1000 lines for standalone, 10KB for inline)
+  - Real-time command execution with visual feedback
+  - Exit code display and error handling
+  - Syntax-highlighted command output with collapsible sections
+  - Structured XML-like context injection for LLM comprehension
+
+- **CommandOutputBubble widget** for displaying command results
+  - Success/error indicators with color coding
+  - Command syntax highlighting (bash)
+  - Combined stdout/stderr display
+  - Execution time tracking
+  - Exit code status
+
+#### AI Provider Improvements
+- 🧠 **Anthropic prompt caching cost tracking** (SOUL-186)
+  - Track cache creation and read tokens separately
+  - Accurate cost calculation for cached vs non-cached tokens
+  - Defensive programming for missing usage metadata
+
+- 🦙 **ChatLlamaCpp context size extraction** (SOUL-231)
+  - Runtime extraction of actual n_ctx from loaded models
+  - Persistent caching in `~/.consoul/ollama_context_cache.json`
+  - Fallback to pattern-based defaults when extraction fails
+  - Eliminates manual configuration for context sizes
+
+- 🎯 **Pattern-based intelligent defaults** for new AI models
+  - Automatic context size detection based on model name patterns
+  - Support for Gemini 2.0, GPT-4o, Claude 3.5, and local models
+  - Graceful fallback to conservative defaults
+
+#### TUI Enhancements
+- 🔍 **Search configuration improvements** (SOUL-183)
+  - Enhanced search metadata and indexing
+  - Better result relevance
+
+- ⚠️ **InitializationErrorScreen** (SOUL-192)
+  - Graceful handling of TUI initialization failures
+  - Clear error messages with recovery suggestions
+  - Professional error presentation
+
+#### CLI Enhancements
+- 📄 **PDF support** for `--file` and `--glob` flags (SOUL-211)
+  - Read and analyze PDF documents
+  - Extract text content for AI processing
+
+- 📝 **`--system-file` flag** (SOUL-212)
+  - Read system prompts from files
+  - Better management of long system instructions
+
+### Fixed
+
+#### Security & Dependencies (SOUL-228)
+- 🔒 **Security vulnerability fixes**
+  - torch updated to 2.9.1 (CVE-2025-32434, CVE-2025-3730, CVE-2025-2953)
+  - urllib3 updated to 2.6.0 (CVE-2025-66471, CVE-2025-66418)
+  - Comprehensive dependency security audit
+
+#### AI Provider Fixes
+- 🔧 **OpenAI stream_options fix** (SOUL-233)
+  - Removed unconditional `stream_options` parameter for non-streaming calls
+  - Prevents errors with models that don't support streaming metadata
+  - Conditional parameter inclusion only when streaming enabled
+
+#### TUI Fixes
+- 🎨 **ProfileEditorModal improvements**
+  - Model field made optional in ProfileConfig
+  - Temperature field added to profile editor
+  - Markdown syntax highlighting for profile editing
+  - Better field validation
+
+### Changed
+- **Command output display** - Always expanded by default for better UX (previously collapsed for long output)
+- **Context injection format** - Improved from delimiters to structured XML-like tags for better LLM comprehension
+- **Model field** - Made optional in ProfileConfig for better flexibility
+
+### Documentation
+- 📚 **SDK integration guide** for real-world usage
+- 📖 **Installation instructions** updated for latest version
+- 🎓 **CLI usage examples** added to README
+- 📝 **TUI documentation** completed (SOUL-54)
+- ⚡ **Performance optimization** documentation completed (SOUL-51)
+
+### Testing
+- ✅ **Comprehensive test coverage** for inline command execution
+  - 20 unit tests for command detection (standalone and inline modes)
+  - Pattern matching validation
+  - Edge case handling (empty commands, multiline, special characters)
+  - All tests passing
+
+### Performance
+- ⚡ **Command execution** - Async execution via thread pool to prevent UI blocking
+- ⚡ **Output handling** - Smart truncation for large outputs
+- ⚡ **Context caching** - Ollama context sizes cached to avoid repeated extraction
+
+### Developer Experience
+- 🛠️ **Better command detection** - Robust regex patterns for standalone vs inline modes
+- 🔍 **Improved error messages** - Clear feedback for command failures
+- 📊 **Execution metrics** - Time tracking for performance monitoring
+
+### Upgrade Notes
+- This release is backward compatible with 0.2.x
+- New inline command execution feature requires no configuration changes
+- Security updates are strongly recommended (torch, urllib3)
+- Configuration location: `~/.config/consoul/config.yaml`
+- Conversation history: `~/.local/share/consoul/conversations.db`
+- Ollama context cache: `~/.consoul/ollama_context_cache.json`
+
+---
+
 ## [0.2.2] - 2025-12-03
 
 **Documentation Fix**
