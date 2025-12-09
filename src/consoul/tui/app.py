@@ -1609,7 +1609,13 @@ class ConsoulApp(App[None]):
         # Inject pending command output if available
         if self._pending_command_output:
             command, output = self._pending_command_output
-            prefix = f"--- user executed `{command}` ---\n{output}\n--- end of output ---\n\n"
+            prefix = f"""<shell_command>
+Command: {command}
+Output:
+{output}
+</shell_command>
+
+"""
             user_message = prefix + user_message
             # Clear buffer after injection
             self._pending_command_output = None
