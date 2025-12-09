@@ -134,9 +134,9 @@ class InputArea(Container):
             self.content = content
 
     class CommandExecuteRequested(Message):
-        """Message posted when user requests inline command execution.
+        """Message posted when user requests standalone command execution.
 
-        Posted when user enters !command syntax.
+        Posted when user enters !command syntax as the entire message.
 
         Attributes:
             command: The shell command to execute
@@ -150,6 +150,24 @@ class InputArea(Container):
             """
             super().__init__()
             self.command = command
+
+    class InlineCommandsRequested(Message):
+        """Message posted when user message contains inline commands.
+
+        Posted when message contains !`command` patterns within text.
+
+        Attributes:
+            message: The original message with inline command patterns
+        """
+
+        def __init__(self, message: str) -> None:
+            """Initialize InlineCommandsRequested.
+
+            Args:
+                message: Message containing inline !`command` patterns
+            """
+            super().__init__()
+            self.message = message
 
     # Reactive state
     character_count: reactive[int] = reactive(0)
@@ -220,6 +238,9 @@ class InputArea(Container):
     def _extract_command(self, text: str) -> str | None:
         """Extract shell command from inline command syntax.
 
+        Only matches if the ENTIRE message is a command (standalone mode).
+        For inline commands within messages, use _extract_inline_commands().
+
         Supports two formats:
         - !command
         - !`command`
@@ -228,9 +249,10 @@ class InputArea(Container):
             text: Input text to parse
 
         Returns:
-            Extracted command string, or None if not a command
+            Extracted command string, or None if not a standalone command
         """
         # Pattern: !`command` or !command (but not ! followed by whitespace or empty content)
+        # Uses ^ and $ to ensure entire message is a command
         pattern = r"^!\s*`(.+)`\s*$|^!\s*([^\s].*)$"
         match = re.match(pattern, text)
 
@@ -242,6 +264,33 @@ class InputArea(Container):
                 return cmd
 
         return None
+
+    def _has_inline_commands(self, text: str) -> bool:
+        """Check if text contains inline command references.
+
+        Args:
+            text: Text to check
+
+        Returns:
+            True if text contains !`command` patterns within a larger message
+        """
+        # Look for !`command` patterns (must use backticks for inline)
+        pattern = r"!\s*`[^`]+`"
+        matches = list(re.finditer(pattern, text))
+
+        if not matches:
+            return False
+
+        # If we have exactly one match, check if it's the entire message
+        if len(matches) == 1:
+            match = matches[0]
+            # Check if the match is the entire message (with possible whitespace)
+            # If so, it's standalone, not inline
+            if match.start() == 0 and match.end() == len(text.rstrip()):
+                return False
+
+        # Multiple matches or single match not spanning entire message = inline
+        return True
 
     def on_sendable_text_area_submitted(
         self, event: SendableTextArea.Submitted
@@ -256,16 +305,24 @@ class InputArea(Container):
         if not content:
             return  # Don't send empty messages
 
-        # Check for inline command syntax: !command or !`command`
+        # Check for standalone command: entire message is !command
         command = self._extract_command(content)
         if command:
-            # Post command execution request
+            # Post standalone command execution request
             self.post_message(self.CommandExecuteRequested(command))
             # Clear input
             self.clear()
             return
 
-        # Post message event for regular messages
+        # Check for inline commands: !`command` within message
+        if self._has_inline_commands(content):
+            # Post inline commands request
+            self.post_message(self.InlineCommandsRequested(content))
+            # Clear input
+            self.clear()
+            return
+
+        # Post regular message event
         self.post_message(self.MessageSubmit(content))
 
         # Clear input

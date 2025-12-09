@@ -79,3 +79,53 @@ class TestCommandDetection:
         """Test empty backtick command."""
         command = self.input_area._extract_command("!``")
         assert command is None  # Empty backticks
+
+
+class TestInlineCommandDetection:
+    """Test inline command detection within messages."""
+
+    def setup_method(self) -> None:
+        """Set up test instance."""
+        self.input_area = InputArea()
+
+    def test_has_inline_command_simple(self) -> None:
+        """Test detecting simple inline command."""
+        has_inline = self.input_area._has_inline_commands(
+            "Here is the output: !`ls -la`"
+        )
+        assert has_inline is True
+
+    def test_has_inline_command_multiple(self) -> None:
+        """Test detecting multiple inline commands."""
+        has_inline = self.input_area._has_inline_commands(
+            "Compare !`cat file1.txt` with !`cat file2.txt`"
+        )
+        assert has_inline is True
+
+    def test_no_inline_command_regular_message(self) -> None:
+        """Test regular message without commands."""
+        has_inline = self.input_area._has_inline_commands("Hello, how are you?")
+        assert has_inline is False
+
+    def test_no_inline_command_standalone(self) -> None:
+        """Test standalone command is not detected as inline."""
+        has_inline = self.input_area._has_inline_commands("!`ls -la`")
+        assert has_inline is False  # This is standalone, not inline
+
+    def test_has_inline_command_with_text_before(self) -> None:
+        """Test inline command with text before."""
+        has_inline = self.input_area._has_inline_commands("Check this: !`pwd`")
+        assert has_inline is True
+
+    def test_has_inline_command_with_text_after(self) -> None:
+        """Test inline command with text after."""
+        has_inline = self.input_area._has_inline_commands(
+            "!`cat file.txt` is the content"
+        )
+        assert has_inline is True
+
+    def test_no_inline_without_backticks(self) -> None:
+        """Test that !command without backticks in middle is not inline."""
+        # Without backticks, we only support standalone mode
+        has_inline = self.input_area._has_inline_commands("Here is !ls output")
+        assert has_inline is False

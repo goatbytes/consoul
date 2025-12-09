@@ -3244,6 +3244,86 @@ Output:
             self.log.error(f"[COMMAND_EXEC] Execution failed: {e}", exc_info=True)
             self.notify(f"Command execution failed: {e}", severity="error")
 
+    async def on_input_area_inline_commands_requested(
+        self, event: InputArea.InlineCommandsRequested
+    ) -> None:
+        """Handle inline command execution and replacement in message.
+
+        Executes all !`command` patterns in the message and replaces them
+        with their output inline.
+
+        Args:
+            event: InlineCommandsRequested event containing the message
+        """
+        import re
+        import subprocess
+
+        message = event.message
+        self.log.info("[INLINE_COMMAND] Processing message with inline commands")
+
+        # Find all !`command` patterns
+        pattern = r"!\s*`([^`]+)`"
+        matches = list(re.finditer(pattern, message))
+
+        if not matches:
+            # No commands found, send as regular message
+            self.post_message(InputArea.MessageSubmit(message))
+            return
+
+        # Execute each command and build replacement map
+        replacements = {}
+        for match in matches:
+            command = match.group(1)
+            placeholder = match.group(0)  # Full pattern like !`command`
+
+            self.log.info(f"[INLINE_COMMAND] Executing: {command}")
+
+            try:
+                # Execute command with timeout
+                result = await self._run_in_thread(
+                    subprocess.run,
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    cwd=Path.cwd(),
+                )
+
+                # Get output
+                output = result.stdout.strip() if result.stdout else ""
+                if result.stderr:
+                    output += f"\n[stderr: {result.stderr.strip()}]"
+
+                if result.returncode != 0:
+                    output = (
+                        f"[Command failed with exit code {result.returncode}]\n{output}"
+                    )
+
+                # Truncate if too long
+                if len(output) > 10000:
+                    output = output[:10000] + "\n... (output truncated)"
+
+                replacements[placeholder] = output
+
+            except subprocess.TimeoutExpired:
+                replacements[placeholder] = "[Command timed out after 30 seconds]"
+                self.log.warning(f"[INLINE_COMMAND] Timeout: {command}")
+
+            except Exception as e:
+                replacements[placeholder] = f"[Command failed: {e}]"
+                self.log.error(f"[INLINE_COMMAND] Error: {e}", exc_info=True)
+
+        # Replace all command patterns with their output
+        processed_message = message
+        for placeholder, output in replacements.items():
+            processed_message = processed_message.replace(placeholder, output)
+
+        self.log.info(f"[INLINE_COMMAND] Processed {len(replacements)} commands")
+
+        # Send the processed message as a regular message
+        self.post_message(InputArea.MessageSubmit(processed_message))
+
     async def on_continue_with_tool_results(
         self, message: ContinueWithToolResults
     ) -> None:
