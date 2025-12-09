@@ -78,21 +78,22 @@ class CommandOutputBubble(Container):
             classes="command-text",
         )
 
-        # Output section - collapsible if long
+        # Output section - always expanded by default
         output_text = self._combine_output()
         if output_text:
-            with Vertical(id="command-output-container"):
-                collapsed = self._should_collapse_output()
-                with Collapsible(
+            with (
+                Vertical(id="command-output-container"),
+                Collapsible(
                     title="Output",
-                    collapsed=collapsed,
+                    collapsed=False,  # Always show by default
                     id="command-output-collapsible",
-                ):
-                    yield Static(
-                        self._format_output(output_text),
-                        id="command-output",
-                        classes="command-output",
-                    )
+                ),
+            ):
+                yield Static(
+                    self._format_output(output_text),
+                    id="command-output",
+                    classes="command-output",
+                )
 
         # Status footer
         yield Static(
