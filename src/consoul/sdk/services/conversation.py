@@ -14,11 +14,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from consoul.sdk.models import ConversationStats, Token
+from consoul.sdk.models import ConversationStats, Token, ToolRequest
+from consoul.sdk.protocols import ToolExecutionCallback
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -29,7 +31,9 @@ if TYPE_CHECKING:
     from consoul.ai.tools import ToolRegistry
     from consoul.config import ConsoulConfig
     from consoul.sdk.models import Attachment
-    from consoul.sdk.protocols import ToolExecutionCallback
+
+# Type alias for tool approval callbacks
+ToolApprovalCallback = ToolExecutionCallback | Callable[[ToolRequest], bool | Any]
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +225,7 @@ class ConversationService:
         content: str,
         *,
         attachments: list[Attachment] | None = None,
-        on_tool_request: ToolExecutionCallback | None = None,
+        on_tool_request: ToolApprovalCallback | None = None,
     ) -> AsyncIterator[Token]:
         """Send message and stream AI response.
 
@@ -231,7 +235,10 @@ class ConversationService:
         Args:
             content: User message text
             attachments: Optional file attachments (images, code files, etc.)
-            on_tool_request: Optional callback for tool execution approval
+            on_tool_request: Optional callback for tool execution approval.
+                Can be either:
+                - An async callable: async def(request: ToolRequest) -> bool
+                - A ToolExecutionCallback protocol implementation
 
         Yields:
             Token: Streaming tokens with content, cost, and metadata
@@ -240,12 +247,23 @@ class ConversationService:
             >>> async for token in service.send_message("Hello!"):
             ...     print(token.content, end="", flush=True)
 
-        Example - With tool approval:
+        Example - With async function approval:
             >>> async def approve(request: ToolRequest) -> bool:
             ...     return request.risk_level != "dangerous"
             >>> async for token in service.send_message(
             ...     "Run command",
             ...     on_tool_request=approve
+            ... ):
+            ...     print(token, end="")
+
+        Example - With protocol implementation:
+            >>> class MyApprover:
+            ...     async def on_tool_request(self, request: ToolRequest) -> bool:
+            ...         return request.risk_level == "safe"
+            >>> approver = MyApprover()
+            >>> async for token in service.send_message(
+            ...     "Run command",
+            ...     on_tool_request=approver
             ... ):
             ...     print(token, end="")
 
@@ -417,7 +435,7 @@ class ConversationService:
 
     async def _stream_response(
         self,
-        on_tool_request: ToolExecutionCallback | None = None,
+        on_tool_request: ToolApprovalCallback | None = None,
     ) -> AsyncIterator[Token]:
         """Stream AI response with tool execution support.
 
@@ -739,7 +757,7 @@ class ConversationService:
     async def _execute_tool_calls(
         self,
         tool_calls: list[dict[str, Any]],
-        on_tool_request: ToolExecutionCallback | None = None,
+        on_tool_request: ToolApprovalCallback | None = None,
     ) -> list[Any]:
         """Execute tool calls with approval workflow.
 
@@ -789,7 +807,14 @@ class ConversationService:
                 )
 
                 try:
-                    approved = await on_tool_request.on_tool_request(request)
+                    # Support both Protocol implementations and plain async callables
+                    if hasattr(on_tool_request, "on_tool_request"):
+                        # Protocol implementation with on_tool_request method
+                        approved = await on_tool_request.on_tool_request(request)
+                    else:
+                        # Plain async callable
+                        approved = await on_tool_request(request)  # type: ignore[misc]
+
                     if not approved:
                         result = "Tool execution denied by user"
                         tool_messages.append(
