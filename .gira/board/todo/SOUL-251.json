@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-10T00:53:30.170615",
+  "updated_at": "2025-12-10T00:53:30.170625",
+  "id": "SOUL-251",
+  "uuid": "2d37e944-1154-4147-a923-d91f05d8dd69",
+  "title": "Remove Rich dependency from streaming module",
+  "description": "**As a** Consoul SDK user\n**I want** streaming functionality without Rich library dependency\n**So that** I can use SDK in headless environments without UI libraries\n\n**Context:**\nCurrently, src/consoul/ai/streaming.py (lines 23-27) imports Rich (Console, Live, Markdown, Spinner) making the SDK's streaming functionality depend on a TUI library. This prevents headless usage and adds unnecessary dependencies for non-UI consumers.\n\n**Issue:** SDK streaming → Rich coupling blocks headless usage\n\n**Technical Notes:**\n- Fix: src/consoul/ai/streaming.py lines 23-27\n- Current problem: from rich.console import Console, from rich.live import Live\n- Refactor: Make stream_response() return raw chunks instead of rendering\n- Create: src/consoul/presentation/rich_renderer.py for optional Rich rendering\n- Pattern: SDK returns data, presentation layer adds formatting\n- Reference: SDK analysis identified this as high-priority decoupling issue\n\n**Acceptance Criteria:**\n\n**Given** I use stream_response() in headless mode\n**When** I iterate over response chunks\n**Then** I receive raw token data without Rich dependency\n\n**Given** I want Rich formatting in CLI/TUI\n**When** I use optional rich_renderer module\n**Then** Rich-based rendering works as before\n\n**Given** Rich is not installed\n**When** I use SDK streaming functions\n**Then** No import errors occur and streaming works\n\n**Given** Existing code uses stream_response()\n**When** Backward compatibility is needed\n**Then** Optional rich parameter maintains old behavior with deprecation warning\n\n**Testing Considerations:**\n- Test streaming without Rich installed\n- Test raw chunk iteration\n- Test optional Rich renderer separately\n- Test backward compatibility mode\n- Verify performance (no UI overhead in headless mode)\n- Test with all providers (OpenAI, Anthropic, Google, Ollama)\n\n**Implementation Hints:**\n- Refactor stream_response() to return AsyncIterator[Chunk]\n- Create Chunk dataclass with content, tokens, cost, metadata\n- Move Rich formatting to presentation/rich_renderer.py\n- Create render_with_rich(chunks: AsyncIterator[Chunk]) function\n- Add deprecated rich= parameter for backward compatibility\n- Update CLI/TUI to use rich_renderer explicitly\n- Update ConversationService to use raw streaming\n- Document migration in CHANGELOG",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "sdk",
+    "refactor",
+    "ai",
+    "performance"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-012",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

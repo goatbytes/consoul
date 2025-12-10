@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-10T00:51:32.801878",
+  "updated_at": "2025-12-10T00:51:32.801891",
+  "id": "SOUL-246",
+  "uuid": "81de0173-76a0-4af2-bd26-76b8bb481c9d",
+  "title": "Create ToolService facade for tool management and execution",
+  "description": "**As a** Consoul developer\n**I want** a ToolService facade that encapsulates tool setup and execution\n**So that** tool management can be reused across TUI, CLI, and backend implementations\n\n**Context:**\nCurrently, tui/app.py contains ~1,012 lines of tool-related business logic:\n- Tool setup and configuration (lines 314-507, 193 lines)\n- Tool execution workflow with approval (lines 3087-3906, 819 lines)\n- Direct ToolRegistry manipulation throughout\n\nThis tight coupling prevents reusing tool execution logic in other contexts. The ToolService will provide a clean interface hiding ToolRegistry complexity and providing callback-based approval.\n\n**Technical Notes:**\n- Extract from: src/consoul/tui/app.py lines 314-507, 3087-3906\n- Create new: src/consoul/sdk/services/tool.py\n- Hide: ToolRegistry, ParsedToolCall, ToolMetadata from callers\n- Provide: list_tools(), execute_tool(), configure_tools() interface\n- Use: Callback protocol for approval instead of modal pushing\n- Integrate: Existing consoul/ai/tools/ (already SDK-ready ✅)\n- Reference: AI tools analysis showed zero UI coupling in core tools\n\n**Acceptance Criteria:**\n\n**Given** I have a ToolService configured with approval provider\n**When** I call execute_tool() with a tool request\n**Then** The tool executes after approval without UI dependencies\n\n**Given** A tool requires approval\n**When** execute_tool() is called\n**Then** The approval callback is invoked with tool details\n\n**Given** I need to list available tools\n**When** I call list_tools()\n**Then** I receive ToolInfo dataclasses without ToolRegistry details\n\n**Given** A tool execution fails\n**When** Error occurs during execution\n**Then** Appropriate exception with context is raised\n\n**Testing Considerations:**\n- Mock tool approval provider callbacks\n- Test tool execution with mocked tools\n- Test approval workflow (approve, deny, always, never)\n- Test tool iteration limits\n- Test error handling in tool execution\n- Verify audit logging works\n- Test with different permission policies\n\n**Implementation Hints:**\n- Create ToolService class with from_config() factory\n- Extract _initialize_tool_registry() from app.py:314-507\n- Extract _execute_tool() and _handle_tool_calls() from app.py:3087-3906\n- Encapsulate ToolRegistry as private member\n- Return list[ToolInfo] dataclass instead of ToolMetadata\n- Use ApprovalProvider protocol (already exists ✅)\n- Provide configure_tools() for dynamic tool enable/disable\n- Add list_tools(category=None, enabled_only=True) method",
+  "status": "todo",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "sdk",
+    "refactor",
+    "ai",
+    "tools"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-013",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {}
+}

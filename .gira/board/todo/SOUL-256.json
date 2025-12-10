@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-10T08:12:39.519024",
+  "updated_at": "2025-12-10T08:12:39.519031",
+  "id": "SOUL-256",
+  "uuid": "017a5783-c313-4d20-9d33-a64eba9bdffc",
+  "title": "Add unit tests for ToolService and ModelService",
+  "description": "**As a** Consoul developer\n**I want** comprehensive unit tests for ToolService and ModelService\n**So that** service interfaces are validated independently and work correctly\n\n**Context:**\nAfter SOUL-246 and SOUL-247 create ToolService and ModelService, they need test coverage to ensure proper functionality and prevent regressions. These services have simpler interfaces than ConversationService but are critical for SDK functionality.\n\n**Technical Notes:**\n- Create: tests/unit/sdk/services/test_tool_service.py\n- Create: tests/unit/sdk/services/test_model_service.py\n- Test: src/consoul/sdk/services/tool.py\n- Test: src/consoul/sdk/services/model.py\n- Mock: ToolRegistry, ApprovalProvider, get_chat_model()\n- Use: pytest, pytest-asyncio, pytest-mock\n- Dependencies: SOUL-246 (ToolService), SOUL-247 (ModelService)\n\n**Acceptance Criteria:**\n\n**Given** ToolService exists (SOUL-246)\n**When** I run tool service tests\n**Then** All tool operations are covered\n\n**Given** ModelService exists (SOUL-247)\n**When** I run model service tests\n**Then** Model management is fully tested\n\n**Given** Tool approval workflow\n**When** execute_tool() requires approval\n**Then** Callback mechanism is tested\n\n**Given** Model switching\n**When** switch_model() is called\n**Then** Model reinitialization is verified\n\n**Testing Scope - ToolService:**\n- Test execute_tool() with approval\n- Test list_tools() filtering\n- Test configure_tools() dynamic enable/disable\n- Test approval callback invocation\n- Test tool execution errors\n- Test from_config() factory\n\n**Testing Scope - ModelService:**\n- Test get_model() initialization\n- Test switch_model() workflow\n- Test list_models() catalog\n- Test tool binding integration\n- Test provider-specific errors\n- Test model caching\n- Test from_config() factory\n\n**Implementation Hints:**\n- Mock ApprovalProvider with test callbacks\n- Mock get_chat_model() to return test models\n- Mock ToolRegistry operations\n- Test error conditions (missing API keys, invalid models)\n- Verify service isolation (no UI dependencies)\n- Use parametrize for multiple providers/tools",
+  "status": "todo",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "testing",
+    "sdk",
+    "quality"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-012",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

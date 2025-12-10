@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-10T00:54:23.475783",
+  "updated_at": "2025-12-10T00:54:23.475794",
+  "id": "SOUL-253",
+  "uuid": "b9aaf4dd-4ac7-4b35-8708-a10ce29e6878",
+  "title": "Move system prompt building to SDK layer",
+  "description": "**As a** Consoul developer\n**I want** system prompt building logic in the SDK\n**So that** prompt construction is consistent across CLI, TUI, and backend implementations\n\n**Context:**\nCurrently, system prompt building logic exists in multiple places:\n- CLI: src/consoul/cli/chat_session.py _build_system_prompt() method\n- TUI: src/consoul/tui/app.py _build_current_system_prompt() (lines 1175-1273)\n\nThis duplication prevents consistent prompt generation across interfaces. The logic should be centralized in SDK's prompt_builder.py module.\n\n**Technical Notes:**\n- Extract from: src/consoul/cli/chat_session.py _build_system_prompt\n- Extract from: src/consoul/tui/app.py lines 1175-1273\n- Update: src/consoul/ai/prompt_builder.py (add comprehensive builder)\n- Include: Environment context injection\n- Include: Tool documentation generation\n- Include: Profile-specific prompt templates\n- Reference: CLI analysis identified this as business logic in UI\n\n**Acceptance Criteria:**\n\n**Given** I need a system prompt in SDK\n**When** I call build_system_prompt() from prompt_builder\n**Then** Complete prompt with env context and tool docs is returned\n\n**Given** Different UIs (CLI, TUI, web) need prompts\n**When** They call the same SDK function\n**Then** Consistent prompts are generated\n\n**Given** Tools are enabled\n**When** Prompt is built\n**Then** Tool documentation is automatically included\n\n**Given** Environment context is configured\n**When** include_environment=True\n**Then** System info and git context are injected\n\n**Testing Considerations:**\n- Test prompt building without tools\n- Test prompt building with tools\n- Test environment context inclusion\n- Test git info inclusion  \n- Test profile-specific templates\n- Verify CLI and TUI generate same prompts\n\n**Implementation Hints:**\n- Enhance existing src/consoul/ai/prompt_builder.py\n- Add build_system_prompt(base: str, tool_registry: ToolRegistry | None, include_env: bool, include_git: bool)\n- Use existing get_environment_context() from ai/environment.py\n- Generate tool docs from ToolRegistry\n- Support prompt templates by profile\n- Update CLI ChatSession to use SDK function\n- Update TUI app.py to use SDK function\n- Remove duplicated logic from both UIs",
+  "status": "todo",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "sdk",
+    "refactor",
+    "ai"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-012",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

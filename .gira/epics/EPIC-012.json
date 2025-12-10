@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-10T00:50:17.787653",
+  "updated_at": "2025-12-10T00:50:17.787654",
+  "id": "EPIC-012",
+  "title": "SDK Decoupling & Architecture Refactoring",
+  "description": "Decouple business logic from TUI layer to enable SDK-first architecture. Extract ~3,000 lines of business logic from tui/app.py into reusable service layer. This is prerequisite work for EPIC-011 (WebSocket/FastAPI Backend Support). Enables: headless SDK usage, FastAPI/WebSocket servers, web UI development, independent testing of business logic, and eventual package separation (consoul-sdk, consoul-cli, consoul-tui).",
+  "status": "draft",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2026-02-28",
+  "labels": [],
+  "tickets": [
+    "SOUL-250",
+    "SOUL-251",
+    "SOUL-252",
+    "SOUL-253",
+    "SOUL-254",
+    "SOUL-255",
+    "SOUL-256",
+    "SOUL-257",
+    "SOUL-258",
+    "SOUL-259"
+  ],
+  "comments": [],
+  "comment_count": 0,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}
