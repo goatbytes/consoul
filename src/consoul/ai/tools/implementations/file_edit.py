@@ -638,10 +638,38 @@ def edit_file_lines(
 
 
 class CreateFileInput(BaseModel):
-    """Input schema for create_file tool."""
+    """Input schema for create_file tool.
 
-    file_path: str = Field(description="Absolute or relative path to file to create")
-    content: str = Field(description="Content to write to the file")
+    CRITICAL: When creating JSON/YAML/TOML files, the 'content' field MUST be a STRING.
+    Convert objects to strings first using json.dumps(), yaml.dump(), or similar.
+
+    Correct usage for JSON file:
+        {
+            "file_path": "config.json",
+            "content": "{\\"name\\": \\"myapp\\", \\"version\\": \\"1.0.0\\"}"
+        }
+
+    WRONG usage (will fail validation):
+        {
+            "file_path": "config.json",
+            "content": {"name": "myapp", "version": "1.0.0"}  # ❌ dict instead of string
+        }
+    """
+
+    file_path: str = Field(
+        description=(
+            "Absolute or relative path to the file to create. "
+            "Examples: 'package.json', 'src/utils.py', 'config/settings.yaml'"
+        )
+    )
+    content: str = Field(
+        description=(
+            "File content AS A STRING (not a dict/object). "
+            "For JSON: use json.dumps(your_dict). "
+            "For YAML: use yaml.dump(your_dict). "
+            "For code/text: use raw string with newlines (\\n)"
+        )
+    )
     overwrite: bool = Field(
         default=False,
         description=(
@@ -668,9 +696,19 @@ def create_file(
     Protects against accidental overwrites unless both overwrite=True
     and config.allow_overwrite=True.
 
+    IMPORTANT: This function requires TWO separate arguments:
+    1. file_path (string): The path where the file should be created
+    2. content (string): The actual file content as a STRING
+
+    Common mistakes to avoid:
+    - Do NOT pass file content as a dict/object - convert to string first
+    - For JSON files: use json.dumps() to convert dict to string
+    - For YAML/TOML: convert to string representation first
+    - Always provide both file_path AND content as separate parameters
+
     Args:
-        file_path: Absolute or relative path to file to create
-        content: Content to write to the file
+        file_path: Absolute or relative path to file to create (e.g., "package.json", "src/config.yaml")
+        content: Content to write to the file AS A STRING (e.g., '{"name": "myapp"}' not {"name": "myapp"})
         overwrite: Allow overwriting existing file (requires config approval too)
         dry_run: If True, preview changes without modifying file
 
@@ -682,18 +720,42 @@ def create_file(
         - preview: Unified diff preview (when dry_run=True)
         - error: Error message if status is not success
 
-    Example:
-        >>> result = create_file.invoke({
-        ...     "file_path": "src/new_module.py",
-        ...     "content": "def hello():\\n    return 'world'",
-        ... })
-        >>> data = json.loads(result)
-        >>> data["status"]
-        'success'
-        >>> data["checksum"]
-        'a1b2c3...'
+    Examples:
+        Creating a Python file:
+        >>> create_file(file_path="src/utils.py", content="def add(a, b):\\n    return a + b")
+
+        Creating a JSON file (note: content is a STRING):
+        >>> import json
+        >>> config_data = {"name": "myapp", "version": "1.0.0"}
+        >>> create_file(file_path="package.json", content=json.dumps(config_data, indent=2))
+
+        Creating a text file:
+        >>> create_file(file_path="README.md", content="# My Project\\n\\nDescription here")
+
+        With overwrite protection:
+        >>> create_file(file_path="data.txt", content="new content", overwrite=True)
     """
     try:
+        # Validate input types early with helpful error messages
+        if not isinstance(file_path, str):
+            return FileEditResult(
+                status="validation_failed",
+                error=(
+                    f"file_path must be a string, got {type(file_path).__name__}. "
+                    "Example: file_path='package.json'"
+                ),
+            ).to_json()
+
+        if not isinstance(content, str):
+            return FileEditResult(
+                status="validation_failed",
+                error=(
+                    f"content must be a string, got {type(content).__name__}. "
+                    "If creating a JSON file, use json.dumps() to convert your dict to a string first. "
+                    "Example: content=json.dumps({{'name': 'myapp'}}, indent=2)"
+                ),
+            ).to_json()
+
         config = get_file_edit_config()
 
         # Validate path (allow non-existent for creation)
