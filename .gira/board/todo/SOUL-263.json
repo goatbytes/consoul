@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-10T15:51:32.797576",
+  "updated_at": "2025-12-10T15:51:32.797586",
+  "id": "SOUL-263",
+  "uuid": "40a8af93-db5d-4ed8-b1ab-c843b958c851",
+  "title": "Integrate ConversationService into TUI ConsoulApp",
+  "description": "**As a** Consoul developer\n**I want** ConsoulApp to use ConversationService internally\n**So that** we validate the SDK works correctly and reduce TUI code by ~1,266 lines\n\n**Context:**\nSOUL-245 successfully created ConversationService with ~781 lines of extracted business logic. Now we need to prove it works by integrating it back into the TUI layer. This will:\n- Validate the service API is correct and usable\n- Identify any missing functionality early\n- Reduce tui/app.py from 5,541 lines to ~4,275 lines\n- De-risk future tickets by proving architecture soundness\n- Catch API gaps before writing extensive tests\n\nCurrently, tui/app.py (lines 1597-2740) contains business logic that should delegate to ConversationService instead.\n\n**Technical Notes:**\n- Update: src/consoul/tui/app.py\n- Use: ConversationService from src/consoul/sdk/services/conversation.py\n- Replace: Direct model.astream() calls with service.send_message()\n- Replace: _stream_ai_response() with service streaming\n- Replace: _handle_user_message() with service.send_message()\n- Keep: TUI-specific rendering (MessageBubble, StreamingResponse widget)\n- Keep: Modal dialogs for tool approval (wrap in ToolExecutionCallback)\n- Dependencies: SOUL-245 (ConversationService - now complete)\n- Line reduction: ~1,266 lines → service calls\n\n**Acceptance Criteria:**\n\n**Given** ConversationService exists from SOUL-245\n**When** I refactor ConsoulApp to use it\n**Then** tui/app.py is reduced by ~1,266 lines of business logic\n\n**Given** User sends a message in TUI\n**When** Message is submitted\n**Then** ConversationService.send_message() handles it and TUI renders tokens\n\n**Given** Streaming response in TUI\n**When** Tokens arrive from service\n**Then** StreamingResponse widget displays them as before\n\n**Given** Tool execution is needed\n**When** Service invokes on_tool_request callback\n**Then** TUI approval modal is shown and response returned to service\n\n**Given** Multimodal message with images\n**When** User attaches images\n**Then** Service handles encoding and TUI displays normally\n\n**Given** All existing TUI features\n**When** Running integration tests\n**Then** No regression in functionality (streaming, tools, multimodal, cost tracking)\n\n**Testing Considerations:**\n- Manual testing in TUI with various scenarios\n- Test message sending (text only)\n- Test multimodal messages (with images)\n- Test tool execution and approval flow\n- Test streaming display\n- Test cost tracking display\n- Test error handling\n- Verify no functionality regression\n- Test with different providers (OpenAI, Anthropic, Ollama)\n\n**Implementation Hints:**\nStep 1 - Prepare:\n- Add self.conversation_service: ConversationService to ConsoulApp.__init__\n- Initialize with ConversationService.from_config(self.config)\n- Create TUIToolApprover implementing ToolExecutionCallback protocol\n- Wire up approval modal in on_tool_request() method\n\nStep 2 - Replace streaming:\n- Update _stream_ai_response() to iterate service.send_message()\n- Keep StreamingResponse widget for display\n- Keep token queueing for UI updates\n- Remove direct model.astream() calls\n- Remove business logic, keep presentation logic\n\nStep 3 - Replace message handling:\n- Update on_input_area_message_submit() to use service\n- Remove _handle_user_message() business logic\n- Keep message bubble creation\n- Keep attachment handling UI\n\nStep 4 - Update tool execution:\n- Remove _execute_tool() business logic\n- Use service's tool execution via callbacks\n- Keep tool result display in TUI\n\nStep 5 - Verify:\n- Test all TUI features work\n- Verify cost tracking displays correctly\n- Check conversation history persists\n- Ensure error messages show properly\n\nExpected file changes:\n- src/consoul/tui/app.py: -1266 lines (business logic → service calls)\n- New: TUIToolApprover class (~30 lines)\n- Total reduction: ~1,236 lines from tui/app.py",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "tui",
+    "sdk",
+    "validation",
+    "refactor"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-012",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {}
+}

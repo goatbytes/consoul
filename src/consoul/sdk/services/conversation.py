@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -33,7 +33,8 @@ if TYPE_CHECKING:
     from consoul.sdk.models import Attachment
 
 # Type alias for tool approval callbacks
-ToolApprovalCallback = ToolExecutionCallback | Callable[[ToolRequest], bool | Any]
+# Must be async callable or protocol implementation with async on_tool_request method
+ToolApprovalCallback = ToolExecutionCallback | Callable[[ToolRequest], Awaitable[bool]]
 
 logger = logging.getLogger(__name__)
 
@@ -813,7 +814,7 @@ class ConversationService:
                         approved = await on_tool_request.on_tool_request(request)
                     else:
                         # Plain async callable
-                        approved = await on_tool_request(request)  # type: ignore[misc]
+                        approved = await on_tool_request(request)
 
                     if not approved:
                         result = "Tool execution denied by user"
