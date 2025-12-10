@@ -11,7 +11,6 @@ Quick Start:
     'Hi! How can I help you?'
 """
 
-# ruff: noqa: E402
 # Apply macOS PyTorch fixes BEFORE any other imports
 # This prevents segfaults when using HuggingFace models locally
 import platform as _platform
@@ -28,11 +27,12 @@ __author__ = "GoatBytes.IO"
 __license__ = "Apache-2.0"
 
 # High-level SDK
-from consoul.sdk import Consoul, ConsoulResponse
+# TODO: Consoul and ConsoulResponse will be implemented in future tickets
+# from consoul.sdk import Consoul, ConsoulResponse
 
 __all__ = [
-    "Consoul",
-    "ConsoulResponse",
+    # "Consoul",  # Will be available after SOUL-246
+    # "ConsoulResponse",  # Will be available after SOUL-246
     "__author__",
     "__license__",
     "__version__",
