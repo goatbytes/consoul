@@ -423,27 +423,70 @@ def _atomic_write(path: Path, content: str, encoding: str = "utf-8") -> None:
 
 
 class EditFileLinesInput(BaseModel):
-    """Input schema for edit_file_lines tool."""
+    """Input schema for edit_file_lines tool.
 
-    file_path: str = Field(description="Absolute or relative path to file to edit")
+    CRITICAL: The 'line_edits' field must be a dictionary with STRING keys (not integers).
+    Line range keys must use the format "N" for single lines or "N-M" for ranges.
+
+    Correct usage:
+        {
+            "file_path": "src/config.py",
+            "line_edits": {
+                "1-3": "#!/usr/bin/env python3\\n# Config module\\n",
+                "10": "DEBUG = True",
+                "15-20": "# Refactored section\\ndef new_func():\\n    pass"
+            }
+        }
+
+    WRONG usage (will fail validation):
+        {
+            "file_path": "src/config.py",
+            "line_edits": {
+                1: "content",  # ❌ Integer key instead of string "1"
+                "5-3": "content",  # ❌ Invalid range (start > end)
+                "100": "content"  # ❌ Line number exceeds file length
+            }
+        }
+
+    Common mistakes to avoid:
+    - Using integer keys instead of string keys (use "5" not 5)
+    - Invalid range format (must be "N" or "N-M" where N and M are positive integers)
+    - Start line greater than end line (e.g., "10-5" is invalid)
+    - Line numbers outside file bounds (line 100 when file has 50 lines)
+    - Overlapping ranges (e.g., "5-10" and "8-15" conflict)
+    """
+
+    file_path: str = Field(
+        description=(
+            "Absolute or relative path to file to edit. "
+            "Examples: 'src/main.py', 'config/settings.yaml', '/tmp/test.txt'"
+        )
+    )
     line_edits: dict[str, str] = Field(
         description=(
-            "Line edits as dictionary with line ranges as keys. "
-            'Examples: {"1-5": "new content for lines 1-5", "8": "single line 8", "10-12": "three\\nlines\\nhere"}. '
-            "Line numbers are 1-indexed. Ranges are inclusive. Empty string deletes lines."
+            "Line edits as dictionary with STRING line ranges as keys (not integers). "
+            "Key format: '5' for single line, '1-10' for range (inclusive, 1-indexed). "
+            'Examples: {"1-5": "new content", "8": "single line", "10-12": "three\\nlines\\nhere"}. '
+            "Empty string value deletes the specified lines. "
+            "IMPORTANT: All keys must be strings like '5' or '1-10', not integers like 5."
         )
     )
     expected_hash: str | None = Field(
         None,
         description=(
-            "SHA256 hash of file content for optimistic locking. "
-            "If provided and file content has changed, edit will fail with hash_mismatch. "
-            "Get hash from read_file result or previous edit_file_lines result."
+            "SHA256 hash of file content for optimistic locking (prevents concurrent edits). "
+            "If provided and file has changed, edit fails with hash_mismatch status. "
+            "Get hash from read_file result or previous edit result's 'checksum' field. "
+            "Example: 'abc123def456...' (64-character hex string)"
         ),
     )
     dry_run: bool = Field(
         False,
-        description="If true, preview changes without modifying file. Returns diff preview only.",
+        description=(
+            "If True, preview changes without modifying file. "
+            "Returns diff preview in 'preview' field but does not write changes. "
+            "Useful for validating edits before applying them."
+        ),
     )
 
 
@@ -852,28 +895,101 @@ class SearchReplaceEdit(BaseModel):
 
 
 class EditFileSearchReplaceInput(BaseModel):
-    """Input schema for edit_file_search_replace tool."""
+    """Input schema for edit_file_search_replace tool.
 
-    file_path: str = Field(description="Absolute or relative path to file to edit")
+    CRITICAL: The 'search' text must match EXACTLY as it appears in the file.
+    Copy the exact text from the file including all whitespace, indentation, and formatting.
+
+    Correct usage with strict matching:
+        {
+            "file_path": "src/main.py",
+            "edits": [
+                {
+                    "search": "def old_function():\\n    pass",
+                    "replace": "def new_function():\\n    return True"
+                }
+            ],
+            "tolerance": "strict"
+        }
+
+    Correct usage with whitespace tolerance (auto-fixes indentation):
+        {
+            "file_path": "src/main.py",
+            "edits": [
+                {
+                    "search": "def old_function():\\npass",  # Indentation will be normalized
+                    "replace": "def new_function():\\nreturn True"
+                }
+            ],
+            "tolerance": "whitespace"
+        }
+
+    WRONG usage (will fail with "Search text not found"):
+        {
+            "file_path": "src/main.py",
+            "edits": [
+                {
+                    "search": "",  # ❌ Empty search text not allowed
+                    "replace": "content"
+                },
+                {
+                    "search": "def function",  # ❌ Incomplete match (file has "def function():")
+                    "replace": "def method"
+                }
+            ]
+        }
+
+    Common mistakes to avoid:
+    - Empty search text (must be non-empty)
+    - Partial matches that don't capture full context
+    - Search text appears multiple times (ambiguous - will fail)
+    - Forgetting to include indentation/whitespace with strict tolerance
+    - Not understanding tolerance levels:
+        * strict: Requires exact character-by-character match
+        * whitespace: Ignores indentation differences, auto-normalizes replacement
+        * fuzzy: Allows typos/minor differences (80%+ similarity threshold)
+    """
+
+    file_path: str = Field(
+        description=(
+            "Absolute or relative path to file to edit. "
+            "Examples: 'src/utils.py', 'config/app.yaml', '/tmp/data.json'"
+        )
+    )
     edits: list[SearchReplaceEdit] = Field(
-        description="List of search/replace operations to apply"
+        description=(
+            "List of search/replace operations to apply sequentially. "
+            "Each operation must have 'search' (text to find) and 'replace' (replacement text). "
+            "Search text must be unique in file (if multiple matches exist, edit fails). "
+            "Example: [{'search': 'old code', 'replace': 'new code'}]"
+        )
     )
     tolerance: Literal["strict", "whitespace", "fuzzy"] = Field(
         default="strict",
         description=(
-            "Matching tolerance level:\n"
-            "- strict: Exact byte-for-byte matching only\n"
-            "- whitespace: Ignore leading/trailing whitespace\n"
-            "- fuzzy: Allow similarity-based matching (80%+ threshold)"
+            "Matching tolerance level (controls how forgiving the search is):\n"
+            "- strict: Exact byte-for-byte matching only (default, safest)\n"
+            "- whitespace: Ignore leading/trailing whitespace and indentation differences (auto-normalizes replacement)\n"
+            "- fuzzy: Allow similarity-based matching with 80%+ threshold (useful for typos/minor changes)\n"
+            "Start with 'strict' for precision, use 'whitespace' for indentation tolerance, 'fuzzy' as last resort."
         ),
     )
     expected_hash: str | None = Field(
         default=None,
-        description="Expected SHA256 hash for optimistic locking (optional)",
+        description=(
+            "SHA256 hash of file content for optimistic locking (prevents concurrent edits). "
+            "If provided and file has changed, edit fails with hash_mismatch status. "
+            "Get hash from read_file result or previous edit result's 'checksum' field. "
+            "Example: 'abc123def456...' (64-character hex string)"
+        ),
     )
     dry_run: bool = Field(
         default=False,
-        description="If True, preview changes without modifying file",
+        description=(
+            "If True, preview changes without modifying file. "
+            "Returns diff preview in 'preview' field but does not write changes. "
+            "Useful for validating search/replace operations before applying them."
+        ),
     )
 
 
@@ -1216,27 +1332,155 @@ def edit_file_search_replace(
 
 
 class DeleteFileInput(BaseModel):
-    """Input schema for delete_file tool."""
+    """Input schema for delete_file tool.
 
-    file_path: str = Field(description="Absolute or relative path to file to delete")
+    CRITICAL: File deletion is IRREVERSIBLE and DANGEROUS.
+    This operation ALWAYS requires user approval regardless of approval mode settings.
+    Deleted files cannot be recovered unless backed up separately.
+
+    Correct usage:
+        {
+            "file_path": "temp/old_cache.txt",
+            "dry_run": False
+        }
+
+    Recommended workflow:
+        1. First verify file exists and get its path:
+           read_file("temp/old_cache.txt")
+        2. Preview deletion (optional):
+           delete_file("temp/old_cache.txt", dry_run=True)
+        3. Confirm with user before proceeding
+        4. Delete the file:
+           delete_file("temp/old_cache.txt")
+
+    WRONG usage (common mistakes):
+        {
+            "file_path": "../../../etc/passwd"  # ❌ Path traversal blocked for security
+        }
+        {
+            "file_path": "/System/important.cfg"  # ❌ System paths blocked
+        }
+        {
+            "file_path": "nonexistent.txt"  # ❌ File must exist (will return validation_failed)
+        }
+
+    Common mistakes to avoid:
+    - Deleting files without user confirmation (always confirm first)
+    - Not using dry_run to preview before actual deletion
+    - Attempting to delete non-existent files (validate path first)
+    - Trying to delete directories (this tool only works on files)
+    - Path traversal attempts (../ is blocked for security)
+    - Deleting system or protected files (blocked by security rules)
+
+    IMPORTANT: This is a DANGEROUS operation. Always:
+    - Verify the file path before deletion
+    - Use dry_run=True to preview first
+    - Confirm with user before executing
+    - Understand that deletion is permanent and irreversible
+    """
+
+    file_path: str = Field(
+        description=(
+            "Absolute or relative path to file to delete. "
+            "File must exist (returns error if not found). "
+            "Examples: 'temp/cache.txt', 'old_data.json', '/tmp/backup.bak'. "
+            "WARNING: Deletion is permanent and irreversible!"
+        )
+    )
     dry_run: bool = Field(
         default=False,
-        description="If True, preview changes without modifying file",
+        description=(
+            "If True, preview deletion without actually removing file. "
+            "Returns diff preview showing file content that would be deleted. "
+            "RECOMMENDED: Always use dry_run=True first to verify before actual deletion."
+        ),
     )
 
 
 class AppendToFileInput(BaseModel):
-    """Input schema for append_to_file tool."""
+    """Input schema for append_to_file tool.
 
-    file_path: str = Field(description="Absolute or relative path to file")
-    content: str = Field(description="Content to append to end of file")
+    IMPORTANT: Content is appended to the END of the file with smart newline handling.
+    The tool automatically manages newlines between existing content and appended content.
+
+    Correct usage - append to existing file:
+        {
+            "file_path": "logs/app.log",
+            "content": "2025-12-09 14:30:00 - Application started",
+            "create_if_missing": False
+        }
+
+    Correct usage - create file if missing:
+        {
+            "file_path": "notes.txt",
+            "content": "First line of notes",
+            "create_if_missing": True
+        }
+
+    Correct usage - append content AS A STRING (not dict):
+        {
+            "file_path": "data.jsonl",
+            "content": "{\\"event\\": \\"login\\", \\"user\\": \\"alice\\"}",  # String, not dict
+            "create_if_missing": True
+        }
+
+    WRONG usage (will fail validation):
+        {
+            "file_path": "data.json",
+            "content": {"key": "value"}  # ❌ dict instead of string
+        }
+        {
+            "file_path": "nonexistent.txt",
+            "content": "data"  # ❌ File missing but create_if_missing=False (default)
+        }
+
+    Common mistakes to avoid:
+    - Passing dict/object instead of string for 'content' (must convert to string first)
+    - Forgetting to set create_if_missing=True when file doesn't exist
+    - Not understanding newline handling:
+        * If file is empty: content appended directly (no separator)
+        * If file ends with newline: content appended on next line (no separator added)
+        * If file doesn't end with newline: newline separator added first (matches file's line ending style)
+    - Exceeding max_payload_bytes limit (check final file size)
+    - Using append when you should use edit_file_lines or create_file instead
+
+    Newline handling examples:
+    - File: "line1\\n" + append "line2" → Result: "line1\\nline2"
+    - File: "line1" + append "line2" → Result: "line1\\nline2"
+    - File: "" + append "line1" → Result: "line1"
+    """
+
+    file_path: str = Field(
+        description=(
+            "Absolute or relative path to file. "
+            "Examples: 'logs/debug.log', 'data/events.jsonl', '/tmp/notes.txt'. "
+            "If file doesn't exist, set create_if_missing=True to create it."
+        )
+    )
+    content: str = Field(
+        description=(
+            "Content to append to end of file AS A STRING (not a dict/object). "
+            "Newline handling is automatic based on file's current state. "
+            "For JSON objects: use json.dumps(obj) to convert to string first. "
+            "Examples: 'log entry', 'new line\\n', json.dumps({'event': 'login'})"
+        )
+    )
     create_if_missing: bool = Field(
         default=False,
-        description="Create file if it doesn't exist. If False, returns error when file missing.",
+        description=(
+            "Create file if it doesn't exist (with parent directories). "
+            "If False and file missing, returns validation_failed error. "
+            "Set to True for log files or files that may not exist yet. "
+            "Default: False (safer, requires file to exist)"
+        ),
     )
     dry_run: bool = Field(
         default=False,
-        description="If True, preview changes without modifying file",
+        description=(
+            "If True, preview changes without modifying file. "
+            "Returns diff preview showing what would be appended. "
+            "Useful for validating content before appending."
+        ),
     )
 
 

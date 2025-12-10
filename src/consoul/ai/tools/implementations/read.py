@@ -393,27 +393,110 @@ def _read_pdf(
 
 
 class ReadFileInput(BaseModel):
-    """Input schema for read_file tool."""
+    """Input schema for read_file tool.
 
-    file_path: str = Field(description="Path to the file to read")
+    CRITICAL: The file_path parameter must be a path to a SPECIFIC FILE, not a directory.
+    Use wildcards or directory listing tools (ls, find) to discover files, then read them individually.
+
+    IMPORTANT: This tool validates file paths for security:
+    - Blocks sensitive system paths (/etc/shadow, /proc, /dev, /sys)
+    - Rejects path traversal attempts (..)
+    - Requires exact file paths (no wildcards like *.py)
+
+    Correct usage examples:
+
+    1. Simple read (reads entire file with default line limit):
+        {
+            "file_path": "src/main.py"
+        }
+
+    2. Read with offset and limit (for large files):
+        {
+            "file_path": "logs/debug.log",
+            "offset": 100,
+            "limit": 50
+        }
+        # Reads lines 100-149
+
+    3. Read specific PDF pages:
+        {
+            "file_path": "document.pdf",
+            "start_page": 1,
+            "end_page": 3
+        }
+        # Reads pages 1, 2, 3
+
+    WRONG usage (will fail):
+
+    1. Directory path instead of file:
+        {
+            "file_path": "src/"  # ❌ Must specify a file like "src/main.py"
+        }
+
+    2. Non-existent file:
+        {
+            "file_path": "missing.txt"  # ❌ File must exist
+        }
+
+    3. Wildcard patterns:
+        {
+            "file_path": "*.py"  # ❌ Use ls/find to discover files first
+        }
+
+    Common mistakes to avoid:
+    - Don't read directories - specify the exact file path
+    - Don't use wildcards - read files one at a time
+    - Don't assume file exists - handle "File not found" errors
+    - Use offset/limit for large files to avoid context overflow
+    - Use start_page/end_page for PDFs, not offset/limit
+    """
+
+    file_path: str = Field(
+        description=(
+            "Absolute or relative path to a SPECIFIC FILE (not directory). "
+            "Must be an existing file with readable permissions. "
+            "Examples: 'src/main.py', 'config/settings.yaml', 'logs/debug.log', 'document.pdf'"
+        )
+    )
     offset: int | None = Field(
         None,
-        description="Starting line number (1-indexed) for text files only",
+        description=(
+            "Starting line number (1-indexed) for text files only. "
+            "Example: offset=10 starts reading from line 10. "
+            "Use with limit to read specific line ranges. "
+            "Only applicable to text files, not PDFs."
+        ),
         gt=0,
     )
     limit: int | None = Field(
         None,
-        description="Number of lines to read for text files (if offset is provided)",
+        description=(
+            "Number of lines to read for text files. "
+            "Example: offset=10, limit=5 reads lines 10-14. "
+            "If omitted with offset, reads default number of lines from config. "
+            "If omitted without offset, reads from beginning with default limit. "
+            "Only applicable to text files, not PDFs."
+        ),
         gt=0,
     )
     start_page: int | None = Field(
         None,
-        description="Starting page number (1-indexed) for PDF files only",
+        description=(
+            "Starting page number (1-indexed) for PDF files only. "
+            "Example: start_page=1 begins at first page. "
+            "Defaults to page 1 if omitted. "
+            "Not applicable to text files (use offset instead)."
+        ),
         gt=0,
     )
     end_page: int | None = Field(
         None,
-        description="Ending page number (1-indexed, inclusive) for PDF files only",
+        description=(
+            "Ending page number (1-indexed, inclusive) for PDF files only. "
+            "Example: start_page=1, end_page=3 reads pages 1, 2, and 3. "
+            "Defaults to last page (or config limit) if omitted. "
+            "Not applicable to text files (use limit instead)."
+        ),
         gt=0,
     )
 

@@ -201,16 +201,83 @@ def _validate_size(path: Path, config: ImageAnalysisToolConfig) -> None:
 
 
 class AnalyzeImagesInput(BaseModel):
-    """Input schema for analyze_images tool."""
+    """Input schema for analyze_images tool.
+
+    CRITICAL: The 'image_paths' field MUST contain LOCAL FILE PATHS, not URLs or base64 data.
+    Images are automatically validated for format, size, and security before analysis.
+
+    IMPORTANT: Image requirements:
+    - Must be actual file paths (absolute or relative)
+    - Default size limit: 5 MB per image (configurable)
+    - Default count limit: 5 images per query (configurable)
+    - Allowed formats: .png, .jpg, .jpeg, .gif, .webp, .bmp
+
+    Correct usage (single image):
+        {
+            "query": "What error is shown in this screenshot?",
+            "image_paths": ["./screenshots/error.png"]
+        }
+
+    Correct usage (multiple images):
+        {
+            "query": "Compare these two UI designs",
+            "image_paths": ["./mockups/design_v1.png", "./mockups/design_v2.png"]
+        }
+
+    Correct usage (with detailed prompt):
+        {
+            "query": "Analyze this architecture diagram and explain the data flow between components",
+            "image_paths": ["/Users/dev/diagrams/architecture.png"]
+        }
+
+    WRONG usage (URLs instead of file paths):
+        {
+            "query": "Analyze this image",
+            "image_paths": ["https://example.com/image.png"]  # ❌ URLs not supported
+        }
+
+    WRONG usage (base64 data):
+        {
+            "query": "What's in this image?",
+            "image_paths": ["data:image/png;base64,iVBORw0KG..."]  # ❌ Use file paths only
+        }
+
+    WRONG usage (directory instead of file):
+        {
+            "query": "Analyze images",
+            "image_paths": ["./screenshots/"]  # ❌ Must be file paths, not directories
+        }
+
+    Common mistakes to avoid:
+    - Do NOT pass image URLs - download to local file first
+    - Do NOT pass base64-encoded data - save to file first
+    - Do NOT exceed size limit (default 5 MB per image)
+    - Do NOT exceed count limit (default 5 images per query)
+    - Do NOT use unsupported formats (must be .png, .jpg, .jpeg, .gif, .webp, .bmp)
+    - Do NOT pass directories - specify individual image files
+    """
 
     query: str = Field(
-        description="Question or instruction about the image(s). "
-        "Examples: 'What error is shown?', 'Describe this diagram', "
-        "'Is this UI accessible?'"
+        description=(
+            "Natural language question or instruction about the image(s). "
+            "Be specific about what you want to analyze. "
+            "Examples: 'What error message is displayed?', "
+            "'Describe the layout and components in this UI mockup', "
+            "'Is this design accessible for colorblind users?', "
+            "'Extract the text from this screenshot', "
+            "'Compare the performance metrics in these two graphs'"
+        )
     )
     image_paths: list[str] = Field(
-        description="List of local image file paths to analyze. "
-        "Supports: PNG, JPG, JPEG, GIF, WebP, BMP",
+        description=(
+            "List of LOCAL FILE PATHS to image files (NOT URLs or base64). "
+            "Paths can be absolute or relative to current directory. "
+            "Examples: ['./screenshot.png'], ['error.jpg', 'debug.png'], "
+            "['/Users/dev/diagrams/arch.png']. "
+            "Supported formats: .png, .jpg, .jpeg, .gif, .webp, .bmp. "
+            "Default limits: 5 MB per image, max 5 images per query. "
+            "Files are validated for format, size, and security before analysis."
+        ),
         min_length=1,
     )
 
