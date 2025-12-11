@@ -159,6 +159,13 @@ class TUIToolApprover:
         Returns:
             True if approved, False if denied
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.debug(
+            f"[TOOL_DEBUG] TUIToolApprover.on_tool_request called: {request.name}"
+        )
+
         from consoul.ai.tools.approval import ToolApprovalRequest
         from consoul.ai.tools.base import RiskLevel
         from consoul.tui.widgets import ToolApprovalModal
@@ -179,6 +186,7 @@ class TUIToolApprover:
             "status": "PENDING",
             "result": None,
         }
+        logger.debug(f"[TOOL_DEBUG] Created tool_call_data: {tool_call_data}")
 
         # Check if approval is actually needed based on policy/whitelist
         needs_approval = True
@@ -191,6 +199,9 @@ class TUIToolApprover:
         if not needs_approval:
             tool_call_data["status"] = "SUCCESS"
             self.tool_calls.append(tool_call_data)
+            logger.debug(
+                f"[TOOL_DEBUG] Auto-approved tool, added to list. Total tools: {len(self.tool_calls)}"
+            )
             return True
 
         # Approval needed - show modal to user
@@ -228,6 +239,9 @@ class TUIToolApprover:
 
         # Add to collected tool calls
         self.tool_calls.append(tool_call_data)
+        logger.debug(
+            f"[TOOL_DEBUG] Manual approval {approved}, added to list. Total tools: {len(self.tool_calls)}"
+        )
 
         return approved
 
@@ -237,7 +251,12 @@ class TUIToolApprover:
         Returns:
             List of tool call dicts or None if no tools were called
         """
-        return self.tool_calls if self.tool_calls else None
+        import logging
+
+        logger = logging.getLogger(__name__)
+        result = self.tool_calls if self.tool_calls else None
+        logger.debug(f"[TOOL_DEBUG] get_tool_calls returning: {result}")
+        return result
 
 
 class ConsoulApp(App[None]):
@@ -1816,6 +1835,9 @@ class ConsoulApp(App[None]):
 
                 # Get tool calls from approver
                 tool_calls_list = tool_approver.get_tool_calls()
+                logger.debug(
+                    f"[TOOL_DEBUG] tool_calls_list from approver: {tool_calls_list}"
+                )
 
                 # Populate tool results from conversation history
                 if tool_calls_list and self.conversation:
@@ -1829,9 +1851,18 @@ class ConsoulApp(App[None]):
                                 if tool_call_data.get("id") == msg.tool_call_id:
                                     # Populate the result from ToolMessage content
                                     tool_call_data["result"] = msg.content
+                                    logger.debug(
+                                        f"[TOOL_DEBUG] Populated result for tool {tool_call_data['name']}"
+                                    )
                                     break
+                    logger.debug(
+                        f"[TOOL_DEBUG] After populating results: {tool_calls_list}"
+                    )
 
                 # Convert to message bubble with tool calls
+                logger.debug(
+                    f"[TOOL_DEBUG] Creating MessageBubble with tool_calls: {tool_calls_list}"
+                )
                 final_bubble = MessageBubble(
                     final_content,
                     role="assistant",
