@@ -109,6 +109,13 @@ class MessageBubble(Container):
 
     def compose(self) -> ComposeResult:
         """Compose the message bubble with content and metadata."""
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.debug(
+            f"[TOOL_DEBUG] MessageBubble.compose() - role={self.role}, tool_calls={self.tool_calls is not None and len(self.tool_calls) if self.tool_calls else 0}"
+        )
+
         # Add thinking section if present
         if self.thinking_content:
             with Collapsible(
@@ -132,6 +139,9 @@ class MessageBubble(Container):
 
                 # Add tool calls button if assistant message has tools
                 if self.tool_calls:
+                    logger.debug(
+                        f"[TOOL_DEBUG] MessageBubble.compose() - Yielding tools button for {len(self.tool_calls)} tools"
+                    )
                     yield Button(
                         "⛏",
                         id="tools-button",
