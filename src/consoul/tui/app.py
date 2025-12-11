@@ -127,10 +127,13 @@ class TUIToolApprover:
     Converts SDK's ToolRequest to AI layer's ToolApprovalRequest and shows
     the approval modal, returning the user's decision via async/await.
 
+    Collects tool call information to pass to MessageBubble for inline display.
+
     Example:
         >>> approver = TUIToolApprover(app)
         >>> service = ConversationService(..., on_tool_request=approver.on_tool_request)
         >>> # Service will call approver.on_tool_request() and await the result
+        >>> # After streaming: tool_calls = approver.get_tool_calls()
     """
 
     def __init__(self, app: ConsoulApp) -> None:
@@ -140,6 +143,7 @@ class TUIToolApprover:
             app: ConsoulApp instance for showing modals
         """
         self.app = app
+        self.tool_calls: list[dict[str, Any]] = []  # Collect tool call data
 
     async def on_tool_request(self, request: ToolRequest) -> bool:
         """Request approval for tool execution via TUI modal.
@@ -147,7 +151,7 @@ class TUIToolApprover:
         Converts SDK's simplified ToolRequest to AI layer's ToolApprovalRequest,
         shows approval modal, and returns user's decision.
 
-        Also creates a message bubble to show the tool call in the chat view.
+        Collects tool call data to be displayed inline in the final MessageBubble.
 
         Args:
             request: Tool request from ConversationService
@@ -155,11 +159,9 @@ class TUIToolApprover:
         Returns:
             True if approved, False if denied
         """
-        import json
-
         from consoul.ai.tools.approval import ToolApprovalRequest
         from consoul.ai.tools.base import RiskLevel
-        from consoul.tui.widgets import MessageBubble, ToolApprovalModal
+        from consoul.tui.widgets import ToolApprovalModal
 
         # Map risk_level string to RiskLevel enum
         risk_map = {
@@ -178,14 +180,13 @@ class TUIToolApprover:
             description="",  # Could fetch from tool registry if needed
         )
 
-        # Show tool call info in chat view before requesting approval
-        tool_info = f"🔧 **Tool Call**: `{request.name}`\n\n**Arguments**:\n```json\n{json.dumps(request.arguments, indent=2)}\n```"
-        tool_bubble = MessageBubble(
-            tool_info,
-            role="assistant",
-            show_metadata=False,
-        )
-        await self.app.chat_view.add_message(tool_bubble)
+        # Create tool call data entry (matches old format for MessageBubble)
+        tool_call_data = {
+            "name": request.name,
+            "arguments": request.arguments,
+            "status": "PENDING",
+            "result": None,
+        }
 
         # Create future to wait for modal result
         future: asyncio.Future[bool] = asyncio.Future()
@@ -202,22 +203,26 @@ class TUIToolApprover:
         # Wait for user decision
         approved = await future
 
-        # Show approval/denial result in chat
+        # Update tool call status based on approval
         if approved:
-            status_bubble = MessageBubble(
-                f"✅ Tool `{request.name}` approved - executing...",
-                role="system",
-                show_metadata=False,
-            )
+            tool_call_data["status"] = "SUCCESS"
+            # Note: result will be populated by the service after execution
         else:
-            status_bubble = MessageBubble(
-                f"❌ Tool `{request.name}` denied by user",
-                role="system",
-                show_metadata=False,
-            )
-        await self.app.chat_view.add_message(status_bubble)
+            tool_call_data["status"] = "DENIED"
+            tool_call_data["result"] = "User denied execution"
+
+        # Add to collected tool calls
+        self.tool_calls.append(tool_call_data)
 
         return approved
+
+    def get_tool_calls(self) -> list[dict[str, Any]] | None:
+        """Get collected tool call data for MessageBubble.
+
+        Returns:
+            List of tool call dicts or None if no tools were called
+        """
+        return self.tool_calls if self.tool_calls else None
 
 
 class ConsoulApp(App[None]):
@@ -1794,12 +1799,16 @@ class ConsoulApp(App[None]):
                 # Remove stream widget
                 await stream_widget.remove()
 
-                # Convert to message bubble
+                # Get tool calls from approver
+                tool_calls_list = tool_approver.get_tool_calls()
+
+                # Convert to message bubble with tool calls
                 final_bubble = MessageBubble(
                     final_content,
                     role="assistant",
                     show_metadata=True,
                     estimated_cost=total_cost if total_cost > 0 else None,
+                    tool_calls=tool_calls_list,
                 )
 
                 # Add final bubble to chat view

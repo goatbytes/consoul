@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-10T15:51:32.797576",
-  "updated_at": "2025-12-10T16:28:36.119123",
+  "updated_at": "2025-12-10T16:32:31.306377",
   "id": "SOUL-263",
   "uuid": "40a8af93-db5d-4ed8-b1ab-c843b958c851",
   "title": "Integrate ConversationService into TUI ConsoulApp",
@@ -44,11 +44,24 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-10T16:32:31.306246",
+      "updated_at": "2025-12-10T16:32:31.306248",
+      "id": "20251210163231-39c07165",
+      "ticket_id": "SOUL-263",
+      "author": "jared@goatbytes.io",
+      "content": "🔧 **Added Tool Execution Visualization** - Commit 96220ec\n\n**Issue:**\n- Tool calls were invisible in chat view\n- User couldn't see what tools were being called\n- No visual confirmation of approval/denial decisions\n\n**Solution:**\nEnhanced `TUIToolApprover.on_tool_request()` to create message bubbles showing:\n1. **Tool Call Info** (before modal):\n   - Shows: 🔧 Tool Call: `tool_name`\n   - Displays arguments in formatted JSON\n   - Role: \"assistant\" (appears as AI message)\n\n2. **Approval Status** (after modal):\n   - If approved: ✅ Tool `tool_name` approved - executing...\n   - If denied: ❌ Tool `tool_name` denied by user\n   - Role: \"system\" (appears as system message)\n\n**Visual Flow:**\n```\nUser: \"list files\"\nAI: [streaming response]\n🔧 Tool Call: `bash_execute`\n    Arguments: {\"command\": \"ls\"}\n[Approval Modal Shows]\nUser: [Approves]\n✅ Tool approved - executing...\nAI: [continues streaming with tool result]\n```\n\n**Implementation:**\n- Added message bubbles before showing approval modal\n- Added status message after user decision\n- Tool results included in AI's continued response (handled by service)\n\n**Ready for Re-test:**\n- Tool calls should now be visible in chat\n- Arguments clearly displayed\n- Clear feedback on approval/denial",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 2,
+  "comment_count": 3,
   "story_points": 8,
   "order": 0,
   "custom_fields": {}
