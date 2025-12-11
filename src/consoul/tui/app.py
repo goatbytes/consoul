@@ -33,6 +33,8 @@ if TYPE_CHECKING:
     from consoul.ai.tools.parser import ParsedToolCall
     from consoul.config import ConsoulConfig
     from consoul.config.models import ProfileConfig
+    from consoul.sdk.models import Attachment, ToolRequest
+    from consoul.sdk.services.conversation import ConversationService
     from consoul.tui.widgets import (
         ContextualTopBar,
         InputArea,
@@ -117,6 +119,75 @@ class ContinueWithToolResults(Message):
     """
 
     pass
+
+
+class TUIToolApprover:
+    """Bridges SDK tool approval callbacks with TUI modal system.
+
+    Converts SDK's ToolRequest to AI layer's ToolApprovalRequest and shows
+    the approval modal, returning the user's decision via async/await.
+
+    Example:
+        >>> approver = TUIToolApprover(app)
+        >>> service = ConversationService(..., on_tool_request=approver.on_tool_request)
+        >>> # Service will call approver.on_tool_request() and await the result
+    """
+
+    def __init__(self, app: ConsoulApp) -> None:
+        """Initialize tool approver with TUI app reference.
+
+        Args:
+            app: ConsoulApp instance for showing modals
+        """
+        self.app = app
+
+    async def on_tool_request(self, request: ToolRequest) -> bool:
+        """Request approval for tool execution via TUI modal.
+
+        Converts SDK's simplified ToolRequest to AI layer's ToolApprovalRequest,
+        shows approval modal, and returns user's decision.
+
+        Args:
+            request: Tool request from ConversationService
+
+        Returns:
+            True if approved, False if denied
+        """
+        from consoul.ai.tools.approval import ToolApprovalRequest
+        from consoul.ai.tools.base import RiskLevel
+        from consoul.tui.widgets import ToolApprovalModal
+
+        # Map risk_level string to RiskLevel enum
+        risk_map = {
+            "safe": RiskLevel.SAFE,
+            "caution": RiskLevel.CAUTION,
+            "dangerous": RiskLevel.DANGEROUS,
+            "blocked": RiskLevel.BLOCKED,
+        }
+
+        # Convert SDK ToolRequest to AI layer ToolApprovalRequest
+        approval_request = ToolApprovalRequest(
+            tool_name=request.name,
+            arguments=request.arguments,
+            risk_level=risk_map.get(request.risk_level.lower(), RiskLevel.CAUTION),
+            tool_call_id=request.id,
+            description="",  # Could fetch from tool registry if needed
+        )
+
+        # Create future to wait for modal result
+        future: asyncio.Future[bool] = asyncio.Future()
+
+        def on_modal_result(approved: bool | None) -> None:
+            """Callback when modal is dismissed."""
+            if not future.done():
+                # Default to False if None (user dismissed without choosing)
+                future.set_result(approved if approved is not None else False)
+
+        # Show modal (non-blocking with callback)
+        self.app.push_screen(ToolApprovalModal(approval_request), on_modal_result)
+
+        # Wait for user decision
+        return await future
 
 
 class ConsoulApp(App[None]):
@@ -214,6 +285,7 @@ class ConsoulApp(App[None]):
         # self.conversation_id is set to None by reactive declaration
         self.tool_registry: ToolRegistry | None = None
         self.title_generator: TitleGenerator | None = None
+        self.conversation_service: ConversationService | None = None
 
         # Streaming state
         self._current_stream: StreamingResponse | None = None
@@ -823,6 +895,25 @@ class ConsoulApp(App[None]):
                 logger.info(
                     f"[PERF] Step 5 (Bind tools): {(time.time() - step_start) * 1000:.1f}ms"
                 )
+
+            # Step 5.5: Initialize ConversationService (SDK layer)
+            step_start = time.time()
+            if loading_screen:
+                loading_screen.update_progress(  # type: ignore[attr-defined]
+                    "Initializing conversation service...", 85
+                )
+
+            from consoul.sdk.services.conversation import ConversationService
+
+            self.conversation_service = ConversationService(
+                model=self.chat_model,
+                conversation=self.conversation,
+                tool_registry=self.tool_registry,
+                config=consoul_config,
+            )
+            logger.info(
+                f"[PERF] Step 5.5 (Initialize ConversationService): {(time.time() - step_start) * 1000:.1f}ms"
+            )
 
             # Step 6: Auto-resume if enabled (90%)
             if (
@@ -1594,6 +1685,107 @@ class ConsoulApp(App[None]):
         if not self.streaming:
             gc.collect(generation=self.config.gc_generation)
 
+    async def _stream_via_conversation_service(
+        self, content: str, attachments: list[Attachment] | None = None
+    ) -> None:
+        """Stream AI response using ConversationService.
+
+        Simplified streaming that delegates all business logic to the service layer,
+        keeping only UI presentation logic in the TUI.
+
+        Args:
+            content: User message content
+            attachments: Optional list of file attachments
+        """
+        from consoul.tui.widgets import MessageBubble, StreamingResponse
+
+        if not self.conversation_service:
+            error_bubble = MessageBubble(
+                "ConversationService not initialized",
+                role="error",
+                show_metadata=False,
+            )
+            await self.chat_view.add_message(error_bubble)
+            return
+
+        # Update streaming state
+        self.streaming = True
+        self._update_top_bar_state()
+
+        try:
+            # Hide typing indicator
+            await self.chat_view.hide_typing_indicator()
+
+            # Create streaming response widget
+            stream_widget = StreamingResponse(renderer="hybrid")
+            await self.chat_view.add_message(stream_widget)
+            self._current_stream = stream_widget
+
+            # Create tool approver for this conversation
+            tool_approver = TUIToolApprover(self)
+
+            # Stream tokens from service
+            collected_content = []
+            total_cost = 0.0
+
+            async for token in self.conversation_service.send_message(
+                content,
+                attachments=attachments,
+                on_tool_request=tool_approver.on_tool_request,
+            ):
+                # Check for cancellation
+                if self._stream_cancelled:
+                    break
+
+                # Collect content
+                collected_content.append(token.content)
+
+                # Update cost if available
+                if token.cost is not None:
+                    total_cost += token.cost
+
+                # Update streaming widget
+                await stream_widget.add_token(token.content)
+
+            # If cancelled, remove stream widget
+            if self._stream_cancelled:
+                await stream_widget.remove()
+                return
+
+            # Finalize stream
+            final_content = "".join(collected_content)
+            await stream_widget.finalize_stream()
+
+            # Remove stream widget
+            await stream_widget.remove()
+
+            # Convert to message bubble
+            final_bubble = MessageBubble(
+                final_content,
+                role="assistant",
+                show_metadata=True,
+                cost=total_cost if total_cost > 0 else None,
+            )
+
+            # Add final bubble to chat view
+            await self.chat_view.add_message(final_bubble)
+
+        except Exception as e:
+            logger.error(f"Error streaming via ConversationService: {e}", exc_info=True)
+            error_bubble = MessageBubble(
+                f"Error: {e!s}",
+                role="error",
+                show_metadata=False,
+            )
+            await self.chat_view.add_message(error_bubble)
+
+        finally:
+            # Reset streaming state
+            self.streaming = False
+            self._stream_cancelled = False
+            self._current_stream = None
+            self._update_top_bar_state()
+
     async def on_input_area_message_submit(
         self, event: InputArea.MessageSubmit
     ) -> None:
@@ -1671,8 +1863,8 @@ Output:
             f"message_count={len(self.conversation.messages)}"
         )
 
-        # Add user message to conversation history immediately (in-memory)
-        from langchain_core.messages import HumanMessage
+        # Note: Message adding is now handled by ConversationService.send_message()
+        # No need to manually create HumanMessage
 
         # Get attached files from InputArea
         input_area = self.query_one(InputArea)
@@ -1753,11 +1945,11 @@ Output:
                 logger.info(
                     f"[IMAGE_DETECTION] About to call _create_multimodal_message with {len(all_image_paths)} image(s)"
                 )
-                message = self._create_multimodal_message(
-                    final_message, all_image_paths
-                )
+                # Note: Multimodal message creation is now handled by ConversationService
+                # The service will create the appropriate message from content and attachments
+                # self._create_multimodal_message() call removed
                 logger.info(
-                    f"[IMAGE_DETECTION] Created multimodal message with {len(all_image_paths)} image(s)"
+                    f"[IMAGE_DETECTION] Will pass {len(all_image_paths)} image(s) to ConversationService"
                 )
             except Exception as e:
                 # Fall back to text-only message and show error
@@ -1774,10 +1966,9 @@ Output:
                     show_metadata=False,
                 )
                 await self.chat_view.add_message(error_bubble)
-                message = HumanMessage(content=final_message)
-        else:
-            # Regular text message
-            message = HumanMessage(content=final_message)
+
+        # Note: Message creation is now handled by ConversationService
+        # The service will create the appropriate message (text or multimodal) from content and attachments
 
         # Clear attached files after processing
         input_area.attached_files.clear()
@@ -1785,39 +1976,18 @@ Output:
 
         # Move EVERYTHING to a background worker to keep UI responsive
         async def _process_and_stream() -> None:
-            # Add user message (this will create conversation on first message if needed)
-            if self.conversation is not None:
-                await self.conversation.add_user_message_async(message.content)
+            # NOTE: Message adding is now handled by ConversationService.send_message()
+            # The service adds the message when streaming starts
 
-            # Get the message that was just added for persisting attachments
-            user_message_id = None
-            if (
-                self.conversation is not None
-                and self.conversation.persist
-                and self.conversation._db
-                and self.conversation.session_id
-            ):
-                # The message was already persisted in add_user_message_async, get its ID
-                # by checking the last persisted message
-                try:
-                    messages = self.conversation._db.load_conversation(
-                        self.conversation.session_id
-                    )
-                    if messages:
-                        user_message_id = messages[-1].get("id")
-                    logger.debug(f"Persisted user message with ID: {user_message_id}")
-                    # Save attachments linked to this user message
-                    if user_message_id and attached_files:
-                        logger.debug(f"Persisting {len(attached_files)} attachments")
-                        await self._persist_attachments(user_message_id, attached_files)
-                        logger.debug("Attachments persisted successfully")
-                except Exception as e:
-                    logger.error(
-                        f"Failed to persist message or attachments: {e}", exc_info=True
-                    )
+            # Convert TUI AttachedFile to SDK Attachment format
+            from consoul.sdk.models import Attachment
+
+            sdk_attachments = [
+                Attachment(path=f.path, type=f.type) for f in attached_files
+            ]
 
             # Add new conversation to list if first message
-            # Use prepend instead of reload to avoid flickering
+            # Do this before streaming so the conversation appears immediately
             if (
                 is_first_message
                 and hasattr(self, "conversation_list")
@@ -1826,8 +1996,47 @@ Output:
                 await self.conversation_list.prepend_conversation(self.conversation_id)
                 self._update_top_bar_state()
 
-            # Start streaming AI response
-            await self._stream_ai_response()
+            # Start streaming AI response via ConversationService
+            # This will add the message to conversation before yielding tokens
+            await self._stream_via_conversation_service(
+                content=final_message,
+                attachments=sdk_attachments if sdk_attachments else None,
+            )
+
+            # Persist attachments after streaming completes (message is now in conversation)
+            user_message_id = None
+            if (
+                self.conversation is not None
+                and self.conversation.persist
+                and self.conversation._db
+                and self.conversation.session_id
+                and attached_files
+            ):
+                # Get the persisted message ID
+                try:
+                    messages = self.conversation._db.load_conversation(
+                        self.conversation.session_id
+                    )
+                    # Find the user message we just added (should be second-to-last, before AI response)
+                    if len(messages) >= 2:
+                        # Look for the last human message
+                        for msg in reversed(messages):
+                            if msg.get("role") == "user":
+                                user_message_id = msg.get("id")
+                                break
+
+                    if user_message_id:
+                        logger.debug(
+                            f"Persisting {len(attached_files)} attachments to message {user_message_id}"
+                        )
+                        await self._persist_attachments(user_message_id, attached_files)
+                        logger.debug("Attachments persisted successfully")
+                    else:
+                        logger.warning(
+                            "Could not find user message ID for attachment persistence"
+                        )
+                except Exception as e:
+                    logger.error(f"Failed to persist attachments: {e}", exc_info=True)
 
         # Fire off all processing in background worker
         # This keeps the UI responsive during the entire "Thinking..." phase
