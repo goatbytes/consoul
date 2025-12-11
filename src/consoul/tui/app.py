@@ -127,7 +127,7 @@ class TUIToolApprover:
     Converts SDK's ToolRequest to AI layer's ToolApprovalRequest and shows
     the approval modal, returning the user's decision via async/await.
 
-    Creates simple MessageBubble instances to display tool calls inline.
+    Creates simple Static widgets to display tool calls inline (matches v0.3.0).
 
     Example:
         >>> approver = TUIToolApprover(app)
@@ -146,7 +146,7 @@ class TUIToolApprover:
     async def on_tool_request(self, request: ToolRequest) -> bool:
         """Request approval for tool execution via TUI modal.
 
-        Creates simple MessageBubble to display tool call, then shows approval
+        Creates simple Static widget to display tool call, then shows approval
         modal if needed.
 
         Args:
@@ -162,9 +162,11 @@ class TUIToolApprover:
             f"[TOOL_DEBUG] TUIToolApprover.on_tool_request called: {request.name}"
         )
 
+        from textual.widgets import Static
+
         from consoul.ai.tools.approval import ToolApprovalRequest
         from consoul.ai.tools.base import RiskLevel
-        from consoul.tui.widgets import MessageBubble, ToolApprovalModal
+        from consoul.tui.widgets import ToolApprovalModal
         from consoul.tui.widgets.tool_formatter import format_tool_header
 
         # Map risk_level string to RiskLevel enum
@@ -175,35 +177,21 @@ class TUIToolApprover:
             "blocked": RiskLevel.BLOCKED,
         }
 
-        # Create simple MessageBubble with formatted tool header
-        header_rich = format_tool_header(request.name, request.arguments)
+        # Format tool header with arguments (returns Rich renderable)
+        header_renderable = format_tool_header(
+            request.name, request.arguments, theme=self.app.theme
+        )
 
-        # Convert Rich renderable to plain text
-        # format_tool_header returns Text or Columns, so we need to handle both
-        from io import StringIO
-
-        from rich.console import Console
-        from rich.text import Text
-
-        if isinstance(header_rich, Text):
-            header_text = header_rich.plain
-        else:
-            # For Columns or other renderables, use Console to extract plain text
-            sio = StringIO()
-            console = Console(file=sio, force_terminal=False, legacy_windows=False)
-            console.print(header_rich, end="")
-            header_text = sio.getvalue()
-
-        tool_message = MessageBubble(
-            header_text,
-            role="system",
-            show_metadata=False,
+        # Use Static widget to render Rich renderables (matches v0.3.0)
+        tool_message = Static(
+            header_renderable,
+            classes="system-message",
         )
 
         # Add message to chat view
         await self.app.chat_view.add_message(tool_message)
 
-        logger.debug(f"[TOOL_DEBUG] Created MessageBubble for tool: {request.name}")
+        logger.debug(f"[TOOL_DEBUG] Created Static widget for tool: {request.name}")
 
         # Check if approval is actually needed based on policy/whitelist
         needs_approval = True
