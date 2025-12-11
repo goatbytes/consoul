@@ -182,6 +182,7 @@ class TUIToolApprover:
 
         # Create tool call data entry (matches old format for MessageBubble)
         tool_call_data = {
+            "id": request.id,  # Store ID for matching with ToolMessage later
             "name": request.name,
             "arguments": request.arguments,
             "status": "PENDING",
@@ -1801,6 +1802,20 @@ class ConsoulApp(App[None]):
 
                 # Get tool calls from approver
                 tool_calls_list = tool_approver.get_tool_calls()
+
+                # Populate tool results from conversation history
+                if tool_calls_list and self.conversation:
+                    from langchain_core.messages import ToolMessage
+
+                    # Search backwards through messages for ToolMessage objects
+                    for msg in reversed(self.conversation.messages):
+                        if isinstance(msg, ToolMessage):
+                            # Match by tool_call_id
+                            for tool_call_data in tool_calls_list:
+                                if tool_call_data.get("id") == msg.tool_call_id:
+                                    # Populate the result from ToolMessage content
+                                    tool_call_data["result"] = msg.content
+                                    break
 
                 # Convert to message bubble with tool calls
                 final_bubble = MessageBubble(
