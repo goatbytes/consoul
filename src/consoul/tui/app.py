@@ -1713,26 +1713,28 @@ class ConsoulApp(App[None]):
         self._update_top_bar_state()
 
         try:
-            # Hide typing indicator
-            await self.chat_view.hide_typing_indicator()
-
-            # Create streaming response widget
-            stream_widget = StreamingResponse(renderer="hybrid")
-            await self.chat_view.add_message(stream_widget)
-            self._current_stream = stream_widget
-
             # Create tool approver for this conversation
             tool_approver = TUIToolApprover(self)
 
             # Stream tokens from service
             collected_content = []
             total_cost = 0.0
+            stream_widget = None
+            first_token = True
 
             async for token in self.conversation_service.send_message(
                 content,
                 attachments=attachments,
                 on_tool_request=tool_approver.on_tool_request,
             ):
+                # On first token, hide typing indicator and show stream widget
+                if first_token:
+                    await self.chat_view.hide_typing_indicator()
+                    stream_widget = StreamingResponse(renderer="hybrid")
+                    await self.chat_view.add_message(stream_widget)
+                    self._current_stream = stream_widget
+                    first_token = False
+
                 # Check for cancellation
                 if self._stream_cancelled:
                     break
@@ -1745,33 +1747,47 @@ class ConsoulApp(App[None]):
                     total_cost += token.cost
 
                 # Update streaming widget
-                await stream_widget.add_token(token.content)
+                if stream_widget:
+                    await stream_widget.add_token(token.content)
 
             # If cancelled, remove stream widget
             if self._stream_cancelled:
-                await stream_widget.remove()
+                if stream_widget:
+                    await stream_widget.remove()
                 return
 
-            # Finalize stream
-            final_content = "".join(collected_content)
-            await stream_widget.finalize_stream()
+            # Finalize stream if we got any tokens
+            if stream_widget:
+                final_content = "".join(collected_content)
+                await stream_widget.finalize_stream()
 
-            # Remove stream widget
-            await stream_widget.remove()
+                # Remove stream widget
+                await stream_widget.remove()
 
-            # Convert to message bubble
-            final_bubble = MessageBubble(
-                final_content,
-                role="assistant",
-                show_metadata=True,
-                cost=total_cost if total_cost > 0 else None,
-            )
+                # Convert to message bubble
+                final_bubble = MessageBubble(
+                    final_content,
+                    role="assistant",
+                    show_metadata=True,
+                    estimated_cost=total_cost if total_cost > 0 else None,
+                )
 
-            # Add final bubble to chat view
-            await self.chat_view.add_message(final_bubble)
+                # Add final bubble to chat view
+                await self.chat_view.add_message(final_bubble)
+            else:
+                # No tokens received - hide typing indicator and show error
+                await self.chat_view.hide_typing_indicator()
+                error_bubble = MessageBubble(
+                    "No response received from AI",
+                    role="error",
+                    show_metadata=False,
+                )
+                await self.chat_view.add_message(error_bubble)
 
         except Exception as e:
             logger.error(f"Error streaming via ConversationService: {e}", exc_info=True)
+            # Hide typing indicator if still showing
+            await self.chat_view.hide_typing_indicator()
             error_bubble = MessageBubble(
                 f"Error: {e!s}",
                 role="error",
