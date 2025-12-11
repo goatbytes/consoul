@@ -127,13 +127,12 @@ class TUIToolApprover:
     Converts SDK's ToolRequest to AI layer's ToolApprovalRequest and shows
     the approval modal, returning the user's decision via async/await.
 
-    Creates ToolCallWidget instances and adds them to chat view for inline display.
+    Creates simple MessageBubble instances to display tool calls inline.
 
     Example:
         >>> approver = TUIToolApprover(app)
         >>> service = ConversationService(..., on_tool_request=approver.on_tool_request)
         >>> # Service will call approver.on_tool_request() and await the result
-        >>> # Widgets are added to chat view and updated with results
     """
 
     def __init__(self, app: ConsoulApp) -> None:
@@ -143,12 +142,11 @@ class TUIToolApprover:
             app: ConsoulApp instance for showing modals and chat view
         """
         self.app = app
-        self.tool_widgets: dict[str, Any] = {}  # Map tool_call_id -> ToolCallWidget
 
     async def on_tool_request(self, request: ToolRequest) -> bool:
         """Request approval for tool execution via TUI modal.
 
-        Creates ToolCallWidget and adds it to chat view, then shows approval
+        Creates simple MessageBubble to display tool call, then shows approval
         modal if needed.
 
         Args:
@@ -166,8 +164,8 @@ class TUIToolApprover:
 
         from consoul.ai.tools.approval import ToolApprovalRequest
         from consoul.ai.tools.base import RiskLevel
-        from consoul.ai.tools.status import ToolStatus
-        from consoul.tui.widgets import ToolApprovalModal, ToolCallWidget
+        from consoul.tui.widgets import MessageBubble, ToolApprovalModal
+        from consoul.tui.widgets.tool_formatter import format_tool_header
 
         # Map risk_level string to RiskLevel enum
         risk_map = {
@@ -177,20 +175,35 @@ class TUIToolApprover:
             "blocked": RiskLevel.BLOCKED,
         }
 
-        # Create ToolCallWidget with PENDING status
-        widget = ToolCallWidget(
-            tool_name=request.name,
-            arguments=request.arguments,
-            status=ToolStatus.PENDING,
+        # Create simple MessageBubble with formatted tool header
+        header_rich = format_tool_header(request.name, request.arguments)
+
+        # Convert Rich renderable to plain text
+        # format_tool_header returns Text or Columns, so we need to handle both
+        from io import StringIO
+
+        from rich.console import Console
+        from rich.text import Text
+
+        if isinstance(header_rich, Text):
+            header_text = header_rich.plain
+        else:
+            # For Columns or other renderables, use Console to extract plain text
+            sio = StringIO()
+            console = Console(file=sio, force_terminal=False, legacy_windows=False)
+            console.print(header_rich, end="")
+            header_text = sio.getvalue()
+
+        tool_message = MessageBubble(
+            header_text,
+            role="system",
+            show_metadata=False,
         )
 
-        # Add widget to chat view
-        await self.app.chat_view.add_message(widget)
+        # Add message to chat view
+        await self.app.chat_view.add_message(tool_message)
 
-        # Store widget reference for updating after execution
-        self.tool_widgets[request.id] = widget
-
-        logger.debug(f"[TOOL_DEBUG] Created ToolCallWidget for {request.name}")
+        logger.debug(f"[TOOL_DEBUG] Created MessageBubble for tool: {request.name}")
 
         # Check if approval is actually needed based on policy/whitelist
         needs_approval = True
@@ -229,39 +242,9 @@ class TUIToolApprover:
         # Wait for user decision
         approved = await future
 
-        # Update widget with denial if user rejected
-        if not approved:
-            widget.update_result("User denied execution", ToolStatus.DENIED)
-
         logger.debug(f"[TOOL_DEBUG] Manual approval {approved} for {request.name}")
 
         return approved
-
-    async def update_results(self, conversation: Any) -> None:
-        """Update tool widgets with results from conversation history.
-
-        Args:
-            conversation: ConversationHistory with ToolMessage objects
-        """
-        import logging
-
-        from langchain_core.messages import ToolMessage
-
-        from consoul.ai.tools.status import ToolStatus
-
-        logger = logging.getLogger(__name__)
-
-        # Extract tool results from conversation messages
-        for msg in reversed(conversation.messages):
-            if isinstance(msg, ToolMessage):
-                tool_id = msg.tool_call_id
-                if tool_id in self.tool_widgets:
-                    widget = self.tool_widgets[tool_id]
-                    # Update widget with result
-                    widget.update_result(msg.content, ToolStatus.SUCCESS)
-                    logger.debug(
-                        f"[TOOL_DEBUG] Updated ToolCallWidget {tool_id} with result"
-                    )
 
 
 class ConsoulApp(App[None]):
@@ -1838,11 +1821,7 @@ class ConsoulApp(App[None]):
                 # Remove stream widget
                 await stream_widget.remove()
 
-                # Update ToolCallWidget instances with results from conversation history
-                if self.conversation:
-                    await tool_approver.update_results(self.conversation)
-
-                # Convert to message bubble (no tool_calls parameter needed)
+                # Convert to message bubble
                 final_bubble = MessageBubble(
                     final_content,
                     role="assistant",
