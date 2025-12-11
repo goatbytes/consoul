@@ -1809,12 +1809,58 @@ class ConsoulApp(App[None]):
                 # Remove stream widget
                 await stream_widget.remove()
 
+                # Extract tool call data from conversation for MessageBubble button
+                tool_calls_list = None
+                if self.conversation:
+                    from langchain_core.messages import AIMessage, ToolMessage
+
+                    # Find the most recent AIMessage with tool_calls
+                    ai_message = None
+                    for msg in reversed(self.conversation.messages):
+                        if isinstance(msg, AIMessage) and msg.tool_calls:
+                            ai_message = msg
+                            break
+
+                    if ai_message and ai_message.tool_calls:
+                        # Build tool_calls_list with results from ToolMessages
+                        tool_calls_data = []
+                        for tool_call in ai_message.tool_calls:
+                            # Find corresponding ToolMessage result
+                            result = None
+                            status = "SUCCESS"
+                            for msg in self.conversation.messages:
+                                if (
+                                    isinstance(msg, ToolMessage)
+                                    and msg.tool_call_id == tool_call["id"]
+                                ):
+                                    result = msg.content
+                                    # Check if result indicates error
+                                    if (
+                                        isinstance(result, str)
+                                        and "error" in result.lower()
+                                    ):
+                                        status = "ERROR"
+                                    break
+
+                            tool_calls_data.append(
+                                {
+                                    "name": tool_call["name"],
+                                    "arguments": tool_call["args"],
+                                    "status": status,
+                                    "result": result,
+                                }
+                            )
+
+                        if tool_calls_data:
+                            tool_calls_list = tool_calls_data
+
                 # Convert to message bubble
                 final_bubble = MessageBubble(
                     final_content,
                     role="assistant",
                     show_metadata=True,
                     estimated_cost=total_cost if total_cost > 0 else None,
+                    tool_calls=tool_calls_list,
                 )
 
                 # Add final bubble to chat view
