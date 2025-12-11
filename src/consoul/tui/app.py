@@ -1814,14 +1814,29 @@ class ConsoulApp(App[None]):
                 if self.conversation:
                     from langchain_core.messages import AIMessage, ToolMessage
 
+                    logger.debug(
+                        f"[TOOL_BUTTON] Extracting tool calls from conversation with {len(self.conversation.messages)} messages"
+                    )
+
                     # Find the most recent AIMessage with tool_calls
                     ai_message = None
                     for msg in reversed(self.conversation.messages):
+                        logger.debug(
+                            f"[TOOL_BUTTON] Checking message: type={type(msg).__name__}, "
+                            f"has_tool_calls={hasattr(msg, 'tool_calls')}, "
+                            f"tool_calls={getattr(msg, 'tool_calls', None) if hasattr(msg, 'tool_calls') else 'N/A'}"
+                        )
                         if isinstance(msg, AIMessage) and msg.tool_calls:
                             ai_message = msg
+                            logger.debug(
+                                f"[TOOL_BUTTON] Found AIMessage with {len(msg.tool_calls)} tool_calls"
+                            )
                             break
 
                     if ai_message and ai_message.tool_calls:
+                        logger.debug(
+                            f"[TOOL_BUTTON] Building tool_calls_list from {len(ai_message.tool_calls)} tool calls"
+                        )
                         # Build tool_calls_list with results from ToolMessages
                         tool_calls_data = []
                         for tool_call in ai_message.tool_calls:
@@ -1853,6 +1868,15 @@ class ConsoulApp(App[None]):
 
                         if tool_calls_data:
                             tool_calls_list = tool_calls_data
+                            logger.debug(
+                                f"[TOOL_BUTTON] Successfully built tool_calls_list with {len(tool_calls_list)} items"
+                            )
+                    else:
+                        logger.debug("[TOOL_BUTTON] No AIMessage with tool_calls found")
+                else:
+                    logger.debug("[TOOL_BUTTON] No conversation object available")
+
+                logger.debug(f"[TOOL_BUTTON] Final tool_calls_list: {tool_calls_list}")
 
                 # Convert to message bubble
                 final_bubble = MessageBubble(
