@@ -149,7 +149,7 @@ class TUIToolApprover:
         """Request approval for tool execution via TUI modal.
 
         Converts SDK's simplified ToolRequest to AI layer's ToolApprovalRequest,
-        shows approval modal, and returns user's decision.
+        shows approval modal if needed, and returns the decision.
 
         Collects tool call data to be displayed inline in the final MessageBubble.
 
@@ -171,15 +171,6 @@ class TUIToolApprover:
             "blocked": RiskLevel.BLOCKED,
         }
 
-        # Convert SDK ToolRequest to AI layer ToolApprovalRequest
-        approval_request = ToolApprovalRequest(
-            tool_name=request.name,
-            arguments=request.arguments,
-            risk_level=risk_map.get(request.risk_level.lower(), RiskLevel.CAUTION),
-            tool_call_id=request.id,
-            description="",  # Could fetch from tool registry if needed
-        )
-
         # Create tool call data entry (matches old format for MessageBubble)
         tool_call_data = {
             "id": request.id,  # Store ID for matching with ToolMessage later
@@ -188,6 +179,29 @@ class TUIToolApprover:
             "status": "PENDING",
             "result": None,
         }
+
+        # Check if approval is actually needed based on policy/whitelist
+        needs_approval = True
+        if self.app.tool_registry:
+            needs_approval = self.app.tool_registry.needs_approval(
+                request.name, request.arguments
+            )
+
+        # If auto-approved by policy, collect data and return True immediately
+        if not needs_approval:
+            tool_call_data["status"] = "SUCCESS"
+            self.tool_calls.append(tool_call_data)
+            return True
+
+        # Approval needed - show modal to user
+        # Convert SDK ToolRequest to AI layer ToolApprovalRequest
+        approval_request = ToolApprovalRequest(
+            tool_name=request.name,
+            arguments=request.arguments,
+            risk_level=risk_map.get(request.risk_level.lower(), RiskLevel.CAUTION),
+            tool_call_id=request.id,
+            description="",  # Could fetch from tool registry if needed
+        )
 
         # Create future to wait for modal result
         future: asyncio.Future[bool] = asyncio.Future()

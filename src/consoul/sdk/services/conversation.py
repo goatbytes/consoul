@@ -798,15 +798,13 @@ class ConversationService:
                 tool_messages.append(ToolMessage(content=result, tool_call_id=tool_id))
                 continue
 
-            # Check if approval is needed based on policy/whitelist
-            # This enables:
-            # - BALANCED policy to auto-approve SAFE commands
-            # - Whitelisted commands to bypass approval
-            # - TRUSTING policy to auto-approve SAFE+CAUTION commands
-            needs_approval = self.tool_registry.needs_approval(tool_name, tool_args)
+            # Always call approval callback if provided (for tool call data collection)
+            # The callback handles checking needs_approval() and showing modals only when needed
+            # This enables BALANCED/TRUSTING policies to auto-approve SAFE/whitelisted commands
+            approved = True  # Default to approved if no callback
 
-            if needs_approval and on_tool_request:
-                # Request approval via callback
+            if on_tool_request:
+                # Create tool request for callback
                 request = ToolRequest(
                     id=tool_id,
                     name=tool_name,
@@ -836,14 +834,6 @@ class ConversationService:
                         ToolMessage(content=result, tool_call_id=tool_id)
                     )
                     continue
-            elif needs_approval and not on_tool_request:
-                # No callback provided but approval needed - deny execution
-                result = (
-                    "Tool execution requires approval but no approval callback provided"
-                )
-                tool_messages.append(ToolMessage(content=result, tool_call_id=tool_id))
-                continue
-            # else: Auto-approved by policy/whitelist, continue to execution
 
             # Execute tool in thread pool
             try:
