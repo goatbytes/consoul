@@ -147,15 +147,19 @@ class TUIToolApprover:
         Converts SDK's simplified ToolRequest to AI layer's ToolApprovalRequest,
         shows approval modal, and returns user's decision.
 
+        Also creates a message bubble to show the tool call in the chat view.
+
         Args:
             request: Tool request from ConversationService
 
         Returns:
             True if approved, False if denied
         """
+        import json
+
         from consoul.ai.tools.approval import ToolApprovalRequest
         from consoul.ai.tools.base import RiskLevel
-        from consoul.tui.widgets import ToolApprovalModal
+        from consoul.tui.widgets import MessageBubble, ToolApprovalModal
 
         # Map risk_level string to RiskLevel enum
         risk_map = {
@@ -174,6 +178,15 @@ class TUIToolApprover:
             description="",  # Could fetch from tool registry if needed
         )
 
+        # Show tool call info in chat view before requesting approval
+        tool_info = f"🔧 **Tool Call**: `{request.name}`\n\n**Arguments**:\n```json\n{json.dumps(request.arguments, indent=2)}\n```"
+        tool_bubble = MessageBubble(
+            tool_info,
+            role="assistant",
+            show_metadata=False,
+        )
+        await self.app.chat_view.add_message(tool_bubble)
+
         # Create future to wait for modal result
         future: asyncio.Future[bool] = asyncio.Future()
 
@@ -187,7 +200,24 @@ class TUIToolApprover:
         self.app.push_screen(ToolApprovalModal(approval_request), on_modal_result)
 
         # Wait for user decision
-        return await future
+        approved = await future
+
+        # Show approval/denial result in chat
+        if approved:
+            status_bubble = MessageBubble(
+                f"✅ Tool `{request.name}` approved - executing...",
+                role="system",
+                show_metadata=False,
+            )
+        else:
+            status_bubble = MessageBubble(
+                f"❌ Tool `{request.name}` denied by user",
+                role="system",
+                show_metadata=False,
+            )
+        await self.app.chat_view.add_message(status_bubble)
+
+        return approved
 
 
 class ConsoulApp(App[None]):
