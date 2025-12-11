@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-10T15:51:32.797576",
-  "updated_at": "2025-12-11T14:41:16.231067",
+  "updated_at": "2025-12-11T14:56:22.523265",
   "id": "SOUL-263",
   "uuid": "40a8af93-db5d-4ed8-b1ab-c843b958c851",
   "title": "Integrate ConversationService into TUI ConsoulApp",
@@ -122,11 +122,24 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-11T14:56:22.523138",
+      "updated_at": "2025-12-11T14:56:22.523139",
+      "id": "20251211145622-75f0467e",
+      "ticket_id": "SOUL-263",
+      "author": "jared@goatbytes.io",
+      "content": "fix(SOUL-263): restore ⛏ tool calls button in assistant MessageBubble - Commit 476243e\n\n**Problem:**\nAfter switching to ConversationService, the ⛏ button in assistant MessageBubble footer was no longer displayed because tool_calls parameter was not being passed to MessageBubble.\n\n**Root Cause:**\nIn v0.3.0, app tracked tool calls in self._tool_call_data and passed them to MessageBubble. With ConversationService, tool execution is handled internally and tool calls are stored in conversation.messages as AIMessage.tool_calls and ToolMessage results.\n\n**Solution:**\nExtract tool call data from conversation history after streaming completes:\n\n1. Find most recent AIMessage with tool_calls from conversation.messages\n2. For each tool call, find corresponding ToolMessage result\n3. Build dict with format: {name, arguments, status, result}\n4. Pass tool_calls_list to MessageBubble\n\n**Implementation Details:**\n```python\n# Extract tool call data from conversation for MessageBubble button\ntool_calls_list = None\nif self.conversation:\n    # Find most recent AIMessage with tool_calls\n    ai_message = next(\n        (msg for msg in reversed(self.conversation.messages)\n         if isinstance(msg, AIMessage) and msg.tool_calls),\n        None\n    )\n    \n    if ai_message and ai_message.tool_calls:\n        # Build tool_calls_list with results from ToolMessages\n        tool_calls_data = []\n        for tool_call in ai_message.tool_calls:\n            # Find corresponding ToolMessage result\n            result = next(\n                (msg.content for msg in self.conversation.messages\n                 if isinstance(msg, ToolMessage) and msg.tool_call_id == tool_call[\"id\"]),\n                None\n            )\n            status = \"ERROR\" if result and \"error\" in result.lower() else \"SUCCESS\"\n            \n            tool_calls_data.append({\n                \"name\": tool_call[\"name\"],\n                \"arguments\": tool_call[\"args\"],\n                \"status\": status,\n                \"result\": result,\n            })\n        \n        tool_calls_list = tool_calls_data if tool_calls_data else None\n\n# Pass to MessageBubble\nfinal_bubble = MessageBubble(..., tool_calls=tool_calls_list)\n```\n\n**Expected Behavior:**\n✅ Assistant MessageBubble shows ⛏ button when tools were executed\n✅ Clicking button shows ToolCallDetailsModal with tool details\n✅ Modal displays: name, arguments, status, and result\n✅ Works for both auto-approved and manually-approved tools\n\n**Note:**\nConversation loading from database (line 5059) already passes tool_calls correctly, so ⛏ button works when switching conversations. This fix ensures it also works for new streaming responses.\n\n**Ready for Re-test:**\nThe ⛏ button should now appear in assistant MessageBubbles when tools are executed.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 8,
+  "comment_count": 9,
   "story_points": 8,
   "order": 0,
   "custom_fields": {}
