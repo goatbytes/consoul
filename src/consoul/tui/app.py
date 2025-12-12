@@ -1797,7 +1797,13 @@ class ConsoulApp(App[None]):
                 # Remove stream widget
                 await stream_widget.remove()
 
+                # =================================================================
+                # SDK → TUI CONVERSION BOUNDARY
+                # =================================================================
                 # Extract tool call data from conversation for MessageBubble button
+                # Converts: AIMessage.tool_calls (LangChain SDK type)
+                #        → list[dict] (simple TUI data model)
+                # This maintains clean separation: SDK (business) vs TUI (presentation)
                 tool_calls_list = None
                 if self.conversation:
                     from langchain_core.messages import AIMessage, ToolMessage
@@ -1841,8 +1847,9 @@ class ConsoulApp(App[None]):
 
                         if tool_calls_data:
                             tool_calls_list = tool_calls_data
+                # =================================================================
 
-                # Convert to message bubble
+                # Create MessageBubble with simple TUI types (no SDK objects)
                 final_bubble = MessageBubble(
                     final_content,
                     role="assistant",

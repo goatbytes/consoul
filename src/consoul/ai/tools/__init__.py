@@ -81,7 +81,9 @@ from consoul.ai.tools.permissions.policy import (
 )
 from consoul.ai.tools.permissions.whitelist import WhitelistManager, WhitelistPattern
 from consoul.ai.tools.registry import ToolRegistry
-from consoul.ai.tools.status import ToolStatus
+
+# ToolStatus moved to TUI layer (consoul.tui.models) but re-exported here for backward compatibility
+from consoul.tui.models import ToolStatus
 
 __all__ = [
     "CACHE_VERSION",

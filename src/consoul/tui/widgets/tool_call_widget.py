@@ -18,7 +18,7 @@ from textual.widgets import Collapsible, Static
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
-    from consoul.ai.tools.status import ToolStatus
+    from consoul.tui.models import ToolStatus
 
 __all__ = ["ToolCallWidget"]
 
@@ -66,7 +66,7 @@ class ToolCallWidget(Container):
             **kwargs: Additional Container arguments
         """
         # Import here to avoid circular dependency
-        from consoul.ai.tools.status import ToolStatus
+        from consoul.tui.models import ToolStatus
 
         # Set non-reactive attributes first
         self.tool_name = tool_name
