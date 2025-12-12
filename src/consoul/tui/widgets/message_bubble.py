@@ -109,15 +109,6 @@ class MessageBubble(Container):
 
     def compose(self) -> ComposeResult:
         """Compose the message bubble with content and metadata."""
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.debug(
-            f"[TOOL_DEBUG] MessageBubble.compose() - role={self.role}, "
-            f"tool_calls={len(self.tool_calls) if self.tool_calls else 0}, "
-            f"show_metadata={self.show_metadata}"
-        )
-
         # Add thinking section if present
         if self.thinking_content:
             with Collapsible(
@@ -141,9 +132,6 @@ class MessageBubble(Container):
 
                 # Add tool calls button if assistant message has tools
                 if self.tool_calls:
-                    logger.debug(
-                        f"[TOOL_DEBUG] MessageBubble.compose() - Yielding tools button for {len(self.tool_calls)} tools"
-                    )
                     yield Button(
                         "⛏",
                         id="tools-button",
@@ -169,32 +157,6 @@ class MessageBubble(Container):
 
     def on_mount(self) -> None:
         """Initialize message bubble on mount."""
-        import logging
-
-        logger = logging.getLogger(__name__)
-
-        # Check if tools button exists after mount
-        try:
-            tools_button = self.query_one("#tools-button", Button)
-            logger.debug(
-                f"[TOOL_DEBUG] MessageBubble.on_mount() - tools button found: {tools_button}"
-            )
-        except Exception as e:
-            logger.debug(
-                f"[TOOL_DEBUG] MessageBubble.on_mount() - tools button NOT found: {e}"
-            )
-
-        # Check if metadata section exists
-        try:
-            metadata = self.query_one(".message-metadata", Horizontal)
-            logger.debug(
-                f"[TOOL_DEBUG] MessageBubble.on_mount() - metadata section found: {metadata}"
-            )
-        except Exception as e:
-            logger.debug(
-                f"[TOOL_DEBUG] MessageBubble.on_mount() - metadata section NOT found: {e}"
-            )
-
         self._update_styling()
         # Set syntax highlighting for thinking content if present
         if self.thinking_content:
