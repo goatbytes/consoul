@@ -289,9 +289,47 @@ class ConversationService:
             # Complex content (multimodal) - use direct append + manual persistence
             from langchain_core.messages import HumanMessage
 
+            # Ensure conversation is created in DB before persisting multimodal message
+            # This matches the logic in add_user_message_async() (history.py:705-716)
+            if (
+                self.conversation.persist
+                and self.conversation._db
+                and not self.conversation._conversation_created
+            ):
+                import asyncio
+
+                loop = asyncio.get_event_loop()
+                self.conversation.session_id = await loop.run_in_executor(
+                    None,
+                    self.conversation._db.create_conversation,
+                    self.conversation.model_name,
+                )
+                self.conversation._conversation_created = True
+
+                # Store any pending metadata
+                if self.conversation._pending_metadata:
+                    await loop.run_in_executor(
+                        None,
+                        self.conversation._db.update_conversation_metadata,
+                        self.conversation.session_id,
+                        self.conversation._pending_metadata,
+                    )
+                    self.conversation._pending_metadata.clear()
+
+                # Persist any existing system messages
+                from langchain_core.messages import SystemMessage
+
+                for msg in self.conversation.messages:
+                    if isinstance(msg, SystemMessage):
+                        await loop.run_in_executor(
+                            None,
+                            self.conversation._persist_message_sync,
+                            msg,
+                        )
+
             message = HumanMessage(content=message_content)  # type: ignore[arg-type]
             self.conversation.messages.append(message)
-            # Persist multimodal message
+            # Persist multimodal message (conversation now guaranteed to be created)
             await self.conversation._persist_message(message)
 
         # Stream response
