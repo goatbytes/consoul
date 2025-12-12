@@ -1,0 +1,30 @@
+{
+  "created_at": "2025-12-11T16:42:58.508123",
+  "updated_at": "2025-12-11T16:42:58.508132",
+  "id": "SOUL-268",
+  "uuid": "ec79fa4e-29a9-42fd-a9ec-80d28d9a372c",
+  "title": "Refactor TUI model initialization to use ModelService",
+  "description": "**As a** Consoul developer\n**I want** TUI model initialization refactored to use ModelService  \n**So that** model management logic is in SDK and reusable across implementations\n\n**Context:**\nCurrently, TUI has ~347 lines of model initialization and management logic embedded in app.py. Additionally, model_picker_modal.py contains 600+ lines of hardcoded model catalog data that belongs in SDK. After SOUL-247 creates ModelService, this ticket refactors TUI to use it. This will:\n- Remove ~347 lines of model init logic (lines 260-607)\n- Move model catalog from TUI to SDK  \n- Simplify model switching\n- Enable model management reuse in CLI/backend\n\n**Dependencies:**\n- **⛔ Blocked by SOUL-247**: ModelService must exist first\n\n**Current State:**\n- app.py lines 260-607: Model initialization from config (347 lines)\n- model_picker_modal.py lines 32-293: Hardcoded model catalog (261 lines)\n- Direct BaseChatModel usage throughout\n- Tool binding mixed with model init\n- Model switching requires full reinitialization\n\n**Target State:**\n- Model init: Delegate to ModelService.from_config()\n- Model catalog: Imported from SDK (sdk/models/catalog.py)\n- Model switching: Simple ModelService.switch_model() call\n- No direct BaseChatModel imports in TUI\n- Model picker queries SDK for available models\n\n**Technical Notes:**\n- Refactor: src/consoul/tui/app.py lines 260-607 (model init)\n- Refactor: src/consoul/tui/widgets/model_picker_modal.py (use SDK catalog)\n- Use: ModelService from src/consoul/sdk/services/model.py (after SOUL-247)\n- Use: Model catalog from src/consoul/sdk/models/catalog.py (after SOUL-247)\n- Remove: from langchain_core.language_models import BaseChatModel\n- Remove: Direct get_chat_model() calls (use service instead)\n- Keep: Model picker modal UI (ModelPickerModal)\n- Keep: Model display in top bar\n\n**Acceptance Criteria:**\n\n**Given** ModelService exists from SOUL-247\n**When** I refactor TUI to use it\n**Then** app.py is reduced by ~350 lines\n\n**Given** App needs to initialize model\n**When** App starts\n**Then** ModelService.from_config() handles initialization\n\n**Given** User selects a new model\n**When** Model picker is used\n**Then** ModelService.switch_model() is called, not manual reinitialization\n\n**Given** Model picker needs model list\n**When** Modal opens\n**Then** It queries ModelService.list_models() for current data\n\n**Given** TUI uses ModelService\n**When** I search for \"BaseChatModel\" in tui/\n**Then** Zero direct usages found (only in service layer)\n\n**Testing Considerations:**\n- Test model initialization on app startup\n- Test model switching via picker modal\n- Test different providers (OpenAI, Anthropic, Google, Ollama)\n- Test model-specific features (vision, tool calling)\n- Verify context limits are respected\n- Test error handling for missing API keys\n- Verify model catalog data is accurate\n\n**Implementation Hints:**\n- Replace _initialize_ai_model() with self.model_service = ModelService.from_config(config)\n- Update model picker to call model_service.list_models()\n- Replace _bind_tools_to_model() with ModelService method\n- Update model switching: await self.model_service.switch_model(model_name)\n- Remove lines 260-607 from app.py\n- Move MODEL_CATALOG from model_picker_modal.py to SDK\n- Update ConversationService to use ModelService\n- Update type hints: remove BaseChatModel imports\n\nExpected line reduction: ~350 lines from app.py, ~260 lines from model_picker_modal.py",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "tui",
+    "sdk",
+    "refactor",
+    "providers",
+    "blocked"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-013",
+  "parent_id": "SOUL-249",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

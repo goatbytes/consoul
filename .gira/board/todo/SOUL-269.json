@@ -1,0 +1,29 @@
+{
+  "created_at": "2025-12-11T16:43:28.171475",
+  "updated_at": "2025-12-11T16:43:28.171483",
+  "id": "SOUL-269",
+  "uuid": "47308e12-2acf-4b12-81c2-4fabbf54d158",
+  "title": "Create TUI data models and eliminate direct SDK type usage",
+  "description": "**As a** Consoul developer\n**I want** TUI widgets to use simple TUI-specific data models instead of SDK types\n**So that** TUI is decoupled from SDK internal changes and has cleaner interfaces\n\n**Context:**\nCurrently, TUI widgets receive complex SDK types (BaseChatModel, ToolMetadata, ParsedToolCall, etc.) which creates tight coupling. Best practice for layered architecture is:\n- SDK Layer: Business logic, complex types, LangChain integration\n- TUI Layer: UI rendering, simple display models, Textual widgets\n\nThis ticket creates src/consoul/tui/models.py with simple dataclasses for TUI display, then updates widgets to use them. This:\n- Decouples TUI from SDK type changes\n- Simplifies widget interfaces\n- Makes widgets easier to test (no SDK mocking needed)\n- Enables better separation of concerns\n\n**Current State:**\n- Widgets import SDK types directly\n- MessageBubble, ToolCallWidget, etc. receive complex objects\n- ~56 SDK imports scattered across tui/ directory\n- Type hints expose SDK internals to UI code\n\n**Target State:**\n- TUI data models in src/consoul/tui/models.py:\n  - MessageDisplay: Simple message data for UI\n  - ToolCallDisplay: Tool call visualization data\n  - ModelDisplay: Model info for picker/display\n  - ConversationDisplay: Conversation metadata\n- Widgets accept only TUI models\n- App.py converts SDK → TUI models at boundary\n- SDK imports reduced from 56 to <20\n\n**Technical Notes:**\n- Create new: src/consoul/tui/models.py\n- Define: MessageDisplay, ToolCallDisplay, ModelDisplay, etc. as @dataclass\n- Update: All widgets in src/consoul/tui/widgets/ to accept TUI models\n- Update: app.py to convert SDK types → TUI models before passing to widgets\n- Remove: Unnecessary SDK imports from widgets\n- Keep: Essential imports (ConversationService, Config types)\n- Pattern: SDK → TUI conversion happens in app.py only\n\n**Acceptance Criteria:**\n\n**Given** TUI data models exist\n**When** I review widget signatures\n**Then** All widgets accept only TUI models, not SDK types\n\n**Given** MessageBubble needs data\n**When** App creates it\n**Then** App converts AIMessage → MessageDisplay before passing\n\n**Given** ToolCallWidget needs data\n**When** Tool execution completes\n**Then** App converts ToolMessage → ToolCallDisplay\n\n**Given** Model picker needs data\n**When** Modal opens\n**Then** App converts ModelInfo → ModelDisplay list\n\n**Given** TUI models are used\n**When** I count SDK imports in tui/\n**Then** Count is reduced from 56 to <20\n\n**Testing Considerations:**\n- Test widget rendering with TUI models\n- Verify all message types display correctly\n- Test tool call visualization\n- Test model picker functionality\n- Verify conversation history loads\n- Check that no SDK types leak into widgets\n- Test type checking passes (mypy)\n\n**Implementation Hints:**\n\nCreate tui/models.py with:\n```python\nfrom dataclasses import dataclass\nfrom datetime import datetime\n\n@dataclass\nclass MessageDisplay:\n    content: str\n    role: str  # \"user\" | \"assistant\" | \"system\"\n    timestamp: datetime\n    token_count: int | None = None\n    thinking_content: str | None = None\n    # ... display-specific fields only\n\n@dataclass\nclass ToolCallDisplay:\n    name: str\n    arguments: dict\n    status: str  # \"SUCCESS\" | \"ERROR\" | \"PENDING\"\n    result: str | None = None\n    # ... display-specific fields only\n\n@dataclass  \nclass ModelDisplay:\n    id: str\n    name: str\n    provider: str\n    context_window: int\n    supports_vision: bool\n    # ... display-specific fields only\n```\n\nUpdate widgets:\n- MessageBubble.__init__(message: MessageDisplay, ...)\n- ToolCallWidget.__init__(tool_call: ToolCallDisplay, ...)\n- ModelPickerModal: Accept list[ModelDisplay]\n\nAdd conversion in app.py:\n- _to_message_display(ai_message: AIMessage) → MessageDisplay\n- _to_tool_display(tool_message: ToolMessage) → ToolCallDisplay\n- _to_model_displays(models: list[ModelInfo]) → list[ModelDisplay]\n\nExpected line reduction: ~100-200 lines (simplified widgets, removed imports)",
+  "status": "todo",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "refactor",
+    "architecture",
+    "models"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-013",
+  "parent_id": "SOUL-249",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

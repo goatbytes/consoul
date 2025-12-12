@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-10T00:50:37.810446",
-  "updated_at": "2025-12-10T00:50:37.810447",
+  "updated_at": "2025-12-12T00:43:59.966141Z",
   "id": "EPIC-013",
   "title": "Create SDK Service Layer",
   "description": "Phase 1 of EPIC-012: Create service facade pattern to encapsulate business logic currently embedded in TUI. Extract ConversationService, ToolService, and ModelService to provide clean SDK interfaces. Contains 4 tickets totaling 39 story points (~4 weeks effort). This is the critical path work that unblocks all other decoupling efforts and enables FastAPI/WebSocket development.",
@@ -12,7 +12,12 @@
     "SOUL-245",
     "SOUL-246",
     "SOUL-247",
-    "SOUL-249"
+    "SOUL-249",
+    "SOUL-265",
+    "SOUL-267",
+    "SOUL-268",
+    "SOUL-269",
+    "SOUL-270"
   ],
   "comments": [],
   "comment_count": 0,
