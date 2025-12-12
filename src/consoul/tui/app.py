@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from consoul.config import ConsoulConfig
     from consoul.config.models import ProfileConfig
     from consoul.sdk.models import Attachment, ToolRequest
-    from consoul.sdk.services.conversation import ConversationService
+    from consoul.sdk.services import ConversationService
     from consoul.tui.widgets import (
         ContextualTopBar,
         InputArea,
@@ -416,201 +416,6 @@ class ConsoulApp(App[None]):
 
         return conversation
 
-    def _initialize_tool_registry(self, config: ConsoulConfig) -> ToolRegistry | None:
-        """Initialize tool registry with configured tools.
-
-        Args:
-            config: ConsoulConfig with tool settings
-
-        Returns:
-            Initialized ToolRegistry or None if tools disabled
-        """
-        # Check if tools are enabled
-        if not config.tools or not config.tools.enabled:
-            return None
-
-        # Import all tool modules
-        from consoul.ai.tools import ToolRegistry
-        from consoul.ai.tools.catalog import (
-            TOOL_CATALOG,
-            get_all_tool_names,
-            get_tool_by_name,
-            get_tools_by_risk_level,
-        )
-        from consoul.ai.tools.implementations import (
-            set_analyze_images_config,
-            set_bash_config,
-            set_code_search_config,
-            set_file_edit_config,
-            set_find_references_config,
-            set_grep_search_config,
-            set_read_config,
-            set_read_url_config,
-            set_web_search_config,
-            set_wikipedia_config,
-        )
-        from consoul.ai.tools.providers import CliApprovalProvider
-
-        # Configure bash tool with profile settings
-        if config.tools.bash:
-            set_bash_config(config.tools.bash)
-
-        # Configure read tool with profile settings
-        if config.tools.read:
-            set_read_config(config.tools.read)
-
-        # Configure grep_search tool with profile settings
-        if config.tools.grep_search:
-            set_grep_search_config(config.tools.grep_search)
-
-        # Configure code_search tool with profile settings
-        if config.tools.code_search:
-            set_code_search_config(config.tools.code_search)
-
-        # Configure find_references tool with profile settings
-        if config.tools.find_references:
-            set_find_references_config(config.tools.find_references)
-
-        # Configure web_search tool with profile settings
-        if config.tools.web_search:
-            set_web_search_config(config.tools.web_search)
-
-        # Configure wikipedia_search tool with profile settings
-        if config.tools.wikipedia:
-            set_wikipedia_config(config.tools.wikipedia)
-
-        # Configure read_url tool with profile settings
-        if config.tools.read_url:
-            set_read_url_config(config.tools.read_url)
-
-        # Configure file_edit tool with profile settings
-        if config.tools.file_edit:
-            set_file_edit_config(config.tools.file_edit)
-
-        # Configure image_analysis tool with profile settings
-        if config.tools.image_analysis:
-            set_analyze_images_config(config.tools.image_analysis)
-
-        # Determine which tools to register based on config
-        # Note: We always register ALL tools in the registry so Tool Manager can show them all
-        # The enabled/disabled state is set based on config (allowed_tools, risk_filter, or default)
-
-        # Get all available tools
-        all_tools = list(TOOL_CATALOG.values())
-
-        # Determine which tools should be ENABLED based on config
-        # Precedence: allowed_tools > risk_filter > all tools (default)
-        enabled_tool_names = set()  # Set of tool.name values that should be enabled
-
-        if config.tools.allowed_tools is not None:
-            # Explicit whitelist takes precedence (even if empty)
-            normalized_tool_names = []  # Actual tool.name values for registry
-            invalid_tools = []
-
-            for tool_name in config.tools.allowed_tools:
-                result = get_tool_by_name(tool_name)
-                if result:
-                    tool, risk_level, _categories = result
-                    # Store the actual tool.name for execution whitelist
-                    normalized_tool_names.append(tool.name)
-                    enabled_tool_names.add(tool.name)
-                else:
-                    invalid_tools.append(tool_name)
-
-            # Error if any invalid tool names
-            if invalid_tools:
-                available = get_all_tool_names()
-                raise ValueError(
-                    f"Invalid tool names in allowed_tools: {invalid_tools}. "
-                    f"Available tools: {available}"
-                )
-
-            # Normalize allowed_tools to actual tool.name values for execution checks
-            # This ensures friendly names like "bash" work with ToolRegistry.is_allowed()
-            # which checks against tool.name like "bash_execute"
-            config.tools.allowed_tools = normalized_tool_names
-
-            self.log.info(
-                f"Enabled {len(enabled_tool_names)} tools from allowed_tools "
-                f"{'(chat-only mode)' if len(enabled_tool_names) == 0 else 'whitelist'}"
-            )
-
-        elif config.tools.risk_filter:
-            # Risk-based filtering: enable tools up to specified risk level
-            tools_by_risk = get_tools_by_risk_level(config.tools.risk_filter)
-
-            # Enable tools that match risk filter
-            for tool, _risk_level, _categories in tools_by_risk:
-                enabled_tool_names.add(tool.name)
-
-            # DO NOT populate allowed_tools - leave empty for risk_filter.
-            #
-            # Why: Populating allowed_tools would bypass risk-based approval workflow.
-            # The approval flow checks _is_whitelisted() BEFORE checking risk levels,
-            # so adding all filtered tools to allowed_tools would auto-approve them
-            # regardless of permission_policy settings (src/consoul/ai/tools/permissions/policy.py:307).
-            #
-            # Security model:
-            # - risk_filter controls which tools are ENABLED
-            # - permission_policy controls APPROVAL (which tools need confirmation)
-            # - Both work together: risk_filter limits capabilities, policy controls UX
-            #
-            # Example: risk_filter="caution" + permission_policy="balanced"
-            # - Enables: SAFE + CAUTION tools (12 total)
-            # - Auto-approves: SAFE tools only
-            # - Prompts for: CAUTION tools (file edits, bash, etc.)
-            #
-            # Note: risk_filter is incompatible with approval_mode="whitelist".
-            # Use permission_policy (BALANCED/TRUSTING/etc) instead.
-
-            self.log.info(
-                f"Enabled {len(enabled_tool_names)} tools with "
-                f"risk_filter='{config.tools.risk_filter}'"
-            )
-
-        else:
-            # Default: enable all tools (backward compatible)
-            for tool, _risk_level, _categories in all_tools:
-                enabled_tool_names.add(tool.name)
-
-            self.log.info(
-                f"Enabled all {len(enabled_tool_names)} available tools (no filters specified)"
-            )
-
-        # Create registry with CLI provider (we override approval in _request_tool_approval)
-        # The provider is required by registry but we don't use it - we show our own modal
-        # NOTE: If allowed_tools was specified, it has been normalized to actual tool names
-        tool_registry = ToolRegistry(
-            config=config.tools,
-            approval_provider=CliApprovalProvider(),  # Required but unused
-        )
-
-        # Register ALL tools with appropriate enabled state
-        # This ensures Tool Manager shows all available tools (not just enabled ones)
-        for tool, risk_level, _categories in all_tools:
-            # Tool is enabled if its name is in the enabled_tool_names set
-            is_enabled = tool.name in enabled_tool_names
-            tool_registry.register(tool, risk_level=risk_level, enabled=is_enabled)
-
-        # NOTE: analyze_images tool registration disabled for SOUL-116
-        # The tool is meant for LLM-initiated image analysis, but for SOUL-116
-        # we handle image references directly by creating multimodal messages.
-        # Re-enable this when implementing SOUL-115 use case.
-        # self._sync_vision_tool_registration()
-
-        # Get tool metadata list
-        tool_metadata_list = tool_registry.list_tools(enabled_only=True)
-
-        self.log.info(
-            f"Initialized tool registry with {len(tool_metadata_list)} enabled tools"
-        )
-
-        # Set tools_total for top bar display (total registered tools)
-        if hasattr(self, "top_bar"):
-            self.top_bar.tools_total = len(all_tools)
-
-        return tool_registry
-
     def _auto_resume_if_enabled(
         self, conversation: ConversationHistory, profile: ProfileConfig
     ) -> ConversationHistory:
@@ -910,9 +715,22 @@ class ConsoulApp(App[None]):
             step_start = time.time()
             if loading_screen:
                 loading_screen.update_progress("Loading tools...", 60)  # type: ignore[attr-defined]
-            self.tool_registry = await self._run_in_thread(
-                self._initialize_tool_registry, consoul_config
-            )
+
+            # Initialize tool service (replaces _initialize_tool_registry)
+            if consoul_config.tools and consoul_config.tools.enabled:
+                from consoul.sdk.services import ToolService
+
+                tool_service = await self._run_in_thread(
+                    ToolService.from_config, consoul_config
+                )
+                self.tool_registry = tool_service.tool_registry
+
+                # Set tools_total for top bar display
+                if hasattr(self, "top_bar"):
+                    self.top_bar.tools_total = tool_service.get_tools_count()
+            else:
+                self.tool_registry = None
+
             logger.info(
                 f"[PERF] Step 4 (Load tools): {(time.time() - step_start) * 1000:.1f}ms"
             )
