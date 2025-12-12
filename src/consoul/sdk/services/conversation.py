@@ -277,14 +277,22 @@ class ConversationService:
             ... ):
             ...     print(token, end="")
         """
-        from langchain_core.messages import HumanMessage
-
         # Prepare user message with attachments
         message_content = self._prepare_user_message(content, attachments)
 
-        # Create HumanMessage and add to conversation
-        message = HumanMessage(content=message_content)  # type: ignore[arg-type]
-        self.conversation.messages.append(message)
+        # Add user message to conversation with persistence
+        # Use add_user_message_async() instead of direct append to ensure DB persistence
+        if isinstance(message_content, str):
+            # Simple text message
+            await self.conversation.add_user_message_async(message_content)
+        else:
+            # Complex content (multimodal) - use direct append + manual persistence
+            from langchain_core.messages import HumanMessage
+
+            message = HumanMessage(content=message_content)  # type: ignore[arg-type]
+            self.conversation.messages.append(message)
+            # Persist multimodal message
+            await self.conversation._persist_message(message)
 
         # Stream response
         async for token in self._stream_response(on_tool_request):
@@ -518,17 +526,21 @@ class ConversationService:
         if collected_chunks:
             final_message = self._reconstruct_message(collected_chunks)
 
-            # Add AI message to conversation history
+            # Add AI message to conversation history with persistence
             self.conversation.messages.append(final_message)
+            # Persist assistant message to database
+            await self.conversation._persist_message(final_message)
 
             # Handle tool calls if present
             if final_message.tool_calls and self.tool_registry:
                 tool_results = await self._execute_tool_calls(
                     final_message.tool_calls, on_tool_request
                 )
-                # Add tool results to conversation
+                # Add tool results to conversation with persistence
                 for result in tool_results:
                     self.conversation.messages.append(result)
+                    # Persist each tool result message
+                    await self.conversation._persist_message(result)
 
                 # Stream next iteration with tool results
                 async for token in self._stream_response(on_tool_request):
