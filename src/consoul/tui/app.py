@@ -3423,24 +3423,11 @@ class ConsoulApp(App[None]):
             new_persist = self.active_profile.conversation.persist
 
             # Persist profile selection to config file
-            from pathlib import Path
-
-            from consoul.config.loader import find_config_files, save_config
+            from consoul.tui.services import ProfileManager
 
             try:
-                # Determine config file path (prefer project, fallback to global)
-                global_config, project_config = find_config_files()
-                config_path = project_config or global_config
-
-                # If no config exists, create global config
-                if not config_path:
-                    config_path = Path.home() / ".consoul" / "config.yaml"
-
-                # Save updated config
-                save_config(self.consoul_config, config_path)
-                self.log.info(
-                    f"Profile selection saved to {config_path}: {profile_name}"
-                )
+                ProfileManager.save_profile_config(self.consoul_config)
+                self.log.info(f"Profile selection saved: {profile_name}")
             except Exception as save_error:
                 # Log but don't fail the profile switch - it's already applied in memory
                 self.log.warning(
@@ -3534,10 +3521,19 @@ class ConsoulApp(App[None]):
             )
 
         except Exception as e:
-            # Disable markup to avoid markup errors from validation messages
-            error_msg = str(e).replace("[", "\\[")
-            self.notify(f"Failed to switch profile: {error_msg}", severity="error")
-            self.log.error(f"Profile switch failed: {e}", exc_info=True)
+            self._handle_profile_error("switch", e)
+
+    def _handle_profile_error(self, operation: str, error: Exception) -> None:
+        """Handle profile operation errors with consistent formatting.
+
+        Args:
+            operation: Operation that failed (e.g., "create", "update", "delete", "switch")
+            error: Exception that was raised
+        """
+        # Escape markup characters to avoid formatting errors
+        error_msg = str(error).replace("[", "\\[")
+        self.notify(f"Failed to {operation} profile: {error_msg}", severity="error")
+        self.log.error(f"Profile {operation} failed: {error}", exc_info=True)
 
     def _handle_create_profile(self) -> None:
         """Handle create new profile action from ProfileSelectorModal."""
@@ -3551,26 +3547,18 @@ class ConsoulApp(App[None]):
                 return
 
             try:
-                from consoul.config.loader import find_config_files, save_config
-                from consoul.config.profiles import get_builtin_profiles
+                from consoul.tui.services import ProfileManager
 
-                # Ensure we're not trying to create a built-in profile
-                if new_profile.name in get_builtin_profiles():
-                    self.notify(
-                        f"Cannot create profile '{new_profile.name}': name is reserved for built-in profiles",
-                        severity="error",
-                    )
+                # Validate creation
+                is_valid, error = ProfileManager.validate_create(
+                    new_profile.name, self.consoul_config.profiles
+                )
+                if not is_valid and error:
+                    self.notify(error, severity="error")
                     return
 
-                # Add to config
-                self.consoul_config.profiles[new_profile.name] = new_profile
-
-                # Save to disk
-                global_path, project_path = find_config_files()
-                save_path = project_path if project_path else global_path
-                if not save_path:
-                    save_path = Path.home() / ".consoul" / "config.yaml"
-                save_config(self.consoul_config, save_path)
+                # Create profile and save
+                ProfileManager.create_profile(self.consoul_config, new_profile)
 
                 self.notify(
                     f"Profile '{new_profile.name}' created successfully",
@@ -3579,9 +3567,7 @@ class ConsoulApp(App[None]):
                 self.log.info(f"Created new profile: {new_profile.name}")
 
             except Exception as e:
-                error_msg = str(e).replace("[", "\\[")
-                self.notify(f"Failed to create profile: {error_msg}", severity="error")
-                self.log.error(f"Profile creation failed: {e}", exc_info=True)
+                self._handle_profile_error("create", e)
 
         from consoul.config.profiles import get_builtin_profiles
         from consoul.tui.widgets import ProfileEditorModal
@@ -3610,14 +3596,12 @@ class ConsoulApp(App[None]):
             self.notify(f"Profile '{profile_name}' not found", severity="error")
             return
 
-        # Check if it's a built-in profile
-        from consoul.config.profiles import get_builtin_profiles
+        # Validate editing
+        from consoul.tui.services import ProfileManager
 
-        if profile_name in get_builtin_profiles():
-            self.notify(
-                f"Cannot edit built-in profile '{profile_name}'. Create a copy instead.",
-                severity="error",
-            )
+        is_valid, error = ProfileManager.validate_edit(profile_name)
+        if not is_valid and error:
+            self.notify(error, severity="error")
             return
 
         profile_to_edit = self.consoul_config.profiles[profile_name]
@@ -3628,26 +3612,15 @@ class ConsoulApp(App[None]):
                 return
 
             try:
-                from consoul.config.loader import find_config_files, save_config
+                # Update profile and check if name changed
+                name_changed = ProfileManager.update_profile(
+                    self.consoul_config, profile_name, updated_profile
+                )
 
-                # Remove old profile if name changed
-                if updated_profile.name != profile_name:
-                    del self.consoul_config.profiles[profile_name]
-
-                    # If we were using the old profile, switch to the new name
-                    if self.current_profile == profile_name:
-                        self.current_profile = updated_profile.name
-                        self.consoul_config.active_profile = updated_profile.name
-
-                # Update/add profile
-                self.consoul_config.profiles[updated_profile.name] = updated_profile
-
-                # Save to disk
-                global_path, project_path = find_config_files()
-                save_path = project_path if project_path else global_path
-                if not save_path:
-                    save_path = Path.home() / ".consoul" / "config.yaml"
-                save_config(self.consoul_config, save_path)
+                # If name changed and this was current profile, update current_profile
+                if name_changed and self.current_profile == profile_name:
+                    self.current_profile = updated_profile.name
+                    self.consoul_config.active_profile = updated_profile.name
 
                 self.notify(
                     f"Profile '{updated_profile.name}' updated successfully",
@@ -3663,9 +3636,7 @@ class ConsoulApp(App[None]):
                     self._update_top_bar_state()
 
             except Exception as e:
-                error_msg = str(e).replace("[", "\\[")
-                self.notify(f"Failed to update profile: {error_msg}", severity="error")
-                self.log.error(f"Profile update failed: {e}", exc_info=True)
+                self._handle_profile_error("update", e)
 
         from consoul.config.profiles import get_builtin_profiles
         from consoul.tui.widgets import ProfileEditorModal
@@ -3694,22 +3665,14 @@ class ConsoulApp(App[None]):
             self.notify(f"Profile '{profile_name}' not found", severity="error")
             return
 
-        # Check if it's a built-in profile
-        from consoul.config.profiles import get_builtin_profiles
+        # Validate deletion
+        from consoul.tui.services import ProfileManager
 
-        if profile_name in get_builtin_profiles():
-            self.notify(
-                f"Cannot delete built-in profile '{profile_name}'",
-                severity="error",
-            )
-            return
-
-        # Check if it's the current profile
-        if profile_name == self.current_profile:
-            self.notify(
-                f"Cannot delete current profile '{profile_name}'. Switch to another profile first.",
-                severity="error",
-            )
+        is_valid, error = ProfileManager.validate_delete(
+            profile_name, self.current_profile
+        )
+        if not is_valid and error:
+            self.notify(error, severity="error")
             return
 
         # Show confirmation dialog
@@ -3719,17 +3682,8 @@ class ConsoulApp(App[None]):
                 return
 
             try:
-                from consoul.config.loader import find_config_files, save_config
-
-                # Delete from config
-                del self.consoul_config.profiles[profile_name]
-
-                # Save to disk
-                global_path, project_path = find_config_files()
-                save_path = project_path if project_path else global_path
-                if not save_path:
-                    save_path = Path.home() / ".consoul" / "config.yaml"
-                save_config(self.consoul_config, save_path)
+                # Delete profile and save
+                ProfileManager.delete_profile(self.consoul_config, profile_name)
 
                 self.notify(
                     f"Profile '{profile_name}' deleted successfully",
@@ -3738,9 +3692,7 @@ class ConsoulApp(App[None]):
                 self.log.info(f"Deleted profile: {profile_name}")
 
             except Exception as e:
-                error_msg = str(e).replace("[", "\\[")
-                self.notify(f"Failed to delete profile: {error_msg}", severity="error")
-                self.log.error(f"Profile deletion failed: {e}", exc_info=True)
+                self._handle_profile_error("delete", e)
 
         # Use Textual's built-in question dialog if available
         # For now, just confirm and delete (could enhance with custom confirmation modal)
