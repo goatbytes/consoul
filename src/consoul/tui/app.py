@@ -1563,6 +1563,9 @@ class ConsoulApp(App[None]):
             # Finalize stream if we got any tokens
             if stream_widget:
                 final_content = "".join(collected_content)
+                self.log.debug(
+                    f"[STREAM] Finalizing stream, content_length={len(final_content)}"
+                )
                 await stream_widget.finalize_stream()
 
                 # Remove stream widget
@@ -1631,6 +1634,52 @@ class ConsoulApp(App[None]):
 
                 # Add final bubble to chat view
                 await self.chat_view.add_message(final_bubble)
+
+                # Generate title if this is the first exchange
+                self.log.debug(
+                    f"[TITLE] Checking title generation conditions: "
+                    f"title_generator={self.title_generator is not None}, "
+                    f"conversation={self.conversation is not None}"
+                )
+                if self.conversation:
+                    user_msgs = sum(
+                        1 for m in self.conversation.messages if m.type == "human"
+                    )
+                    assistant_msgs = sum(
+                        1 for m in self.conversation.messages if m.type == "ai"
+                    )
+                    self.log.debug(
+                        f"[TITLE] Message counts: user_msgs={user_msgs}, assistant_msgs={assistant_msgs}"
+                    )
+
+                should_generate = self._should_generate_title()
+                self.log.debug(f"[TITLE] _should_generate_title()={should_generate}")
+
+                if self.title_generator and self.conversation and should_generate:
+                    self.log.debug("Triggering title generation for first exchange")
+                    # Get first user message (skip system messages)
+                    user_msg = None
+                    for msg in self.conversation.messages:
+                        if msg.type == "human":
+                            user_msg = msg.content
+                            break
+
+                    if user_msg and self.conversation.session_id:
+                        # Run title generation in background (non-blocking)
+                        self.run_worker(
+                            self._generate_and_save_title(
+                                self.conversation.session_id,
+                                user_msg,  # type: ignore[arg-type]
+                                final_content,
+                            ),
+                            exclusive=False,
+                            name=f"title_gen_{self.conversation.session_id}",
+                        )
+                    else:
+                        self.log.warning(
+                            f"Cannot generate title: user_msg={bool(user_msg)}, "
+                            f"session_id={self.conversation.session_id}"
+                        )
             else:
                 # No tokens received - hide typing indicator and show error
                 await self.chat_view.hide_typing_indicator()
@@ -1857,8 +1906,20 @@ Output:
                 Attachment(path=f.path, type=f.type) for f in attached_files
             ]
 
+            # Start streaming AI response via ConversationService
+            # This will add the message to conversation before yielding tokens
+            # Note: ConversationService will create the conversation in DB on first message
+            await self._stream_via_conversation_service(
+                content=final_message,
+                attachments=sdk_attachments if sdk_attachments else None,
+            )
+
+            # Sync conversation_id after streaming (in case it was created/updated by service)
+            if self.conversation and self.conversation.session_id:
+                self.conversation_id = self.conversation.session_id
+
             # Add new conversation to list if first message
-            # Do this before streaming so the conversation appears immediately
+            # Do this AFTER streaming so we have the correct conversation_id from DB
             if (
                 is_first_message
                 and hasattr(self, "conversation_list")
@@ -1866,13 +1927,6 @@ Output:
             ):
                 await self.conversation_list.prepend_conversation(self.conversation_id)
                 self._update_top_bar_state()
-
-            # Start streaming AI response via ConversationService
-            # This will add the message to conversation before yielding tokens
-            await self._stream_via_conversation_service(
-                content=final_message,
-                attachments=sdk_attachments if sdk_attachments else None,
-            )
 
             # Persist attachments after streaming completes (message is now in conversation)
             user_message_id = None
