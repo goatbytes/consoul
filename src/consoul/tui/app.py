@@ -991,15 +991,12 @@ class ConsoulApp(App[None]):
     ) -> None:
         """Stream AI response using ConversationService.
 
-        Simplified streaming that delegates all business logic to the service layer,
-        keeping only UI presentation logic in the TUI.
+        Delegates to StreamingOrchestrator for complete streaming workflow.
 
         Args:
             content: User message content
             attachments: Optional list of file attachments
         """
-        from consoul.tui.utils import StreamingWidgetManager
-
         if not self.conversation_service:
             from consoul.tui.utils import create_error_bubble
 
@@ -1007,80 +1004,16 @@ class ConsoulApp(App[None]):
             await self.chat_view.add_message(error_bubble)
             return
 
-        # Update streaming state
-        self.streaming = True
-        self._update_top_bar_state()
+        from consoul.tui.services.streaming_orchestrator import StreamingOrchestrator
 
-        # Create streaming widget manager
-        stream_manager = StreamingWidgetManager(self.chat_view)
+        orchestrator = StreamingOrchestrator(
+            conversation_service=self.conversation_service,
+            chat_view=self.chat_view,
+            app=self,
+        )
 
         try:
-            # Create tool approver for this conversation
-            tool_approver = TUIToolApprover(self)
-
-            # Track first token to initialize stream widget
-            first_token = True
-
-            async for token in self.conversation_service.send_message(
-                content,
-                attachments=attachments,
-                on_tool_request=tool_approver.on_tool_request,
-            ):
-                # On first token, create and show stream widget
-                if first_token:
-                    stream_widget = await stream_manager.start_streaming()
-                    self._current_stream = stream_widget
-                    first_token = False
-
-                # Check for cancellation
-                if self._stream_cancelled:
-                    await stream_manager.cancel_stream()
-                    return
-
-                # Add token to stream
-                await stream_manager.add_token(token.content, token.cost)
-
-            # Finalize stream if we got any tokens
-            if stream_manager.stream_widget:
-                final_bubble = await stream_manager.finalize_stream(
-                    self.conversation_service
-                )
-
-                # Generate title if this is the first exchange
-                if final_bubble:
-                    should_generate = self._should_generate_title()
-                    if self.title_generator and self.conversation and should_generate:
-                        # Get first user message (skip system messages)
-                        user_msg = None
-                        for msg in self.conversation.messages:
-                            if msg.type == "human":
-                                user_msg = msg.content
-                                break
-
-                        if user_msg and self.conversation.session_id:
-                            # Run title generation in background (non-blocking)
-                            self.run_worker(
-                                self._generate_and_save_title(
-                                    self.conversation.session_id,
-                                    user_msg,  # type: ignore[arg-type]
-                                    "".join(stream_manager.collected_content),
-                                ),
-                                exclusive=False,
-                                name=f"title_gen_{self.conversation.session_id}",
-                            )
-                        else:
-                            self.log.warning(
-                                f"Cannot generate title: user_msg={bool(user_msg)}, "
-                                f"session_id={self.conversation.session_id}"
-                            )
-            else:
-                # No tokens received - show error
-                await stream_manager.show_no_response_error()
-
-        except Exception as e:
-            logger.error(f"Error streaming via ConversationService: {e}", exc_info=True)
-            await stream_manager.handle_stream_error(e)
-
+            await orchestrator.stream_message(content, attachments)
         finally:
             # Reset streaming state
             self.streaming = False
@@ -1093,155 +1026,17 @@ class ConsoulApp(App[None]):
     ) -> None:
         """Handle user message submission from InputArea.
 
+        Delegates to MessageSubmissionOrchestrator for complete workflow.
+
         Args:
             event: MessageSubmit event containing user's message content
         """
-        from consoul.tui.widgets import MessageBubble
-
-        user_message = event.content
-
-        # Inject pending command output if available
-        if self._pending_command_output:
-            from consoul.tui.utils import inject_command_output
-
-            command, output = self._pending_command_output
-            user_message = inject_command_output(user_message, command, output)
-            self.log.info("[COMMAND_INJECT] Injected command output into user message")
-            # Clear buffer after injection
-            self._pending_command_output = None
-
-        # Check if AI model is available
-        if self.chat_model is None or self.conversation is None:
-            from consoul.tui.utils import create_model_not_initialized_error
-
-            error_bubble = create_model_not_initialized_error()
-            await self.chat_view.add_message(error_bubble)
-            return
-
-        # Reset tool call tracking for new user message
-        self._tool_results = {}
-        self._tool_call_iterations = 0
-        if hasattr(self, "_last_tool_signature"):
-            del self._last_tool_signature
-
-        # Clear the "user scrolled away" flag when they submit a new message
-        # This re-enables auto-scroll for the new conversation turn
-        # IMPORTANT: Clear this BEFORE adding the message so add_message() will scroll
-        self.chat_view._user_scrolled_away = False
-
-        # Add user message to chat view FIRST for immediate visual feedback
-        user_bubble = MessageBubble(user_message, role="user", show_metadata=True)
-        await self.chat_view.add_message(user_bubble)
-
-        # Show typing indicator immediately
-        await self.chat_view.show_typing_indicator()
-
-        # The real issue: everything after this point blocks the event loop
-        # We need to move ALL remaining work to a background worker
-        # so the UI stays responsive during "Thinking..." phase
-
-        # Track if this is the first message (conversation not yet in DB)
-        is_first_message = (
-            self.conversation.persist and not self.conversation._conversation_created
-        )
-        logger.debug(
-            f"[MESSAGE_SUBMIT] is_first_message={is_first_message}, "
-            f"persist={self.conversation.persist}, "
-            f"_conversation_created={self.conversation._conversation_created}, "
-            f"session_id={self.conversation.session_id}, "
-            f"message_count={len(self.conversation.messages)}"
+        from consoul.tui.services.message_submission_orchestrator import (
+            MessageSubmissionOrchestrator,
         )
 
-        # Note: Message adding is now handled by ConversationService.send_message()
-        # No need to manually create HumanMessage
-
-        # Get attached files from InputArea
-        input_area = self.query_one(InputArea)
-        attached_files = input_area.attached_files.copy()
-
-        # Process attachments using utility functions
-        from consoul.tui.utils import (
-            process_image_attachments,
-            process_text_attachments,
-        )
-
-        # Process text file attachments - prepend to message
-        final_message = process_text_attachments(attached_files, user_message)
-
-        # Process image attachments - combine attached + auto-detected
-        all_image_paths = process_image_attachments(
-            attached_files, user_message, self.consoul_config
-        )
-
-        # Check if model supports vision
-        model_supports_vision = self._model_supports_vision()
-        logger.info(f"[IMAGE_DETECTION] Model supports vision: {model_supports_vision}")
-
-        # Create multimodal message if:
-        # 1. Images found (attached or auto-detected)
-        # 2. Model supports vision
-        logger.info(
-            f"[IMAGE_DETECTION] Condition check: "
-            f"image_paths={bool(all_image_paths)}, model_supports_vision={model_supports_vision}, "
-            f"combined={bool(all_image_paths) and model_supports_vision}"
-        )
-        # Note: Multimodal message creation is now handled by ConversationService
-        # The service will create the appropriate message (text or multimodal) from content and attachments
-        if all_image_paths and model_supports_vision:
-            logger.info(
-                f"[IMAGE_DETECTION] Passing {len(all_image_paths)} image(s) to ConversationService"
-            )
-
-        # Clear attached files after processing
-        input_area.attached_files.clear()
-        input_area._update_file_chips()
-
-        # Move EVERYTHING to a background worker to keep UI responsive
-        async def _process_and_stream() -> None:
-            # NOTE: Message adding is now handled by ConversationService.send_message()
-            # The service adds the message when streaming starts
-
-            # Convert TUI AttachedFile to SDK Attachment format
-            from consoul.tui.utils import convert_attachments_to_sdk
-
-            sdk_attachments = (
-                convert_attachments_to_sdk(attached_files) if attached_files else None
-            )
-
-            # Start streaming AI response via ConversationService
-            # This will add the message to conversation before yielding tokens
-            # Note: ConversationService will create the conversation in DB on first message
-            await self._stream_via_conversation_service(
-                content=final_message,
-                attachments=sdk_attachments,
-            )
-
-            # Sync conversation_id after streaming (in case it was created/updated by service)
-            if self.conversation and self.conversation.session_id:
-                self.conversation_id = self.conversation.session_id
-
-            # Add new conversation to list if first message
-            # Do this AFTER streaming so we have the correct conversation_id from DB
-            if (
-                is_first_message
-                and hasattr(self, "conversation_list")
-                and self.conversation_id
-            ):
-                await self.conversation_list.prepend_conversation(self.conversation_id)
-                self._update_top_bar_state()
-
-            # Persist attachments after streaming completes (message is now in conversation)
-            from consoul.tui.utils import handle_attachment_persistence
-
-            await handle_attachment_persistence(
-                self.conversation,
-                attached_files,
-                self._executor,
-            )
-
-        # Fire off all processing in background worker
-        # This keeps the UI responsive during the entire "Thinking..." phase
-        self.run_worker(_process_and_stream(), exclusive=False)
+        orchestrator = MessageSubmissionOrchestrator(self)
+        await orchestrator.handle_submission(event)
 
     async def on_input_area_command_execute_requested(
         self, event: InputArea.CommandExecuteRequested
