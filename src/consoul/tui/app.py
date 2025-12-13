@@ -2096,77 +2096,34 @@ class ConsoulApp(App[None]):
     async def on_tool_approval_requested(self, message: ToolApprovalRequested) -> None:
         """Handle tool approval request by showing modal.
 
-        Uses callback pattern to handle approval result asynchronously.
-        This is the correct pattern for showing modals from message handlers.
+        Uses orchestrator to handle approval business logic and callback pattern
+        for asynchronous modal interaction.
 
         Args:
             message: ToolApprovalRequested with tool_call and widget
         """
+        from consoul.tui.services import ToolApprovalOrchestrator
+        from consoul.tui.widgets import ToolApprovalModal
+
         logger.debug(
             f"[TOOL_FLOW] on_tool_approval_requested called for {message.tool_call.name}"
         )
 
-        from consoul.ai.tools import ToolApprovalRequest
-        from consoul.tui.widgets import ToolApprovalModal
+        # Create orchestrator for approval workflow
+        orchestrator = ToolApprovalOrchestrator(
+            self.tool_registry,
+            self.tool_registry.audit_logger if self.tool_registry else None,
+        )
 
-        # Get dynamic risk assessment from registry
-        if self.tool_registry is None:
-            # Fallback to DANGEROUS if no registry (shouldn't happen)
-            from consoul.ai.tools import RiskLevel
-            from consoul.ai.tools.permissions.analyzer import CommandRisk
+        # Assess risk
+        risk_assessment = await orchestrator.assess_tool_call(message.tool_call)
 
-            risk_assessment = CommandRisk(
-                level=RiskLevel.DANGEROUS,
-                reason="No tool registry available",
-            )
-        else:
-            try:
-                risk_assessment = self.tool_registry.assess_risk(
-                    message.tool_call.name,
-                    message.tool_call.arguments,
-                )
-            except Exception as e:
-                # Handle unregistered tools or assessment errors gracefully
-                from consoul.ai.tools import RiskLevel
-                from consoul.ai.tools.permissions.analyzer import CommandRisk
-
-                self.log.warning(
-                    f"Failed to assess risk for tool '{message.tool_call.name}': {e}"
-                )
-                risk_assessment = CommandRisk(
-                    level=RiskLevel.DANGEROUS,
-                    reason=f"Tool not found or assessment failed: {e}",
-                )
-
-        # Extract risk level and reason
-        # assess_risk returns CommandRisk for all tools now
-        from consoul.ai.tools import RiskLevel
-
-        if hasattr(risk_assessment, "level"):
-            # CommandRisk object
-            risk_level: RiskLevel = risk_assessment.level
-            risk_reason: str = risk_assessment.reason
-        else:
-            # Plain RiskLevel (backward compatibility - shouldn't happen)
-            risk_level = risk_assessment  # type: ignore[assignment]
-            risk_reason = f"Static risk level: {risk_level.value}"
-
-        # If tool not found, immediately reject with helpful error
-        if (
-            risk_level == RiskLevel.DANGEROUS
-            and "Tool not found" in risk_reason
-            and self.tool_registry
-        ):
-            # Get available tools for error message
-            tool_names = [t.name for t in self.tool_registry.list_tools()]
-            available_tools = ", ".join(tool_names)
-            error_msg = (
-                f"Tool '{message.tool_call.name}' does not exist. "
-                f"Available tools: {available_tools}"
-            )
+        # Check for immediate rejection (tool not found)
+        should_reject, error_msg = orchestrator.should_reject_immediately(
+            risk_assessment
+        )
+        if should_reject:
             self.log.warning(error_msg)
-
-            # Send immediate rejection with helpful message
             self.post_message(
                 ToolApprovalResult(
                     tool_call=message.tool_call,
@@ -2177,84 +2134,40 @@ class ConsoulApp(App[None]):
             return
 
         # Log approval request
-        import time
+        await orchestrator.log_request(message.tool_call)
 
-        from consoul.ai.tools.audit import AuditEvent
-
-        start_time = time.time()
-        if self.tool_registry and self.tool_registry.audit_logger:
-            await self.tool_registry.audit_logger.log_event(
-                AuditEvent(
-                    event_type="request",
-                    tool_name=message.tool_call.name,
-                    arguments=message.tool_call.arguments,
-                )
-            )
-
-        # Check if approval is needed based on policy/whitelist
-        # This enables:
-        # - BALANCED policy to auto-approve SAFE commands
-        # - Whitelisted commands to bypass approval
-        # - TRUSTING policy to auto-approve SAFE+CAUTION commands
-        logger.debug(
-            f"[TOOL_FLOW] Checking if approval needed for {message.tool_call.name}"
+        # Check if auto-approval applies
+        (
+            should_auto_approve,
+            auto_approve_reason,
+        ) = await orchestrator.check_auto_approval(
+            message.tool_call, risk_assessment.level
         )
-        try:
-            needs_approval = (
-                not self.tool_registry
-                or self.tool_registry.needs_approval(
-                    message.tool_call.name, message.tool_call.arguments
-                )
-            )
-            logger.debug(
-                f"[TOOL_FLOW] Approval check result: needs_approval={needs_approval}"
-            )
-        except Exception as e:
-            # Tool not found or other error - require approval
-            logger.error(
-                f"[TOOL_FLOW] Error checking approval for '{message.tool_call.name}': {e}",
-                exc_info=True,
-            )
-            needs_approval = True
 
-        if not needs_approval:
+        if should_auto_approve:
             logger.debug(f"[TOOL_FLOW] Auto-approving {message.tool_call.name}")
-            # Auto-approve based on policy or whitelist
             self.log.info(
                 f"Auto-approving tool '{message.tool_call.name}' "
-                f"(risk={risk_level.value}, reason={risk_reason})"
+                f"(risk={risk_assessment.level.value})"
             )
 
-            # Log auto-approval
-            duration_ms = int((time.time() - start_time) * 1000)
-            if self.tool_registry and self.tool_registry.audit_logger:
-                await self.tool_registry.audit_logger.log_event(
-                    AuditEvent(
-                        event_type="approval",
-                        tool_name=message.tool_call.name,
-                        arguments=message.tool_call.arguments,
-                        decision=True,
-                        result=f"Auto-approved by policy ({risk_level.value})",
-                        duration_ms=duration_ms,
-                    )
-                )
+            # Log auto-approval decision
+            await orchestrator.log_decision(
+                message.tool_call, True, auto_approve_reason
+            )
 
             self.post_message(
                 ToolApprovalResult(
                     tool_call=message.tool_call,
                     approved=True,
-                    reason=f"Auto-approved by policy ({risk_level.value})",
+                    reason=auto_approve_reason,
                 )
             )
             return
 
-        # Create approval request
-        request = ToolApprovalRequest(
-            tool_name=message.tool_call.name,
-            arguments=message.tool_call.arguments,
-            risk_level=risk_level,
-            tool_call_id=message.tool_call.id,
-            description=risk_reason,  # Add risk reason as description
+        # Build approval request for modal
+        request = orchestrator.build_approval_request(
+            message.tool_call, risk_assessment
         )
 
         # Define async callback to handle result and log audit event
@@ -2264,22 +2177,11 @@ class ConsoulApp(App[None]):
             if approved is None:
                 approved = False
 
-            # Log approval/denial
-            duration_ms = int((time.time() - start_time) * 1000)
-            if self.tool_registry and self.tool_registry.audit_logger:
-                await self.tool_registry.audit_logger.log_event(
-                    AuditEvent(
-                        event_type="approval" if approved else "denial",
-                        tool_name=message.tool_call.name,
-                        arguments=message.tool_call.arguments,
-                        decision=approved,
-                        result=None if approved else "User denied execution via modal",
-                        duration_ms=duration_ms,
-                    )
-                )
+            # Log decision via orchestrator
+            reason = None if approved else "User denied execution via modal"
+            await orchestrator.log_decision(message.tool_call, approved, reason)
 
             # Emit result message to trigger execution
-            reason = None if approved else "User denied execution via modal"
             self.post_message(
                 ToolApprovalResult(
                     tool_call=message.tool_call,
