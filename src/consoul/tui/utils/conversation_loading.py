@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
     from consoul.ai.database import ConversationDatabase
     from consoul.ai.history import ConversationHistory
-    from consoul.config import ConsoulConfig
+    from consoul.tui.config import ConsoulTuiConfig
     from consoul.tui.widgets import ChatView
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ async def load_conversation_to_view(
 
 
 def reconstruct_conversation_history(
-    config: ConsoulConfig,
+    config: ConsoulTuiConfig,
     conversation_id: str,
     chat_model: BaseChatModel | None,
     conversation_config_getter: Any,
@@ -114,7 +114,7 @@ def reconstruct_conversation_history(
     """Reconstruct a ConversationHistory object for a loaded conversation.
 
     Args:
-        config: Consoul configuration with model and profile settings
+        config: Consoul TUI configuration with model and profile settings
         conversation_id: ID of the conversation to reconstruct
         chat_model: Chat model instance to use (None will raise an error)
         conversation_config_getter: Callable that returns conversation config kwargs

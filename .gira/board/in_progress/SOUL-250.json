@@ -1,11 +1,11 @@
 {
   "created_at": "2025-12-10T00:53:09.487659",
-  "updated_at": "2025-12-10T00:53:09.487672",
+  "updated_at": "2025-12-13T18:07:45.373839Z",
   "id": "SOUL-250",
   "uuid": "50385d51-7baa-4f1b-9f7a-0b233a55c50b",
   "title": "Remove TuiConfig dependency from core config models",
   "description": "**As a** Consoul SDK user\n**I want** core configuration models free of TUI dependencies\n**So that** I can use the SDK without installing Textual or TUI code\n\n**Context:**\nCurrently, src/consoul/config/models.py (line 28, 44) imports TuiConfig from consoul.tui.config, creating a circular dependency where SDK core depends on TUI layer. This prevents using the SDK independently.\n\n**Issue:** Core config → TUI coupling blocks headless SDK usage\n\n**Technical Notes:**\n- Fix: src/consoul/config/models.py lines 28, 44\n- Current problem: from consoul.tui.config import TuiConfig\n- Create: ConsoulCoreConfig (SDK-only fields)\n- Create: ConsoulTuiConfig (composition: core + tui fields)\n- Migrate: TUI-specific fields to separate model\n- Update: All SDK code to use ConsoulCoreConfig\n- Update: TUI code to use ConsoulTuiConfig\n- Reference: SDK analysis identified this as critical coupling issue\n\n**Acceptance Criteria:**\n\n**Given** I import consoul.config.models in a headless environment\n**When** Textual is not installed\n**Then** No import errors occur for ConsoulCoreConfig\n\n**Given** I use the SDK without TUI\n**When** I load configuration with ConsoulCoreConfig.from_file()\n**Then** All SDK features work without TUI fields\n\n**Given** I use the TUI\n**When** I load configuration with ConsoulTuiConfig.from_file()\n**Then** TUI gets both core and TUI-specific config fields\n\n**Given** Existing config files exist\n**When** Config loading occurs\n**Then** Backward compatibility is maintained with warnings\n\n**Testing Considerations:**\n- Test config loading without Textual installed\n- Test SDK usage with ConsoulCoreConfig only\n- Test TUI usage with ConsoulTuiConfig composition\n- Test config migration for existing users\n- Verify no circular imports\n- Test config validation with both models\n\n**Implementation Hints:**\n- Create ConsoulCoreConfig(BaseModel) with SDK-only fields\n- Move TUI fields (theme, keybindings, etc.) to TuiConfig in tui/config.py\n- Create ConsoulTuiConfig(BaseModel) with core: ConsoulCoreConfig, tui: TuiConfig\n- Update config loader to detect which config type to load\n- Add deprecation warnings if TUI fields found in SDK-only usage\n- Update all SDK code to use ConsoulCoreConfig\n- Update all TUI code to use ConsoulTuiConfig\n- Document migration path in CHANGELOG",
-  "status": "todo",
+  "status": "in_progress",
   "type": "task",
   "priority": "high",
   "labels": [

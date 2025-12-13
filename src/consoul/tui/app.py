@@ -30,10 +30,10 @@ if TYPE_CHECKING:
     from consoul.ai.title_generator import TitleGenerator
     from consoul.ai.tools import ToolRegistry
     from consoul.ai.tools.parser import ParsedToolCall
-    from consoul.config import ConsoulConfig
     from consoul.config.models import ProfileConfig
     from consoul.sdk.models import Attachment, ToolRequest
     from consoul.sdk.services import ConversationService, ModelService
+    from consoul.tui.config import ConsoulTuiConfig
     from consoul.tui.widgets import (
         ContextualTopBar,
         InputArea,
@@ -211,7 +211,7 @@ class ConsoulApp(App[None]):
     def __init__(
         self,
         config: TuiConfig | None = None,
-        consoul_config: ConsoulConfig | None = None,
+        consoul_config: ConsoulTuiConfig | None = None,
         test_mode: bool = False,
     ) -> None:
         """Initialize the Consoul TUI application.
@@ -246,7 +246,7 @@ class ConsoulApp(App[None]):
         # Store configs (defer loading to async init)
         self._consoul_config_provided = consoul_config
         self._needs_config_load = consoul_config is None
-        self.consoul_config: ConsoulConfig | None = consoul_config
+        self.consoul_config: ConsoulTuiConfig | None = consoul_config
 
         # Initialize AI components to None (populated by async init)
         self.model_service: ModelService | None = None
@@ -289,26 +289,28 @@ class ConsoulApp(App[None]):
 
         return await asyncio.to_thread(func, *args, **kwargs)
 
-    def _load_config(self) -> ConsoulConfig:
-        """Load Consoul configuration from file.
+    def _load_config(self) -> ConsoulTuiConfig:
+        """Load Consoul TUI configuration from file.
 
         Returns:
-            Loaded ConsoulConfig instance
+            Loaded ConsoulTuiConfig instance
 
         Raises:
             Exception: If config loading fails
         """
-        from consoul.config import load_config
+        from typing import cast
 
-        return load_config()
+        from consoul.config.loader import load_tui_config
+
+        return cast("ConsoulTuiConfig", load_tui_config())
 
     def _initialize_conversation(
-        self, config: ConsoulConfig, model: BaseChatModel
+        self, config: ConsoulTuiConfig, model: BaseChatModel
     ) -> ConversationHistory:
         """Create conversation history with model.
 
         Args:
-            config: ConsoulConfig for conversation settings
+            config: ConsoulTuiConfig for conversation settings
             model: Initialized chat model
 
         Returns:
@@ -398,12 +400,12 @@ class ConsoulApp(App[None]):
             return conversation
 
     def _initialize_title_generator(
-        self, config: ConsoulConfig
+        self, config: ConsoulTuiConfig
     ) -> TitleGenerator | None:
         """Initialize title generator if enabled.
 
         Args:
-            config: ConsoulConfig with title generator settings
+            config: ConsoulTuiConfig with title generator settings
 
         Returns:
             TitleGenerator instance or None if disabled/failed
@@ -423,7 +425,7 @@ class ConsoulApp(App[None]):
 
             # Auto-detect if not specified
             if provider is None or model is None:
-                detected = auto_detect_title_config(config)
+                detected = auto_detect_title_config(config.core)
                 if detected:
                     provider = provider or detected["provider"]
                     model = model or detected["model"]
@@ -443,7 +445,7 @@ class ConsoulApp(App[None]):
                 max_tokens=self.config.auto_title_max_tokens,
                 temperature=self.config.auto_title_temperature,
                 api_key=self.config.auto_title_api_key,
-                config=config,
+                config=config.core,
             )
             self.log.info(f"Title generator initialized: {provider}/{model}")
             return title_gen
@@ -966,7 +968,9 @@ class ConsoulApp(App[None]):
                 tool_registry=self.tool_registry,
                 chat_model=self.chat_model,
                 conversation=self.conversation,
-                consoul_config=self.consoul_config,
+                consoul_config=self.consoul_config.core
+                if self.consoul_config
+                else None,
                 active_profile=self.active_profile,
                 update_top_bar_callback=self._update_top_bar_state,
                 build_system_prompt_callback=self._build_current_system_prompt,
@@ -1275,7 +1279,7 @@ class ConsoulApp(App[None]):
             return None
 
         result: bool | None = await self.push_screen(
-            PermissionManagerScreen(self.consoul_config)
+            PermissionManagerScreen(self.consoul_config.core)
         )
         if result:
             self.notify(
@@ -1854,7 +1858,11 @@ class ConsoulApp(App[None]):
         """
         from consoul.tui.services import ProfileUIOrchestrator
 
-        ProfileUIOrchestrator.switch_profile(self, self.consoul_config, profile_name)
+        ProfileUIOrchestrator.switch_profile(
+            self,
+            self.consoul_config.core if self.consoul_config else None,
+            profile_name,
+        )
 
     def _handle_profile_error(self, operation: str, error: Exception) -> None:
         """Handle profile operation errors with consistent formatting.
@@ -1872,7 +1880,9 @@ class ConsoulApp(App[None]):
         """Handle create new profile action from ProfileSelectorModal."""
         from consoul.tui.services import ProfileUIOrchestrator
 
-        ProfileUIOrchestrator.show_create_profile_modal(self, self.consoul_config)
+        ProfileUIOrchestrator.show_create_profile_modal(
+            self, self.consoul_config.core if self.consoul_config else None
+        )
 
     def _handle_edit_profile(self, profile_name: str) -> None:
         """Handle edit profile action from ProfileSelectorModal.
@@ -1883,7 +1893,9 @@ class ConsoulApp(App[None]):
         from consoul.tui.services import ProfileUIOrchestrator
 
         ProfileUIOrchestrator.show_edit_profile_modal(
-            self, self.consoul_config, profile_name
+            self,
+            self.consoul_config.core if self.consoul_config else None,
+            profile_name,
         )
 
     def _handle_delete_profile(self, profile_name: str) -> None:
@@ -1895,7 +1907,9 @@ class ConsoulApp(App[None]):
         from consoul.tui.services import ProfileUIOrchestrator
 
         ProfileUIOrchestrator.show_delete_profile_modal(
-            self, self.consoul_config, profile_name
+            self,
+            self.consoul_config.core if self.consoul_config else None,
+            profile_name,
         )
 
     def _switch_provider_and_model(self, provider: str, model_name: str) -> None:
@@ -1911,5 +1925,8 @@ class ConsoulApp(App[None]):
         from consoul.tui.services import ProfileUIOrchestrator
 
         ProfileUIOrchestrator.switch_provider_and_model(
-            self, self.consoul_config, provider, model_name
+            self,
+            self.consoul_config.core if self.consoul_config else None,
+            provider,
+            model_name,
         )

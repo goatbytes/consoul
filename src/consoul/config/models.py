@@ -25,7 +25,6 @@ from pydantic import (
 if TYPE_CHECKING:
     from consoul.ai.tools.permissions.policy import PermissionPolicy
     from consoul.config.env import EnvSettings
-    from consoul.tui.config import TuiConfig
 else:
     # Lazy import PermissionPolicy to avoid circular import issues
     # Keep PermissionPolicy as a callable that returns the actual enum
@@ -36,14 +35,6 @@ else:
         PermissionPolicy = Any  # type: ignore[misc,assignment]
 
     EnvSettings = Any  # type: ignore[misc,assignment]
-    TuiConfig = Any  # type: ignore[misc,assignment]
-
-
-def _get_tui_config() -> TuiConfig:
-    """Lazy import and instantiate TuiConfig to avoid circular imports."""
-    from consoul.tui.config import TuiConfig as RealTuiConfig
-
-    return RealTuiConfig()
 
 
 class Provider(str, Enum):
@@ -1431,10 +1422,12 @@ class ProfileConfig(BaseModel):
         return v.strip().lower()
 
 
-class ConsoulConfig(BaseModel):
-    """Root configuration for Consoul application.
+class ConsoulCoreConfig(BaseModel):
+    """Core SDK configuration for Consoul (no TUI dependencies).
 
-    This is the main configuration model that contains all settings.
+    This is the main SDK configuration model containing all core settings.
+    TUI applications should use ConsoulTuiConfig which composes this with TuiConfig.
+
     Profiles define HOW to use AI (prompts, settings).
     Provider/model define WHICH AI to use (tracked separately).
     """
@@ -1472,10 +1465,6 @@ class ConsoulConfig(BaseModel):
         default=None,
         exclude=True,
         description="Environment settings for lazy API key loading",
-    )
-    tui: TuiConfig = Field(
-        default_factory=lambda: _get_tui_config(),
-        description="TUI-specific settings (only loaded when TUI module is used)",
     )
     tools: ToolConfig = Field(
         default_factory=ToolConfig,
@@ -1628,3 +1617,9 @@ class ConsoulConfig(BaseModel):
             if isinstance(self.env_settings, RealEnvSettings)
             else None,
         )
+
+
+# Backward compatibility alias
+# NOTE: ConsoulConfig now refers to the core SDK config without TUI dependencies.
+# TUI applications should use ConsoulTuiConfig from consoul.tui.config instead.
+ConsoulConfig = ConsoulCoreConfig

@@ -14,7 +14,12 @@ from typing import Any
 import yaml
 
 from consoul.config.env import load_env_settings
-from consoul.config.models import ConsoulConfig, ProfileConfig, Provider
+from consoul.config.models import (
+    ConsoulConfig,
+    ConsoulCoreConfig,
+    ProfileConfig,
+    Provider,
+)
 from consoul.config.profiles import get_builtin_profiles
 
 
@@ -470,13 +475,59 @@ def load_config(
     return config
 
 
+def load_tui_config(
+    global_config_path: Path | None = None,
+    project_config_path: Path | None = None,
+    cli_overrides: dict[str, Any] | None = None,
+    profile_name: str | None = None,
+) -> Any:
+    """Load configuration for TUI applications.
+
+    This function loads the core SDK configuration and wraps it with TuiConfig
+    to create a ConsoulTuiConfig suitable for TUI applications.
+
+    Args:
+        global_config_path: Optional path to global config file.
+        project_config_path: Optional path to project config file.
+        cli_overrides: Optional dictionary of CLI argument overrides.
+        profile_name: Optional profile name to set as active.
+
+    Returns:
+        ConsoulTuiConfig instance with core SDK config + TUI settings.
+    """
+    from consoul.tui.config import ConsoulTuiConfig, TuiConfig
+
+    # Load core config using standard loader
+    core_config = load_config(
+        global_config_path=global_config_path,
+        project_config_path=project_config_path,
+        cli_overrides=cli_overrides,
+        profile_name=profile_name,
+    )
+
+    # Create TUI-specific config from merged data
+    # If there's a "tui" section in the config, use it; otherwise use defaults
+    merged_dict = core_config.model_dump()
+    tui_dict = merged_dict.pop("tui", {})
+
+    # Reconstruct core config without tui field (if it exists in old configs)
+    core_clean = ConsoulCoreConfig(**merged_dict)
+    core_clean.env_settings = core_config.env_settings
+
+    # Create TUI config
+    tui_config = TuiConfig(**tui_dict) if tui_dict else TuiConfig()
+
+    # Combine into ConsoulTuiConfig
+    return ConsoulTuiConfig(core=core_clean, tui=tui_config)
+
+
 def save_config(
-    config: ConsoulConfig, path: Path, include_api_keys: bool = False
+    config: ConsoulConfig | Any, path: Path, include_api_keys: bool = False
 ) -> None:
     """Save configuration to YAML file.
 
     Args:
-        config: ConsoulConfig instance to save.
+        config: ConsoulConfig or ConsoulTuiConfig instance to save.
         path: Path where config file should be saved.
         include_api_keys: Whether to include API keys in output.
             Default False for security. WARNING: Setting this to True
@@ -488,14 +539,22 @@ def save_config(
     # Ensure directory exists
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Convert to dict
-    config_dict = config.model_dump(mode="json")
+    # Handle ConsoulTuiConfig - convert to flat dict with core + tui fields
+    if hasattr(config, "core") and hasattr(config, "tui"):
+        # ConsoulTuiConfig - merge core and tui into single dict
+        core_dict = config.core.model_dump(mode="json")
+        tui_dict = config.tui.model_dump(mode="json")
+        config_dict = {**core_dict, "tui": tui_dict}
+    else:
+        # ConsoulCoreConfig - convert directly
+        config_dict = config.model_dump(mode="json")
 
     # The serializer removes api_keys, so we need to add them back if requested
     # Warning: This exposes sensitive data!
-    if include_api_keys and config.api_keys:
+    api_keys = config.core.api_keys if hasattr(config, "core") else config.api_keys
+    if include_api_keys and api_keys:
         config_dict["api_keys"] = {
-            key: value.get_secret_value() for key, value in config.api_keys.items()
+            key: value.get_secret_value() for key, value in api_keys.items()
         }
 
     # Write YAML

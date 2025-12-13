@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from consoul.ai.tools import ToolRegistry
-    from consoul.config import ConsoulConfig
+    from consoul.tui.config import ConsoulTuiConfig
 
 import logging
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def build_top_bar_state(
-    consoul_config: ConsoulConfig | None,
+    consoul_config: ConsoulTuiConfig | None,
     current_profile: str,
     current_model: str,
     streaming: bool,
@@ -27,7 +27,7 @@ def build_top_bar_state(
     """Build top bar state dictionary from app components.
 
     Args:
-        consoul_config: Consoul configuration (may be None)
+        consoul_config: Consoul TUI configuration (may be None)
         current_profile: Current profile name
         current_model: Current model name
         streaming: Whether currently streaming

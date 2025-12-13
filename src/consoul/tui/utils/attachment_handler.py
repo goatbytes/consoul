@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from consoul.config import ConsoulConfig
+    from consoul.tui.config import ConsoulTuiConfig
     from consoul.tui.widgets.input_area import AttachedFile
 
 logger = logging.getLogger(__name__)
@@ -79,14 +79,14 @@ def process_text_attachments(
 def process_image_attachments(
     attached_files: list[AttachedFile],
     user_message: str,
-    config: ConsoulConfig | None,
+    config: ConsoulTuiConfig | None,
 ) -> list[str]:
     """Process image attachments and combine with auto-detected paths.
 
     Args:
         attached_files: List of attached files from InputArea
         user_message: User message to scan for image paths
-        config: Consoul configuration (for auto-detection settings)
+        config: Consoul TUI configuration (for auto-detection settings)
 
     Returns:
         Deduplicated list of all image paths (attached + auto-detected)

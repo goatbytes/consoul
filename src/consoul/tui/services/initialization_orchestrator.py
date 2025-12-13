@@ -9,8 +9,8 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from consoul.config import ConsoulConfig
     from consoul.tui.app import ConsoulApp
+    from consoul.tui.config import ConsoulTuiConfig
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +140,7 @@ class InitializationOrchestrator:
         if loading_screen:
             loading_screen.update_progress(message, progress)
 
-    async def _load_config(self) -> "ConsoulConfig | None":
+    async def _load_config(self) -> "ConsoulTuiConfig | None":
         """Load configuration.
 
         Returns:
@@ -166,20 +166,20 @@ class InitializationOrchestrator:
         self.app._initialization_complete = True
         await self.app._post_initialization_setup()
 
-    async def _set_active_profile(self, config: "ConsoulConfig") -> None:
+    async def _set_active_profile(self, config: "ConsoulTuiConfig") -> None:
         """Set active profile from config.
 
         Args:
             config: Consoul configuration
         """
-        self.app.active_profile = config.get_active_profile()
+        self.app.active_profile = config.get_active_profile()  # type: ignore[no-untyped-call]
         assert self.app.active_profile is not None, (
             "Active profile should be available from config"
         )
         self.app.current_profile = self.app.active_profile.name
         self.app.current_model = config.current_model
 
-    async def _initialize_model(self, config: "ConsoulConfig") -> None:
+    async def _initialize_model(self, config: "ConsoulTuiConfig") -> None:
         """Initialize AI model.
 
         Args:
@@ -189,12 +189,12 @@ class InitializationOrchestrator:
 
         self.app.model_service = await self.app._run_in_thread(
             ModelService.from_config,
-            config,
+            config.core,
             None,  # No tool service yet
         )
         self.app.chat_model = self.app.model_service.get_model()
 
-    async def _initialize_conversation(self, config: "ConsoulConfig") -> None:
+    async def _initialize_conversation(self, config: "ConsoulTuiConfig") -> None:
         """Initialize conversation history.
 
         Args:
@@ -221,7 +221,7 @@ class InitializationOrchestrator:
         )
 
     async def _initialize_tools(
-        self, loading_screen: Any | None, config: "ConsoulConfig"
+        self, loading_screen: Any | None, config: "ConsoulTuiConfig"
     ) -> None:
         """Initialize and bind tools.
 
@@ -255,7 +255,9 @@ class InitializationOrchestrator:
         else:
             self.app.tool_registry = None
 
-    async def _initialize_conversation_service(self, config: "ConsoulConfig") -> None:
+    async def _initialize_conversation_service(
+        self, config: "ConsoulTuiConfig"
+    ) -> None:
         """Initialize conversation service.
 
         Args:
@@ -267,7 +269,7 @@ class InitializationOrchestrator:
             model=self.app.chat_model,  # type: ignore[arg-type]
             conversation=self.app.conversation,  # type: ignore[arg-type]
             tool_registry=self.app.tool_registry,
-            config=config,
+            config=config.core,
         )
 
     async def _auto_resume_conversation(self, loading_screen: Any | None) -> None:
@@ -325,7 +327,7 @@ class InitializationOrchestrator:
                 f"[PERF] Cleanup empty conversations: {(time.time() - step_start) * 1000:.1f}ms"
             )
 
-    async def _initialize_title_generator(self, config: "ConsoulConfig") -> None:
+    async def _initialize_title_generator(self, config: "ConsoulTuiConfig") -> None:
         """Initialize title generator.
 
         Args:

@@ -6,11 +6,14 @@ covering appearance, performance tuning, and behavior settings.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field
 
-__all__ = ["TuiConfig"]
+if TYPE_CHECKING:
+    from consoul.config.models import ConsoulCoreConfig
+
+__all__ = ["ConsoulTuiConfig", "TuiConfig"]
 
 
 class TuiConfig(BaseModel):
@@ -134,3 +137,67 @@ class TuiConfig(BaseModel):
     )
 
     model_config = {"extra": "forbid"}  # Catch typos in config files
+
+
+class ConsoulTuiConfig(BaseModel):
+    """Complete TUI configuration combining core SDK config + TUI settings.
+
+    This is the configuration model for TUI applications, composing:
+    - core: ConsoulCoreConfig (SDK settings)
+    - tui: TuiConfig (TUI-specific settings)
+
+    Use this instead of ConsoulCoreConfig when building TUI applications.
+    """
+
+    core: ConsoulCoreConfig
+    tui: TuiConfig = Field(default_factory=TuiConfig)
+
+    model_config = {"extra": "forbid"}
+
+    # Convenience properties for accessing core fields
+    @property
+    def profiles(self):  # type: ignore[no-untyped-def]
+        """Access core.profiles."""
+        return self.core.profiles
+
+    @property
+    def active_profile(self) -> str:
+        """Access core.active_profile."""
+        return self.core.active_profile
+
+    @property
+    def current_provider(self):  # type: ignore[no-untyped-def]
+        """Access core.current_provider."""
+        return self.core.current_provider
+
+    @property
+    def current_model(self) -> str:
+        """Access core.current_model."""
+        return self.core.current_model
+
+    @property
+    def tools(self):  # type: ignore[no-untyped-def]
+        """Access core.tools."""
+        return self.core.tools
+
+    @property
+    def show_thinking(self):  # type: ignore[no-untyped-def]
+        """Access core.show_thinking."""
+        return self.core.show_thinking
+
+    @property
+    def thinking_models(self):  # type: ignore[no-untyped-def]
+        """Access core.thinking_models."""
+        return self.core.thinking_models
+
+    def get_active_profile(self):  # type: ignore[no-untyped-def]
+        """Delegate to core.get_active_profile()."""
+        return self.core.get_active_profile()
+
+    def get_current_model_config(self):  # type: ignore[no-untyped-def]
+        """Delegate to core.get_current_model_config()."""
+        return self.core.get_current_model_config()
+
+    def get_api_key(self, provider):  # type: ignore[no-untyped-def]
+        """Delegate to core.get_api_key()."""
+        return self.core.get_api_key(provider)

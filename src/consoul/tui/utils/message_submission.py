@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
 
     from consoul.ai import ConversationHistory
-    from consoul.config import ConsoulConfig
+    from consoul.tui.config import ConsoulTuiConfig
     from consoul.tui.widgets.input_area import AttachedFile
 
 import logging
@@ -148,7 +148,7 @@ async def handle_attachment_persistence(
 def create_multimodal_message(
     user_message: str,
     image_paths: list[str],
-    consoul_config: ConsoulConfig,
+    consoul_config: ConsoulTuiConfig,
 ) -> Any:
     """Create a multimodal HumanMessage with text and images.
 
@@ -158,7 +158,7 @@ def create_multimodal_message(
     Args:
         user_message: The user's text message
         image_paths: List of valid image file paths to include
-        consoul_config: Configuration containing current provider info
+        consoul_config: TUI configuration containing current provider info
 
     Returns:
         HumanMessage with multimodal content (text + images)
@@ -194,7 +194,7 @@ def create_multimodal_message(
         )
 
     # Get current provider from model config
-    model_config = consoul_config.get_current_model_config()
+    model_config = consoul_config.get_current_model_config()  # type: ignore[no-untyped-call]
     provider = model_config.provider
     logger.info(f"[IMAGE_DETECTION] Using provider: {provider}")
 

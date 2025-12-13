@@ -8,8 +8,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from consoul.config import ConsoulConfig
     from consoul.config.models import ProfileConfig
+    from consoul.tui.config import ConsoulTuiConfig
 
 import logging
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def build_conversation_config(
     profile: ProfileConfig | None,
-    consoul_config: ConsoulConfig | None,
+    consoul_config: ConsoulTuiConfig | None,
 ) -> dict[str, Any]:
     """Get ConversationHistory kwargs from profile configuration.
 
@@ -28,7 +28,7 @@ def build_conversation_config(
 
     Args:
         profile: Active profile configuration (may be None)
-        consoul_config: Consoul configuration for model initialization (may be None)
+        consoul_config: Consoul TUI configuration for model initialization (may be None)
 
     Returns:
         Dictionary of kwargs for ConversationHistory constructor with keys:

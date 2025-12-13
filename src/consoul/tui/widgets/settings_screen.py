@@ -26,8 +26,7 @@ from textual.widgets import (
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
-    from consoul.config import ConsoulConfig
-    from consoul.tui.config import TuiConfig
+    from consoul.tui.config import ConsoulTuiConfig, TuiConfig
 
 __all__ = ["SettingsScreen"]
 
@@ -163,14 +162,14 @@ class SettingsScreen(ModalScreen[bool]):
     def __init__(
         self,
         config: TuiConfig,
-        consoul_config: ConsoulConfig,
+        consoul_config: ConsoulTuiConfig,
         **kwargs: Any,
     ) -> None:
         """Initialize settings screen.
 
         Args:
             config: Current TUI configuration
-            consoul_config: Full Consoul configuration
+            consoul_config: Full Consoul TUI configuration
             **kwargs: Additional arguments for ModalScreen
         """
         super().__init__(**kwargs)
