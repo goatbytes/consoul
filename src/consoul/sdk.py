@@ -250,22 +250,27 @@ class Consoul:
             self.profile.system_prompt = system_prompt
 
         # Initialize model
+        # Build kwargs for get_chat_model, including temperature if specified
+        from pydantic import SecretStr
+
+        api_key_secret = SecretStr(api_key) if api_key else None
+        model_kwargs = {}
+        if temperature is not None:
+            model_kwargs["temperature"] = temperature
+
         if model:
             # Use specific model
-            from pydantic import SecretStr
-
-            api_key_secret = SecretStr(api_key) if api_key else None
             self.model = get_chat_model(
-                model, config=self.config, api_key=api_key_secret
+                model, config=self.config, api_key=api_key_secret, **model_kwargs
             )
             self.model_name = model
         else:
             # Use config's current model
-            from pydantic import SecretStr
-
-            api_key_secret = SecretStr(api_key) if api_key else None
             self.model = get_chat_model(
-                self.config.current_model, config=self.config, api_key=api_key_secret
+                self.config.current_model,
+                config=self.config,
+                api_key=api_key_secret,
+                **model_kwargs,
             )
             self.model_name = self.config.current_model
 
