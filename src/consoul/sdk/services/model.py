@@ -203,28 +203,38 @@ class ModelService:
         logger.info(f"Bound {len(tools)} tools to model {self.current_model_id}")
 
     def list_models(self, provider: str | None = None) -> list[ModelInfo]:
-        """List available models.
+        """List available models including dynamically discovered local models.
 
         Args:
             provider: Filter by provider (None returns all)
 
         Returns:
-            List of ModelInfo objects
+            List of ModelInfo objects (static catalog + dynamic local models)
 
         Example:
             >>> all_models = service.list_models()
-            >>> openai_models = service.list_models(provider="openai")
-            >>> for model in openai_models:
+            >>> ollama_models = service.list_models(provider="ollama")  # Dynamic discovery
+            >>> for model in ollama_models:
             ...     print(f"{model.name}: {model.description}")
         """
         from consoul.sdk.catalog import MODEL_CATALOG, get_models_by_provider
 
+        # Get static catalog models
         if provider:
-            return get_models_by_provider(provider)
-        return MODEL_CATALOG.copy()
+            static_models = get_models_by_provider(provider)
+        else:
+            static_models = MODEL_CATALOG.copy()
+
+        # Add dynamic local models if provider matches or if showing all
+        local_providers = {"ollama", "llamacpp", "mlx"}
+        if provider in local_providers or provider is None:
+            dynamic_models = self._discover_local_models(provider)
+            static_models.extend(dynamic_models)
+
+        return static_models
 
     def get_current_model_info(self) -> ModelInfo | None:
-        """Get info for current model.
+        """Get info for current model (tries catalog, then dynamic discovery).
 
         Returns:
             ModelInfo for current model, or None if not found
@@ -236,7 +246,20 @@ class ModelService:
         """
         from consoul.sdk.catalog import get_model_info
 
-        return get_model_info(self.current_model_id)
+        # Try static catalog first
+        info = get_model_info(self.current_model_id)
+        if info:
+            return info
+
+        # Try dynamic discovery for local models
+        provider = self._detect_provider(self.current_model_id)
+        if provider in {"ollama", "llamacpp", "mlx"}:
+            dynamic_models = self._discover_local_models(provider)
+            return next(
+                (m for m in dynamic_models if m.id == self.current_model_id), None
+            )
+
+        return None
 
     def supports_vision(self) -> bool:
         """Check if current model supports vision/images.
@@ -250,7 +273,11 @@ class ModelService:
             ...     pass
         """
         info = self.get_current_model_info()
-        return info.supports_vision if info else False
+        if info:
+            return info.supports_vision
+
+        # Fallback: Check if model name indicates vision support
+        return self._detect_vision_from_name(self.current_model_id)
 
     def supports_tools(self) -> bool:
         """Check if current model supports tool calling.
@@ -266,3 +293,141 @@ class ModelService:
         from consoul.ai.providers import supports_tool_calling
 
         return supports_tool_calling(self._model)
+
+    def _discover_local_models(self, provider: str | None = None) -> list[ModelInfo]:
+        """Discover locally available models (Ollama/LlamaCpp/MLX).
+
+        Args:
+            provider: Specific local provider or None for all
+
+        Returns:
+            List of dynamically discovered ModelInfo objects
+        """
+        models = []
+
+        # Discover Ollama models if Ollama is running
+        if provider in (None, "ollama"):
+            models.extend(self._discover_ollama_models())
+
+        # Note: LlamaCpp and MLX discovery not yet implemented
+        # These require filesystem scanning which is expensive
+        # Will be added in follow-up work
+
+        return models
+
+    def _discover_ollama_models(self) -> list[ModelInfo]:
+        """Discover models from running Ollama service.
+
+        Returns:
+            List of Ollama ModelInfo objects
+        """
+        from consoul.sdk.models import ModelInfo
+
+        try:
+            from consoul.ai.providers import get_ollama_models, is_ollama_running
+
+            if not is_ollama_running():
+                return []
+
+            models = []
+            for model_info in get_ollama_models(include_context=True):
+                model_name = model_info.get("name", "")
+                if not model_name:
+                    continue
+
+                # Format context length
+                context_length = model_info.get("context_length")
+                context_str = self._format_context_length(context_length)
+
+                # Detect vision support from model name
+                supports_vision = self._detect_vision_from_name(model_name)
+
+                models.append(
+                    ModelInfo(
+                        id=model_name,
+                        name=model_name,
+                        provider="ollama",
+                        context_window=context_str,
+                        description="Local Ollama model",
+                        supports_vision=supports_vision,
+                    )
+                )
+
+            logger.debug(f"Discovered {len(models)} Ollama models")
+            return models
+
+        except Exception as e:
+            logger.warning(f"Failed to discover Ollama models: {e}")
+            return []
+
+    def _format_context_length(self, context_length: int | None) -> str:
+        """Format context length to human-readable string.
+
+        Args:
+            context_length: Context window size in tokens
+
+        Returns:
+            Formatted string (e.g., "128K", "1M")
+        """
+        if not context_length:
+            return "?"
+
+        if context_length >= 1_000_000:
+            return f"{context_length // 1_000_000}M"
+        elif context_length >= 1_000:
+            return f"{context_length // 1_000}K"
+        else:
+            return str(context_length)
+
+    def _detect_provider(self, model_id: str) -> str:
+        """Detect provider from model ID.
+
+        Args:
+            model_id: Model identifier
+
+        Returns:
+            Provider name (best guess)
+        """
+        model_lower = model_id.lower()
+
+        # Cloud providers (detectable from model name)
+        if model_lower.startswith(("gpt-", "o1-", "o3-", "chatgpt-")):
+            return "openai"
+        elif model_lower.startswith("claude-"):
+            return "anthropic"
+        elif model_lower.startswith("gemini-"):
+            return "google"
+        elif "/" in model_id:  # HuggingFace format (org/model)
+            return "huggingface"
+
+        # Local providers (harder to detect, use config as fallback)
+        return (
+            self.config.current_provider.value
+            if self.config.current_provider
+            else "unknown"
+        )
+
+    def _detect_vision_from_name(self, model_name: str) -> bool:
+        """Detect vision capability from model name.
+
+        Args:
+            model_name: Model name/ID
+
+        Returns:
+            True if model name indicates vision support
+        """
+        model_lower = model_name.lower()
+
+        # Known vision model name patterns
+        vision_indicators = [
+            "vision",
+            "llava",
+            "bakllava",
+            "minicpm-v",
+            "cogvlm",
+            "yi-vl",
+            "moondream",
+            "omnivision",
+        ]
+
+        return any(indicator in model_lower for indicator in vision_indicators)

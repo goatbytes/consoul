@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-11T16:43:59.950531",
-  "updated_at": "2025-12-13T03:14:41.424530Z",
+  "updated_at": "2025-12-12T19:25:28.983971",
   "id": "SOUL-270",
   "uuid": "35e28116-cdb0-4c54-9ca4-d72f1b298545",
   "title": "Final refactoring verification and line count achievement",
@@ -19,10 +19,24 @@
   "parent_id": "SOUL-249",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-12-12T19:25:28.983872",
+      "updated_at": "2025-12-12T19:25:28.983874",
+      "id": "20251212192528-83d92e2d",
+      "ticket_id": "SOUL-270",
+      "author": "jared@goatbytes.io",
+      "content": "## Progress Update - First Extraction Complete\n\n**Current State:**\n- Lines: 4,005 (was 4,126)\n- Reduction: 123 lines\n- Target: <2,000 lines\n- Remaining: ~2,005 lines (50% reduction needed)\n\n**Completed Work:**\n✅ Phase 1: Audit complete\n✅ Phase 2: Extraction opportunities identified  \n✅ Created ConversationDisplayService (src/consoul/sdk/services/conversation_display.py)\n✅ Refactored `on_conversation_list_conversation_selected` (243 → 60 lines UI code)\n✅ Extracted message transformation business logic to SDK\n✅ Commit: f1f4b8b\n\n**Key Findings from Audit:**\n- Top 10 methods = 1,790 lines (44.7% of file)\n- Even reducing top 10 by 50% only saves 895 lines → 3,110 lines remaining\n- <2,000 target requires cutting file in HALF\n\n**Architecture Analysis:**\nThe <2,000 line target is achievable but requires extensive work:\n1. Extract ALL remaining business logic to services\n2. Create additional widget components (split large methods into reusable widgets)\n3. Potentially split ConsoulApp into multiple smaller app classes\n4. Estimated 12-16 hours of additional focused work\n\n**Next Extraction Candidates:**\n1. `on_input_area_message_submit` (259 lines) - File attachment handling\n2. `_stream_via_conversation_service` (219 lines) - Streaming orchestration  \n3. `on_tool_approval_requested` (214 lines) - Tool approval modal logic\n4. `_switch_profile` (154 lines) - Profile switching logic\n5. `on_tool_approval_result` (150 lines) - Tool result handling\n\n**Recommendation:**\n- Continue with 2-3 more strategic extractions (targeting ~500 more lines)\n- Intermediate goal: <3,500 lines (current: 4,005)\n- Create follow-up ticket for final push to <2,000 if needed\n- This allows incremental progress while maintaining stability",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 8,
   "order": 0,
   "custom_fields": {}
