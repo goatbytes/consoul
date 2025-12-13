@@ -605,7 +605,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 name: info
                 for name, info in provider_models.items()
                 if query_lower in name.lower()
-                or query_lower in info["description"].lower()
+                or query_lower in info.get("description", "").lower()
             }
 
         # If current model is not in the database and matches current provider, add it
@@ -1110,7 +1110,7 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
                 name: info
                 for name, info in provider_models.items()
                 if query_lower in info.get("display_name", "").lower()
-                or query_lower in info["description"].lower()
+                or query_lower in info.get("description", "").lower()
             }
 
         # Group models by section

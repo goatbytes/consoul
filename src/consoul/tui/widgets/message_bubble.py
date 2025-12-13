@@ -297,7 +297,7 @@ class MessageBubble(Container):
             if self.estimated_cost < 0.001:
                 cost_str = f"~${self.estimated_cost:.6f}"
             elif self.estimated_cost < 0.01:
-                cost_str = f"~${self.estimated_cost:i.4f}"
+                cost_str = f"~${self.estimated_cost:.4f}"
             else:
                 cost_str = f"~${self.estimated_cost:.2f}"
             footer.append(cost_str, style="bold #85BB65")
