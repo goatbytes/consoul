@@ -24,7 +24,6 @@ if TYPE_CHECKING:
 
     from langchain_core.language_models.chat_models import BaseChatModel
     from langchain_core.messages import ToolMessage
-    from textual import events
     from textual.binding import BindingType
 
     from consoul.ai.history import ConversationHistory
@@ -1973,7 +1972,7 @@ class ConsoulApp(App[None]):
 
     async def action_view_system_prompt(self) -> None:
         """Show system prompt modal with current or stored prompt."""
-        from consoul.tui.widgets.system_prompt_modal import SystemPromptModal
+        from consoul.tui.utils import show_system_prompt_modal
 
         if not self.conversation:
             self.notify("No active conversation", severity="warning")
@@ -2026,13 +2025,8 @@ class ConsoulApp(App[None]):
             self.notify("No system prompt found", severity="warning")
             return
 
-        await self.push_screen(
-            SystemPromptModal(
-                system_prompt=system_prompt,
-                profile_name=profile_name,
-                tool_count=tool_count,
-                stored_at=stored_at,
-            )
+        await show_system_prompt_modal(
+            self, system_prompt, profile_name, tool_count, stored_at
         )
 
     async def action_help(self) -> None:
@@ -2049,10 +2043,10 @@ class ConsoulApp(App[None]):
 
     async def action_browse_ollama_library(self) -> None:
         """Show Ollama Library browser modal."""
-        try:
-            from consoul.tui.widgets.ollama_library_modal import OllamaLibraryModal
+        from consoul.tui.utils import show_ollama_library_modal
 
-            await self.push_screen(OllamaLibraryModal())
+        try:
+            await show_ollama_library_modal(self)
         except ImportError:
             self.notify(
                 "Ollama Library browser requires beautifulsoup4.\n"
@@ -2123,12 +2117,7 @@ class ConsoulApp(App[None]):
 
     async def action_toggle_screensaver(self) -> None:
         """Toggle the loading screen as a screen saver (secret binding)."""
-        import random
-
-        from textual.screen import Screen
-
-        from consoul.tui.animations import AnimationStyle
-        from consoul.tui.loading import LoadingScreen
+        from consoul.tui.utils import create_screensaver_screen
 
         # Check if a screensaver is currently showing
         # Screens are on top of the screen stack
@@ -2139,88 +2128,12 @@ class ConsoulApp(App[None]):
             self.pop_screen()
             return
 
-        # Create a screen with the loading animation
-        animation_styles = [
-            AnimationStyle.SOUND_WAVE,
-            AnimationStyle.MATRIX_RAIN,
-            AnimationStyle.BINARY_WAVE,
-            AnimationStyle.CODE_STREAM,
-            AnimationStyle.PULSE,
-        ]
-        style = random.choice(animation_styles)
-
-        class ScreensaverScreen(Screen[None]):
-            """Screensaver screen that covers entire terminal."""
-
-            DEFAULT_CSS = """
-            ScreensaverScreen {
-                layout: vertical;
-                height: 100vh;
-                padding: 0;
-                margin: 0;
-            }
-
-            ScreensaverScreen > LoadingScreen {
-                width: 100%;
-                height: 100%;
-                padding: 0;
-                margin: 0;
-            }
-
-            ScreensaverScreen > LoadingScreen > Center {
-                display: none;
-            }
-            """
-
-            def __init__(
-                self, animation_style: AnimationStyle, theme_name: str
-            ) -> None:
-                super().__init__()
-                self.animation_style = animation_style
-                self.theme_name = theme_name
-
-            def on_mount(self) -> None:
-                """Hide docked widgets when screen mounts."""
-                # Hide docked widgets (Footer, ContextualTopBar) to ensure screensaver covers everything
-                for widget in self.app.query("Footer, ContextualTopBar"):
-                    widget.display = False
-
-            def compose(self) -> ComposeResult:
-                # Use theme name as color scheme if available, otherwise fallback to blue
-                color_scheme = (
-                    self.theme_name
-                    if self.theme_name
-                    in [
-                        "consoul-dark",
-                        "consoul-light",
-                        "consoul-oled",
-                        "consoul-midnight",
-                        "consoul-matrix",
-                        "consoul-sunset",
-                        "consoul-ocean",
-                        "consoul-volcano",
-                        "consoul-neon",
-                        "consoul-forest",
-                    ]
-                    else "consoul-dark"
-                )
-                yield LoadingScreen(
-                    message="",
-                    style=self.animation_style,
-                    color_scheme=color_scheme,  # type: ignore
-                    show_progress=False,
-                )
-
-            def on_key(self, event: events.Key) -> None:
-                """Dismiss on any key press and restore docked widgets."""
-                # Restore docked widgets visibility
-                for widget in self.app.query("Footer, ContextualTopBar"):
-                    widget.display = True
-                self.app.pop_screen()
-
-        # Get current theme name
-        theme_name = self.theme if hasattr(self, "theme") and self.theme else "blue"
-        await self.push_screen(ScreensaverScreen(style, theme_name))
+        # Create and show screensaver
+        theme_name = (
+            self.theme if hasattr(self, "theme") and self.theme else "consoul-dark"
+        )
+        screensaver = create_screensaver_screen(theme_name)
+        await self.push_screen(screensaver)
 
     def _should_generate_title(self) -> bool:
         """Check if we should generate a title for current conversation.

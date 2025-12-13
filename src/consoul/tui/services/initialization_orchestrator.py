@@ -138,7 +138,7 @@ class InitializationOrchestrator:
             progress: Progress percentage (0-100)
         """
         if loading_screen:
-            loading_screen.update_progress(message, progress)  # type: ignore[attr-defined]
+            loading_screen.update_progress(message, progress)
 
     async def _load_config(self) -> "ConsoulConfig | None":
         """Load configuration.
@@ -159,9 +159,9 @@ class InitializationOrchestrator:
             loading_screen: Loading screen widget (may be None)
         """
         if loading_screen:
-            loading_screen.update_progress("Ready!", 100)  # type: ignore[attr-defined]
+            loading_screen.update_progress("Ready!", 100)
             await asyncio.sleep(0.5)
-            await loading_screen.fade_out(duration=0.5)  # type: ignore[attr-defined]
+            await loading_screen.fade_out(duration=0.5)
             self.app.pop_screen()
         self.app._initialization_complete = True
         await self.app._post_initialization_setup()
@@ -264,8 +264,8 @@ class InitializationOrchestrator:
         from consoul.sdk.services.conversation import ConversationService
 
         self.app.conversation_service = ConversationService(
-            model=self.app.chat_model,
-            conversation=self.app.conversation,
+            model=self.app.chat_model,  # type: ignore[arg-type]
+            conversation=self.app.conversation,  # type: ignore[arg-type]
             tool_registry=self.app.tool_registry,
             config=config,
         )
@@ -380,8 +380,8 @@ class InitializationOrchestrator:
             loading_screen: Loading screen widget (may be None)
         """
         if loading_screen:
-            loading_screen.update_progress("Ready!", 100)  # type: ignore[attr-defined]
-            await loading_screen.fade_out(duration=0.5)  # type: ignore[attr-defined]
+            loading_screen.update_progress("Ready!", 100)
+            await loading_screen.fade_out(duration=0.5)
             self.app.pop_screen()
 
         self.app._initialization_complete = True

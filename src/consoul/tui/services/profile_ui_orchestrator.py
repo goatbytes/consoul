@@ -145,7 +145,9 @@ class ProfileUIOrchestrator:
                     else 0
                 )
                 app.conversation.store_system_prompt_metadata(
-                    profile_name=app.active_profile.name if app.active_profile else None,
+                    profile_name=app.active_profile.name
+                    if app.active_profile
+                    else None,
                     tool_count=tool_count,
                 )
 
