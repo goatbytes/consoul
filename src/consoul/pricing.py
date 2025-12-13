@@ -1,23 +1,55 @@
 """Model pricing data for accurate cost calculations.
 
+DEPRECATED: This module is maintained for backward compatibility only.
+New code should use `consoul.registry` for model metadata and pricing.
+
 This module provides pricing information for AI models from various providers.
-Pricing data is updated as of November 2024.
-
-IMPORTANT: LangChain's pricing data for OpenAI models may be outdated. Our
-OPENAI_PRICING dict takes priority and contains verified pricing from
-https://openai.com/api/pricing/ (as of November 2024).
-
-For other providers (Anthropic, Google), we maintain static pricing from
-official sources.
+Pricing data is now sourced from the centralized model registry.
 
 Prices are in USD per million tokens (MTok).
+
+Migration guide:
+    # Old
+    from consoul.pricing import get_model_pricing, calculate_cost
+    pricing = get_model_pricing("gpt-4o", service_tier="flex")
+
+    # New
+    from consoul.registry import get_pricing
+    pricing = get_pricing("gpt-4o", tier="flex")
 """
 
 from __future__ import annotations
 
+import logging
+import warnings
 from typing import Any
 
-# Anthropic Claude pricing (as of November 2024)
+from consoul.registry import get_model as _get_registry_model
+from consoul.registry import get_pricing as _get_registry_pricing
+
+logger = logging.getLogger(__name__)
+
+# Deprecation warning flag (show once)
+_warned = False
+
+
+def _deprecation_warning() -> None:
+    """Show deprecation warning once."""
+    global _warned
+    if not _warned:
+        warnings.warn(
+            "consoul.pricing is deprecated. Use consoul.registry instead. "
+            "See module docstring for migration guide.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        _warned = True
+
+
+# Legacy pricing dicts (maintained for backward compatibility)
+# These are populated on-demand from the registry
+
+# Anthropic Claude pricing (now sourced from registry)
 # Source: https://docs.anthropic.com/en/docs/about-claude/pricing
 # Note: Anthropic now uses naming like "Claude Sonnet 4.5" but API still uses "claude-3-5-sonnet-*"
 ANTHROPIC_PRICING = {

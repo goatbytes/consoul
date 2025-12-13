@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "ModelRegistry",
+    "get_all_providers",
     "get_model",
     "get_pricing",
     "list_models",
-    "get_all_providers",
 ]
 
 
@@ -106,9 +106,7 @@ class ModelRegistry:
 
         return None
 
-    def get_pricing(
-        self, model_id: str, tier: str = "standard"
-    ) -> PricingTier | None:
+    def get_pricing(self, model_id: str, tier: str = "standard") -> PricingTier | None:
         """Get pricing for a model.
 
         Args:
@@ -193,13 +191,13 @@ def _load_all_models() -> None:
     # Import model modules - each registers its models
     try:
         # Anthropic models
-        from consoul.registry.models import anthropic  # noqa: F401
-
         # OpenAI models
-        from consoul.registry.models import openai  # noqa: F401
-
         # Google models
-        from consoul.registry.models import google  # noqa: F401
+        from consoul.registry.models import (
+            anthropic,  # noqa: F401
+            google,  # noqa: F401
+            openai,  # noqa: F401
+        )
 
         logger.info(
             f"Loaded {len(_registry._models)} models from "
@@ -226,9 +224,7 @@ def get_model(model_id: str) -> ModelEntry | None:
     return _registry.get(model_id)
 
 
-def get_pricing(
-    model_id: str, tier: str = "standard"
-) -> PricingTier | None:
+def get_pricing(model_id: str, tier: str = "standard") -> PricingTier | None:
     """Get pricing for a model.
 
     Args:

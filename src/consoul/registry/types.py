@@ -13,13 +13,13 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 __all__ = [
-    "InputModality",
-    "OutputModality",
-    "Modality",
     "Capability",
-    "ModelMetadata",
-    "PricingTier",
+    "InputModality",
+    "Modality",
     "ModelEntry",
+    "ModelMetadata",
+    "OutputModality",
+    "PricingTier",
 ]
 
 
@@ -91,9 +91,7 @@ class ModelMetadata(BaseModel):
     provider: str = Field(description="Provider slug (openai, anthropic, google, etc.)")
     author: str = Field(description="Organization that created the model")
     description: str = Field(description="Brief model description")
-    context_window: int = Field(
-        description="Maximum context window in tokens", gt=0
-    )
+    context_window: int = Field(description="Maximum context window in tokens", gt=0)
     max_output_tokens: int = Field(
         description="Maximum output tokens per request", gt=0
     )
@@ -181,9 +179,7 @@ class ModelEntry(BaseModel):
         """Convenience property for provider."""
         return self.metadata.provider
 
-    def get_pricing(
-        self, tier: str = "standard"
-    ) -> PricingTier:
+    def get_pricing(self, tier: str = "standard") -> PricingTier:
         """Get pricing for a specific tier.
 
         Args:
@@ -196,9 +192,7 @@ class ModelEntry(BaseModel):
             KeyError: If tier doesn't exist for this model
         """
         # Normalize tier: "auto" and "default" map to "standard"
-        normalized_tier = (
-            tier if tier in ("flex", "batch", "priority") else "standard"
-        )
+        normalized_tier = tier if tier in ("flex", "batch", "priority") else "standard"
 
         if normalized_tier in self.pricing:
             return self.pricing[normalized_tier]

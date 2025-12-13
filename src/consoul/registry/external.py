@@ -148,11 +148,11 @@ class HeliconeClient:
             model_name = entry.get("model", "")
             operator = entry.get("operator", "equals")
 
-            if operator == "equals" and model_name == model_id:
-                return entry
-            elif operator == "startsWith" and model_id.startswith(model_name):
-                return entry
-            elif operator == "includes" and model_name in model_id:
+            if (
+                (operator == "equals" and model_name == model_id)
+                or (operator == "startsWith" and model_id.startswith(model_name))
+                or (operator == "includes" and model_name in model_id)
+            ):
                 return entry
 
         return None
@@ -194,7 +194,7 @@ class HeliconeClient:
     def _load_cache(self) -> dict[str, Any]:
         """Load pricing data from cache file."""
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        with open(self.cache_file, "r") as f:
+        with open(self.cache_file) as f:
             return json.load(f)
 
     def _save_cache(self, data: dict[str, Any]) -> None:

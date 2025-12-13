@@ -12,9 +12,9 @@ from consoul.registry.registry import _registry
 from consoul.registry.types import (
     Capability,
     InputModality,
+    Modality,
     ModelEntry,
     ModelMetadata,
-    Modality,
     OutputModality,
     PricingTier,
 )
@@ -272,9 +272,7 @@ o1 = ModelEntry(
         description="Reasoning model series 1 with extended thinking",
         context_window=200_000,
         max_output_tokens=100_000,
-        modality=Modality(
-            inputs=[InputModality.TEXT], outputs=[OutputModality.TEXT]
-        ),
+        modality=Modality(inputs=[InputModality.TEXT], outputs=[OutputModality.TEXT]),
         capabilities=[
             Capability.TOOLS,
             Capability.REASONING,
@@ -312,9 +310,7 @@ o1_mini = ModelEntry(
         description="Faster, cheaper reasoning model",
         context_window=128_000,
         max_output_tokens=65_536,
-        modality=Modality(
-            inputs=[InputModality.TEXT], outputs=[OutputModality.TEXT]
-        ),
+        modality=Modality(inputs=[InputModality.TEXT], outputs=[OutputModality.TEXT]),
         capabilities=[
             Capability.TOOLS,
             Capability.REASONING,
@@ -351,9 +347,7 @@ o3_mini = ModelEntry(
         description="Efficient reasoning model",
         context_window=128_000,
         max_output_tokens=65_536,
-        modality=Modality(
-            inputs=[InputModality.TEXT], outputs=[OutputModality.TEXT]
-        ),
+        modality=Modality(inputs=[InputModality.TEXT], outputs=[OutputModality.TEXT]),
         capabilities=[
             Capability.TOOLS,
             Capability.REASONING,

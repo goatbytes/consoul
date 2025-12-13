@@ -12,9 +12,9 @@ from consoul.registry.registry import _registry
 from consoul.registry.types import (
     Capability,
     InputModality,
+    Modality,
     ModelEntry,
     ModelMetadata,
-    Modality,
     OutputModality,
     PricingTier,
 )

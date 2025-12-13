@@ -152,9 +152,7 @@ def metadata_example():
             if metadata.pricing.cache_read:
                 print(f"    • Cache Read: ${metadata.pricing.cache_read}/MTok")
             if metadata.pricing.thinking_price:
-                print(
-                    f"    • Thinking: ${metadata.pricing.thinking_price}/MTok"
-                )
+                print(f"    • Thinking: ${metadata.pricing.thinking_price}/MTok")
 
 
 def find_cheapest_model():

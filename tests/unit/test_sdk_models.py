@@ -1,7 +1,6 @@
 """Unit tests for SDK model registry integration."""
 
-from datetime import date
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -68,9 +67,7 @@ class TestModelServiceRegistry:
         # Note: We can't directly check deprecated field, but we trust the registry filter
         assert len(active_models) > 0
 
-    def test_get_model_pricing_standard_tier(
-        self, model_service: ModelService
-    ) -> None:
+    def test_get_model_pricing_standard_tier(self, model_service: ModelService) -> None:
         """Test getting standard tier pricing for a model."""
         pricing = model_service.get_model_pricing("claude-sonnet-4-5-20250929")
 
@@ -115,9 +112,7 @@ class TestModelServiceRegistry:
         assert pricing is not None
         assert pricing.tier == "standard"  # Falls back to standard
 
-    def test_get_model_capabilities_vision(
-        self, model_service: ModelService
-    ) -> None:
+    def test_get_model_capabilities_vision(self, model_service: ModelService) -> None:
         """Test getting capabilities for a vision-enabled model."""
         caps = model_service.get_model_capabilities("claude-sonnet-4-5-20250929")
 
@@ -173,9 +168,7 @@ class TestModelServiceRegistry:
         assert metadata.capabilities.supports_vision is True
         assert metadata.capabilities.supports_tools is True
 
-    def test_get_model_metadata_nonexistent(
-        self, model_service: ModelService
-    ) -> None:
+    def test_get_model_metadata_nonexistent(self, model_service: ModelService) -> None:
         """Test getting metadata for non-existent model."""
         metadata = model_service.get_model_metadata("nonexistent-model-12345")
 
