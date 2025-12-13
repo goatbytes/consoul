@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
 
     from consoul.ai import ConversationHistory
+    from consoul.config import ConsoulConfig
     from consoul.tui.widgets.input_area import AttachedFile
 
 import logging
@@ -142,3 +143,65 @@ async def handle_attachment_persistence(
             logger.error(f"Failed to persist attachments: {e}", exc_info=True)
     else:
         logger.warning("Could not find user message ID for attachment persistence")
+
+
+def create_multimodal_message(
+    user_message: str,
+    image_paths: list[str],
+    consoul_config: ConsoulConfig,
+) -> Any:
+    """Create a multimodal HumanMessage with text and images.
+
+    Loads and encodes images, then formats them according to the current
+    provider's requirements (Anthropic, OpenAI, Google, Ollama).
+
+    Args:
+        user_message: The user's text message
+        image_paths: List of valid image file paths to include
+        consoul_config: Configuration containing current provider info
+
+    Returns:
+        HumanMessage with multimodal content (text + images)
+
+    Raises:
+        ValueError: If config not available or invalid MIME type
+        Exception: If image loading, encoding, or formatting fails
+    """
+    logger.info("[IMAGE_DETECTION] create_multimodal_message called")
+    import base64
+    import mimetypes
+    from pathlib import Path
+
+    from consoul.ai.multimodal import format_vision_message
+
+    # Load and encode images
+    encoded_images = []
+    logger.info(f"[IMAGE_DETECTION] Loading {len(image_paths)} image(s)")
+    for path_str in image_paths:
+        path = Path(path_str)
+
+        # Detect MIME type
+        mime_type, _ = mimetypes.guess_type(str(path))
+        if not mime_type or not mime_type.startswith("image/"):
+            raise ValueError(f"Invalid MIME type for {path.name}: {mime_type}")
+
+        # Read and encode image
+        with open(path, "rb") as f:
+            image_data = base64.b64encode(f.read()).decode("utf-8")
+
+        encoded_images.append(
+            {"path": str(path), "data": image_data, "mime_type": mime_type}
+        )
+
+    # Get current provider from model config
+    model_config = consoul_config.get_current_model_config()
+    provider = model_config.provider
+    logger.info(f"[IMAGE_DETECTION] Using provider: {provider}")
+
+    # Format message for the provider
+    logger.info(
+        f"[IMAGE_DETECTION] Calling format_vision_message with {len(encoded_images)} image(s)"
+    )
+    result = format_vision_message(provider, user_message, encoded_images)
+    logger.info(f"[IMAGE_DETECTION] format_vision_message returned: {type(result)}")
+    return result

@@ -43,18 +43,6 @@ if TYPE_CHECKING:
     T = TypeVar("T")
 
 from consoul.tui.config import TuiConfig
-from consoul.tui.themes import (
-    CONSOUL_DARK,
-    CONSOUL_FOREST,
-    CONSOUL_LIGHT,
-    CONSOUL_MATRIX,
-    CONSOUL_MIDNIGHT,
-    CONSOUL_NEON,
-    CONSOUL_OCEAN,
-    CONSOUL_OLED,
-    CONSOUL_SUNSET,
-    CONSOUL_VOLCANO,
-)
 from consoul.tui.widgets import InputArea, MessageBubble
 
 __all__ = ["ConsoulApp"]
@@ -494,13 +482,12 @@ class ConsoulApp(App[None]):
             self.log.warning(f"Failed to cleanup old conversations: {e}")
 
     async def _async_initialize(self) -> None:
-        """Initialize app components asynchronously with progress updates.
+        """Initialize app using InitializationOrchestrator.
 
-        This method orchestrates the entire initialization sequence, calling
-        each extracted initialization method in order while updating the
-        loading screen with progress (if enabled).
+        Delegates the entire initialization sequence to the InitializationOrchestrator
+        service, which handles progress tracking, stage orchestration, and error handling.
 
-        Progress stages:
+        Progress stages (managed by orchestrator):
             10% - Loading configuration
             40% - Connecting to AI provider
             50% - Initializing conversation
@@ -512,253 +499,17 @@ class ConsoulApp(App[None]):
         Raises:
             Exception: Any initialization error (caught and shown in error screen)
         """
-        import asyncio
-        import logging
-        import time
-
-        logger = logging.getLogger(__name__)
-
-        # Get reference to the loading screen (may be None if disabled)
-        loading_screen = None
-        if self.config.show_loading_screen and self.screen_stack:
-            loading_screen = self.screen
-
-        # Give the screen a moment to render (if present)
-        if loading_screen:
-            await asyncio.sleep(0.05)
+        from consoul.tui.services import InitializationOrchestrator
 
         try:
-            # Step 1: Load config (10%)
-            step_start = time.time()
-            if loading_screen:
-                loading_screen.update_progress("Loading configuration...", 10)  # type: ignore[attr-defined]
-                await asyncio.sleep(0.1)  # Ensure loading screen is visible
+            # Get loading screen reference
+            loading_screen = None
+            if self.config.show_loading_screen and self.screen_stack:
+                loading_screen = self.screen
 
-            consoul_config: ConsoulConfig | None
-            if self._needs_config_load:
-                consoul_config = await self._run_in_thread(self._load_config)
-                self.consoul_config = consoul_config
-            else:
-                consoul_config = self.consoul_config
-            logger.info(
-                f"[PERF] Step 1 (Load config): {(time.time() - step_start) * 1000:.1f}ms"
-            )
-
-            # If no config, skip initialization
-            if not consoul_config:
-                logger.warning("No configuration available, skipping AI initialization")
-                if loading_screen:
-                    loading_screen.update_progress("Ready!", 100)  # type: ignore[attr-defined]
-                    await asyncio.sleep(0.5)
-                    await loading_screen.fade_out(duration=0.5)  # type: ignore[attr-defined]
-                    self.pop_screen()
-                self._initialization_complete = True
-                # Still do post-init setup
-                await self._post_initialization_setup()
-                return
-
-            # Set active profile
-            self.active_profile = consoul_config.get_active_profile()
-            assert self.active_profile is not None, (
-                "Active profile should be available from config"
-            )
-            self.current_profile = self.active_profile.name
-            self.current_model = consoul_config.current_model
-
-            # Step 2: Initialize AI model (40%)
-            step_start = time.time()
-            if loading_screen:
-                loading_screen.update_progress("Connecting to AI provider...", 40)  # type: ignore[attr-defined]
-
-            # Initialize ModelService (without tools initially - tools bound in Step 4)
-            from consoul.sdk.services import ModelService
-
-            self.model_service = await self._run_in_thread(
-                ModelService.from_config,
-                consoul_config,
-                None,  # No tool service yet
-            )
-            self.chat_model = self.model_service.get_model()
-
-            logger.info(
-                f"[PERF] Step 2 (Initialize AI model): {(time.time() - step_start) * 1000:.1f}ms"
-            )
-
-            # Step 3: Create conversation (50%)
-            step_start = time.time()
-            if loading_screen:
-                loading_screen.update_progress("Initializing conversation...", 50)  # type: ignore[attr-defined]
-
-            # Add detailed profiling to understand what's slow
-            import logging as log_module
-
-            conv_logger = log_module.getLogger("consoul.ai.history")
-            original_level = conv_logger.level
-            conv_logger.setLevel(log_module.DEBUG)
-
-            self.conversation = await self._run_in_thread(
-                self._initialize_conversation, consoul_config, self.chat_model
-            )
-
-            conv_logger.setLevel(original_level)
-            logger.info(
-                f"[PERF] Step 3 (Create conversation): {(time.time() - step_start) * 1000:.1f}ms"
-            )
-
-            # Set conversation ID for tracking
-            self.conversation_id = self.conversation.session_id
-            logger.info(
-                f"Initialized AI model: {consoul_config.current_model}, "
-                f"session: {self.conversation_id}"
-            )
-
-            # Step 4: Load tools and bind to model (60-80%)
-            step_start = time.time()
-            if loading_screen:
-                loading_screen.update_progress("Loading tools...", 60)  # type: ignore[attr-defined]
-
-            # Initialize tool service (replaces _initialize_tool_registry)
-            if consoul_config.tools and consoul_config.tools.enabled:
-                from consoul.sdk.services import ToolService
-
-                tool_service = await self._run_in_thread(
-                    ToolService.from_config, consoul_config
-                )
-                self.tool_registry = tool_service.tool_registry
-
-                # Set tools_total for top bar display
-                if hasattr(self, "top_bar"):
-                    self.top_bar.tools_total = tool_service.get_tools_count()
-
-                # Bind tools to model via ModelService
-                if loading_screen:
-                    loading_screen.update_progress("Binding tools to model...", 70)  # type: ignore[attr-defined]
-
-                if self.model_service:
-                    self.model_service.tool_service = tool_service
-                    await self._run_in_thread(self.model_service._bind_tools)
-                    self.chat_model = (
-                        self.model_service.get_model()
-                    )  # Get updated bound model
-
-                    # Update conversation's model reference
-                    if self.conversation:
-                        self.conversation._model = self.chat_model
-            else:
-                self.tool_registry = None
-
-            logger.info(
-                f"[PERF] Step 4 (Load tools & bind): {(time.time() - step_start) * 1000:.1f}ms"
-            )
-
-            # Step 5.5: Initialize ConversationService (SDK layer)
-            step_start = time.time()
-            if loading_screen:
-                loading_screen.update_progress(  # type: ignore[attr-defined]
-                    "Initializing conversation service...", 85
-                )
-
-            from consoul.sdk.services.conversation import ConversationService
-
-            self.conversation_service = ConversationService(
-                model=self.chat_model,
-                conversation=self.conversation,
-                tool_registry=self.tool_registry,
-                config=consoul_config,
-            )
-            logger.info(
-                f"[PERF] Step 5.5 (Initialize ConversationService): {(time.time() - step_start) * 1000:.1f}ms"
-            )
-
-            # Step 6: Auto-resume if enabled (90%)
-            if (
-                self.active_profile
-                and hasattr(self.active_profile, "conversation")
-                and self.active_profile.conversation.auto_resume
-                and self.active_profile.conversation.persist
-            ):
-                step_start = time.time()
-                if loading_screen:
-                    loading_screen.update_progress("Restoring conversation...", 90)  # type: ignore[attr-defined]
-                self.conversation = await self._run_in_thread(
-                    self._auto_resume_if_enabled, self.conversation, self.active_profile
-                )
-                self.conversation_id = self.conversation.session_id
-                logger.info(
-                    f"[PERF] Step 6 (Auto-resume): {(time.time() - step_start) * 1000:.1f}ms"
-                )
-
-            # Cleanup old conversations (retention policy)
-            if self.active_profile:
-                step_start = time.time()
-                await self._run_in_thread(
-                    self._cleanup_old_conversations, self.active_profile
-                )
-                logger.info(
-                    f"[PERF] Cleanup old conversations: {(time.time() - step_start) * 1000:.1f}ms"
-                )
-
-            # One-time cleanup of empty conversations from old versions
-            # (Before deferred conversation creation was implemented)
-            if self.conversation and self.conversation._db:
-                step_start = time.time()
-                try:
-                    deleted = await self._run_in_thread(
-                        self.conversation._db.delete_empty_conversations
-                    )
-                    if deleted > 0:
-                        logger.info(f"Cleaned up {deleted} legacy empty conversations")
-                except Exception as e:
-                    logger.warning(f"Failed to cleanup empty conversations: {e}")
-                logger.info(
-                    f"[PERF] Cleanup empty conversations: {(time.time() - step_start) * 1000:.1f}ms"
-                )
-
-            # Initialize title generator
-            step_start = time.time()
-            self.title_generator = await self._run_in_thread(
-                self._initialize_title_generator, consoul_config
-            )
-            logger.info(
-                f"[PERF] Initialize title generator: {(time.time() - step_start) * 1000:.1f}ms"
-            )
-
-            # Apply theme BEFORE showing main UI (prevents background color flash)
-            step_start = time.time()
-            self.register_theme(CONSOUL_DARK)
-            self.register_theme(CONSOUL_LIGHT)
-            self.register_theme(CONSOUL_OLED)
-            self.register_theme(CONSOUL_MIDNIGHT)
-            self.register_theme(CONSOUL_MATRIX)
-            self.register_theme(CONSOUL_SUNSET)
-            self.register_theme(CONSOUL_OCEAN)
-            self.register_theme(CONSOUL_VOLCANO)
-            self.register_theme(CONSOUL_NEON)
-            self.register_theme(CONSOUL_FOREST)
-            try:
-                self.theme = self.config.theme
-                logger.info(f"[PERF] Applied theme: {self.config.theme}")
-            except Exception as e:
-                logger.warning(f"Failed to set theme '{self.config.theme}': {e}")
-                self.theme = "textual-dark"
-
-            # Give Textual a moment to apply theme CSS to all widgets
-            await asyncio.sleep(0.25)
-
-            logger.info(
-                f"[PERF] Apply theme: {(time.time() - step_start) * 1000:.1f}ms"
-            )
-
-            # Step 7: Complete (100%)
-            if loading_screen:
-                loading_screen.update_progress("Ready!", 100)  # type: ignore[attr-defined]
-                await loading_screen.fade_out(duration=0.5)  # type: ignore[attr-defined]
-                self.pop_screen()
-
-            self._initialization_complete = True
-
-            # Post-initialization setup
-            await self._post_initialization_setup()
+            # Delegate complete initialization sequence to orchestrator
+            orchestrator = InitializationOrchestrator(self)
+            await orchestrator.run_initialization_sequence(loading_screen)
 
         except Exception as e:
             # Log error and show error screen
@@ -957,66 +708,16 @@ class ConsoulApp(App[None]):
     def _get_conversation_config(self) -> dict[str, Any]:
         """Get ConversationHistory kwargs from active profile configuration.
 
-        Extracts all conversation settings from the profile and prepares them
-        for passing to ConversationHistory constructor. Handles summary_model
-        initialization if specified.
+        Delegates to conversation_config_builder utility for config construction.
 
         Returns:
-            Dictionary of kwargs for ConversationHistory constructor with keys:
-            persist, db_path, summarize, summarize_threshold, keep_recent,
-            summary_model, max_tokens
-
-        Note:
-            session_id should be added separately when resuming conversations.
+            Dictionary of kwargs for ConversationHistory constructor
         """
-        from consoul.ai import get_chat_model
+        from consoul.tui.utils.conversation_config_builder import (
+            build_conversation_config,
+        )
 
-        kwargs: dict[str, Any] = {}
-
-        if self.active_profile and hasattr(self.active_profile, "conversation"):
-            conv_config = self.active_profile.conversation
-
-            # Basic persistence settings
-            kwargs["persist"] = conv_config.persist
-            if conv_config.db_path:
-                kwargs["db_path"] = conv_config.db_path
-
-            # Summarization settings
-            kwargs["summarize"] = conv_config.summarize
-            kwargs["summarize_threshold"] = conv_config.summarize_threshold
-            kwargs["keep_recent"] = conv_config.keep_recent
-
-            # Summary model (needs to be initialized as ChatModel instance)
-            if conv_config.summary_model and self.consoul_config:
-                try:
-                    kwargs["summary_model"] = get_chat_model(
-                        conv_config.summary_model, config=self.consoul_config
-                    )
-                except Exception as e:
-                    self.log.warning(
-                        f"Failed to initialize summary_model '{conv_config.summary_model}': {e}"
-                    )
-                    kwargs["summary_model"] = None
-            else:
-                kwargs["summary_model"] = None
-
-            # Context settings - pass max_context_tokens from profile
-            # Note: 0 or None in ConversationHistory means auto-size to 75% of model capacity
-            if hasattr(self.active_profile, "context"):
-                context_config = self.active_profile.context
-                kwargs["max_tokens"] = context_config.max_context_tokens
-        else:
-            # Fallback to defaults if profile not available
-            kwargs = {
-                "persist": True,
-                "summarize": False,
-                "summarize_threshold": 20,
-                "keep_recent": 10,
-                "summary_model": None,
-                "max_tokens": None,  # Auto-size
-            }
-
-        return kwargs
+        return build_conversation_config(self.active_profile, self.consoul_config)
 
     def _add_initial_system_prompt(self) -> None:
         """Add system prompt to conversation during app initialization.
@@ -1075,48 +776,18 @@ class ConsoulApp(App[None]):
     def _build_current_system_prompt(self) -> str | None:
         """Build system prompt with environment context and tool documentation.
 
-        Injects environment context (OS, working directory, git info) based on
-        profile settings, then replaces {AVAILABLE_TOOLS} marker with dynamically
-        generated tool documentation.
+        Delegates to SystemPromptBuilder service for prompt construction.
 
         Returns:
             Complete system prompt with environment context and tool docs, or None
         """
-        from consoul.ai.environment import get_environment_context
-        from consoul.ai.prompt_builder import build_system_prompt
+        from consoul.tui.services.system_prompt_builder import SystemPromptBuilder
 
-        if not self.active_profile or not self.active_profile.system_prompt:
+        if not self.active_profile:
             return None
 
-        # Start with base system prompt
-        base_prompt = self.active_profile.system_prompt
-
-        # Inject environment context if enabled
-        include_system = (
-            self.active_profile.context.include_system_info
-            if hasattr(self.active_profile, "context")
-            else True
-        )
-        include_git = (
-            self.active_profile.context.include_git_info
-            if hasattr(self.active_profile, "context")
-            else True
-        )
-
-        if include_system or include_git:
-            env_context = get_environment_context(
-                include_system_info=include_system,
-                include_git_info=include_git,
-            )
-            if env_context:
-                # Prepend environment context to system prompt
-                base_prompt = f"{env_context}\n\n{base_prompt}"
-                self.log.debug(
-                    f"Injected environment context ({len(env_context)} chars)"
-                )
-
-        # Build final system prompt with tool documentation
-        return build_system_prompt(base_prompt, self.tool_registry)
+        builder = SystemPromptBuilder(self.active_profile, self.tool_registry)
+        return builder.build()
 
     def _model_supports_vision(self) -> bool:
         """Check if current model supports vision/multimodal input.
@@ -1225,8 +896,7 @@ class ConsoulApp(App[None]):
     ) -> Any:
         """Create a multimodal HumanMessage with text and images.
 
-        Loads and encodes images, then formats them according to the current
-        provider's requirements (Anthropic, OpenAI, Google, Ollama).
+        Delegates to message_submission utility for multimodal message creation.
 
         Args:
             user_message: The user's text message
@@ -1236,114 +906,45 @@ class ConsoulApp(App[None]):
             HumanMessage with multimodal content (text + images)
 
         Raises:
+            ValueError: If config not available
             Exception: If image loading, encoding, or formatting fails
         """
-        logger.info("[IMAGE_DETECTION] _create_multimodal_message called")
-        import base64
-        import mimetypes
-        from pathlib import Path
+        from consoul.tui.utils.message_submission import create_multimodal_message
 
-        from consoul.ai.multimodal import format_vision_message
-
-        # Load and encode images
-        encoded_images = []
-        logger.info(f"[IMAGE_DETECTION] Loading {len(image_paths)} image(s)")
-        for path_str in image_paths:
-            path = Path(path_str)
-
-            # Detect MIME type
-            mime_type, _ = mimetypes.guess_type(str(path))
-            if not mime_type or not mime_type.startswith("image/"):
-                raise ValueError(f"Invalid MIME type for {path.name}: {mime_type}")
-
-            # Read and encode image
-            with open(path, "rb") as f:
-                image_data = base64.b64encode(f.read()).decode("utf-8")
-
-            encoded_images.append(
-                {"path": str(path), "data": image_data, "mime_type": mime_type}
-            )
-
-        # Get current provider from model config
         if not self.consoul_config:
             raise ValueError("Config not available for multimodal message creation")
 
-        model_config = self.consoul_config.get_current_model_config()
-        provider = model_config.provider
-        logger.info(f"[IMAGE_DETECTION] Using provider: {provider}")
-
-        # Format message for the provider
-        logger.info(
-            f"[IMAGE_DETECTION] Calling format_vision_message with {len(encoded_images)} image(s)"
-        )
-        result = format_vision_message(provider, user_message, encoded_images)
-        logger.info(f"[IMAGE_DETECTION] format_vision_message returned: {type(result)}")
-        return result
+        return create_multimodal_message(user_message, image_paths, self.consoul_config)
 
     def _update_top_bar_state(self) -> None:
-        """Update ContextualTopBar reactive properties from app state."""
+        """Update ContextualTopBar reactive properties from app state.
+
+        Delegates to top_bar_state_builder utility for state calculation.
+        """
         try:
             if not hasattr(self, "top_bar"):
                 return
 
-            # Update provider and model (from config, not profile)
-            if self.consoul_config:
-                self.top_bar.current_provider = (
-                    self.consoul_config.current_provider.value
-                )
-                self.top_bar.current_model = self.consoul_config.current_model
-            else:
-                self.top_bar.current_provider = ""
-                self.top_bar.current_model = self.current_model
+            from consoul.tui.utils.top_bar_state_builder import build_top_bar_state
 
-            # Update profile name
-            self.top_bar.current_profile = self.current_profile
-
-            # Update streaming status
-            self.top_bar.streaming = self.streaming
-
-            # Update conversation count
+            # Get conversation count
+            conversation_count = None
             if hasattr(self, "conversation_list") and self.conversation_list:
-                self.top_bar.conversation_count = (
-                    self.conversation_list.conversation_count
-                )
-            else:
-                self.top_bar.conversation_count = 0
+                conversation_count = self.conversation_list.conversation_count
 
-            # Update tool status
-            if self.tool_registry:
-                # Get enabled tools
-                enabled_tools = self.tool_registry.list_tools(enabled_only=True)
-                self.top_bar.tools_enabled = len(enabled_tools)
+            # Build state from app components
+            state = build_top_bar_state(
+                consoul_config=self.consoul_config,
+                current_profile=self.current_profile,
+                current_model=self.current_model,
+                streaming=self.streaming,
+                tool_registry=self.tool_registry,
+                conversation_count=conversation_count,
+            )
 
-                # Determine highest risk level
-                if not enabled_tools:
-                    self.top_bar.highest_risk = "none"
-                else:
-                    from consoul.ai.tools.base import RiskLevel
-
-                    # Find highest risk among enabled tools
-                    risk_hierarchy = {
-                        RiskLevel.SAFE: 0,
-                        RiskLevel.CAUTION: 1,
-                        RiskLevel.DANGEROUS: 2,
-                    }
-
-                    max_risk = max(
-                        risk_hierarchy.get(meta.risk_level, 0) for meta in enabled_tools
-                    )
-
-                    # Map back to string
-                    if max_risk == 2:
-                        self.top_bar.highest_risk = "dangerous"
-                    elif max_risk == 1:
-                        self.top_bar.highest_risk = "caution"
-                    else:
-                        self.top_bar.highest_risk = "safe"
-            else:
-                # No registry (shouldn't happen, but defensive)
-                self.top_bar.tools_enabled = 0
-                self.top_bar.highest_risk = "none"
+            # Apply state to top bar
+            for key, value in state.items():
+                setattr(self.top_bar, key, value)
 
         except Exception as e:
             logger.error(f"Error updating top bar state: {e}", exc_info=True)
@@ -1351,81 +952,26 @@ class ConsoulApp(App[None]):
     def _rebind_tools(self) -> None:
         """Rebind tools to chat model after registry changes.
 
-        Called after tool manager applies changes to refresh the model's
-        available tools based on current enabled state.
+        Delegates to ToolRebindingService for model rebinding and updates.
         """
         if not self.tool_registry or not self.chat_model:
             return
 
         try:
-            from consoul.ai.providers import supports_tool_calling
+            from consoul.tui.services.tool_rebinding_service import (
+                ToolRebindingService,
+            )
 
-            # Get currently enabled tools
-            enabled_tools = self.tool_registry.list_tools(enabled_only=True)
-
-            if enabled_tools and supports_tool_calling(self.chat_model):
-                # Extract BaseTool instances
-                tools = [meta.tool for meta in enabled_tools]
-
-                # Rebind tools to model
-                self.chat_model = self.chat_model.bind_tools(tools)  # type: ignore[assignment]
-
-                self.log.info(f"Rebound {len(tools)} tools to chat model")
-
-                # Update conversation's model reference so it uses the rebound model
-                if self.conversation:
-                    self.conversation._model = self.chat_model
-
-                # Update top bar to reflect changes
-                self._update_top_bar_state()
-
-                # Update system prompt to reflect new tool availability
-                system_prompt = self._build_current_system_prompt()
-                if self.conversation is not None and system_prompt:
-                    self.conversation.clear(preserve_system=False)
-                    self.conversation.add_system_message(system_prompt)
-                    # Store updated prompt metadata
-                    self.conversation.store_system_prompt_metadata(
-                        profile_name=self.active_profile.name
-                        if self.active_profile
-                        else None,
-                        tool_count=len(enabled_tools),
-                    )
-                    self.log.info("Updated system prompt with new tool availability")
-            elif not enabled_tools:
-                # No tools enabled - need to recreate model without tool bindings
-                # LangChain doesn't provide an "unbind" method, so we recreate the model
-                self.log.info("No tools enabled - recreating model without tools")
-
-                from consoul.ai import get_chat_model
-
-                if self.consoul_config:
-                    model_config = self.consoul_config.get_current_model_config()
-                    self.chat_model = get_chat_model(
-                        model_config, config=self.consoul_config
-                    )
-
-                    # Update conversation's model reference
-                    if self.conversation:
-                        self.conversation._model = self.chat_model
-
-                    self.log.info("Recreated model without tool bindings")
-
-                self._update_top_bar_state()
-
-                # Update system prompt to show no tools available
-                system_prompt = self._build_current_system_prompt()
-                if self.conversation is not None and system_prompt:
-                    self.conversation.clear(preserve_system=False)
-                    self.conversation.add_system_message(system_prompt)
-                    # Store updated prompt metadata
-                    self.conversation.store_system_prompt_metadata(
-                        profile_name=self.active_profile.name
-                        if self.active_profile
-                        else None,
-                        tool_count=0,
-                    )
-                    self.log.info("Updated system prompt - no tools available")
+            service = ToolRebindingService(
+                tool_registry=self.tool_registry,
+                chat_model=self.chat_model,
+                conversation=self.conversation,
+                consoul_config=self.consoul_config,
+                active_profile=self.active_profile,
+                update_top_bar_callback=self._update_top_bar_state,
+                build_system_prompt_callback=self._build_current_system_prompt,
+            )
+            self.chat_model = service.rebind()
 
         except Exception as e:
             self.log.error(f"Error rebinding tools: {e}", exc_info=True)
