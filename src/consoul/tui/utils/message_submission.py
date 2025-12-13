@@ -7,9 +7,7 @@ to SDK formats and handles attachment persistence.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from consoul.sdk.models import Attachment
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from concurrent.futures import ThreadPoolExecutor
@@ -24,16 +22,33 @@ logger = logging.getLogger(__name__)
 
 def convert_attachments_to_sdk(
     attached_files: list[AttachedFile],
-) -> list[Attachment]:
+) -> list[Any]:
     """Convert TUI AttachedFile objects to SDK Attachment format.
+
+    Filters out files with unsupported types ("unknown") to prevent ValueError
+    in Attachment.__post_init__ which only accepts {"image","code","document","data"}.
 
     Args:
         attached_files: List of TUI AttachedFile objects with path, type, etc.
 
     Returns:
-        List of SDK Attachment objects with path and type fields
+        List of SDK Attachment objects with path and type fields (unsupported types filtered)
     """
-    return [Attachment(path=f.path, type=f.type) for f in attached_files]
+    from consoul.sdk.models import Attachment
+
+    supported_types = {"image", "code", "document", "data"}
+    sdk_attachments = []
+
+    for f in attached_files:
+        if f.type in supported_types:
+            sdk_attachments.append(Attachment(path=f.path, type=f.type))
+        else:
+            logger.warning(
+                f"Skipping attachment '{f.path}' with unsupported type '{f.type}'. "
+                f"Supported types: {', '.join(supported_types)}"
+            )
+
+    return sdk_attachments
 
 
 async def persist_message_attachments(
