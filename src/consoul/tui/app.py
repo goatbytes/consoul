@@ -64,51 +64,6 @@ logger = logging.getLogger(__name__)
 
 
 # Custom Messages for tool approval workflow
-class ToolApprovalRequested(Message):
-    """Message emitted when tool approval is needed.
-
-    This message is sent to trigger the approval modal outside
-    the streaming context, allowing proper modal interaction.
-    """
-
-    def __init__(
-        self,
-        tool_call: ParsedToolCall,
-    ) -> None:
-        """Initialize tool approval request message.
-
-        Args:
-            tool_call: Parsed tool call needing approval
-        """
-        super().__init__()
-        self.tool_call = tool_call
-
-
-class ToolApprovalResult(Message):
-    """Message emitted after user approves/denies tool.
-
-    This message triggers tool execution and AI continuation.
-    """
-
-    def __init__(
-        self,
-        tool_call: ParsedToolCall,
-        approved: bool,
-        reason: str | None = None,
-    ) -> None:
-        """Initialize tool approval result message.
-
-        Args:
-            tool_call: Parsed tool call that was approved/denied
-            approved: Whether user approved execution
-            reason: Reason for denial (if not approved)
-        """
-        super().__init__()
-        self.tool_call = tool_call
-        self.approved = approved
-        self.reason = reason
-
-
 class ContinueWithToolResults(Message):
     """Message to trigger AI continuation after tool execution.
 
@@ -326,7 +281,6 @@ class ConsoulApp(App[None]):
         # Tool execution state
         self._pending_tool_calls: list[ParsedToolCall] = []
         self._tool_results: dict[str, ToolMessage] = {}
-        self._tool_call_data: dict[str, dict[str, Any]] = {}
         self._tool_call_iterations = 0
         self._max_tool_iterations = 5
         self._current_assistant_message_id: int | None = None
@@ -1499,7 +1453,7 @@ class ConsoulApp(App[None]):
             content: User message content
             attachments: Optional list of file attachments
         """
-        from consoul.tui.widgets import MessageBubble, StreamingResponse
+        from consoul.tui.utils import StreamingWidgetManager
 
         if not self.conversation_service:
             from consoul.tui.utils import create_error_bubble
@@ -1512,14 +1466,14 @@ class ConsoulApp(App[None]):
         self.streaming = True
         self._update_top_bar_state()
 
+        # Create streaming widget manager
+        stream_manager = StreamingWidgetManager(self.chat_view)
+
         try:
             # Create tool approver for this conversation
             tool_approver = TUIToolApprover(self)
 
-            # Stream tokens from service
-            collected_content = []
-            total_cost = 0.0
-            stream_widget = None
+            # Track first token to initialize stream widget
             first_token = True
 
             async for token in self.conversation_service.send_message(
@@ -1527,109 +1481,60 @@ class ConsoulApp(App[None]):
                 attachments=attachments,
                 on_tool_request=tool_approver.on_tool_request,
             ):
-                # On first token, hide typing indicator and show stream widget
+                # On first token, create and show stream widget
                 if first_token:
-                    await self.chat_view.hide_typing_indicator()
-                    stream_widget = StreamingResponse(renderer="hybrid")
-                    await self.chat_view.add_message(stream_widget)
+                    stream_widget = await stream_manager.start_streaming()
                     self._current_stream = stream_widget
                     first_token = False
 
                 # Check for cancellation
                 if self._stream_cancelled:
-                    break
+                    await stream_manager.cancel_stream()
+                    return
 
-                # Collect content
-                collected_content.append(token.content)
-
-                # Update cost if available
-                if token.cost is not None:
-                    total_cost += token.cost
-
-                # Update streaming widget
-                if stream_widget:
-                    await stream_widget.add_token(token.content)
-
-            # If cancelled, remove stream widget
-            if self._stream_cancelled:
-                if stream_widget:
-                    await stream_widget.remove()
-                return
+                # Add token to stream
+                await stream_manager.add_token(token.content, token.cost)
 
             # Finalize stream if we got any tokens
-            if stream_widget:
-                final_content = "".join(collected_content)
-                self.log.debug(
-                    f"[STREAM] Finalizing stream, content_length={len(final_content)}"
+            if stream_manager.stream_widget:
+                final_bubble = await stream_manager.finalize_stream(
+                    self.conversation_service
                 )
-                await stream_widget.finalize_stream()
-
-                # Remove stream widget
-                await stream_widget.remove()
-
-                # Extract tool call data from conversation for MessageBubble
-                from consoul.tui.utils import extract_tool_calls_from_conversation
-
-                tool_calls_list = None
-                if self.conversation:
-                    tool_calls_list = extract_tool_calls_from_conversation(
-                        self.conversation
-                    )
-
-                # Create MessageBubble with simple TUI types (no SDK objects)
-                final_bubble = MessageBubble(
-                    final_content,
-                    role="assistant",
-                    show_metadata=True,
-                    estimated_cost=total_cost if total_cost > 0 else None,
-                    tool_calls=tool_calls_list,
-                )
-
-                # Add final bubble to chat view
-                await self.chat_view.add_message(final_bubble)
 
                 # Generate title if this is the first exchange
-                should_generate = self._should_generate_title()
-                if self.title_generator and self.conversation and should_generate:
-                    # Get first user message (skip system messages)
-                    user_msg = None
-                    for msg in self.conversation.messages:
-                        if msg.type == "human":
-                            user_msg = msg.content
-                            break
+                if final_bubble:
+                    should_generate = self._should_generate_title()
+                    if self.title_generator and self.conversation and should_generate:
+                        # Get first user message (skip system messages)
+                        user_msg = None
+                        for msg in self.conversation.messages:
+                            if msg.type == "human":
+                                user_msg = msg.content
+                                break
 
-                    if user_msg and self.conversation.session_id:
-                        # Run title generation in background (non-blocking)
-                        self.run_worker(
-                            self._generate_and_save_title(
-                                self.conversation.session_id,
-                                user_msg,  # type: ignore[arg-type]
-                                final_content,
-                            ),
-                            exclusive=False,
-                            name=f"title_gen_{self.conversation.session_id}",
-                        )
-                    else:
-                        self.log.warning(
-                            f"Cannot generate title: user_msg={bool(user_msg)}, "
-                            f"session_id={self.conversation.session_id}"
-                        )
+                        if user_msg and self.conversation.session_id:
+                            # Run title generation in background (non-blocking)
+                            self.run_worker(
+                                self._generate_and_save_title(
+                                    self.conversation.session_id,
+                                    user_msg,  # type: ignore[arg-type]
+                                    "".join(stream_manager.collected_content),
+                                ),
+                                exclusive=False,
+                                name=f"title_gen_{self.conversation.session_id}",
+                            )
+                        else:
+                            self.log.warning(
+                                f"Cannot generate title: user_msg={bool(user_msg)}, "
+                                f"session_id={self.conversation.session_id}"
+                            )
             else:
-                # No tokens received - hide typing indicator and show error
-                from consoul.tui.utils import create_error_bubble
-
-                await self.chat_view.hide_typing_indicator()
-                error_bubble = create_error_bubble("No response received from AI")
-                await self.chat_view.add_message(error_bubble)
+                # No tokens received - show error
+                await stream_manager.show_no_response_error()
 
         except Exception as e:
-            from consoul.tui.utils import create_error_bubble
-
             logger.error(f"Error streaming via ConversationService: {e}", exc_info=True)
-            # Hide typing indicator if still showing
-            await self.chat_view.hide_typing_indicator()
-            error_bubble = create_error_bubble(f"Error: {e!s}")
-            await self.chat_view.add_message(error_bubble)
+            await stream_manager.handle_stream_error(e)
 
         finally:
             # Reset streaming state
@@ -1669,7 +1574,6 @@ class ConsoulApp(App[None]):
             return
 
         # Reset tool call tracking for new user message
-        self._tool_call_data = {}
         self._tool_results = {}
         self._tool_call_iterations = 0
         if hasattr(self, "_last_tool_signature"):
@@ -1753,18 +1657,18 @@ class ConsoulApp(App[None]):
             # The service adds the message when streaming starts
 
             # Convert TUI AttachedFile to SDK Attachment format
-            from consoul.sdk.models import Attachment
+            from consoul.tui.utils import convert_attachments_to_sdk
 
-            sdk_attachments = [
-                Attachment(path=f.path, type=f.type) for f in attached_files
-            ]
+            sdk_attachments = (
+                convert_attachments_to_sdk(attached_files) if attached_files else None
+            )
 
             # Start streaming AI response via ConversationService
             # This will add the message to conversation before yielding tokens
             # Note: ConversationService will create the conversation in DB on first message
             await self._stream_via_conversation_service(
                 content=final_message,
-                attachments=sdk_attachments if sdk_attachments else None,
+                attachments=sdk_attachments,
             )
 
             # Sync conversation_id after streaming (in case it was created/updated by service)
@@ -1782,46 +1686,13 @@ class ConsoulApp(App[None]):
                 self._update_top_bar_state()
 
             # Persist attachments after streaming completes (message is now in conversation)
-            user_message_id = None
-            if (
-                self.conversation is not None
-                and self.conversation.persist
-                and self.conversation._db
-                and self.conversation.session_id
-                and attached_files
-            ):
-                # Get the persisted message ID
-                try:
-                    messages = self.conversation._db.load_conversation(
-                        self.conversation.session_id
-                    )
-                    # Find the user message we just added (should be second-to-last, before AI response)
-                    if len(messages) >= 2:
-                        # Look for the last human message
-                        for msg in reversed(messages):
-                            if msg.get("role") == "user":
-                                user_message_id = msg.get("id")
-                                break
+            from consoul.tui.utils import handle_attachment_persistence
 
-                    if user_message_id:
-                        from consoul.tui.utils import persist_attachments
-
-                        logger.debug(
-                            f"Persisting {len(attached_files)} attachments to message {user_message_id}"
-                        )
-                        await persist_attachments(
-                            self.conversation,
-                            user_message_id,
-                            attached_files,
-                            self._executor,
-                        )
-                        logger.debug("Attachments persisted successfully")
-                    else:
-                        logger.warning(
-                            "Could not find user message ID for attachment persistence"
-                        )
-                except Exception as e:
-                    logger.error(f"Failed to persist attachments: {e}", exc_info=True)
+            await handle_attachment_persistence(
+                self.conversation,
+                attached_files,
+                self._executor,
+            )
 
         # Fire off all processing in background worker
         # This keeps the UI responsive during the entire "Thinking..." phase
@@ -1836,47 +1707,18 @@ class ConsoulApp(App[None]):
             event: CommandExecuteRequested event containing the command
         """
         import subprocess
-        import time
 
+        from consoul.tui.utils import CommandExecutionHandler
         from consoul.tui.widgets.command_output_bubble import CommandOutputBubble
 
         command = event.command
-        self.log.info(f"[COMMAND_EXEC] Executing inline command: {command}")
-
-        # Execute command in background to avoid blocking UI
-        start_time = time.time()
+        handler = CommandExecutionHandler()
 
         try:
-            # Run command with timeout
-            result = await self._run_in_thread(
-                subprocess.run,
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=30,  # 30 second timeout
-                cwd=Path.cwd(),
+            # Execute command
+            stdout, stderr, exit_code, execution_time = await handler.execute_command(
+                command, cwd=Path.cwd(), run_in_thread=self._run_in_thread
             )
-
-            execution_time = time.time() - start_time
-
-            stdout = result.stdout
-            stderr = result.stderr
-            exit_code = result.returncode
-
-            # Truncate output if too long (prevent UI freeze)
-            max_lines = 1000
-            if stdout:
-                lines = stdout.split("\n")
-                if len(lines) > max_lines:
-                    first = lines[:50]
-                    last = lines[-50:]
-                    truncated = [
-                        *first,
-                        f"\n... truncated {len(lines) - 100} lines ...\n",
-                        *last,
-                    ]
-                    stdout = "\n".join(truncated)
 
             # Create output bubble
             output_bubble = CommandOutputBubble(
@@ -1897,42 +1739,32 @@ class ConsoulApp(App[None]):
 
             self._pending_command_output = (command, output_text)
 
-            self.log.info(
-                f"[COMMAND_EXEC] Command completed with exit code {exit_code} in {execution_time:.2f}s"
-            )
-
         except subprocess.TimeoutExpired:
             # Command timed out
-            execution_time = time.time() - start_time
-
             error_bubble = CommandOutputBubble(
                 command=command,
                 stdout="",
-                stderr="Command timed out after 30 seconds",
+                stderr=f"Command timed out after {handler.timeout} seconds",
                 exit_code=124,  # Standard timeout exit code
-                execution_time=execution_time,
+                execution_time=handler.timeout,
             )
 
             await self.chat_view.add_message(error_bubble)
-
-            self.log.warning(f"[COMMAND_EXEC] Command timed out: {command}")
-            self.notify("Command timed out after 30 seconds", severity="warning")
+            self.notify(
+                f"Command timed out after {handler.timeout} seconds", severity="warning"
+            )
 
         except Exception as e:
             # Execution failed
-            execution_time = time.time() - start_time
-
             error_bubble = CommandOutputBubble(
                 command=command,
                 stdout="",
                 stderr=f"Execution failed: {e}",
                 exit_code=1,
-                execution_time=execution_time,
+                execution_time=0,
             )
 
             await self.chat_view.add_message(error_bubble)
-
-            self.log.error(f"[COMMAND_EXEC] Execution failed: {e}", exc_info=True)
             self.notify(f"Command execution failed: {e}", severity="error")
 
     async def on_input_area_inline_commands_requested(
@@ -1946,386 +1778,18 @@ class ConsoulApp(App[None]):
         Args:
             event: InlineCommandsRequested event containing the message
         """
-        import re
-        import subprocess
+        from consoul.tui.utils import CommandExecutionHandler
 
         message = event.message
-        self.log.info("[INLINE_COMMAND] Processing message with inline commands")
+        handler = CommandExecutionHandler()
 
-        # Find all !`command` patterns
-        pattern = r"!\s*`([^`]+)`"
-        matches = list(re.finditer(pattern, message))
-
-        if not matches:
-            # No commands found, send as regular message
-            self.post_message(InputArea.MessageSubmit(message))
-            return
-
-        # Execute each command and build replacement map
-        replacements = {}
-        for match in matches:
-            command = match.group(1)
-            placeholder = match.group(0)  # Full pattern like !`command`
-
-            self.log.info(f"[INLINE_COMMAND] Executing: {command}")
-
-            try:
-                # Execute command with timeout
-                result = await self._run_in_thread(
-                    subprocess.run,
-                    command,
-                    shell=True,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=Path.cwd(),
-                )
-
-                # Get output
-                output = result.stdout.strip() if result.stdout else ""
-                if result.stderr:
-                    output += f"\n[stderr: {result.stderr.strip()}]"
-
-                if result.returncode != 0:
-                    output = (
-                        f"[Command failed with exit code {result.returncode}]\n{output}"
-                    )
-
-                # Truncate if too long
-                if len(output) > 10000:
-                    output = output[:10000] + "\n... (output truncated)"
-
-                replacements[placeholder] = output
-
-            except subprocess.TimeoutExpired:
-                replacements[placeholder] = "[Command timed out after 30 seconds]"
-                self.log.warning(f"[INLINE_COMMAND] Timeout: {command}")
-
-            except Exception as e:
-                replacements[placeholder] = f"[Command failed: {e}]"
-                self.log.error(f"[INLINE_COMMAND] Error: {e}", exc_info=True)
-
-        # Replace all command patterns with their output
-        processed_message = message
-        for placeholder, output in replacements.items():
-            processed_message = processed_message.replace(placeholder, output)
-
-        self.log.info(f"[INLINE_COMMAND] Processed {len(replacements)} commands")
+        # Detect and substitute inline commands
+        processed_message = await handler.substitute_inline_commands(
+            message, run_in_thread=self._run_in_thread
+        )
 
         # Send the processed message as a regular message
         self.post_message(InputArea.MessageSubmit(processed_message))
-
-    async def on_tool_approval_requested(self, message: ToolApprovalRequested) -> None:
-        """Handle tool approval request by showing modal.
-
-        Uses orchestrator to handle approval business logic and callback pattern
-        for asynchronous modal interaction.
-
-        Args:
-            message: ToolApprovalRequested with tool_call and widget
-        """
-        from consoul.tui.services import ToolApprovalOrchestrator
-        from consoul.tui.widgets import ToolApprovalModal
-
-        logger.debug(
-            f"[TOOL_FLOW] on_tool_approval_requested called for {message.tool_call.name}"
-        )
-
-        # Create orchestrator for approval workflow
-        orchestrator = ToolApprovalOrchestrator(
-            self.tool_registry,
-            self.tool_registry.audit_logger if self.tool_registry else None,
-        )
-
-        # Assess risk
-        risk_assessment = await orchestrator.assess_tool_call(message.tool_call)
-
-        # Check for immediate rejection (tool not found)
-        should_reject, error_msg = orchestrator.should_reject_immediately(
-            risk_assessment
-        )
-        if should_reject:
-            self.log.warning(error_msg)
-            self.post_message(
-                ToolApprovalResult(
-                    tool_call=message.tool_call,
-                    approved=False,
-                    reason=error_msg,
-                )
-            )
-            return
-
-        # Log approval request
-        await orchestrator.log_request(message.tool_call)
-
-        # Check if auto-approval applies
-        (
-            should_auto_approve,
-            auto_approve_reason,
-        ) = await orchestrator.check_auto_approval(
-            message.tool_call, risk_assessment.level
-        )
-
-        if should_auto_approve:
-            logger.debug(f"[TOOL_FLOW] Auto-approving {message.tool_call.name}")
-            self.log.info(
-                f"Auto-approving tool '{message.tool_call.name}' "
-                f"(risk={risk_assessment.level.value})"
-            )
-
-            # Log auto-approval decision
-            await orchestrator.log_decision(
-                message.tool_call, True, auto_approve_reason
-            )
-
-            self.post_message(
-                ToolApprovalResult(
-                    tool_call=message.tool_call,
-                    approved=True,
-                    reason=auto_approve_reason,
-                )
-            )
-            return
-
-        # Build approval request for modal
-        request = orchestrator.build_approval_request(
-            message.tool_call, risk_assessment
-        )
-
-        # Define async callback to handle result and log audit event
-        async def on_approval_result_async(approved: bool | None) -> None:
-            """Handle approval modal dismissal with audit logging."""
-            # Convert None to False (treat no response as denial)
-            if approved is None:
-                approved = False
-
-            # Log decision via orchestrator
-            reason = None if approved else "User denied execution via modal"
-            await orchestrator.log_decision(message.tool_call, approved, reason)
-
-            # Emit result message to trigger execution
-            self.post_message(
-                ToolApprovalResult(
-                    tool_call=message.tool_call,
-                    approved=bool(approved),
-                    reason=reason,
-                )
-            )
-
-        # Define sync wrapper for callback
-        def on_approval_result(approved: bool | None) -> None:
-            """Sync wrapper for async callback."""
-            import asyncio
-
-            # Create task to run async callback
-            # Store reference to avoid task being garbage collected
-            task = asyncio.create_task(on_approval_result_async(approved))
-            # Add to set of background tasks to keep reference
-            if not hasattr(self, "_audit_tasks"):
-                self._audit_tasks: set[asyncio.Task[None]] = set()
-            self._audit_tasks.add(task)
-            task.add_done_callback(self._audit_tasks.discard)
-
-        # Show modal with callback (non-blocking)
-        # This is the correct pattern: push_screen with callback, not await
-        modal = ToolApprovalModal(request)
-        self.push_screen(modal, on_approval_result)
-
-    async def on_tool_approval_result(self, message: ToolApprovalResult) -> None:
-        """Handle tool approval result by executing tool.
-
-        After execution, checks if all tools are done and continues AI response.
-
-        Args:
-            message: ToolApprovalResult with approval decision
-        """
-        import time
-
-        from langchain_core.messages import ToolMessage
-
-        from consoul.ai.tools.audit import AuditEvent
-
-        logger.debug(
-            f"[TOOL_FLOW] on_tool_approval_result: "
-            f"tool={message.tool_call.name}, "
-            f"approved={message.approved}, "
-            f"call_id={message.tool_call.id}"
-        )
-
-        # Start timing for entire approval flow
-        start_time = time.time()
-
-        if message.approved:
-            # Update tool call data to EXECUTING
-            self._tool_call_data[message.tool_call.id]["status"] = "EXECUTING"
-            logger.info(
-                f"[TOOL_FLOW] Executing approved tool: {message.tool_call.name}"
-            )
-
-            # Log execution start
-            if self.tool_registry and self.tool_registry.audit_logger:
-                await self.tool_registry.audit_logger.log_event(
-                    AuditEvent(
-                        event_type="execution",
-                        tool_name=message.tool_call.name,
-                        arguments=message.tool_call.arguments,
-                    )
-                )
-
-            # Yield control to allow UI to update and show "EXECUTING" status
-            # This prevents the UI from appearing frozen during tool execution
-            await asyncio.sleep(0.01)  # 10ms delay to let UI refresh
-
-            # NOTE: This handler is obsolete (SOUL-265) - nothing posts ToolApprovalRequested
-            # Tool execution now handled by ConversationService via TUIToolApprover
-            # TODO: Remove entire on_tool_approval_result handler in follow-up ticket
-
-            # Execute tool
-            try:
-                # FIXME: _execute_tool removed in SOUL-265, this code path unreachable
-                result: str = ""  # Satisfy linter - this code is never reached
-                raise NotImplementedError("Tool execution moved to ConversationService")
-                # Update tool call data with SUCCESS  # type: ignore[unreachable]
-                self._tool_call_data[message.tool_call.id]["status"] = "SUCCESS"
-                self._tool_call_data[message.tool_call.id]["result"] = result
-
-                duration_ms = int((time.time() - start_time) * 1000)
-                self.log.info(
-                    f"[TOOL_FLOW] Tool execution SUCCESS: "
-                    f"{message.tool_call.name} in {duration_ms}ms, "
-                    f"result_length={len(result)}"
-                )
-
-                # Update widget with result and SUCCESS status
-
-                # Log successful result
-                if self.tool_registry and self.tool_registry.audit_logger:
-                    await self.tool_registry.audit_logger.log_event(
-                        AuditEvent(
-                            event_type="result",
-                            tool_name=message.tool_call.name,
-                            arguments=message.tool_call.arguments,
-                            result=result[:500]
-                            if len(result) > 500
-                            else result,  # Truncate long results
-                            duration_ms=duration_ms,
-                        )
-                    )
-            except Exception as e:
-                # Execution failed - update tool call data with ERROR
-                result = f"Tool execution failed: {e}"
-                self._tool_call_data[message.tool_call.id]["status"] = "ERROR"
-                self._tool_call_data[message.tool_call.id]["result"] = result
-
-                duration_ms = int((time.time() - start_time) * 1000)
-                self.log.error(
-                    f"[TOOL_FLOW] Tool execution ERROR: "
-                    f"{message.tool_call.name} failed after {duration_ms}ms - {e}",
-                    exc_info=True,
-                )
-
-                # Update widget with error result and ERROR status
-
-                # Log error
-                if self.tool_registry and self.tool_registry.audit_logger:
-                    await self.tool_registry.audit_logger.log_event(
-                        AuditEvent(
-                            event_type="error",
-                            tool_name=message.tool_call.name,
-                            arguments=message.tool_call.arguments,
-                            error=str(e),
-                            duration_ms=duration_ms,
-                        )
-                    )
-        else:
-            # Tool denied - update tool call data with DENIED status
-            result = f"Tool execution denied: {message.reason}"
-            self._tool_call_data[message.tool_call.id]["status"] = "DENIED"
-
-            self._tool_call_data[message.tool_call.id]["result"] = result
-            self.log.info(
-                f"[TOOL_FLOW] Tool DENIED: {message.tool_call.name} - {message.reason}"
-            )
-
-        # Store result
-        tool_message = ToolMessage(content=result, tool_call_id=message.tool_call.id)
-        self._tool_results[message.tool_call.id] = tool_message
-
-        # Persist tool call to database for UI reconstruction
-        await self._persist_tool_call(
-            message.tool_call,
-            status=self._tool_call_data[message.tool_call.id]["status"],
-            result=result,
-        )
-
-        # Yield control to allow UI to process events after tool execution
-        await asyncio.sleep(0)
-
-        # Check if all tools are done
-        completed = len(self._tool_results)
-        total = len(self._pending_tool_calls)
-        logger.debug(
-            f"[TOOL_FLOW] Tool completion status: {completed}/{total} tools completed"
-        )
-
-        if completed == total:
-            # All tools completed - post message to continue with results
-            # Use message passing to break async call chain and keep UI responsive
-            logger.debug(
-                f"[TOOL_FLOW] All {total} tools completed, posting message to continue"
-            )
-            # Post message instead of awaiting directly - this breaks the call chain
-            self.post_message(ContinueWithToolResults())
-        else:
-            self.log.info(
-                f"[TOOL_FLOW] Waiting for remaining tools ({total - completed} pending)"
-            )
-
-    async def _persist_tool_call(
-        self,
-        tool_call: ParsedToolCall,
-        status: str,
-        result: str,
-    ) -> None:
-        """Persist a tool call to the database for UI reconstruction.
-
-        Args:
-            tool_call: The parsed tool call to persist
-            status: Tool call status (SUCCESS, ERROR, DENIED)
-            result: Tool call result or error message
-        """
-        # Check if we have the database and message ID
-        if (
-            not self.conversation
-            or not self.conversation._db
-            or not self._current_assistant_message_id
-        ):
-            self.log.debug(
-                "[TOOL_FLOW] Cannot persist tool call - no database or message ID"
-            )
-            return
-
-        try:
-            import asyncio
-            from functools import partial
-
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
-                self._executor,
-                partial(
-                    self.conversation._db.save_tool_call,
-                    message_id=self._current_assistant_message_id,
-                    tool_name=tool_call.name,
-                    arguments=tool_call.arguments,
-                    status=status.lower(),  # DB expects lowercase
-                    result=result,
-                ),
-            )
-            self.log.debug(
-                f"[TOOL_FLOW] Persisted tool call: {tool_call.name} ({status})"
-            )
-        except Exception as e:
-            self.log.warning(f"[TOOL_FLOW] Failed to persist tool call: {e}")
 
     # Action handlers (placeholders for Phase 2+)
 
@@ -2866,58 +2330,26 @@ class ConsoulApp(App[None]):
         conversation_id = event.conversation_id
         self.log.info(f"Loading conversation: {conversation_id}")
 
-        # Clear current chat view first
-        await self.chat_view.clear_messages()
-
-        # Show loading indicator
-        await self.chat_view.show_loading_indicator()
-
-        # Give the loading indicator time to render before we start loading messages
-        await asyncio.sleep(0.1)
-
         # Load conversation from database with full metadata for UI reconstruction
         if self.consoul_config:
             try:
-                # Use load_conversation_full to get tool_calls and attachments
-                raw_messages = self.conversation_list.db.load_conversation_full(
-                    conversation_id
-                )
-
-                # Transform messages for display using ConversationDisplayService
-                from consoul.sdk.services import ConversationDisplayService
-
-                ui_messages = ConversationDisplayService.load_conversation_for_display(
-                    raw_messages, current_model=self.current_model
-                )
-
-                # Render messages in chat view
-                from functools import partial
-
                 from consoul.tui.utils import (
-                    display_reconstructed_attachments,
-                    render_ui_messages_to_chat,
+                    load_conversation_to_view,
+                    reconstruct_conversation_history,
                 )
 
-                await render_ui_messages_to_chat(
+                # Load and display conversation in chat view
+                await load_conversation_to_view(
                     self.chat_view,
-                    ui_messages,
+                    conversation_id,
+                    self.conversation_list.db,
                     self.theme,
-                    thinking_filter_callback=self._should_display_thinking,
-                    attachment_display_callback=partial(
-                        display_reconstructed_attachments, self.chat_view
-                    ),
+                    self.current_model,
+                    self._should_display_thinking,
                 )
 
                 # Update conversation ID to resume this conversation
                 self.conversation_id = conversation_id
-
-                # Ensure we scroll to the bottom after loading all messages
-                # Clear the "user scrolled away" flag first
-                self.chat_view._user_scrolled_away = False
-                # Use call_after_refresh to ensure all messages are laid out first
-                self.chat_view.call_after_refresh(
-                    self.chat_view.scroll_end, animate=False
-                )
 
                 # Update the conversation object if we have one
                 # Use explicit None check instead of truthiness check
@@ -2925,16 +2357,11 @@ class ConsoulApp(App[None]):
                 if self.conversation is not None and self.consoul_config is not None:
                     # Reload conversation history into current conversation object with profile settings
                     try:
-                        from consoul.ai import ConversationHistory
-
-                        conv_kwargs = self._get_conversation_config()
-                        conv_kwargs["session_id"] = (
-                            conversation_id  # Resume this specific session
-                        )
-                        self.conversation = ConversationHistory(
-                            model_name=self.consoul_config.current_model,
-                            model=self.chat_model,
-                            **conv_kwargs,
+                        self.conversation = reconstruct_conversation_history(
+                            self.consoul_config,
+                            conversation_id,
+                            self.chat_model,
+                            self._get_conversation_config,
                         )
                     except Exception as e:
                         logger.error(
@@ -2942,25 +2369,9 @@ class ConsoulApp(App[None]):
                             exc_info=True,
                         )
 
-                # Hide loading indicator and scroll to bottom
-                try:
-                    # Hide loading indicator
-                    await self.chat_view.hide_loading_indicator()
-
-                    # Trigger scroll after layout completes
-                    self.chat_view.scroll_to_bottom_after_load()
-                except Exception as scroll_err:
-                    logger.error(
-                        f"Error loading conversation scroll: {scroll_err}",
-                        exc_info=True,
-                    )
-                    raise
-
             except Exception as e:
                 self.log.error(f"Failed to load conversation: {e}")
                 self.notify(f"Failed to load conversation: {e}", severity="error")
-                # Hide loading indicator on error
-                await self.chat_view.hide_loading_indicator()
 
     async def on_conversation_list_conversation_deleted(
         self,
@@ -3007,17 +2418,14 @@ class ConsoulApp(App[None]):
             return
 
         try:
-            self.log.info(
-                f"Branching conversation {current_session_id} at message {message_id}"
-            )
+            from consoul.tui.utils import create_conversation_branch
 
             # Branch the conversation in the database
-            new_session_id = self.conversation_list.db.branch_conversation(
-                source_session_id=current_session_id,
-                branch_at_message_id=message_id,
+            new_session_id = await create_conversation_branch(
+                self.conversation_list.db,
+                current_session_id,
+                message_id,
             )
-
-            self.log.info(f"Created branched conversation: {new_session_id}")
 
             # Reload conversation list to show the new branch
             await self.conversation_list.reload_conversations()
@@ -3190,134 +2598,9 @@ class ConsoulApp(App[None]):
         Args:
             profile_name: Name of profile to switch to
         """
-        if not self.consoul_config:
-            self.notify("No configuration available", severity="error")
-            return
+        from consoul.tui.services import ProfileUIOrchestrator
 
-        try:
-            # Get old database path and persist setting before switching
-            old_db_path = (
-                self.active_profile.conversation.db_path
-                if self.active_profile
-                else None
-            )
-            old_persist = (
-                self.active_profile.conversation.persist
-                if self.active_profile
-                else True
-            )
-
-            # Update active profile in config
-            self.consoul_config.active_profile = profile_name
-            self.active_profile = self.consoul_config.get_active_profile()
-            self.current_profile = profile_name
-
-            # Get new persist setting
-            assert self.active_profile is not None, (
-                "Active profile should be available after switching"
-            )
-            new_persist = self.active_profile.conversation.persist
-
-            # Persist profile selection to config file
-            from consoul.tui.services import ProfileManager
-
-            try:
-                ProfileManager.save_profile_config(self.consoul_config)
-                self.log.info(f"Profile selection saved: {profile_name}")
-            except Exception as save_error:
-                # Log but don't fail the profile switch - it's already applied in memory
-                self.log.warning(
-                    f"Failed to persist profile selection: {save_error}", exc_info=True
-                )
-
-            # NOTE: Model/provider remain unchanged - profiles are separate from models
-
-            # Handle sidebar visibility based on persist setting changes
-            assert self.active_profile is not None, (
-                "Active profile should be available for db path access"
-            )
-            new_db_path = self.active_profile.conversation.db_path
-
-            # Case 1: Switching from non-persist to persist profile
-            if not old_persist and new_persist:
-                # Need to mount sidebar if show_sidebar is enabled
-                if self.config.show_sidebar and not hasattr(self, "conversation_list"):
-                    from consoul.ai.database import ConversationDatabase
-                    from consoul.tui.widgets.conversation_list import ConversationList
-
-                    db = ConversationDatabase(new_db_path)
-                    self.conversation_list = ConversationList(db=db)
-
-                    # Mount sidebar in main-container before content-area
-                    main_container = self.query_one(".main-container")
-                    main_container.mount(self.conversation_list, before=0)
-
-                    self.log.info(
-                        f"Mounted conversation sidebar for persist-enabled profile '{profile_name}'"
-                    )
-
-            # Case 2: Switching from persist to non-persist profile
-            elif old_persist and not new_persist:
-                # Need to unmount sidebar
-                if hasattr(self, "conversation_list"):
-                    self.conversation_list.remove()
-                    delattr(self, "conversation_list")
-                    self.log.info(
-                        f"Unmounted conversation sidebar for non-persist profile '{profile_name}'"
-                    )
-
-            # Case 3: Both profiles have persist=True - check if database path changed
-            elif (
-                old_persist
-                and new_persist
-                and old_db_path != new_db_path
-                and hasattr(self, "conversation_list")
-            ):
-                # Database path changed - update conversation list database
-                from consoul.ai.database import ConversationDatabase
-
-                self.conversation_list.db = ConversationDatabase(new_db_path)
-                # Reload conversations from new database
-                self.run_worker(
-                    self.conversation_list.reload_conversations(), exclusive=True
-                )
-                self.log.info(
-                    f"Switched to profile '{profile_name}' with database: {new_db_path}"
-                )
-
-            # Update conversation with new system prompt if needed (with dynamic tools)
-            system_prompt = self._build_current_system_prompt()
-            if self.conversation and system_prompt:
-                # Clear and re-add system message with new prompt
-                # (This preserves conversation history but updates instructions)
-                self.conversation.clear(preserve_system=False)
-                self.conversation.add_system_message(system_prompt)
-                # Store updated prompt metadata
-                tool_count = (
-                    len(self.tool_registry.list_tools(enabled_only=True))
-                    if self.tool_registry
-                    else 0
-                )
-                self.conversation.store_system_prompt_metadata(
-                    profile_name=self.active_profile.name
-                    if self.active_profile
-                    else None,
-                    tool_count=tool_count,
-                )
-
-            # Update top bar display
-            self._update_top_bar_state()
-
-            self.notify(
-                f"Switched to profile '{profile_name}' and saved to config (model unchanged: {self.current_model})",
-                severity="information",
-            )
-            self.log.info(
-                f"Profile switched and saved: {profile_name}, model preserved: {self.current_model}"
-            )
-
-        except Exception as e:
-            self._handle_profile_error("switch", e)
+        ProfileUIOrchestrator.switch_profile(self, self.consoul_config, profile_name)
 
     def _handle_profile_error(self, operation: str, error: Exception) -> None:
         """Handle profile operation errors with consistent formatting.
@@ -3333,49 +2616,9 @@ class ConsoulApp(App[None]):
 
     def _handle_create_profile(self) -> None:
         """Handle create new profile action from ProfileSelectorModal."""
-        if not self.consoul_config:
-            self.notify("No configuration available", severity="error")
-            return
+        from consoul.tui.services import ProfileUIOrchestrator
 
-        def on_profile_created(new_profile: Any | None) -> None:
-            """Handle ProfileEditorModal result for creation."""
-            if not new_profile or not self.consoul_config:
-                return
-
-            try:
-                from consoul.tui.services import ProfileManager
-
-                # Validate creation
-                is_valid, error = ProfileManager.validate_create(
-                    new_profile.name, self.consoul_config.profiles
-                )
-                if not is_valid and error:
-                    self.notify(error, severity="error")
-                    return
-
-                # Create profile and save
-                ProfileManager.create_profile(self.consoul_config, new_profile)
-
-                self.notify(
-                    f"Profile '{new_profile.name}' created successfully",
-                    severity="information",
-                )
-                self.log.info(f"Created new profile: {new_profile.name}")
-
-            except Exception as e:
-                self._handle_profile_error("create", e)
-
-        from consoul.config.profiles import get_builtin_profiles
-        from consoul.tui.widgets import ProfileEditorModal
-
-        builtin_names = set(get_builtin_profiles().keys())
-
-        modal = ProfileEditorModal(
-            existing_profile=None,  # Create mode
-            existing_profiles=self.consoul_config.profiles,
-            builtin_profile_names=builtin_names,
-        )
-        self.push_screen(modal, on_profile_created)
+        ProfileUIOrchestrator.show_create_profile_modal(self, self.consoul_config)
 
     def _handle_edit_profile(self, profile_name: str) -> None:
         """Handle edit profile action from ProfileSelectorModal.
@@ -3383,68 +2626,11 @@ class ConsoulApp(App[None]):
         Args:
             profile_name: Name of profile to edit
         """
-        if not self.consoul_config:
-            self.notify("No configuration available", severity="error")
-            return
+        from consoul.tui.services import ProfileUIOrchestrator
 
-        # Get the profile to edit
-        if profile_name not in self.consoul_config.profiles:
-            self.notify(f"Profile '{profile_name}' not found", severity="error")
-            return
-
-        # Validate editing
-        from consoul.tui.services import ProfileManager
-
-        is_valid, error = ProfileManager.validate_edit(profile_name)
-        if not is_valid and error:
-            self.notify(error, severity="error")
-            return
-
-        profile_to_edit = self.consoul_config.profiles[profile_name]
-
-        def on_profile_edited(updated_profile: Any | None) -> None:
-            """Handle ProfileEditorModal result for editing."""
-            if not updated_profile or not self.consoul_config:
-                return
-
-            try:
-                # Update profile and check if name changed
-                name_changed = ProfileManager.update_profile(
-                    self.consoul_config, profile_name, updated_profile
-                )
-
-                # If name changed and this was current profile, update current_profile
-                if name_changed and self.current_profile == profile_name:
-                    self.current_profile = updated_profile.name
-                    self.consoul_config.active_profile = updated_profile.name
-
-                self.notify(
-                    f"Profile '{updated_profile.name}' updated successfully",
-                    severity="information",
-                )
-                self.log.info(
-                    f"Updated profile: {profile_name} -> {updated_profile.name}"
-                )
-
-                # If editing current profile, apply changes
-                if self.current_profile == updated_profile.name:
-                    self.active_profile = updated_profile
-                    self._update_top_bar_state()
-
-            except Exception as e:
-                self._handle_profile_error("update", e)
-
-        from consoul.config.profiles import get_builtin_profiles
-        from consoul.tui.widgets import ProfileEditorModal
-
-        builtin_names = set(get_builtin_profiles().keys())
-
-        modal = ProfileEditorModal(
-            existing_profile=profile_to_edit,
-            existing_profiles=self.consoul_config.profiles,
-            builtin_profile_names=builtin_names,
+        ProfileUIOrchestrator.show_edit_profile_modal(
+            self, self.consoul_config, profile_name
         )
-        self.push_screen(modal, on_profile_edited)
 
     def _handle_delete_profile(self, profile_name: str) -> None:
         """Handle delete profile action from ProfileSelectorModal.
@@ -3452,75 +2638,11 @@ class ConsoulApp(App[None]):
         Args:
             profile_name: Name of profile to delete
         """
-        if not self.consoul_config:
-            self.notify("No configuration available", severity="error")
-            return
+        from consoul.tui.services import ProfileUIOrchestrator
 
-        # Check if profile exists
-        if profile_name not in self.consoul_config.profiles:
-            self.notify(f"Profile '{profile_name}' not found", severity="error")
-            return
-
-        # Validate deletion
-        from consoul.tui.services import ProfileManager
-
-        is_valid, error = ProfileManager.validate_delete(
-            profile_name, self.current_profile
+        ProfileUIOrchestrator.show_delete_profile_modal(
+            self, self.consoul_config, profile_name
         )
-        if not is_valid and error:
-            self.notify(error, severity="error")
-            return
-
-        # Show confirmation dialog
-        def on_confirmed(confirmed: bool | None) -> None:
-            """Handle confirmation result."""
-            if not confirmed or not self.consoul_config:
-                return
-
-            try:
-                # Delete profile and save
-                ProfileManager.delete_profile(self.consoul_config, profile_name)
-
-                self.notify(
-                    f"Profile '{profile_name}' deleted successfully",
-                    severity="information",
-                )
-                self.log.info(f"Deleted profile: {profile_name}")
-
-            except Exception as e:
-                self._handle_profile_error("delete", e)
-
-        # Use Textual's built-in question dialog if available
-        # For now, just confirm and delete (could enhance with custom confirmation modal)
-        from textual.screen import ModalScreen
-        from textual.widgets import Button, Label
-
-        class ConfirmDeleteModal(ModalScreen[bool]):
-            """Simple confirmation modal for profile deletion."""
-
-            def compose(self) -> Any:
-                from textual.containers import Horizontal, Vertical
-
-                with Vertical():
-                    yield Label(
-                        f"Delete profile '{profile_name}'?",
-                        id="confirm-label",
-                    )
-                    yield Label(
-                        "This action cannot be undone.",
-                        id="warning-label",
-                    )
-                    with Horizontal():
-                        yield Button("Delete", variant="error", id="confirm-btn")
-                        yield Button("Cancel", variant="default", id="cancel-btn")
-
-            def on_button_pressed(self, event: Button.Pressed) -> None:
-                if event.button.id == "confirm-btn":
-                    self.dismiss(True)
-                else:
-                    self.dismiss(False)
-
-        self.push_screen(ConfirmDeleteModal(), on_confirmed)
 
     def _switch_provider_and_model(self, provider: str, model_name: str) -> None:
         """Switch to a different provider and model WITHOUT changing profile.
@@ -3532,63 +2654,8 @@ class ConsoulApp(App[None]):
             provider: Provider to switch to (e.g., "openai", "anthropic")
             model_name: Name of model to switch to
         """
-        if not self.consoul_config or not self.model_service:
-            self.notify("No configuration available", severity="error")
-            return
+        from consoul.tui.services import ProfileUIOrchestrator
 
-        try:
-            from consoul.config.loader import find_config_files, save_config
-
-            old_conversation_id = self.conversation_id
-
-            # Switch model via ModelService (handles reinitialization and tool rebinding)
-            self.model_service.switch_model(model_name, provider)
-            self.chat_model = self.model_service.get_model()
-            self.current_model = model_name
-
-            # Persist model selection to config file
-            try:
-                # Determine which config file to save to
-                global_path, project_path = find_config_files()
-                save_path = (
-                    project_path
-                    if project_path and project_path.exists()
-                    else global_path
-                )
-
-                if not save_path:
-                    # Default to global config
-                    save_path = Path.home() / ".consoul" / "config.yaml"
-
-                # Save updated config (preserves user's model choice)
-                save_config(self.consoul_config, save_path, include_api_keys=False)
-                self.log.info(f"Persisted model selection to {save_path}")
-            except Exception as e:
-                self.log.warning(f"Failed to persist model selection: {e}")
-                # Continue even if save fails - model is still switched in memory
-
-            # Preserve conversation by updating model reference
-            if self.conversation:
-                self.conversation._model = self.chat_model
-                self.conversation.model_name = self.current_model
-
-            # Update top bar display
-            self._update_top_bar_state()
-
-            self.notify(
-                f"Switched to {provider}/{model_name} (profile unchanged: {self.current_profile})",
-                severity="information",
-            )
-            self.log.info(
-                f"Model/provider switched: {provider}/{model_name}, "
-                f"profile preserved: {self.current_profile}, "
-                f"conversation preserved: {old_conversation_id}"
-            )
-
-        except Exception as e:
-            # Disable markup to avoid markup errors from Pydantic validation messages
-            error_msg = str(e).replace("[", "\\[")
-            self.notify(
-                f"Failed to switch model/provider: {error_msg}", severity="error"
-            )
-            self.log.error(f"Model/provider switch failed: {e}", exc_info=True)
+        ProfileUIOrchestrator.switch_provider_and_model(
+            self, self.consoul_config, provider, model_name
+        )
