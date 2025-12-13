@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from consoul.config import ConsoulConfig
     from consoul.config.models import ProfileConfig
     from consoul.sdk.models import Attachment, ToolRequest
-    from consoul.sdk.services import ConversationService
+    from consoul.sdk.services import ConversationService, ModelService
     from consoul.tui.widgets import (
         ContextualTopBar,
         InputArea,
@@ -309,6 +309,7 @@ class ConsoulApp(App[None]):
         self.consoul_config: ConsoulConfig | None = consoul_config
 
         # Initialize AI components to None (populated by async init)
+        self.model_service: ModelService | None = None
         self.chat_model: BaseChatModel | None = None
         self.conversation: ConversationHistory | None = None
         self.active_profile: ProfileConfig | None = None
@@ -361,23 +362,6 @@ class ConsoulApp(App[None]):
         from consoul.config import load_config
 
         return load_config()
-
-    def _initialize_ai_model(self, config: ConsoulConfig) -> BaseChatModel:
-        """Initialize AI chat model from config.
-
-        Args:
-            config: ConsoulConfig with provider/model settings
-
-        Returns:
-            Initialized BaseChatModel instance
-
-        Raises:
-            Exception: If model initialization fails
-        """
-        from consoul.ai import get_chat_model
-
-        model_config = config.get_current_model_config()
-        return get_chat_model(model_config, config=config)
 
     def _initialize_conversation(
         self, config: ConsoulConfig, model: BaseChatModel
@@ -473,48 +457,6 @@ class ConsoulApp(App[None]):
         except Exception as e:
             self.log.warning(f"Failed to auto-resume conversation: {e}")
             return conversation
-
-    def _bind_tools_to_model(
-        self, model: BaseChatModel, tool_registry: ToolRegistry
-    ) -> BaseChatModel:
-        """Bind tools to chat model if supported.
-
-        Args:
-            model: Chat model to bind tools to
-            tool_registry: Registry with enabled tools
-
-        Returns:
-            Model with tools bound (or original if not supported)
-        """
-        from typing import cast
-
-        from consoul.ai.providers import supports_tool_calling
-
-        # Get enabled tools
-        tool_metadata_list = tool_registry.list_tools(enabled_only=True)
-
-        if not tool_metadata_list:
-            return model
-
-        # Check if model supports tool calling
-        if not supports_tool_calling(model):
-            self.log.warning(
-                f"Model {self.current_model} does not support tool calling. "
-                "Tools are disabled for this model."
-            )
-            return model
-
-        # Bind tools
-        tools = [meta.tool for meta in tool_metadata_list]
-        # bind_tools() returns a Runnable, but it's compatible with BaseChatModel interface
-        bound_model = cast("BaseChatModel", model.bind_tools(tools))
-        self.log.info(f"Bound {len(tools)} tools to chat model")
-
-        # Update conversation's model reference if conversation exists
-        if self.conversation:
-            self.conversation._model = bound_model
-
-        return bound_model
 
     def _initialize_title_generator(
         self, config: ConsoulConfig
@@ -676,9 +618,17 @@ class ConsoulApp(App[None]):
             step_start = time.time()
             if loading_screen:
                 loading_screen.update_progress("Connecting to AI provider...", 40)  # type: ignore[attr-defined]
-            self.chat_model = await self._run_in_thread(
-                self._initialize_ai_model, consoul_config
+
+            # Initialize ModelService (without tools initially - tools bound in Step 4)
+            from consoul.sdk.services import ModelService
+
+            self.model_service = await self._run_in_thread(
+                ModelService.from_config,
+                consoul_config,
+                None,  # No tool service yet
             )
+            self.chat_model = self.model_service.get_model()
+
             logger.info(
                 f"[PERF] Step 2 (Initialize AI model): {(time.time() - step_start) * 1000:.1f}ms"
             )
@@ -711,7 +661,7 @@ class ConsoulApp(App[None]):
                 f"session: {self.conversation_id}"
             )
 
-            # Step 4: Load tools (60%)
+            # Step 4: Load tools and bind to model (60-80%)
             step_start = time.time()
             if loading_screen:
                 loading_screen.update_progress("Loading tools...", 60)  # type: ignore[attr-defined]
@@ -728,24 +678,27 @@ class ConsoulApp(App[None]):
                 # Set tools_total for top bar display
                 if hasattr(self, "top_bar"):
                     self.top_bar.tools_total = tool_service.get_tools_count()
+
+                # Bind tools to model via ModelService
+                if loading_screen:
+                    loading_screen.update_progress("Binding tools to model...", 70)  # type: ignore[attr-defined]
+
+                if self.model_service:
+                    self.model_service.tool_service = tool_service
+                    await self._run_in_thread(self.model_service._bind_tools)
+                    self.chat_model = (
+                        self.model_service.get_model()
+                    )  # Get updated bound model
+
+                    # Update conversation's model reference
+                    if self.conversation:
+                        self.conversation._model = self.chat_model
             else:
                 self.tool_registry = None
 
             logger.info(
-                f"[PERF] Step 4 (Load tools): {(time.time() - step_start) * 1000:.1f}ms"
+                f"[PERF] Step 4 (Load tools & bind): {(time.time() - step_start) * 1000:.1f}ms"
             )
-
-            # Step 5: Bind tools (80%)
-            if self.tool_registry:
-                step_start = time.time()
-                if loading_screen:
-                    loading_screen.update_progress("Binding tools to model...", 80)  # type: ignore[attr-defined]
-                self.chat_model = await self._run_in_thread(
-                    self._bind_tools_to_model, self.chat_model, self.tool_registry
-                )
-                logger.info(
-                    f"[PERF] Step 5 (Bind tools): {(time.time() - step_start) * 1000:.1f}ms"
-                )
 
             # Step 5.5: Initialize ConversationService (SDK layer)
             step_start = time.time()
@@ -4057,22 +4010,22 @@ Output:
             provider: Provider to switch to (e.g., "openai", "anthropic")
             model_name: Name of model to switch to
         """
-        if not self.consoul_config:
+        if not self.consoul_config or not self.model_service:
             self.notify("No configuration available", severity="error")
             return
 
         try:
-            from consoul.config.models import Provider
+            from consoul.config.loader import find_config_files, save_config
 
-            # Update current provider and model in config
-            self.consoul_config.current_provider = Provider(provider)
-            self.consoul_config.current_model = model_name
+            old_conversation_id = self.conversation_id
+
+            # Switch model via ModelService (handles reinitialization and tool rebinding)
+            self.model_service.switch_model(model_name, provider)
+            self.chat_model = self.model_service.get_model()
             self.current_model = model_name
 
             # Persist model selection to config file
             try:
-                from consoul.config.loader import find_config_files, save_config
-
                 # Determine which config file to save to
                 global_path, project_path = find_config_files()
                 save_path = (
@@ -4091,37 +4044,6 @@ Output:
             except Exception as e:
                 self.log.warning(f"Failed to persist model selection: {e}")
                 # Continue even if save fails - model is still switched in memory
-
-            # Reinitialize chat model with new provider/model
-            from consoul.ai import get_chat_model
-
-            old_conversation_id = self.conversation_id
-
-            model_config = self.consoul_config.get_current_model_config()
-            self.chat_model = get_chat_model(model_config, config=self.consoul_config)
-
-            # NOTE: analyze_images tool registration disabled for SOUL-116
-            # See line 433-437 for explanation
-            # self._sync_vision_tool_registration()
-
-            # Re-bind tools to the new model
-            if self.tool_registry:
-                tool_metadata_list = self.tool_registry.list_tools(enabled_only=True)
-                if tool_metadata_list:
-                    # Check if model supports tool calling
-                    from consoul.ai.providers import supports_tool_calling
-
-                    if supports_tool_calling(self.chat_model):
-                        tools = [meta.tool for meta in tool_metadata_list]
-                        self.chat_model = self.chat_model.bind_tools(tools)  # type: ignore[assignment]
-                        self.log.info(
-                            f"Re-bound {len(tools)} tools to new model {model_name}"
-                        )
-                    else:
-                        self.log.warning(
-                            f"Model {model_name} does not support tool calling. "
-                            "Tools are disabled for this model."
-                        )
 
             # Preserve conversation by updating model reference
             if self.conversation:

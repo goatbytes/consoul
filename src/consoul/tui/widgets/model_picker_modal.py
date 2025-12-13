@@ -24,300 +24,11 @@ if TYPE_CHECKING:
 
     from consoul.config.models import Provider
 
+from consoul.sdk.catalog import get_models_by_provider
+
 __all__ = ["ModelPickerModal"]
 
 log = logging.getLogger(__name__)
-
-
-# Model information database (name -> metadata)
-# Updated with complete 2025 model catalog
-MODEL_INFO = {
-    # OpenAI GPT-5 Series (Latest Flagship)
-    "gpt-5": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Flagship reasoning model",
-    },
-    "gpt-5-mini": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Fast & affordable reasoning",
-    },
-    "gpt-5-nano": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Fastest, most affordable",
-    },
-    "gpt-5-pro": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Pro-tier flagship model",
-    },
-    "gpt-5.1": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Latest GPT-5 series iteration",
-    },
-    # OpenAI Codex Models (Specialized Coding)
-    "gpt-5-codex": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Agentic coding optimized",
-    },
-    "gpt-5.1-codex": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Latest codex iteration",
-    },
-    "gpt-5.1-codex-mini": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Efficient coding assistant",
-    },
-    "codex-mini-latest": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Latest mini codex",
-    },
-    # OpenAI Search API
-    "gpt-5-search-api": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Web search integration",
-    },
-    # OpenAI GPT-4.1 Series (1M context)
-    "gpt-4.1": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Improved coding & long context",
-    },
-    "gpt-4.1-mini": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Fast with 1M context",
-    },
-    "gpt-4.1-nano": {
-        "provider": "openai",
-        "context": "1M",
-        "description": "Smallest GPT-4.1 variant",
-    },
-    # OpenAI GPT-4o Series (Multimodal)
-    "gpt-4o": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Multimodal flagship",
-    },
-    "gpt-4o-mini": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Cost-efficient multimodal",
-    },
-    "chatgpt-4o-latest": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "ChatGPT 4o latest snapshot",
-    },
-    "gpt-4o-search-preview": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Search preview (latest)",
-    },
-    "gpt-4o-search-preview-2025-03-11": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Search preview (dated)",
-    },
-    # OpenAI GPT-4 Series (Legacy)
-    "gpt-4": {
-        "provider": "openai",
-        "context": "8K",
-        "description": "Original GPT-4",
-    },
-    "gpt-4-turbo": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "GPT-4 with 128K context",
-    },
-    # OpenAI GPT-3.5 Series (Legacy)
-    "gpt-3.5-turbo": {
-        "provider": "openai",
-        "context": "16K",
-        "description": "Legacy fast model",
-    },
-    "gpt-3.5-turbo-instruct": {
-        "provider": "openai",
-        "context": "4K",
-        "description": "Completion model (not chat)",
-    },
-    # OpenAI o-Series (Deep Reasoning)
-    "o1": {
-        "provider": "openai",
-        "context": "200K",
-        "description": "Reasoning model series 1",
-    },
-    "o1-pro": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Pro-tier reasoning",
-    },
-    "o3": {
-        "provider": "openai",
-        "context": "200K",
-        "description": "Advanced reasoning (preview)",
-    },
-    "o3-mini": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Efficient reasoning",
-    },
-    "o4-mini": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Fast reasoning with vision",
-    },
-    "o4-mini-deep-research": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Multi-step research",
-    },
-    # OpenAI Realtime Models (Audio/Voice)
-    "gpt-realtime-mini": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Real-time voice (mini)",
-    },
-    "gpt-realtime": {
-        "provider": "openai",
-        "context": "128K",
-        "description": "Real-time voice (full)",
-    },
-    # Anthropic Claude 4.5 Models (Latest - Sep/Oct/Nov 2025)
-    "claude-opus-4-5-20251101": {
-        "provider": "anthropic",
-        "context": "200K",
-        "description": "Premium intelligence + performance",
-    },
-    "claude-sonnet-4-5-20250929": {
-        "provider": "anthropic",
-        "context": "200K",
-        "description": "Smartest for complex agents + coding",
-    },
-    "claude-haiku-4-5-20251001": {
-        "provider": "anthropic",
-        "context": "200K",
-        "description": "Fastest near-frontier intelligence",
-    },
-    # Anthropic Claude 4.x Models (Legacy)
-    "claude-opus-4-1-20250805": {
-        "provider": "anthropic",
-        "context": "200K",
-        "description": "Exceptional specialized reasoning",
-    },
-    "claude-opus-4-20250514": {
-        "provider": "anthropic",
-        "context": "200K",
-        "description": "Legacy model (use Opus 4.5)",
-    },
-    "claude-sonnet-4-20250514": {
-        "provider": "anthropic",
-        "context": "200K",
-        "description": "Legacy model (use Sonnet 4.5)",
-    },
-    # Anthropic Claude 3.x Models (Legacy)
-    "claude-3-7-sonnet-20250219": {
-        "provider": "anthropic",
-        "context": "200K",
-        "description": "Legacy model (use Sonnet 4.5)",
-    },
-    "claude-3-5-haiku-20241022": {
-        "provider": "anthropic",
-        "context": "200K",
-        "description": "Legacy model (use Haiku 4.5)",
-    },
-    "claude-3-haiku-20240307": {
-        "provider": "anthropic",
-        "context": "200K",
-        "description": "Legacy model (use Haiku 4.5)",
-    },
-    "claude-3-opus-20240229": {
-        "provider": "anthropic",
-        "context": "200K",
-        "description": "Legacy model (use Opus 4.5)",
-    },
-    # Google Gemini 2.5 Models (Latest - Stable)
-    "gemini-2.5-pro": {
-        "provider": "google",
-        "context": "1M",
-        "description": "Most powerful with thinking",
-    },
-    "gemini-2.5-flash": {
-        "provider": "google",
-        "context": "1M",
-        "description": "Fast multimodal",
-    },
-    "gemini-2.5-flash-lite": {
-        "provider": "google",
-        "context": "1M",
-        "description": "Speed & cost optimized",
-    },
-    "gemini-2.5-flash-image": {
-        "provider": "google",
-        "context": "64K",
-        "description": "Native image generation",
-    },
-    # Google Gemini 2.0 Models
-    "gemini-2.0-flash": {
-        "provider": "google",
-        "context": "1M",
-        "description": "Latest stable flash",
-    },
-    # Google Gemini 3 Models (Preview)
-    "gemini-3-pro-preview": {
-        "provider": "google",
-        "context": "1M",
-        "description": "Advanced reasoning with thinking",
-    },
-    "gemini-3-pro-image-preview": {
-        "provider": "google",
-        "context": "1M",
-        "description": "Vision + reasoning with thinking",
-    },
-    # Google Gemini 1.5 Models (Legacy)
-    "gemini-1.5-pro": {
-        "provider": "google",
-        "context": "2M",
-        "description": "Legacy 2M context",
-    },
-    "gemini-1.5-flash": {
-        "provider": "google",
-        "context": "1M",
-        "description": "Legacy flash model",
-    },
-    # HuggingFace Models (Serverless Inference via Inference Providers)
-    # NOTE: Only models deployed by Inference Providers work with free serverless API
-    # Check model page on HuggingFace for "Inference Providers" section
-    "meta-llama/Llama-3.1-8B-Instruct": {
-        "provider": "huggingface",
-        "context": "128K",
-        "description": "Llama 3.1 8B (via Novita provider)",
-    },
-    "meta-llama/Llama-3.2-3B-Instruct": {
-        "provider": "huggingface",
-        "context": "128K",
-        "description": "Llama 3.2 3B (check provider availability)",
-    },
-    "mistralai/Mistral-7B-Instruct-v0.3": {
-        "provider": "huggingface",
-        "context": "32K",
-        "description": "Mistral 7B (check provider availability)",
-    },
-    # NOTE: Models below may NOT work with serverless API - they lack Inference Providers
-    # Removed: google/flan-t5-* (no Inference Provider deployment)
-    # Removed: microsoft/Phi-3-* (no Inference Provider deployment)
-    # Removed: tiiuae/falcon-* (no Inference Provider deployment)
-    # For these models, use Ollama or download locally instead
-    # Note: Ollama, HuggingFace local, and LlamaCpp models are fetched dynamically
-}
 
 
 class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
@@ -736,15 +447,21 @@ class ModelPickerModal(ModalScreen[tuple[str, str] | None]):
         # Filter models by active provider
         # Skip HuggingFace online models if no API key
         provider_value = self.active_provider
-        provider_models = {
-            name: info
-            for name, info in MODEL_INFO.items()
-            if info["provider"] == provider_value
-            and not (provider_value == "huggingface" and not has_hf_key)
-        }
 
-        # For Local tab, show models for the active local provider only
-        if provider_value == "local":
+        # Get models from SDK catalog and convert to dict format
+        if provider_value != "local":
+            models = get_models_by_provider(provider_value)
+            provider_models = {
+                model.id: {
+                    "provider": model.provider,
+                    "context": model.context_window,
+                    "description": model.description,
+                }
+                for model in models
+                if not (provider_value == "huggingface" and not has_hf_key)
+            }
+        else:
+            # For Local tab, show models for the active local provider only
             provider_models = {}
             self._populate_local_models_for_active_subtab(provider_models, search_query)
             return
