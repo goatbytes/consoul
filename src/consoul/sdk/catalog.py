@@ -1,13 +1,18 @@
 """Model catalog - Available AI models and their capabilities.
 
 This module provides the central catalog of supported AI models across all providers.
-Used by ModelService to list available models and their capabilities.
+Models are sourced from the centralized registry for a single source of truth.
 
 Example:
     >>> from consoul.sdk.catalog import MODEL_CATALOG, get_model_info
     >>> model = get_model_info("gpt-4o")
     >>> if model and model.supports_vision:
     ...     print(f"{model.name} can process images")
+
+Note:
+    The catalog is now built from the model registry (consoul.registry) which
+    contains 21 flagship models with verified metadata and pricing. The static
+    list of 120+ models has been replaced with registry-sourced data.
 """
 
 from __future__ import annotations
@@ -21,385 +26,58 @@ __all__ = [
     "get_models_by_provider",
 ]
 
-# Central model catalog - All supported AI models
-MODEL_CATALOG: list[ModelInfo] = [
-    # OpenAI GPT-5 Series (Latest Flagship)
-    ModelInfo(
-        "gpt-5",
-        "GPT-5",
-        "openai",
-        "1M",
-        "Flagship reasoning model",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-5-mini",
-        "GPT-5 Mini",
-        "openai",
-        "1M",
-        "Fast & affordable reasoning",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-5-nano",
-        "GPT-5 Nano",
-        "openai",
-        "1M",
-        "Fastest, most affordable",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-5-pro",
-        "GPT-5 Pro",
-        "openai",
-        "1M",
-        "Pro-tier flagship model",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-5.1",
-        "GPT-5.1",
-        "openai",
-        "1M",
-        "Latest GPT-5 series iteration",
-        supports_vision=True,
-    ),
-    # OpenAI Codex Models (Specialized Coding)
-    ModelInfo(
-        "gpt-5-codex",
-        "GPT-5 Codex",
-        "openai",
-        "1M",
-        "Agentic coding optimized",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-5.1-codex",
-        "GPT-5.1 Codex",
-        "openai",
-        "1M",
-        "Latest codex iteration",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-5.1-codex-mini",
-        "GPT-5.1 Codex Mini",
-        "openai",
-        "1M",
-        "Efficient coding assistant",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "codex-mini-latest", "Codex Mini Latest", "openai", "128K", "Latest mini codex"
-    ),
-    # OpenAI Search API
-    ModelInfo(
-        "gpt-5-search-api",
-        "GPT-5 Search API",
-        "openai",
-        "128K",
-        "Web search integration",
-        supports_vision=True,
-    ),
-    # OpenAI GPT-4.1 Series (1M context)
-    ModelInfo(
-        "gpt-4.1",
-        "GPT-4.1",
-        "openai",
-        "1M",
-        "Improved coding & long context",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-4.1-mini",
-        "GPT-4.1 Mini",
-        "openai",
-        "1M",
-        "Fast with 1M context",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-4.1-nano",
-        "GPT-4.1 Nano",
-        "openai",
-        "1M",
-        "Smallest GPT-4.1 variant",
-        supports_vision=True,
-    ),
-    # OpenAI GPT-4o Series (Multimodal)
-    ModelInfo(
-        "gpt-4o",
-        "GPT-4o",
-        "openai",
-        "128K",
-        "Multimodal flagship",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-4o-mini",
-        "GPT-4o Mini",
-        "openai",
-        "128K",
-        "Cost-efficient multimodal",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "chatgpt-4o-latest",
-        "ChatGPT 4o Latest",
-        "openai",
-        "128K",
-        "ChatGPT 4o latest snapshot",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-4o-search-preview",
-        "GPT-4o Search Preview",
-        "openai",
-        "128K",
-        "Search preview (latest)",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gpt-4o-search-preview-2025-03-11",
-        "GPT-4o Search Preview (Dated)",
-        "openai",
-        "128K",
-        "Search preview (dated)",
-        supports_vision=True,
-    ),
-    # OpenAI GPT-4 Series (Legacy)
-    ModelInfo("gpt-4", "GPT-4", "openai", "8K", "Original GPT-4", supports_vision=True),
-    ModelInfo(
-        "gpt-4-turbo",
-        "GPT-4 Turbo",
-        "openai",
-        "128K",
-        "GPT-4 with 128K context",
-        supports_vision=True,
-    ),
-    # OpenAI GPT-3.5 Series (Legacy)
-    ModelInfo("gpt-3.5-turbo", "GPT-3.5 Turbo", "openai", "16K", "Legacy fast model"),
-    ModelInfo(
-        "gpt-3.5-turbo-instruct",
-        "GPT-3.5 Turbo Instruct",
-        "openai",
-        "4K",
-        "Completion model (not chat)",
-    ),
-    # OpenAI o-Series (Deep Reasoning)
-    ModelInfo("o1", "O1", "openai", "200K", "Reasoning model series 1"),
-    ModelInfo("o1-pro", "O1 Pro", "openai", "128K", "Pro-tier reasoning"),
-    ModelInfo("o3", "O3", "openai", "200K", "Advanced reasoning (preview)"),
-    ModelInfo("o3-mini", "O3 Mini", "openai", "128K", "Efficient reasoning"),
-    ModelInfo(
-        "o4-mini",
-        "O4 Mini",
-        "openai",
-        "128K",
-        "Fast reasoning with vision",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "o4-mini-deep-research",
-        "O4 Mini Deep Research",
-        "openai",
-        "128K",
-        "Multi-step research",
-        supports_vision=True,
-    ),
-    # OpenAI Realtime Models (Audio/Voice)
-    ModelInfo(
-        "gpt-realtime-mini",
-        "GPT Realtime Mini",
-        "openai",
-        "128K",
-        "Real-time voice (mini)",
-    ),
-    ModelInfo(
-        "gpt-realtime", "GPT Realtime", "openai", "128K", "Real-time voice (full)"
-    ),
-    # Anthropic Claude 4.5 Models (Latest - Sep/Oct/Nov 2025)
-    ModelInfo(
-        "claude-opus-4-5-20251101",
-        "Claude Opus 4.5",
-        "anthropic",
-        "200K",
-        "Premium intelligence + performance",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "claude-sonnet-4-5-20250929",
-        "Claude Sonnet 4.5",
-        "anthropic",
-        "200K",
-        "Smartest for complex agents + coding",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "claude-haiku-4-5-20251001",
-        "Claude Haiku 4.5",
-        "anthropic",
-        "200K",
-        "Fastest near-frontier intelligence",
-        supports_vision=True,
-    ),
-    # Anthropic Claude 4.x Models (Legacy)
-    ModelInfo(
-        "claude-opus-4-1-20250805",
-        "Claude Opus 4.1",
-        "anthropic",
-        "200K",
-        "Exceptional specialized reasoning",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "claude-opus-4-20250514",
-        "Claude Opus 4",
-        "anthropic",
-        "200K",
-        "Legacy model (use Opus 4.5)",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "claude-sonnet-4-20250514",
-        "Claude Sonnet 4",
-        "anthropic",
-        "200K",
-        "Legacy model (use Sonnet 4.5)",
-        supports_vision=True,
-    ),
-    # Anthropic Claude 3.x Models (Legacy)
-    ModelInfo(
-        "claude-3-7-sonnet-20250219",
-        "Claude 3.7 Sonnet",
-        "anthropic",
-        "200K",
-        "Legacy model (use Sonnet 4.5)",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "claude-3-5-haiku-20241022",
-        "Claude 3.5 Haiku",
-        "anthropic",
-        "200K",
-        "Legacy model (use Haiku 4.5)",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "claude-3-haiku-20240307",
-        "Claude 3 Haiku",
-        "anthropic",
-        "200K",
-        "Legacy model (use Haiku 4.5)",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "claude-3-opus-20240229",
-        "Claude 3 Opus",
-        "anthropic",
-        "200K",
-        "Legacy model (use Opus 4.5)",
-        supports_vision=True,
-    ),
-    # Google Gemini 2.5 Models (Latest - Stable)
-    ModelInfo(
-        "gemini-2.5-pro",
-        "Gemini 2.5 Pro",
-        "google",
-        "1M",
-        "Most powerful with thinking",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gemini-2.5-flash",
-        "Gemini 2.5 Flash",
-        "google",
-        "1M",
-        "Fast multimodal",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gemini-2.5-flash-lite",
-        "Gemini 2.5 Flash Lite",
-        "google",
-        "1M",
-        "Speed & cost optimized",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gemini-2.5-flash-image",
-        "Gemini 2.5 Flash Image",
-        "google",
-        "64K",
-        "Native image generation",
-        supports_vision=True,
-    ),
-    # Google Gemini 2.0 Models
-    ModelInfo(
-        "gemini-2.0-flash",
-        "Gemini 2.0 Flash",
-        "google",
-        "1M",
-        "Latest stable flash",
-        supports_vision=True,
-    ),
-    # Google Gemini 3 Models (Preview)
-    ModelInfo(
-        "gemini-3-pro-preview",
-        "Gemini 3 Pro Preview",
-        "google",
-        "1M",
-        "Advanced reasoning with thinking",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gemini-3-pro-image-preview",
-        "Gemini 3 Pro Image Preview",
-        "google",
-        "1M",
-        "Vision + reasoning with thinking",
-        supports_vision=True,
-    ),
-    # Google Gemini 1.5 Models (Legacy)
-    ModelInfo(
-        "gemini-1.5-pro",
-        "Gemini 1.5 Pro",
-        "google",
-        "2M",
-        "Legacy 2M context",
-        supports_vision=True,
-    ),
-    ModelInfo(
-        "gemini-1.5-flash",
-        "Gemini 1.5 Flash",
-        "google",
-        "1M",
-        "Legacy flash model",
-        supports_vision=True,
-    ),
-    # HuggingFace Models (Serverless Inference via Inference Providers)
-    ModelInfo(
-        "meta-llama/Llama-3.1-8B-Instruct",
-        "Llama 3.1 8B Instruct",
-        "huggingface",
-        "128K",
-        "Llama 3.1 8B (via Novita provider)",
-    ),
-    ModelInfo(
-        "meta-llama/Llama-3.2-3B-Instruct",
-        "Llama 3.2 3B Instruct",
-        "huggingface",
-        "128K",
-        "Llama 3.2 3B (check provider availability)",
-    ),
-    ModelInfo(
-        "mistralai/Mistral-7B-Instruct-v0.3",
-        "Mistral 7B Instruct",
-        "huggingface",
-        "32K",
-        "Mistral 7B (check provider availability)",
-    ),
-]
+
+def _format_context(tokens: int) -> str:
+    """Format context window size for display.
+
+    Args:
+        tokens: Context window size in tokens
+
+    Returns:
+        Human-readable string (e.g., "128K", "1M")
+    """
+    if tokens >= 1_000_000:
+        return f"{tokens // 1_000_000}M"
+    elif tokens >= 1_000:
+        return f"{tokens // 1_000}K"
+    return str(tokens)
+
+
+def _build_catalog_from_registry() -> list[ModelInfo]:
+    """Build model catalog from the centralized registry.
+
+    Converts registry ModelEntry objects to SDK ModelInfo objects for
+    use by the TUI Model Picker and other components.
+
+    Returns:
+        List of ModelInfo objects with model metadata
+    """
+    from consoul.registry import list_models
+
+    # Get all active (non-deprecated) models from registry
+    registry_models = list_models(active_only=True)
+
+    catalog = []
+    for entry in registry_models:
+        # Convert registry entry to SDK ModelInfo
+        model_info = ModelInfo(
+            id=entry.metadata.id,
+            name=entry.metadata.name,
+            provider=entry.metadata.provider,
+            context_window=_format_context(entry.metadata.context_window),
+            description=entry.metadata.description,
+            # Extract capability flags from registry
+            supports_vision="vision" in [c.value for c in entry.metadata.capabilities],
+            supports_tools="tools" in [c.value for c in entry.metadata.capabilities],
+        )
+        catalog.append(model_info)
+
+    return catalog
+
+
+# Central model catalog - Built from registry on import
+# Contains 21 flagship models with verified metadata
+MODEL_CATALOG: list[ModelInfo] = _build_catalog_from_registry()
 
 
 def get_models_by_provider(provider: str) -> list[ModelInfo]:
@@ -444,6 +122,6 @@ def get_all_providers() -> list[str]:
     Example:
         >>> providers = get_all_providers()
         >>> print(", ".join(providers))
-        anthropic, google, huggingface, openai
+        anthropic, google, openai
     """
     return sorted({m.provider for m in MODEL_CATALOG})
