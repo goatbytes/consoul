@@ -468,7 +468,12 @@ def load_config(
     if profile_name is not None:
         merged["active_profile"] = profile_name
 
-    # 9. Validate with Pydantic and attach env_settings (already loaded)
+    # 9. Remove tui section if present (for backward compatibility)
+    # ConsoulCoreConfig doesn't have a tui field, so we discard it
+    # TUI applications should use load_tui_config() instead
+    merged.pop("tui", None)
+
+    # 10. Validate with Pydantic and attach env_settings (already loaded)
     config = ConsoulConfig(**merged)
     config.env_settings = env_settings
 
@@ -483,8 +488,8 @@ def load_tui_config(
 ) -> Any:
     """Load configuration for TUI applications.
 
-    This function loads the core SDK configuration and wraps it with TuiConfig
-    to create a ConsoulTuiConfig suitable for TUI applications.
+    This function loads YAML configs, preserves TUI settings, and creates
+    a ConsoulTuiConfig with both core SDK config + TUI settings.
 
     Args:
         global_config_path: Optional path to global config file.
@@ -497,28 +502,85 @@ def load_tui_config(
     """
     from consoul.tui.config import ConsoulTuiConfig, TuiConfig
 
-    # Load core config using standard loader
-    core_config = load_config(
-        global_config_path=global_config_path,
-        project_config_path=project_config_path,
-        cli_overrides=cli_overrides,
-        profile_name=profile_name,
+    # 1. Start with defaults
+    default_config = create_default_config()
+
+    # 2. Find config files if not provided
+    if global_config_path is None or project_config_path is None:
+        found_global, found_project = find_config_files()
+        if global_config_path is None:
+            global_config_path = found_global
+        if project_config_path is None:
+            project_config_path = found_project
+
+    # 3. Load environment settings (shared for both config and API keys)
+    env_settings = load_env_settings()
+
+    # Warn if .env file exists but not in .gitignore
+    from consoul.utils.security import warn_if_env_not_ignored
+
+    warn_if_env_not_ignored()
+
+    # 4. Load each config source (raw YAML dicts - preserves tui section)
+    global_config = load_yaml_config(global_config_path) if global_config_path else {}
+    project_config = (
+        load_yaml_config(project_config_path) if project_config_path else {}
+    )
+    env_config = load_env_config(env_settings)
+
+    # 5. Determine active profile from precedence chain
+    active = (
+        profile_name  # CLI has highest precedence
+        or env_config.get("active_profile")
+        or project_config.get("active_profile")
+        or global_config.get("active_profile")
+        or default_config.get("active_profile", "default")
     )
 
-    # Create TUI-specific config from merged data
-    # If there's a "tui" section in the config, use it; otherwise use defaults
-    merged_dict = core_config.model_dump()
-    tui_dict = merged_dict.pop("tui", {})
+    # 6. Apply model and conversation overrides from env vars to the active profile
+    env_overrides: dict[str, Any] = {}
+    profile_overrides: dict[str, Any] = {}
 
-    # Reconstruct core config without tui field (if it exists in old configs)
-    core_clean = ConsoulCoreConfig(**merged_dict)
-    core_clean.env_settings = core_config.env_settings
+    if "_model_overrides" in env_config:
+        model_overrides = env_config.pop("_model_overrides")
+        profile_overrides["model"] = model_overrides
 
-    # Create TUI config
+    if "_conversation_overrides" in env_config:
+        conversation_overrides = env_config.pop("_conversation_overrides")
+        profile_overrides["conversation"] = conversation_overrides
+
+    if profile_overrides:
+        env_overrides = {"profiles": {active: profile_overrides}}
+        if "active_profile" not in env_config:
+            env_overrides["active_profile"] = active
+
+    # 7. Merge in precedence order (preserves tui section in merged dict)
+    merged = merge_configs(
+        default_config,
+        global_config,
+        project_config,
+        env_config,
+        env_overrides,
+        cli_overrides or {},
+    )
+
+    # 8. Set active profile if specified via CLI (highest precedence)
+    if profile_name is not None:
+        merged["active_profile"] = profile_name
+
+    # 9. Extract tui section BEFORE creating core config
+    # This preserves user's TUI settings from config files
+    tui_dict = merged.pop("tui", {})
+
+    # 10. Validate core config with Pydantic (without tui field)
+    core_config = ConsoulCoreConfig(**merged)
+    core_config.env_settings = env_settings
+
+    # 11. Create TUI config from extracted tui dict
     tui_config = TuiConfig(**tui_dict) if tui_dict else TuiConfig()
 
-    # Combine into ConsoulTuiConfig
-    return ConsoulTuiConfig(core=core_clean, tui=tui_config)
+    # 12. Combine into ConsoulTuiConfig
+    return ConsoulTuiConfig(core=core_config, tui=tui_config)
 
 
 def save_config(
