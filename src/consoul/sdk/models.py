@@ -143,3 +143,41 @@ class ToolRequest:
             f"ToolRequest(id={self.id!r}, name={self.name!r}, "
             f"risk={self.risk_level!r}, args={args_str})"
         )
+
+
+@dataclass
+class ModelInfo:
+    """Information about an available AI model.
+
+    Provides metadata about AI models for selection, display, and capability
+    checking. Used by ModelService to present available models and their features.
+
+    Attributes:
+        id: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet-20241022")
+        name: Human-readable display name
+        provider: Provider name ("openai", "anthropic", "google", "ollama")
+        context_window: Context window size as string (e.g., "128K", "1M")
+        description: Brief model description
+        supports_vision: Whether model supports image inputs (default: False)
+        supports_tools: Whether model supports function calling (default: True)
+
+    Example:
+        >>> model = ModelInfo(
+        ...     id="gpt-4o",
+        ...     name="GPT-4o",
+        ...     provider="openai",
+        ...     context_window="128K",
+        ...     description="Fast multimodal model",
+        ...     supports_vision=True
+        ... )
+        >>> if model.supports_vision:
+        ...     print(f"{model.name} can process images")
+    """
+
+    id: str
+    name: str
+    provider: str
+    context_window: str
+    description: str
+    supports_vision: bool = False
+    supports_tools: bool = True

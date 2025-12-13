@@ -10,7 +10,13 @@ Example:
     ...     print(token.content, end="", flush=True)
 """
 
-from consoul.sdk.models import Attachment, ConversationStats, Token, ToolRequest
+from consoul.sdk.models import (
+    Attachment,
+    ConversationStats,
+    ModelInfo,
+    Token,
+    ToolRequest,
+)
 from consoul.sdk.protocols import ToolExecutionCallback
 from consoul.sdk.services.conversation import ConversationService
 
@@ -18,6 +24,7 @@ __all__ = [
     "Attachment",
     "ConversationService",
     "ConversationStats",
+    "ModelInfo",
     "Token",
     "ToolExecutionCallback",
     "ToolRequest",
