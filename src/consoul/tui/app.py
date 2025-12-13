@@ -1503,11 +1503,9 @@ class ConsoulApp(App[None]):
         from consoul.tui.widgets import MessageBubble, StreamingResponse
 
         if not self.conversation_service:
-            error_bubble = MessageBubble(
-                "ConversationService not initialized",
-                role="error",
-                show_metadata=False,
-            )
+            from consoul.tui.utils import create_error_bubble
+
+            error_bubble = create_error_bubble("ConversationService not initialized")
             await self.chat_view.add_message(error_bubble)
             return
 
@@ -1681,23 +1679,19 @@ class ConsoulApp(App[None]):
                         )
             else:
                 # No tokens received - hide typing indicator and show error
+                from consoul.tui.utils import create_error_bubble
+
                 await self.chat_view.hide_typing_indicator()
-                error_bubble = MessageBubble(
-                    "No response received from AI",
-                    role="error",
-                    show_metadata=False,
-                )
+                error_bubble = create_error_bubble("No response received from AI")
                 await self.chat_view.add_message(error_bubble)
 
         except Exception as e:
+            from consoul.tui.utils import create_error_bubble
+
             logger.error(f"Error streaming via ConversationService: {e}", exc_info=True)
             # Hide typing indicator if still showing
             await self.chat_view.hide_typing_indicator()
-            error_bubble = MessageBubble(
-                f"Error: {e!s}",
-                role="error",
-                show_metadata=False,
-            )
+            error_bubble = create_error_bubble(f"Error: {e!s}")
             await self.chat_view.add_message(error_bubble)
 
         finally:
@@ -1721,31 +1715,19 @@ class ConsoulApp(App[None]):
 
         # Inject pending command output if available
         if self._pending_command_output:
-            command, output = self._pending_command_output
-            prefix = f"""<shell_command>
-Command: {command}
-Output:
-{output}
-</shell_command>
+            from consoul.tui.utils import inject_command_output
 
-"""
-            user_message = prefix + user_message
+            command, output = self._pending_command_output
+            user_message = inject_command_output(user_message, command, output)
+            self.log.info("[COMMAND_INJECT] Injected command output into user message")
             # Clear buffer after injection
             self._pending_command_output = None
-            self.log.info("[COMMAND_INJECT] Injected command output into user message")
 
         # Check if AI model is available
         if self.chat_model is None or self.conversation is None:
-            # Display error message
-            error_bubble = MessageBubble(
-                "AI model not initialized. Please check your configuration.\n\n"
-                "Ensure you have:\n"
-                "- A valid profile with model configuration\n"
-                "- Required API keys set in environment or .env file\n"
-                "- Provider packages installed (e.g., langchain-openai)",
-                role="error",
-                show_metadata=False,
-            )
+            from consoul.tui.utils import create_model_not_initialized_error
+
+            error_bubble = create_model_not_initialized_error()
             await self.chat_view.add_message(error_bubble)
             return
 
@@ -1791,66 +1773,23 @@ Output:
         input_area = self.query_one(InputArea)
         attached_files = input_area.attached_files.copy()
 
-        # Separate images from text files
-        attached_images = [f.path for f in attached_files if f.type == "image"]
-        attached_text_files = [
-            f for f in attached_files if f.type in {"code", "document", "data"}
-        ]
-
-        # Check for image references in the user message
-        from consoul.tui.utils.image_parser import extract_image_paths
-
-        # Get image analysis config to check if auto-detection is enabled
-        auto_detect_enabled = False
-        if self.consoul_config and self.consoul_config.tools:
-            image_tool_config = self.consoul_config.tools.image_analysis
-            auto_detect_enabled = getattr(
-                image_tool_config, "auto_detect_in_messages", False
-            )
-
-        _original_message, auto_detected_paths = extract_image_paths(user_message)
-
-        # Combine attached images with auto-detected paths and deduplicate
-        all_image_paths = list(set(attached_images + auto_detected_paths))
-
-        # Debug logging
-        logger.info(
-            f"[IMAGE_DETECTION] Auto-detect enabled: {auto_detect_enabled}, "
-            f"Attached images: {len(attached_images)}, Auto-detected: {len(auto_detected_paths)}, "
-            f"Total (deduplicated): {len(all_image_paths)}"
+        # Process attachments using utility functions
+        from consoul.tui.utils import (
+            process_image_attachments,
+            process_text_attachments,
         )
-        if all_image_paths:
-            logger.info(f"[IMAGE_DETECTION] Image paths: {all_image_paths}")
+
+        # Process text file attachments - prepend to message
+        final_message = process_text_attachments(attached_files, user_message)
+
+        # Process image attachments - combine attached + auto-detected
+        all_image_paths = process_image_attachments(
+            attached_files, user_message, self.consoul_config
+        )
+
+        # Check if model supports vision
         model_supports_vision = self._model_supports_vision()
         logger.info(f"[IMAGE_DETECTION] Model supports vision: {model_supports_vision}")
-
-        # Handle text file attachments - prepend to message
-        final_message = user_message
-        if attached_text_files:
-            text_content_parts = []
-            for file in attached_text_files:
-                try:
-                    from pathlib import Path
-
-                    path_obj = Path(file.path)
-                    # Limit to 10KB per file
-                    if path_obj.stat().st_size > 10 * 1024:
-                        logger.warning(
-                            f"Skipping large file {path_obj.name} ({path_obj.stat().st_size} bytes)"
-                        )
-                        continue
-
-                    content = path_obj.read_text(encoding="utf-8")
-                    text_content_parts.append(
-                        f"--- {path_obj.name} ---\n{content}\n--- End of {path_obj.name} ---"
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to read file {file.path}: {e}")
-                    continue
-
-            # Prepend file contents to message
-            if text_content_parts:
-                final_message = "\n\n".join(text_content_parts) + "\n\n" + user_message
 
         # Create multimodal message if:
         # 1. Images found (attached or auto-detected)
@@ -1878,11 +1817,11 @@ Output:
                     f"[IMAGE_DETECTION] Failed to create multimodal message: {e}"
                 )
                 logger.error(f"[IMAGE_DETECTION] Traceback: {traceback.format_exc()}")
-                error_bubble = MessageBubble(
+                from consoul.tui.utils import create_error_bubble
+
+                error_bubble = create_error_bubble(
                     f"❌ Failed to process image(s): {e}\n\n"
-                    "Continuing with text-only message.",
-                    role="error",
-                    show_metadata=False,
+                    "Continuing with text-only message."
                 )
                 await self.chat_view.add_message(error_bubble)
 
