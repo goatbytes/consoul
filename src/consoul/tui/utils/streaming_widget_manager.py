@@ -42,11 +42,21 @@ class StreamingWidgetManager:
         self.first_token_time: float | None = None
         self.token_count: int = 0
 
+    def begin_timing(self) -> None:
+        """Begin timing tracking before API request starts.
+
+        Call this before starting the streaming API request to accurately
+        measure time-to-first-token.
+        """
+        self.stream_start_time = time.time()
+        self.first_token_time = None
+        self.token_count = 0
+
     async def start_streaming(self) -> StreamingResponse:
         """Create and mount a new streaming response widget.
 
         This hides the typing indicator and shows the stream widget.
-        Initializes timing tracking for performance metrics.
+        Note: Call begin_timing() before the API request to track timing.
 
         Returns:
             The newly created StreamingResponse widget
@@ -58,9 +68,6 @@ class StreamingWidgetManager:
         await self.chat_view.add_message(self.stream_widget)
         self.collected_content = []
         self.total_cost = 0.0
-        self.stream_start_time = time.time()
-        self.first_token_time = None
-        self.token_count = 0
 
         return self.stream_widget
 

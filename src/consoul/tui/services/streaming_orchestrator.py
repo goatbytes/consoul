@@ -59,6 +59,9 @@ class StreamingOrchestrator:
         # Create streaming widget manager
         stream_manager = StreamingWidgetManager(self.chat_view)
 
+        # Begin timing BEFORE API request to accurately measure time-to-first-token
+        stream_manager.begin_timing()
+
         try:
             # Create tool approver for this conversation
             tool_approver = TUIToolApprover(self.app)
