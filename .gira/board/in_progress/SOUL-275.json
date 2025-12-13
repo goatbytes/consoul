@@ -1,0 +1,21 @@
+{
+  "created_at": "2025-12-13T03:44:05.818631Z",
+  "updated_at": "2025-12-13T03:44:46.365142Z",
+  "id": "SOUL-275",
+  "uuid": "fbd0afe9-3282-444a-9114-1ab1f7665185",
+  "title": "Fix ConversationDisplayService multi-iteration tool display regression",
+  "description": "**As a** Consoul user\n**I want** multi-iteration tool conversations to display correctly  \n**So that** I don't see empty assistant bubbles or misaligned tool calls\n\n**Problem:**\nConversationDisplayService (created in SOUL-270) has a regression in tool message merging that breaks multi-iteration tool flows.\n\n**Root Cause:**\nThe merging logic in `_merge_consecutive_assistant_messages()` requires the target assistant message to have `.strip()` content:\n\n```python\nif (\n    next_idx < len(messages)\n    and messages[next_idx][\"role\"] == \"assistant\"\n    and messages[next_idx][\"content\"].strip()  # <-- BUG: requires content\n):\n```\n\n**Failure Scenario:**\nWhen an assistant makes multiple tool calls in sequence WITHOUT intermediate text:\n```\n1. assistant: \"\" (tool_calls: [tool1])\n2. tool: result1\n3. assistant: \"\" (tool_calls: [tool2])  <- NO CONTENT\n4. tool: result2\n5. assistant: \"Final response\"\n```\n\n**Current Buggy Behavior:**\n- Messages 1+2 are NOT merged (because message 3 has no content)\n- Message 1 gets added to processed_messages AS-IS\n- Messages 3+4+5 ARE merged\n- **Result**: Message 1 displays as empty assistant bubble with tool1 indicator\n- **Result**: Message (3+4+5) displays with tool2 indicator only\n- **Result**: tool1 appears disconnected from its result\n\n**Correct Behavior:**\n- Merge ALL assistant→tool→assistant sequences regardless of content\n- Final processed messages should be just the last assistant with ALL tool_calls\n- No empty assistant bubbles should display\n\n**Impact:**\n- Conversations with chained tool calls show empty bubbles\n- Tool execution indicators appear misaligned\n- Users see confusing UI with orphaned tool calls\n\n**Files Affected:**\n- `src/consoul/sdk/services/conversation_display.py:137-181`\n\n**Solution:**\nRemove the content requirement from merging logic. Merge any assistant→tool→assistant sequence:\n\n```python\n# OLD (buggy):if (    next_idx < len(messages)\n    and messages[next_idx][\"role\"] == \"assistant\"    and messages[next_idx][\"content\"].strip()  # <-- Remove this):    # Merge\n\n# NEW (correct):\nif (    next_idx < len(messages)\n    and messages[next_idx][\"role\"] == \"assistant\"  # <-- No content requirement\n):\n    # Merge\n```\n\n**Testing:**\nTest case in `/tmp/test_tool_merging.py` demonstrates the bug.\n\nExpected behavior after fix:\n- Input: 6 messages (human, asst+tool1, tool, asst+tool2, tool, asst+content)\n- Output: 2 messages (human, merged_assistant with all tool_calls)",
+  "status": "in_progress",
+  "type": "bug",
+  "priority": "critical",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {}
+}

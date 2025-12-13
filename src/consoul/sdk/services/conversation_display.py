@@ -137,17 +137,41 @@ class ConversationDisplayService:
     def _merge_consecutive_assistant_messages(
         messages: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        """Merge consecutive assistant messages (one with tools, one with content).
+        """Merge consecutive assistant messages across tool calls.
 
-        This handles the case where an assistant message has tool_calls but no content,
-        followed by tool result messages, followed by another assistant message with
-        content. We merge the tool_calls from the first into the content message.
+        This handles multi-iteration tool flows where assistant messages have tool_calls
+        but no content, followed by tool result messages, followed by another assistant
+        message (which may also have tool_calls). We recursively merge all tool_calls
+        into the final assistant message.
+
+        Supports chained tool calls: asst(tool1) → tool → asst(tool2) → tool → asst(final)
 
         Args:
             messages: Raw messages from database
 
         Returns:
-            Processed messages with consecutive assistant messages merged
+            Processed messages with ALL consecutive assistant→tool sequences merged
+        """
+        # Keep merging until no more merges are possible (handles deep chains)
+        prev_length = len(messages)
+        while True:
+            messages = ConversationDisplayService._merge_one_pass(messages)
+            if len(messages) == prev_length:
+                # No change in this pass, we're done
+                break
+            prev_length = len(messages)
+
+        return messages
+
+    @staticmethod
+    def _merge_one_pass(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Single pass of merging consecutive assistant messages.
+
+        Args:
+            messages: Messages to process
+
+        Returns:
+            Messages with one level of merging applied
         """
         processed_messages = []
         i = 0
@@ -168,16 +192,20 @@ class ConversationDisplayService:
                 while next_idx < len(messages) and messages[next_idx]["role"] == "tool":
                     next_idx += 1
 
-                # If next non-tool message is assistant with content, merge them
+                # If next non-tool message is assistant, merge them
+                # (regardless of whether it has content - supports chained tool calls)
                 if (
                     next_idx < len(messages)
                     and messages[next_idx]["role"] == "assistant"
-                    and messages[next_idx]["content"].strip()
                 ):
-                    # Merge: use tool_calls from first, content from second
+                    # Merge: combine tool_calls from both messages, use content from target
+                    # This handles chained tool calls: asst(tool1) → tool → asst(tool2) → ...
+                    current_tools = msg.get("tool_calls", [])
+                    next_tools = messages[next_idx].get("tool_calls", [])
                     merged = {
                         **messages[next_idx],
-                        "tool_calls": msg["tool_calls"],
+                        "tool_calls": current_tools
+                        + next_tools,  # Combine, not overwrite
                     }
                     processed_messages.append(merged)
                     i = next_idx + 1  # Skip both messages
