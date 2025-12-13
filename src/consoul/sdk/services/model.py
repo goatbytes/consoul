@@ -431,3 +431,251 @@ class ModelService:
         ]
 
         return any(indicator in model_lower for indicator in vision_indicators)
+
+    # Registry-based methods for comprehensive model metadata
+
+    def list_available_models(
+        self, provider: str | None = None, active_only: bool = True
+    ) -> list[ModelInfo]:
+        """List all available models from the registry.
+
+        Fetches comprehensive model metadata from the centralized registry,
+        which includes 1,114+ models from Helicone API plus 21 flagship models.
+
+        Args:
+            provider: Filter by provider ("openai", "anthropic", "google", etc.)
+            active_only: Only return non-deprecated models (default: True)
+
+        Returns:
+            List of ModelInfo with enhanced metadata (pricing, capabilities)
+
+        Example:
+            >>> models = service.list_available_models(provider="anthropic")
+            >>> for model in models:
+            ...     print(f"{model.name}: {model.context_window}")
+            Claude Opus 4.5: 200K
+            Claude Sonnet 4.5: 200K
+        """
+        from consoul.registry import list_models as registry_list_models
+        from consoul.sdk.models import ModelCapabilities, ModelInfo, PricingInfo
+
+        # Get models from registry
+        registry_models = registry_list_models(
+            provider=provider, active_only=active_only
+        )
+
+        # Convert to SDK ModelInfo
+        sdk_models = []
+        for entry in registry_models:
+            # Format context window
+            ctx = entry.metadata.context_window
+            if ctx >= 1_000_000:
+                ctx_str = f"{ctx // 1_000_000}M"
+            elif ctx >= 1_000:
+                ctx_str = f"{ctx // 1_000}K"
+            else:
+                ctx_str = str(ctx)
+
+            # Extract capabilities
+            caps = ModelCapabilities(
+                supports_vision="vision"
+                in [c.value for c in entry.metadata.capabilities],
+                supports_tools="tools"
+                in [c.value for c in entry.metadata.capabilities],
+                supports_reasoning="reasoning"
+                in [c.value for c in entry.metadata.capabilities],
+                supports_streaming="streaming"
+                in [c.value for c in entry.metadata.capabilities],
+                supports_json_mode="json_mode"
+                in [c.value for c in entry.metadata.capabilities],
+                supports_caching="caching"
+                in [c.value for c in entry.metadata.capabilities],
+                supports_batch="batch"
+                in [c.value for c in entry.metadata.capabilities],
+            )
+
+            # Get default pricing
+            pricing_info = None
+            if "standard" in entry.pricing:
+                tier = entry.pricing["standard"]
+                pricing_info = PricingInfo(
+                    input_price=tier.input_price,
+                    output_price=tier.output_price,
+                    cache_read=tier.cache_read,
+                    cache_write_5m=tier.cache_write_5m,
+                    cache_write_1h=tier.cache_write_1h,
+                    thinking_price=tier.thinking_price,
+                    tier="standard",
+                    effective_date=tier.effective_date.isoformat(),
+                    notes=tier.notes,
+                )
+
+            model_info = ModelInfo(
+                id=entry.metadata.id,
+                name=entry.metadata.name,
+                provider=entry.metadata.provider,
+                context_window=ctx_str,
+                description=entry.metadata.description,
+                supports_vision=caps.supports_vision,
+                supports_tools=caps.supports_tools,
+                max_output_tokens=entry.metadata.max_output_tokens,
+                created=entry.metadata.created.isoformat(),
+                pricing=pricing_info,
+                capabilities=caps,
+            )
+            sdk_models.append(model_info)
+
+        return sdk_models
+
+    def get_model_pricing(
+        self, model_id: str, tier: str = "standard"
+    ) -> "PricingInfo | None":
+        """Get pricing information for a specific model.
+
+        Args:
+            model_id: Model identifier (e.g., "gpt-4o", "claude-sonnet-4-5-20250929")
+            tier: Pricing tier ("standard", "flex", "batch", "priority")
+
+        Returns:
+            PricingInfo if model found, None otherwise
+
+        Example:
+            >>> pricing = service.get_model_pricing("gpt-4o", tier="flex")
+            >>> if pricing:
+            ...     print(f"Input: ${pricing.input_price}/MTok")
+            ...     print(f"Output: ${pricing.output_price}/MTok")
+        """
+        from consoul.registry import get_pricing
+        from consoul.sdk.models import PricingInfo
+
+        pricing_tier = get_pricing(model_id, tier=tier)
+        if not pricing_tier:
+            return None
+
+        return PricingInfo(
+            input_price=pricing_tier.input_price,
+            output_price=pricing_tier.output_price,
+            cache_read=pricing_tier.cache_read,
+            cache_write_5m=pricing_tier.cache_write_5m,
+            cache_write_1h=pricing_tier.cache_write_1h,
+            thinking_price=pricing_tier.thinking_price,
+            tier=pricing_tier.tier,  # Use actual tier from registry
+            effective_date=pricing_tier.effective_date.isoformat(),
+            notes=pricing_tier.notes,
+        )
+
+    def get_model_capabilities(self, model_id: str) -> "ModelCapabilities | None":
+        """Get capability information for a specific model.
+
+        Args:
+            model_id: Model identifier
+
+        Returns:
+            ModelCapabilities if model found, None otherwise
+
+        Example:
+            >>> caps = service.get_model_capabilities("claude-sonnet-4-5-20250929")
+            >>> if caps and caps.supports_vision and caps.supports_tools:
+            ...     print("Model supports both vision and tools")
+        """
+        from consoul.registry import get_model
+        from consoul.sdk.models import ModelCapabilities
+
+        entry = get_model(model_id)
+        if not entry:
+            return None
+
+        return ModelCapabilities(
+            supports_vision="vision" in [c.value for c in entry.metadata.capabilities],
+            supports_tools="tools" in [c.value for c in entry.metadata.capabilities],
+            supports_reasoning="reasoning"
+            in [c.value for c in entry.metadata.capabilities],
+            supports_streaming="streaming"
+            in [c.value for c in entry.metadata.capabilities],
+            supports_json_mode="json_mode"
+            in [c.value for c in entry.metadata.capabilities],
+            supports_caching="caching"
+            in [c.value for c in entry.metadata.capabilities],
+            supports_batch="batch" in [c.value for c in entry.metadata.capabilities],
+        )
+
+    def get_model_metadata(self, model_id: str) -> ModelInfo | None:
+        """Get complete metadata for a specific model.
+
+        Combines all available information (metadata, pricing, capabilities)
+        into a single ModelInfo object.
+
+        Args:
+            model_id: Model identifier
+
+        Returns:
+            ModelInfo if model found, None otherwise
+
+        Example:
+            >>> model = service.get_model_metadata("gpt-4o")
+            >>> if model:
+            ...     print(f"{model.name}")
+            ...     print(f"Context: {model.context_window}")
+            ...     if model.pricing:
+            ...         print(f"Cost: ${model.pricing.input_price}/MTok")
+        """
+        from consoul.registry import get_model
+        from consoul.sdk.models import ModelCapabilities, ModelInfo, PricingInfo
+
+        entry = get_model(model_id)
+        if not entry:
+            return None
+
+        # Format context window
+        ctx = entry.metadata.context_window
+        if ctx >= 1_000_000:
+            ctx_str = f"{ctx // 1_000_000}M"
+        elif ctx >= 1_000:
+            ctx_str = f"{ctx // 1_000}K"
+        else:
+            ctx_str = str(ctx)
+
+        # Extract capabilities
+        caps = ModelCapabilities(
+            supports_vision="vision" in [c.value for c in entry.metadata.capabilities],
+            supports_tools="tools" in [c.value for c in entry.metadata.capabilities],
+            supports_reasoning="reasoning"
+            in [c.value for c in entry.metadata.capabilities],
+            supports_streaming="streaming"
+            in [c.value for c in entry.metadata.capabilities],
+            supports_json_mode="json_mode"
+            in [c.value for c in entry.metadata.capabilities],
+            supports_caching="caching"
+            in [c.value for c in entry.metadata.capabilities],
+            supports_batch="batch" in [c.value for c in entry.metadata.capabilities],
+        )
+
+        # Get default pricing
+        pricing_info = None
+        if "standard" in entry.pricing:
+            tier = entry.pricing["standard"]
+            pricing_info = PricingInfo(
+                input_price=tier.input_price,
+                output_price=tier.output_price,
+                cache_read=tier.cache_read,
+                cache_write_5m=tier.cache_write_5m,
+                cache_write_1h=tier.cache_write_1h,
+                thinking_price=tier.thinking_price,
+                tier="standard",
+                effective_date=tier.effective_date.isoformat(),
+                notes=tier.notes,
+            )
+
+        return ModelInfo(
+            id=entry.metadata.id,
+            name=entry.metadata.name,
+            provider=entry.metadata.provider,
+            context_window=ctx_str,
+            description=entry.metadata.description,
+            supports_vision=caps.supports_vision,
+            supports_tools=caps.supports_tools,
+            max_output_tokens=entry.metadata.max_output_tokens,
+            created=entry.metadata.created.isoformat(),
+            pricing=pricing_info,
+            capabilities=caps,
+        )

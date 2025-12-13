@@ -13,7 +13,9 @@ Example:
 from consoul.sdk.models import (
     Attachment,
     ConversationStats,
+    ModelCapabilities,
     ModelInfo,
+    PricingInfo,
     Token,
     ToolRequest,
 )
@@ -24,7 +26,9 @@ __all__ = [
     "Attachment",
     "ConversationService",
     "ConversationStats",
+    "ModelCapabilities",
     "ModelInfo",
+    "PricingInfo",
     "Token",
     "ToolExecutionCallback",
     "ToolRequest",

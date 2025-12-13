@@ -146,6 +146,80 @@ class ToolRequest:
 
 
 @dataclass
+class PricingInfo:
+    """Pricing information for an AI model.
+
+    Contains per-token costs in USD per million tokens (MTok).
+    Supports multiple pricing tiers (standard, flex, batch, priority).
+
+    Attributes:
+        input_price: Cost per million input tokens
+        output_price: Cost per million output tokens
+        cache_read: Cost per million cached read tokens (optional)
+        cache_write_5m: Cost per million cache write tokens, 5min TTL (optional)
+        cache_write_1h: Cost per million cache write tokens, 1hr TTL (optional)
+        thinking_price: Cost per million reasoning/thinking tokens (optional)
+        tier: Pricing tier name ("standard", "flex", "batch", "priority")
+        effective_date: When this pricing took effect (ISO date string)
+        notes: Additional pricing notes (optional)
+
+    Example:
+        >>> pricing = PricingInfo(
+        ...     input_price=2.50,
+        ...     output_price=10.00,
+        ...     cache_read=1.25,
+        ...     tier="standard"
+        ... )
+        >>> cost_per_1k = (pricing.input_price + pricing.output_price) / 1000
+        >>> print(f"~${cost_per_1k:.4f} per 1K tokens (input+output)")
+    """
+
+    input_price: float
+    output_price: float
+    cache_read: float | None = None
+    cache_write_5m: float | None = None
+    cache_write_1h: float | None = None
+    thinking_price: float | None = None
+    tier: str = "standard"
+    effective_date: str | None = None
+    notes: str | None = None
+
+
+@dataclass
+class ModelCapabilities:
+    """Capability flags for an AI model.
+
+    Indicates which advanced features a model supports.
+
+    Attributes:
+        supports_vision: Can process image inputs
+        supports_tools: Supports function calling
+        supports_reasoning: Has extended reasoning/thinking
+        supports_streaming: Supports streaming responses
+        supports_json_mode: Supports structured JSON output
+        supports_caching: Supports prompt caching
+        supports_batch: Supports batch API
+
+    Example:
+        >>> caps = ModelCapabilities(
+        ...     supports_vision=True,
+        ...     supports_tools=True,
+        ...     supports_reasoning=True
+        ... )
+        >>> if caps.supports_vision and caps.supports_tools:
+        ...     print("Model can process images and use tools")
+    """
+
+    supports_vision: bool = False
+    supports_tools: bool = False
+    supports_reasoning: bool = False
+    supports_streaming: bool = False
+    supports_json_mode: bool = False
+    supports_caching: bool = False
+    supports_batch: bool = False
+
+
+@dataclass
 class ModelInfo:
     """Information about an available AI model.
 
@@ -160,6 +234,10 @@ class ModelInfo:
         description: Brief model description
         supports_vision: Whether model supports image inputs (default: False)
         supports_tools: Whether model supports function calling (default: True)
+        max_output_tokens: Maximum output tokens per request (optional)
+        created: Model release date (optional, ISO date string)
+        pricing: Pricing information (optional)
+        capabilities: Full capability set (optional)
 
     Example:
         >>> model = ModelInfo(
@@ -181,3 +259,7 @@ class ModelInfo:
     description: str
     supports_vision: bool = False
     supports_tools: bool = True
+    max_output_tokens: int | None = None
+    created: str | None = None
+    pricing: PricingInfo | None = None
+    capabilities: ModelCapabilities | None = None

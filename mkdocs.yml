@@ -200,6 +200,7 @@ nav:
     - Overview: api/index.md
     - Tutorial: api/tutorial.md
     - Integration Guide: api/integration-guide.md
+    - Model Registry: api/model-registry.md
     - Tools: api/tools.md
     - Tool Configuration: sdk-tools.md
     - Building Agents: api/agents.md

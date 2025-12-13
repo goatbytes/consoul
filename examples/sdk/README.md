@@ -97,6 +97,22 @@ console = Consoul(tools="safe", discover_tools=True)
 
 ## Advanced Features
 
+### Model Registry
+
+Access comprehensive model metadata, pricing, and capabilities:
+
+```bash
+python model_registry_example.py
+```
+
+**File**: `model_registry_example.py`
+**Shows**:
+- List 1,114+ available models with filters
+- Get tier-specific pricing information
+- Query model capabilities (vision, tools, reasoning, etc.)
+- Access complete model metadata
+- Find cheapest models by provider
+
 ### Custom Approval Provider
 
 Implement custom approval logic for tool execution:
@@ -168,6 +184,7 @@ python read_file_example.py
 
 **Advanced**:
 - `tool_specification/04_tool_discovery.py` - Auto-discovery
+- `model_registry_example.py` - Model registry and pricing
 - `cli_approval_example.py` - Custom approval
 - `custom_audit_logger.py` - Audit logging
 - `web_approval_provider.py` - Remote approval
@@ -188,6 +205,9 @@ python read_file_example.py
 **AI Behavior**:
 - `custom_profile.py` - Custom profiles
 - `read_file_example.py` - Programmatic usage
+
+**Model Management**:
+- `model_registry_example.py` - Model metadata and pricing
 
 ## Running Examples
 
