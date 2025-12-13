@@ -44,7 +44,6 @@ if TYPE_CHECKING:
 
     T = TypeVar("T")
 
-from consoul.ai.reasoning import extract_reasoning
 from consoul.tui.config import TuiConfig
 from consoul.tui.themes import (
     CONSOUL_DARK,
@@ -2602,47 +2601,6 @@ Output:
         except Exception as e:
             logger.warning(f"Failed to persist attachments: {e}")
 
-    def _extract_display_content(self, content: str) -> str:
-        """Extract displayable text from message content.
-
-        Handles multimodal content that was JSON-serialized, extracting text
-        and replacing image data with placeholders.
-
-        Args:
-            content: Message content (string or JSON-serialized list)
-
-        Returns:
-            Clean display text without base64 image data
-        """
-        # Try to parse as JSON (multimodal content)
-        if isinstance(content, str) and content.startswith("["):
-            try:
-                import json
-
-                content_list = json.loads(content)
-                if isinstance(content_list, list):
-                    # Extract text parts and replace images with placeholders
-                    text_parts = []
-                    image_count = 0
-
-                    for item in content_list:
-                        if isinstance(item, dict):
-                            if item.get("type") == "text":
-                                text_parts.append(item.get("text", ""))
-                            elif item.get("type") == "image_url":
-                                image_count += 1
-                                # Add image placeholder instead of base64 data
-                                text_parts.append(f"[Image {image_count}]")
-                        elif isinstance(item, str):
-                            text_parts.append(item)
-
-                    return "\n".join(text_parts) if text_parts else content
-            except (json.JSONDecodeError, ValueError):
-                # Not JSON or invalid - return as-is
-                pass
-
-        return content
-
     async def _display_reconstructed_attachments(
         self,
         attachments: list[dict[str, Any]],
@@ -3228,86 +3186,22 @@ Output:
         if self.consoul_config:
             try:
                 # Use load_conversation_full to get tool_calls and attachments
-                messages = self.conversation_list.db.load_conversation_full(
+                raw_messages = self.conversation_list.db.load_conversation_full(
                     conversation_id
                 )
 
-                # Display messages in chat view with proper UI reconstruction
+                # Transform messages for display using ConversationDisplayService
+                from consoul.sdk.services import ConversationDisplayService
                 from consoul.tui.widgets import MessageBubble
 
-                # Pre-process messages to merge consecutive assistant messages
-                # (one with tools, one with content) into a single bubble
-                processed_messages = []
-                i = 0
-                while i < len(messages):
-                    msg = messages[i]
+                ui_messages = ConversationDisplayService.load_conversation_for_display(
+                    raw_messages, current_model=self.current_model
+                )
 
-                    # Check if this is an assistant message with tools but no content
-                    # and the next message is also an assistant with content
-                    if (
-                        msg["role"] == "assistant"
-                        and msg.get("tool_calls")
-                        and not msg["content"].strip()
-                        and i + 1 < len(messages)
-                    ):
-                        # Look ahead for tool message(s) and next assistant message
-                        next_idx = i + 1
-                        # Skip tool result messages
-                        while (
-                            next_idx < len(messages)
-                            and messages[next_idx]["role"] == "tool"
-                        ):
-                            next_idx += 1
-
-                        # If next non-tool message is assistant with content, merge them
-                        if (
-                            next_idx < len(messages)
-                            and messages[next_idx]["role"] == "assistant"
-                            and messages[next_idx]["content"].strip()
-                        ):
-                            # Merge: use tool_calls from first, content from second
-                            merged = {
-                                **messages[next_idx],
-                                "tool_calls": msg["tool_calls"],
-                            }
-                            processed_messages.append(merged)
-                            i = next_idx + 1  # Skip both messages
-                            continue
-
-                    processed_messages.append(msg)
-                    i += 1
-
-                for msg in processed_messages:
-                    role = msg["role"]
-                    content = msg["content"]
-                    tool_calls_raw = msg.get("tool_calls", [])
-                    attachments = msg.get("attachments", [])
-
-                    # Map database tool_call structure to expected format
-                    # DB uses 'tool_name' key, but ToolCallDetailsModal expects 'name' key
-                    tool_calls = []
-                    for tc in tool_calls_raw:
-                        tool_calls.append(
-                            {
-                                "name": tc.get("tool_name", "unknown"),
-                                "arguments": tc.get("arguments", {}),
-                                "status": tc.get("status", "unknown"),
-                                "result": tc.get("result"),
-                                "id": tc.get("id"),
-                                "type": "tool_call",
-                            }
-                        )
-
-                    # Skip system and tool messages in display
-                    # Tool results are shown via the 🛠 button modal
-                    if role in ("system", "tool"):
-                        continue
-
-                    # Handle multimodal content (deserialize JSON if needed)
-                    display_content = self._extract_display_content(content)
-
+                # Render messages in chat view
+                for ui_msg in ui_messages:
                     # Show tool execution indicator for assistant messages with tools
-                    if tool_calls and role == "assistant":
+                    if ui_msg.tool_calls and ui_msg.role == "assistant":
                         from textual.widgets import Static
 
                         from consoul.tui.widgets.tool_formatter import (
@@ -3315,7 +3209,7 @@ Output:
                         )
 
                         # Show each tool call with formatted header and arguments
-                        for tc in tool_calls:
+                        for tc in ui_msg.tool_calls:
                             tool_name = tc.get("name", "unknown")
                             tool_args = tc.get("arguments", {})
                             header_renderable = format_tool_header(
@@ -3328,47 +3222,32 @@ Output:
                             )
                             await self.chat_view.add_message(tool_indicator)
 
-                    # Create message bubbles
-                    # Show assistant messages (always, even if empty, for 🛠 button)
-                    # Show user messages only if they have content
-                    if role == "assistant" or (role == "user" and display_content):
-                        # Extract thinking for assistant messages
-                        thinking_to_display = None
-                        message_content = display_content or ""
+                    # Apply profile-specific thinking display preferences
+                    thinking_to_display = self._should_display_thinking(
+                        ui_msg.thinking_content
+                    )
 
-                        if role == "assistant" and message_content.strip():
-                            thinking, response_text = extract_reasoning(
-                                message_content, model_name=self.current_model
-                            )
-                            message_content = response_text
-                            thinking_to_display = self._should_display_thinking(
-                                thinking
-                            )
-
-                        # Get token count from database (stored when message was created)
-                        token_count = msg.get("tokens")
-                        # Get streaming metrics from database
-                        tokens_per_second = msg.get("tokens_per_second")
-                        time_to_first_token = msg.get("time_to_first_token")
-
-                        bubble = MessageBubble(
-                            message_content,
-                            role=role,
-                            show_metadata=True,
-                            token_count=token_count,
-                            tool_calls=tool_calls if tool_calls else None,
-                            message_id=msg.get("id"),  # Pass message ID for branching
-                            thinking_content=thinking_to_display
-                            if role == "assistant"
-                            else None,
-                            tokens_per_second=tokens_per_second,
-                            time_to_first_token=time_to_first_token,
-                        )
-                        await self.chat_view.add_message(bubble)
+                    # Create message bubble
+                    bubble = MessageBubble(
+                        ui_msg.content,
+                        role=ui_msg.role,
+                        show_metadata=True,
+                        token_count=ui_msg.token_count,
+                        tool_calls=ui_msg.tool_calls,
+                        message_id=ui_msg.message_id,
+                        thinking_content=thinking_to_display
+                        if ui_msg.role == "assistant"
+                        else None,
+                        tokens_per_second=ui_msg.tokens_per_second,
+                        time_to_first_token=ui_msg.time_to_first_token,
+                    )
+                    await self.chat_view.add_message(bubble)
 
                     # Display attachments for user messages
-                    if attachments and role == "user":
-                        await self._display_reconstructed_attachments(attachments)
+                    if ui_msg.attachments and ui_msg.role == "user":
+                        await self._display_reconstructed_attachments(
+                            ui_msg.attachments
+                        )
 
                 # Update conversation ID to resume this conversation
                 self.conversation_id = conversation_id
