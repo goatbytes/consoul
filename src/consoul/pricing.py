@@ -24,9 +24,6 @@ import logging
 import warnings
 from typing import Any
 
-from consoul.registry import get_model as _get_registry_model
-from consoul.registry import get_pricing as _get_registry_pricing
-
 logger = logging.getLogger(__name__)
 
 # Deprecation warning flag (show once)
