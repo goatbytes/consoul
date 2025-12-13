@@ -40,7 +40,6 @@ if TYPE_CHECKING:
         InputArea,
         StreamingResponse,
     )
-    from consoul.tui.widgets.input_area import AttachedFile
 
     T = TypeVar("T")
 
@@ -1568,57 +1567,14 @@ class ConsoulApp(App[None]):
                 # Remove stream widget
                 await stream_widget.remove()
 
-                # =================================================================
-                # SDK → TUI CONVERSION BOUNDARY
-                # =================================================================
-                # Extract tool call data from conversation for MessageBubble button
-                # Converts: AIMessage.tool_calls (LangChain SDK type)
-                #        → list[dict] (simple TUI data model)
-                # This maintains clean separation: SDK (business) vs TUI (presentation)
+                # Extract tool call data from conversation for MessageBubble
+                from consoul.tui.utils import extract_tool_calls_from_conversation
+
                 tool_calls_list = None
                 if self.conversation:
-                    from langchain_core.messages import AIMessage, ToolMessage
-
-                    # Find the most recent AIMessage with tool_calls
-                    ai_message = None
-                    for msg in reversed(self.conversation.messages):
-                        if isinstance(msg, AIMessage) and msg.tool_calls:
-                            ai_message = msg
-                            break
-
-                    if ai_message and ai_message.tool_calls:
-                        # Build tool_calls_list with results from ToolMessages
-                        tool_calls_data = []
-                        for tool_call in ai_message.tool_calls:
-                            # Find corresponding ToolMessage result
-                            result = None
-                            status = "SUCCESS"
-                            for msg in self.conversation.messages:
-                                if (
-                                    isinstance(msg, ToolMessage)
-                                    and msg.tool_call_id == tool_call["id"]
-                                ):
-                                    result = msg.content
-                                    # Check if result indicates error
-                                    if (
-                                        isinstance(result, str)
-                                        and "error" in result.lower()
-                                    ):
-                                        status = "ERROR"
-                                    break
-
-                            tool_calls_data.append(
-                                {
-                                    "name": tool_call["name"],
-                                    "arguments": tool_call["args"],
-                                    "status": status,
-                                    "result": result,
-                                }
-                            )
-
-                        if tool_calls_data:
-                            tool_calls_list = tool_calls_data
-                # =================================================================
+                    tool_calls_list = extract_tool_calls_from_conversation(
+                        self.conversation
+                    )
 
                 # Create MessageBubble with simple TUI types (no SDK objects)
                 final_bubble = MessageBubble(
@@ -1633,27 +1589,8 @@ class ConsoulApp(App[None]):
                 await self.chat_view.add_message(final_bubble)
 
                 # Generate title if this is the first exchange
-                self.log.debug(
-                    f"[TITLE] Checking title generation conditions: "
-                    f"title_generator={self.title_generator is not None}, "
-                    f"conversation={self.conversation is not None}"
-                )
-                if self.conversation:
-                    user_msgs = sum(
-                        1 for m in self.conversation.messages if m.type == "human"
-                    )
-                    assistant_msgs = sum(
-                        1 for m in self.conversation.messages if m.type == "ai"
-                    )
-                    self.log.debug(
-                        f"[TITLE] Message counts: user_msgs={user_msgs}, assistant_msgs={assistant_msgs}"
-                    )
-
                 should_generate = self._should_generate_title()
-                self.log.debug(f"[TITLE] _should_generate_title()={should_generate}")
-
                 if self.title_generator and self.conversation and should_generate:
-                    self.log.debug("Triggering title generation for first exchange")
                     # Get first user message (skip system messages)
                     user_msg = None
                     for msg in self.conversation.messages:
@@ -1799,34 +1736,12 @@ class ConsoulApp(App[None]):
             f"image_paths={bool(all_image_paths)}, model_supports_vision={model_supports_vision}, "
             f"combined={bool(all_image_paths) and model_supports_vision}"
         )
-        if all_image_paths and model_supports_vision:
-            logger.info("[IMAGE_DETECTION] ENTERING multimodal message creation block")
-            try:
-                logger.info(
-                    f"[IMAGE_DETECTION] About to call _create_multimodal_message with {len(all_image_paths)} image(s)"
-                )
-                # Note: Multimodal message creation is now handled by ConversationService
-                logger.info(
-                    f"[IMAGE_DETECTION] Will pass {len(all_image_paths)} image(s) to ConversationService"
-                )
-            except Exception as e:
-                # Fall back to text-only message and show error
-                import traceback
-
-                logger.error(
-                    f"[IMAGE_DETECTION] Failed to create multimodal message: {e}"
-                )
-                logger.error(f"[IMAGE_DETECTION] Traceback: {traceback.format_exc()}")
-                from consoul.tui.utils import create_error_bubble
-
-                error_bubble = create_error_bubble(
-                    f"❌ Failed to process image(s): {e}\n\n"
-                    "Continuing with text-only message."
-                )
-                await self.chat_view.add_message(error_bubble)
-
-        # Note: Message creation is now handled by ConversationService
+        # Note: Multimodal message creation is now handled by ConversationService
         # The service will create the appropriate message (text or multimodal) from content and attachments
+        if all_image_paths and model_supports_vision:
+            logger.info(
+                f"[IMAGE_DETECTION] Passing {len(all_image_paths)} image(s) to ConversationService"
+            )
 
         # Clear attached files after processing
         input_area.attached_files.clear()
@@ -1889,10 +1804,17 @@ class ConsoulApp(App[None]):
                                 break
 
                     if user_message_id:
+                        from consoul.tui.utils import persist_attachments
+
                         logger.debug(
                             f"Persisting {len(attached_files)} attachments to message {user_message_id}"
                         )
-                        await self._persist_attachments(user_message_id, attached_files)
+                        await persist_attachments(
+                            self.conversation,
+                            user_message_id,
+                            attached_files,
+                            self._executor,
+                        )
                         logger.debug("Attachments persisted successfully")
                     else:
                         logger.warning(
@@ -2404,76 +2326,6 @@ class ConsoulApp(App[None]):
             )
         except Exception as e:
             self.log.warning(f"[TOOL_FLOW] Failed to persist tool call: {e}")
-
-    async def _persist_attachments(
-        self,
-        message_id: int,
-        attached_files: list[AttachedFile],
-    ) -> None:
-        """Persist attachments to the database for UI reconstruction.
-
-        Args:
-            message_id: The database message ID to link attachments to
-            attached_files: List of AttachedFile objects to persist
-        """
-        if not self.conversation or not self.conversation._db:
-            return
-
-        try:
-            import asyncio
-            from functools import partial
-
-            loop = asyncio.get_event_loop()
-            for file in attached_files:
-                await loop.run_in_executor(
-                    self._executor,
-                    partial(
-                        self.conversation._db.save_attachment,
-                        message_id=message_id,
-                        file_path=file.path,
-                        file_type=file.type,
-                        mime_type=file.mime_type,
-                        file_size=file.size,
-                    ),
-                )
-            logger.debug(
-                f"Persisted {len(attached_files)} attachment(s) for message {message_id}"
-            )
-        except Exception as e:
-            logger.warning(f"Failed to persist attachments: {e}")
-
-    async def _display_reconstructed_attachments(
-        self,
-        attachments: list[dict[str, Any]],
-    ) -> None:
-        """Display attachments from a loaded conversation using FileChip widgets.
-
-        Args:
-            attachments: List of attachment dicts from database
-        """
-        if not attachments:
-            return
-
-        from textual.containers import Horizontal
-
-        from consoul.tui.widgets.historical_file_chip import HistoricalFileChip
-
-        # Create a container for the attachment chips
-        container = Horizontal(classes="historical-attachments")
-
-        for att in attachments:
-            file_path = att.get("file_path", "")
-            file_type = att.get("file_type", "unknown")
-            file_size = att.get("file_size")
-
-            chip = HistoricalFileChip(
-                file_path=file_path,
-                file_type=file_type,
-                file_size=file_size,
-            )
-            container.compose_add_child(chip)
-
-        await self.chat_view.add_message(container)
 
     # Action handlers (placeholders for Phase 2+)
 
@@ -3033,62 +2885,28 @@ class ConsoulApp(App[None]):
 
                 # Transform messages for display using ConversationDisplayService
                 from consoul.sdk.services import ConversationDisplayService
-                from consoul.tui.widgets import MessageBubble
 
                 ui_messages = ConversationDisplayService.load_conversation_for_display(
                     raw_messages, current_model=self.current_model
                 )
 
                 # Render messages in chat view
-                for ui_msg in ui_messages:
-                    # Show tool execution indicator for assistant messages with tools
-                    if ui_msg.tool_calls and ui_msg.role == "assistant":
-                        from textual.widgets import Static
+                from functools import partial
 
-                        from consoul.tui.widgets.tool_formatter import (
-                            format_tool_header,
-                        )
+                from consoul.tui.utils import (
+                    display_reconstructed_attachments,
+                    render_ui_messages_to_chat,
+                )
 
-                        # Show each tool call with formatted header and arguments
-                        for tc in ui_msg.tool_calls:
-                            tool_name = tc.get("name", "unknown")
-                            tool_args = tc.get("arguments", {})
-                            header_renderable = format_tool_header(
-                                tool_name, tool_args, theme=self.theme
-                            )
-                            # Use Static widget to render Rich renderables
-                            tool_indicator = Static(
-                                header_renderable,
-                                classes="system-message",
-                            )
-                            await self.chat_view.add_message(tool_indicator)
-
-                    # Apply profile-specific thinking display preferences
-                    thinking_to_display = self._should_display_thinking(
-                        ui_msg.thinking_content
-                    )
-
-                    # Create message bubble
-                    bubble = MessageBubble(
-                        ui_msg.content,
-                        role=ui_msg.role,
-                        show_metadata=True,
-                        token_count=ui_msg.token_count,
-                        tool_calls=ui_msg.tool_calls,
-                        message_id=ui_msg.message_id,
-                        thinking_content=thinking_to_display
-                        if ui_msg.role == "assistant"
-                        else None,
-                        tokens_per_second=ui_msg.tokens_per_second,
-                        time_to_first_token=ui_msg.time_to_first_token,
-                    )
-                    await self.chat_view.add_message(bubble)
-
-                    # Display attachments for user messages
-                    if ui_msg.attachments and ui_msg.role == "user":
-                        await self._display_reconstructed_attachments(
-                            ui_msg.attachments
-                        )
+                await render_ui_messages_to_chat(
+                    self.chat_view,
+                    ui_messages,
+                    self.theme,
+                    thinking_filter_callback=self._should_display_thinking,
+                    attachment_display_callback=partial(
+                        display_reconstructed_attachments, self.chat_view
+                    ),
+                )
 
                 # Update conversation ID to resume this conversation
                 self.conversation_id = conversation_id
@@ -3102,19 +2920,6 @@ class ConsoulApp(App[None]):
                 )
 
                 # Update the conversation object if we have one
-                logger.info(
-                    f"[CONV_LOAD] Checking conditions: "
-                    f"has_conversation={self.conversation is not None}, "
-                    f"has_config={self.consoul_config is not None}, "
-                    f"bool(conversation)={bool(self.conversation)}, "
-                    f"bool(config)={bool(self.consoul_config)}"
-                )
-
-                if not self.conversation:
-                    logger.warning("[CONV_LOAD] self.conversation is falsy!")
-                if not self.consoul_config:
-                    logger.warning("[CONV_LOAD] self.consoul_config is falsy!")
-
                 # Use explicit None check instead of truthiness check
                 # because ConversationHistory.__len__ makes empty conversations falsy
                 if self.conversation is not None and self.consoul_config is not None:
@@ -3126,19 +2931,10 @@ class ConsoulApp(App[None]):
                         conv_kwargs["session_id"] = (
                             conversation_id  # Resume this specific session
                         )
-                        logger.info(
-                            f"[CONV_LOAD] Creating ConversationHistory with session_id={conversation_id}"
-                        )
                         self.conversation = ConversationHistory(
                             model_name=self.consoul_config.current_model,
                             model=self.chat_model,
                             **conv_kwargs,
-                        )
-                        logger.info(
-                            f"[CONV_LOAD] Created ConversationHistory: "
-                            f"session_id={self.conversation.session_id}, "
-                            f"_conversation_created={self.conversation._conversation_created}, "
-                            f"message_count={len(self.conversation.messages)}"
                         )
                     except Exception as e:
                         logger.error(
