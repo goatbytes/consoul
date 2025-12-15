@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-10T08:14:31.336091",
-  "updated_at": "2025-12-10T08:14:31.336101",
+  "updated_at": "2025-12-15T17:02:35.380210Z",
   "id": "SOUL-260",
   "uuid": "9b9b313d-851d-4b97-b7a5-79a056dd46ec",
   "title": "Create consoul-sdk package structure",
@@ -13,6 +13,7 @@
     "packaging",
     "architecture"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-014",
   "blocked_by": [],

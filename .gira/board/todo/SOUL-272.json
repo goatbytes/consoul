@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-11T17:08:21.051812",
-  "updated_at": "2025-12-11T17:08:21.051819",
+  "updated_at": "2025-12-15T17:02:35.350127Z",
   "id": "SOUL-272",
   "uuid": "ba58ba2f-871e-4bb2-af85-5c0bdd2739a8",
   "title": "Fix IndexError in docs generator for empty command names",
@@ -14,6 +14,7 @@
     "docs-generation",
     "edge-case"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

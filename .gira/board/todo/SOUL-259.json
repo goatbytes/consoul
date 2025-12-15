@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-10T08:13:43.862473",
-  "updated_at": "2025-12-10T08:13:43.862481",
+  "updated_at": "2025-12-15T17:02:35.378562Z",
   "id": "SOUL-259",
   "uuid": "f9ac98f4-7fb6-4750-9e47-5552d33048b7",
   "title": "Update developer documentation for new architecture",
@@ -12,6 +12,7 @@
     "documentation",
     "quality"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-012",
   "blocked_by": [],
@@ -21,6 +22,6 @@
   "attachment_count": 0,
   "comment_count": 0,
   "story_points": 2,
-  "order": 0,
+  "order": 92,
   "custom_fields": {}
 }

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-11T17:26:07.867717",
-  "updated_at": "2025-12-11T17:26:07.867725",
+  "updated_at": "2025-12-15T17:02:35.366709Z",
   "id": "SOUL-273",
   "uuid": "c08c50ee-034b-4b1b-ab98-bb27833122d5",
   "title": "Replace deprecated datetime.utcnow() with timezone-aware API",
@@ -15,6 +15,7 @@
     "technical-debt",
     "maintenance"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

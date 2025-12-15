@@ -1,10 +1,10 @@
 {
   "created_at": "2025-12-10T00:54:03.191264",
-  "updated_at": "2025-12-10T00:54:03.191272",
+  "updated_at": "2025-12-15T17:38:39.053913Z",
   "id": "SOUL-252",
   "uuid": "f41cf313-9fcd-4ecd-b704-8a909b3dd59e",
   "title": "Extract session orchestration from CLI ChatSession to SDK",
-  "description": "**As a** Consoul developer\n**I want** session orchestration logic moved from CLI to SDK\n**So that** session management can be reused across CLI, TUI, and backend implementations\n\n**Context:**\nCurrently, src/consoul/cli/chat_session.py (846 lines) mixes session orchestration business logic with CLI-specific rendering. The ChatSession class should become a thin wrapper around SDK's ConversationSession, delegating business logic while handling CLI-specific presentation.\n\n**Technical Notes:**\n- Refactor: src/consoul/cli/chat_session.py (entire file)\n- Depends on: SOUL-245 (ConversationService must exist)\n- Extract: Session state management to SDK\n- Keep: CLI-specific rendering (Rich panels, markdown)\n- Pattern: ChatSession uses ConversationService internally\n- Reference: CLI analysis showed 846 lines needing refactoring\n\n**Acceptance Criteria:**\n\n**Given** ConversationService exists in SDK (SOUL-245)\n**When** I refactor ChatSession to use it\n**Then** ChatSession is <400 lines of rendering code\n\n**Given** User runs consoul chat\n**When** Session starts\n**Then** ConversationService manages conversation state\n\n**Given** User sends a message in CLI\n**When** ChatSession.send() is called\n**Then** It delegates to ConversationService and formats output\n\n**Given** Session state is needed\n**When** ChatSession accesses conversation\n**Then** It queries ConversationService, not ConversationHistory directly\n\n**Testing Considerations:**\n- Test CLI chat session with new architecture\n- Verify backward compatibility\n- Test session state persistence\n- Test tool execution via service\n- Test error handling\n- Ensure Rich rendering still works\n\n**Implementation Hints:**\n- Add self.conversation_service: ConversationService to ChatSession\n- Replace direct ConversationHistory usage with service calls\n- Delegate send() to conversation_service.send_message()\n- Keep Rich formatting logic in ChatSession\n- Remove direct model invocation\n- Use service callbacks for tool approval\n- Maintain slash command processing in CLI (separate ticket SOUL-253)",
+  "description": "**As a** Consoul developer\n**I want** session orchestration logic moved from CLI to SDK\n**So that** session management can be reused across CLI, TUI, and backend implementations\n\n**Context:**\nCurrently, src/consoul/cli/chat_session.py (846 lines) mixes session orchestration business logic with CLI-specific rendering. The ChatSession class should become a thin wrapper around SDK's ConversationSession, delegating business logic while handling CLI-specific presentation.\n\n**Technical Notes:**\n- Refactor: src/consoul/cli/chat_session.py (entire file)\n- Depends on: SOUL-245 (ConversationService must exist - COMPLETE)\n- Blocked by: SOUL-251 (Rich removal from streaming.py - ChatSession uses streaming)\n- Extract: Session state management to SDK\n- Keep: CLI-specific rendering (Rich panels, markdown)\n- Pattern: ChatSession uses ConversationService internally\n- Reference: CLI analysis showed 846 lines needing refactoring\n\n**Acceptance Criteria:**\n\n**Given** ConversationService exists in SDK (SOUL-245)\n**When** I refactor ChatSession to use it\n**Then** ChatSession is <400 lines of rendering code\n\n**Given** User runs consoul chat\n**When** Session starts\n**Then** ConversationService manages conversation state\n\n**Given** User sends a message in CLI\n**When** ChatSession.send() is called\n**Then** It delegates to ConversationService and formats output\n\n**Given** Session state is needed\n**When** ChatSession accesses conversation\n**Then** It queries ConversationService, not ConversationHistory directly\n\n**Testing Considerations:**\n- Test CLI chat session with new architecture\n- Verify backward compatibility\n- Test session state persistence\n- Test tool execution via service\n- Test error handling\n- Ensure Rich rendering still works\n\n**Implementation Hints:**\n- Add self.conversation_service: ConversationService to ChatSession\n- Replace direct ConversationHistory usage with service calls\n- Delegate send() to conversation_service.send_message()\n- Keep Rich formatting logic in ChatSession\n- Remove direct model invocation\n- Use service callbacks for tool approval\n- Maintain slash command processing in CLI (separate ticket SOUL-253)",
   "status": "todo",
   "type": "task",
   "priority": "medium",
@@ -13,6 +13,7 @@
     "sdk",
     "refactor"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-012",
   "blocked_by": [],
@@ -22,6 +23,6 @@
   "attachment_count": 0,
   "comment_count": 0,
   "story_points": 5,
-  "order": 0,
+  "order": 20,
   "custom_fields": {}
 }

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-10T00:51:49.977401",
-  "updated_at": "2025-12-13T00:48:56.219901Z",
+  "updated_at": "2025-12-15T17:02:35.356322Z",
   "id": "SOUL-247",
   "uuid": "62846c27-e998-42d8-96d4-c5a6ddc2db2a",
   "title": "Create ModelService facade for model management",
@@ -14,6 +14,7 @@
     "ai",
     "providers"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-013",
   "blocked_by": [],

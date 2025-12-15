@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-10T00:54:39.963884",
-  "updated_at": "2025-12-10T00:54:39.963894",
+  "updated_at": "2025-12-15T17:02:35.381693Z",
   "id": "SOUL-254",
   "uuid": "a05805cf-ef02-4189-ab17-1cbe524eae7c",
   "title": "Extract slash command processor from ChatSession",
@@ -13,6 +13,7 @@
     "refactor",
     "ux-improvement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-012",
   "blocked_by": [],
@@ -22,6 +23,6 @@
   "attachment_count": 0,
   "comment_count": 0,
   "story_points": 3,
-  "order": 0,
+  "order": 40,
   "custom_fields": {}
 }

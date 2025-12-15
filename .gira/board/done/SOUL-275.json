@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-13T03:44:05.818631Z",
-  "updated_at": "2025-12-13T03:50:35.349465Z",
+  "updated_at": "2025-12-15T17:02:35.354422Z",
   "id": "SOUL-275",
   "uuid": "fbd0afe9-3282-444a-9114-1ab1f7665185",
   "title": "Fix ConversationDisplayService multi-iteration tool display regression",
@@ -9,6 +9,7 @@
   "type": "bug",
   "priority": "critical",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

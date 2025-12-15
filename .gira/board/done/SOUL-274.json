@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-13T03:31:15.702294Z",
-  "updated_at": "2025-12-13T03:36:13.492711Z",
+  "updated_at": "2025-12-15T17:02:35.365703Z",
   "id": "SOUL-274",
   "uuid": "a2c834ca-cbc0-44de-b849-9c6733f3b9b1",
   "title": "Fix ModelService local provider regression - Ollama/LlamaCpp/MLX models missing",
@@ -9,6 +9,7 @@
   "type": "bug",
   "priority": "critical",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

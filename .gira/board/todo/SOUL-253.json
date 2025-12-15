@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-10T00:54:23.475783",
-  "updated_at": "2025-12-10T00:54:23.475794",
+  "updated_at": "2025-12-15T17:02:35.348719Z",
   "id": "SOUL-253",
   "uuid": "b9aaf4dd-4ac7-4b35-8708-a10ce29e6878",
   "title": "Move system prompt building to SDK layer",
@@ -13,6 +13,7 @@
     "refactor",
     "ai"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-012",
   "blocked_by": [],
@@ -22,6 +23,6 @@
   "attachment_count": 0,
   "comment_count": 0,
   "story_points": 2,
-  "order": 0,
+  "order": 30,
   "custom_fields": {}
 }

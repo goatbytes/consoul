@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-11T16:43:59.950531",
-  "updated_at": "2025-12-13T18:42:31.330602Z",
+  "updated_at": "2025-12-15T17:02:35.355408Z",
   "id": "SOUL-270",
   "uuid": "35e28116-cdb0-4c54-9ca4-d72f1b298545",
   "title": "Final refactoring verification and line count achievement",
@@ -14,6 +14,7 @@
     "verification",
     "testing"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-013",
   "parent_id": "SOUL-249",

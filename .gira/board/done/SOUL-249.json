@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-10T00:52:29.079490",
-  "updated_at": "2025-12-13T10:43:51.875340",
+  "updated_at": "2025-12-15T17:02:35.376448Z",
   "id": "SOUL-249",
   "uuid": "a2f0b69e-4ea0-4ced-9062-ab6d77964a17",
   "title": "Refactor TUI app.py to use service layer",
@@ -14,6 +14,7 @@
     "breaking-change",
     "technical-debt"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-013",
   "blocked_by": [],

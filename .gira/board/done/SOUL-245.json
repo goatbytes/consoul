@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-10T00:51:14.399718",
-  "updated_at": "2025-12-10T15:51:52.239383",
+  "updated_at": "2025-12-15T17:02:35.375641Z",
   "id": "SOUL-245",
   "uuid": "12f46d33-dc8c-490f-9bb2-de5a122141cb",
   "title": "Create ConversationService facade for headless conversation management",
@@ -15,6 +15,7 @@
     "core",
     "breaking-change"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-013",
   "blocked_by": [],
