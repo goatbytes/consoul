@@ -17,14 +17,10 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 
-from consoul.ai import ConversationHistory, get_chat_model
 from consoul.ai.exceptions import StreamingError
-from consoul.ai.streaming import stream_response
+from consoul.sdk.services.conversation import ConversationService
 
 if TYPE_CHECKING:
-    from langchain_core.language_models.chat_models import BaseChatModel
-
-    from consoul.ai.tools.registry import ToolRegistry
     from consoul.cli.approval import CliToolApprovalProvider
     from consoul.config import ConsoulConfig
     from consoul.formatters.base import ExportFormatter
@@ -53,9 +49,7 @@ class ChatSession:
     def __init__(
         self,
         config: ConsoulConfig,
-        tool_registry: ToolRegistry | None = None,
         approval_provider: CliToolApprovalProvider | None = None,
-        max_tool_iterations: int = 5,
         system_prompt_override: str | None = None,
         resume_session_id: str | None = None,
     ) -> None:
@@ -63,11 +57,8 @@ class ChatSession:
 
         Args:
             config: ConsoulConfig instance with model, provider, and settings
-            tool_registry: Optional tool registry for tool execution support
             approval_provider: Optional approval provider for tool calls.
-                If tool_registry is provided but approval_provider is not,
-                creates a default CliToolApprovalProvider.
-            max_tool_iterations: Maximum number of tool call iterations per message (default: 5)
+                If not provided, creates a default CliToolApprovalProvider.
             system_prompt_override: Optional system prompt to prepend to profile's base prompt
             resume_session_id: Optional session ID to resume existing conversation
 
@@ -81,67 +72,37 @@ class ChatSession:
         self._interrupted = False
         self._original_sigint_handler = None
         self._should_exit = False  # Flag for /exit command
-        self.max_tool_iterations = max_tool_iterations
         self.system_prompt_override = system_prompt_override
         self.resume_session_id = resume_session_id
 
-        # Tool execution support
-        self.tool_registry = tool_registry
-        if tool_registry and not approval_provider:
-            # Auto-create approval provider if registry provided
+        # Auto-create approval provider if not provided
+        if not approval_provider:
             from consoul.cli.approval import CliToolApprovalProvider
 
             approval_provider = CliToolApprovalProvider(console=self.console)
             logger.debug("Created default CliToolApprovalProvider")
 
-        self.approval_provider: CliToolApprovalProvider | None = approval_provider
+        self.approval_provider: CliToolApprovalProvider = approval_provider
 
-        # Initialize chat model from config
+        # Initialize ConversationService
         logger.info(
-            f"Initializing chat model: {config.current_provider.value}/{config.current_model}"
+            f"Initializing conversation service: {config.current_provider.value}/{config.current_model}"
         )
-        model_config = config.get_current_model_config()
-        self.model: BaseChatModel = get_chat_model(model_config, config=config)
+        self.conversation_service = ConversationService.from_config(config)
 
-        # Bind tools to model if registry provided
-        if self.tool_registry:
-            self.model = self.tool_registry.bind_to_model(self.model)
-            logger.info(f"Bound {len(self.tool_registry)} tools to model")
-
-        # Get active profile for settings
+        # Override system prompt if provided
         profile = config.get_active_profile()
-
-        # Initialize conversation history
-        persist = (
-            profile.conversation.persist
-            if hasattr(profile, "conversation")
-            else True  # Default to persistence
-        )
-
-        if self.resume_session_id:
+        if resume_session_id:
             # Resume existing conversation
-            logger.info(f"Resuming conversation: {self.resume_session_id}")
-            self.history = ConversationHistory(
-                model_name=config.current_model,
-                model=self.model,
-                persist=persist,
-                session_id=self.resume_session_id,
-            )
-            # Don't add system message - conversation already loaded from database
-            logger.debug(f"Loaded {len(self.history)} messages from database")
-        else:
-            # Start new conversation
-            logger.info(f"Initializing conversation history (persist={persist})")
-            self.history = ConversationHistory(
-                model_name=config.current_model,
-                model=self.model,
-                persist=persist,
-            )
-            if profile.system_prompt or self.system_prompt_override:
-                # Build complete system prompt with environment context
-                system_prompt = self._build_system_prompt(profile, config)
-                self.history.add_system_message(system_prompt)
-                logger.debug(f"Added system prompt: {system_prompt[:50]}...")
+            logger.info(f"Resuming conversation: {resume_session_id}")
+            # TODO: Add resume_session_id support to ConversationService
+            # For now, set session_id on the conversation
+            self.conversation_service.conversation.session_id = resume_session_id
+        elif profile.system_prompt or system_prompt_override:
+            # Build complete system prompt with environment context
+            system_prompt = self._build_system_prompt(profile, config)
+            self.conversation_service.conversation.add_system_message(system_prompt)
+            logger.debug(f"Added system prompt: {system_prompt[:50]}...")
 
     def _build_system_prompt(self, profile: Any, config: ConsoulConfig) -> str:
         """Build complete system prompt with environment context and tool documentation.
@@ -188,7 +149,9 @@ class ChatSession:
                 logger.debug(f"Injected environment context ({len(env_context)} chars)")
 
         # Build final system prompt with tool documentation
-        system_prompt = build_system_prompt(base_prompt, self.tool_registry)
+        system_prompt = build_system_prompt(
+            base_prompt, self.conversation_service.tool_registry
+        )
 
         return system_prompt or base_prompt
 
@@ -240,81 +203,82 @@ class ChatSession:
         The public send() method wraps this in asyncio.run_until_complete() for
         backward compatibility.
         """
-        # Add user message to history
-        self.history.add_user_message(message)
-        logger.debug(f"Added user message: {message[:50]}...")
-
-        # Get messages for API call (use BaseMessage objects, not dicts)
-        messages = self.history.get_messages()
-
-        # Tool execution loop (handles multi-step tool calls)
-        tool_iteration = 0
-
         try:
-            while tool_iteration < self.max_tool_iterations:
-                if stream:
-                    # Stream response token-by-token
-                    response_text, ai_message = stream_response(
-                        self.model,
-                        messages,
-                        console=self.console,
-                        show_prefix=show_prefix,
-                        show_spinner=True,
-                        render_markdown=render_markdown,
-                    )
-                else:
-                    # Non-streaming response
-                    ai_message = self.model.invoke(messages)
-                    response_text = str(ai_message.content)
-
-                    if render_markdown:
-                        if show_prefix:
-                            self.console.print("\n[bold cyan]Assistant:[/bold cyan]")
-                        md = Markdown(response_text)
-                        self.console.print(md)
-                    else:
-                        if show_prefix:
-                            self.console.print(
-                                "\n[bold green]Assistant:[/bold green] ", end=""
-                            )
-                        self.console.print(response_text)
-
-                # Add assistant response to history
-                self.history.add_assistant_message(response_text)
-                logger.debug(f"Added assistant response: {response_text[:50]}...")
-
-                # Check for tool calls
-                if not (hasattr(ai_message, "tool_calls") and ai_message.tool_calls):
-                    # No tool calls - return response
-                    return response_text
-
-                # Tool calls detected
-                if not self.tool_registry or not self.approval_provider:
-                    # No tool support configured - warn and return
+            # Create tool approval adapter
+            async def on_tool_request(tool_request: Any) -> bool:
+                """Adapter to connect CliToolApprovalProvider to ConversationService."""
+                # Check if auto-approved or auto-denied
+                if tool_request.name in self.approval_provider.always_approve:
                     self.console.print(
-                        "\n[yellow]⚠ AI requested tool execution but tools are not enabled[/yellow]"
+                        f"[dim]✓ Auto-approved '{tool_request.name}' (always approve)[/dim]"
                     )
-                    return response_text
+                    return True
+                elif tool_request.name in self.approval_provider.never_approve:
+                    self.console.print(
+                        f"[dim]✗ Auto-denied '{tool_request.name}' (never approve)[/dim]"
+                    )
+                    return False
 
-                tool_iteration += 1
-                logger.info(
-                    f"Processing {len(ai_message.tool_calls)} tool calls (iteration {tool_iteration}/{self.max_tool_iterations})"
-                )
+                # Use the approval provider's request method
+                if self.conversation_service.tool_registry:
+                    approval_response = await self.conversation_service.tool_registry.request_tool_approval(
+                        tool_name=tool_request.name,
+                        arguments=tool_request.arguments,
+                        tool_call_id=tool_request.id,
+                    )
+                    return approval_response.approved
+                return True
 
-                # Process each tool call
-                for tool_call in ai_message.tool_calls:
-                    await self._execute_tool_call(dict(tool_call))
-                    # Tool result already added to history in _execute_tool_call
+            # Stream response from ConversationService
+            response_parts = []
 
-                # Get updated messages for next iteration
-                messages = self.history.get_messages()
+            if show_prefix:
+                self.console.print("\n[bold cyan]Assistant:[/bold cyan] ", end="")
 
-                # Continue loop to get AI's response after tool execution
+            async for token in self.conversation_service.send_message(
+                message,
+                on_tool_request=on_tool_request,
+            ):
+                response_parts.append(token.content)
 
-            # Max iterations reached
-            self.console.print(
-                f"\n[yellow]⚠ Maximum tool iterations ({self.max_tool_iterations}) reached[/yellow]"
-            )
+                # Display token
+                if stream:
+                    self.console.print(token.content, end="", markup=False)
+
+                # Display tool execution results if present in metadata
+                if "tool_result" in token.metadata:
+                    result = token.metadata["tool_result"]
+                    tool_name = token.metadata.get("tool_name", "unknown")
+                    success = token.metadata.get("tool_success", True)
+
+                    if success:
+                        self.console.print(
+                            Panel(
+                                f"[green]{result[:500]}{'...' if len(result) > 500 else ''}[/green]",
+                                title=f"Tool Result: {tool_name}",
+                                border_style="green",
+                            )
+                        )
+                    else:
+                        self.console.print(
+                            Panel(
+                                f"[red]{result}[/red]",
+                                title=f"Tool Error: {tool_name}",
+                                border_style="red",
+                            )
+                        )
+
+            response_text = "".join(response_parts)
+
+            # Render as markdown if requested and not already streamed
+            if not stream and render_markdown:
+                md = Markdown(response_text)
+                self.console.print(md)
+            elif not stream:
+                self.console.print(response_text)
+            else:
+                self.console.print()  # Newline after streaming
+
             return response_text
 
         except StreamingError as e:
@@ -322,10 +286,6 @@ class ChatSession:
             self.console.print("\n\n[yellow]Interrupted[/yellow]")
             logger.info("User interrupted during streaming")
             self._interrupted = True
-            # Add partial response to history if available
-            if e.partial_response:
-                self.history.add_assistant_message(e.partial_response)
-                logger.debug(f"Saved partial response: {e.partial_response[:50]}...")
             raise KeyboardInterrupt() from e
 
         except KeyboardInterrupt:
@@ -341,109 +301,21 @@ class ChatSession:
             self.console.print(f"\n[red]Error: {e}[/red]")
             raise
 
-    async def _execute_tool_call(self, tool_call: dict[str, Any]) -> str:
-        """Execute a single tool call with approval workflow.
-
-        Args:
-            tool_call: Tool call dict from AIMessage.tool_calls with keys:
-                - name: Tool name
-                - args: Tool arguments dict
-                - id: Tool call ID
-
-        Returns:
-            Tool execution result (success message or error)
-        """
-        from langchain_core.messages import ToolMessage
-
-        tool_name = str(tool_call["name"])
-        tool_args: dict[str, Any] = dict(tool_call["args"])
-        tool_call_id = str(tool_call.get("id", ""))
-
-        logger.debug(f"Executing tool: {tool_name} with args: {tool_args}")
-
-        try:
-            # Check if auto-approved or auto-denied
-            assert self.approval_provider is not None, "Approval provider is required"
-
-            if tool_name in self.approval_provider.always_approve:
-                approved = True
-                self.console.print(
-                    f"[dim]✓ Auto-approved '{tool_name}' (always approve)[/dim]"
-                )
-            elif tool_name in self.approval_provider.never_approve:
-                approved = False
-                self.console.print(
-                    f"[dim]✗ Auto-denied '{tool_name}' (never approve)[/dim]"
-                )
-            else:
-                # Request approval from provider
-                assert self.tool_registry is not None, "Tool registry is required"
-                approval_response = await self.tool_registry.request_tool_approval(
-                    tool_name=tool_name,
-                    arguments=tool_args,
-                    tool_call_id=tool_call_id,
-                )
-                approved = approval_response.approved
-
-            if not approved:
-                # Tool denied - send denial message to AI
-                result = "Tool execution denied by user"
-                self.console.print(
-                    Panel(
-                        "[red]Execution denied by user[/red]",
-                        title=f"Tool Result: {tool_name}",
-                        border_style="red",
-                    )
-                )
-            else:
-                # Tool approved - execute it
-                assert self.tool_registry is not None, "Tool registry is required"
-                tool_metadata = self.tool_registry.get_tool(tool_name)
-                result_obj = tool_metadata.tool.invoke(tool_args)
-                result = str(result_obj)
-
-                # Display result
-                self.console.print(
-                    Panel(
-                        f"[green]{result[:500]}{'...' if len(result) > 500 else ''}[/green]",
-                        title=f"Tool Result: {tool_name}",
-                        border_style="green",
-                    )
-                )
-                logger.debug(
-                    f"Tool {tool_name} executed successfully: {result[:100]}..."
-                )
-
-        except Exception as e:
-            # Tool execution failed
-            result = f"Tool execution error: {e}"
-            self.console.print(
-                Panel(
-                    f"[red]{result}[/red]",
-                    title=f"Tool Error: {tool_name}",
-                    border_style="red",
-                )
-            )
-            logger.error(f"Tool {tool_name} execution failed: {e}", exc_info=True)
-
-        # Add tool result to history
-        tool_message = ToolMessage(content=result, tool_call_id=tool_call_id)
-        self.history.messages.append(tool_message)
-        logger.debug(f"Added tool message to history: {result[:50]}...")
-
-        return result
-
     def clear_history(self) -> None:
         """Clear conversation history (keeps system prompt)."""
         # Get system messages
-        system_messages = [msg for msg in self.history.messages if msg.type == "system"]
+        system_messages = [
+            msg
+            for msg in self.conversation_service.conversation.messages
+            if msg.type == "system"
+        ]
 
         # Clear all messages
-        self.history.messages.clear()
+        self.conversation_service.conversation.messages.clear()
 
         # Re-add system messages
         for msg in system_messages:
-            self.history.messages.append(msg)
+            self.conversation_service.conversation.messages.append(msg)
 
         logger.info("Cleared conversation history (preserved system prompt)")
 
@@ -455,12 +327,14 @@ class ChatSession:
         """
         # Count only user and assistant messages, exclude system messages
         user_and_assistant_messages = [
-            msg for msg in self.history.messages if msg.type in ("human", "ai")
+            msg
+            for msg in self.conversation_service.conversation.messages
+            if msg.type in ("human", "ai")
         ]
 
         return {
             "message_count": len(user_and_assistant_messages),
-            "token_count": self.history.count_tokens(),
+            "token_count": self.conversation_service.conversation.count_tokens(),
         }
 
     def process_command(self, cmd: str) -> bool:
@@ -563,7 +437,8 @@ class ChatSession:
         # Get model token limit
         from consoul.ai.context import get_model_token_limit
 
-        max_tokens = get_model_token_limit(self.history.model_name)
+        model_name = self.conversation_service.conversation.model_name
+        max_tokens = get_model_token_limit(model_name)
         token_count = stats["token_count"]
         percentage = (token_count / max_tokens * 100) if max_tokens > 0 else 0
 
@@ -572,7 +447,7 @@ class ChatSession:
             Panel(
                 f"[bold]Messages:[/bold] {stats['message_count']}\n"
                 f"[bold]Tokens:[/bold] {token_count:,} / {max_tokens:,} ({percentage:.1f}%)\n"
-                f"[bold]Model:[/bold] {self.history.model_name}",
+                f"[bold]Model:[/bold] {model_name}",
                 title="[bold cyan]Token Usage[/bold cyan]",
                 border_style="cyan",
             )
@@ -598,7 +473,7 @@ class ChatSession:
 
         try:
             # Auto-detect provider from model name
-            from consoul.ai.providers import get_provider_from_model
+            from consoul.ai.providers import get_chat_model, get_provider_from_model
 
             detected_provider = get_provider_from_model(model_name)
 
@@ -616,14 +491,16 @@ class ChatSession:
             new_model = get_chat_model(model_config, config=self.config)
 
             # Bind tools if registry exists
-            if self.tool_registry:
-                new_model = self.tool_registry.bind_to_model(new_model)
+            if self.conversation_service.tool_registry:
+                new_model = self.conversation_service.tool_registry.bind_to_model(
+                    new_model
+                )
 
-            self.model = new_model
+            self.conversation_service.model = new_model
 
             # Update history model reference
-            self.history.model_name = model_name
-            self.history._model = new_model
+            self.conversation_service.conversation.model_name = model_name
+            self.conversation_service.conversation._model = new_model
 
             self.console.print(
                 f"[green]✓[/green] Switched to model: [cyan]{self.config.current_provider.value}/{model_name}[/cyan]\n"
@@ -637,8 +514,9 @@ class ChatSession:
         """Enable or disable tool execution."""
         if not args:
             # Show current status
-            status = "enabled" if self.tool_registry else "disabled"
-            tool_count = len(self.tool_registry) if self.tool_registry else 0
+            tool_registry = self.conversation_service.tool_registry
+            status = "enabled" if tool_registry else "disabled"
+            tool_count = len(tool_registry) if tool_registry else 0
             self.console.print(
                 f"[bold]Tools:[/bold] {status} ({tool_count} tools available)\n"
                 f"[dim]Usage: /tools <on|off>[/dim]\n"
@@ -648,30 +526,38 @@ class ChatSession:
         arg_lower = args.strip().lower()
 
         if arg_lower == "off":
-            if not self.tool_registry:
+            if not self.conversation_service.tool_registry:
                 self.console.print("[yellow]Tools are already disabled[/yellow]\n")
             else:
                 # Store reference for re-enabling
                 if not hasattr(self, "_saved_tool_registry"):
-                    self._saved_tool_registry = self.tool_registry
+                    self._saved_tool_registry = self.conversation_service.tool_registry
 
-                self.tool_registry = None
+                self.conversation_service.tool_registry = None
                 # Re-bind model without tools
+                from consoul.ai.providers import get_chat_model
+
                 model_config = self.config.get_current_model_config()
-                self.model = get_chat_model(model_config, config=self.config)
+                self.conversation_service.model = get_chat_model(
+                    model_config, config=self.config
+                )
 
                 self.console.print("[green]✓[/green] Tools disabled\n")
 
         elif arg_lower == "on":
-            if self.tool_registry:
+            if self.conversation_service.tool_registry:
                 self.console.print("[yellow]Tools are already enabled[/yellow]\n")
             else:
                 # Restore saved registry if available
                 if hasattr(self, "_saved_tool_registry"):
-                    self.tool_registry = self._saved_tool_registry
+                    self.conversation_service.tool_registry = self._saved_tool_registry
                     # Re-bind tools to model
-                    self.model = self.tool_registry.bind_to_model(self.model)
-                    tool_count = len(self.tool_registry)
+                    self.conversation_service.model = (
+                        self._saved_tool_registry.bind_to_model(
+                            self.conversation_service.model
+                        )
+                    )
+                    tool_count = len(self._saved_tool_registry)
                     self.console.print(
                         f"[green]✓[/green] Tools enabled ({tool_count} tools available)\n"
                     )
@@ -711,13 +597,14 @@ class ChatSession:
         # Get model info
         from consoul.ai.context import get_model_token_limit
 
-        max_tokens = get_model_token_limit(self.history.model_name)
+        model_name = self.conversation_service.conversation.model_name
+        max_tokens = get_model_token_limit(model_name)
         token_count = stats["token_count"]
         percentage = (token_count / max_tokens * 100) if max_tokens > 0 else 0
 
         # Count messages by type
         message_counts = {"user": 0, "assistant": 0, "system": 0, "tool": 0}
-        for msg in self.history.messages:
+        for msg in self.conversation_service.conversation.messages:
             msg_type = msg.type
             if msg_type == "human":
                 message_counts["user"] += 1
@@ -729,12 +616,13 @@ class ChatSession:
                 message_counts["tool"] += 1
 
         # Tool status
-        tools_status = "enabled" if self.tool_registry else "disabled"
-        tool_count = len(self.tool_registry) if self.tool_registry else 0
+        tool_registry = self.conversation_service.tool_registry
+        tools_status = "enabled" if tool_registry else "disabled"
+        tool_count = len(tool_registry) if tool_registry else 0
 
         stats_text = (
-            f"[bold]Model:[/bold] {self.config.current_provider.value}/{self.history.model_name}\n"
-            f"[bold]Session ID:[/bold] {self.history.session_id}\n\n"
+            f"[bold]Model:[/bold] {self.config.current_provider.value}/{model_name}\n"
+            f"[bold]Session ID:[/bold] {self.conversation_service.conversation.session_id}\n\n"
             f"[bold]Messages:[/bold]\n"
             f"  User: {message_counts['user']}\n"
             f"  Assistant: {message_counts['assistant']}\n"
@@ -792,19 +680,20 @@ class ChatSession:
             )
 
         # Build metadata
+        conversation = self.conversation_service.conversation
         metadata = {
-            "session_id": self.history.session_id,
-            "model": self.history.model_name,
+            "session_id": conversation.session_id,
+            "model": conversation.model_name,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
-            "message_count": len(self.history.messages),
+            "message_count": len(conversation.messages),
         }
 
         # Convert messages to dict format
         from consoul.ai.history import to_dict_message
 
         messages = []
-        for msg in self.history.messages:
+        for msg in conversation.messages:
             msg_dict = to_dict_message(msg)
             msg_dict["timestamp"] = datetime.now().isoformat()
             msg_dict["tokens"] = 0  # Could calculate per-message if needed
@@ -840,7 +729,7 @@ class ChatSession:
             try:
                 # History auto-saves via ConversationHistory
                 logger.info(
-                    f"Session ended - conversation persisted (session_id: {self.history.session_id})"
+                    f"Session ended - conversation persisted (session_id: {self.conversation_service.conversation.session_id})"
                 )
             except Exception as e:
                 logger.warning(f"Failed to persist conversation: {e}")
