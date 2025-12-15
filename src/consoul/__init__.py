@@ -26,13 +26,12 @@ __version__ = "0.2.2"
 __author__ = "GoatBytes.IO"
 __license__ = "Apache-2.0"
 
-# High-level SDK
-# TODO: Consoul and ConsoulResponse will be implemented in future tickets
-# from consoul.sdk import Consoul, ConsoulResponse
+# High-level SDK (imported after __version__ to satisfy E402)
+from consoul.sdk import Consoul, ConsoulResponse  # noqa: E402
 
 __all__ = [
-    # "Consoul",  # Will be available after SOUL-246
-    # "ConsoulResponse",  # Will be available after SOUL-246
+    "Consoul",
+    "ConsoulResponse",
     "__author__",
     "__license__",
     "__version__",

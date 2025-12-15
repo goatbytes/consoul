@@ -681,8 +681,8 @@ class TestConsoulToolDiscovery:
 class TestConsoulApprovalProvider:
     """Test custom approval provider functionality."""
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
     def test_custom_approval_provider(
         self, mock_registry_class: Mock, mock_get_model: Mock
     ) -> None:
@@ -715,9 +715,9 @@ class TestConsoulApprovalProvider:
         call_kwargs = mock_registry_class.call_args.kwargs
         assert call_kwargs["approval_provider"] == provider
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
-    @patch("consoul.sdk.CliApprovalProvider")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
+    @patch("consoul.sdk.wrapper.CliApprovalProvider")
     def test_default_approval_provider(
         self,
         mock_cli_provider_class: Mock,
@@ -747,7 +747,7 @@ class TestConsoulApprovalProvider:
         call_kwargs = mock_registry_class.call_args.kwargs
         assert call_kwargs["approval_provider"] == mock_cli_provider
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_approval_provider_with_tools_disabled(self, mock_get_model: Mock) -> None:
         """Test that approval_provider is ignored when tools are disabled."""
         from consoul.ai.tools.approval import ToolApprovalRequest, ToolApprovalResponse
@@ -772,8 +772,8 @@ class TestConsoulApprovalProvider:
         assert console.registry is None
         assert console.approval_provider == provider  # Stored but not used
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
     def test_web_approval_provider_integration(
         self, mock_registry_class: Mock, mock_get_model: Mock
     ) -> None:
