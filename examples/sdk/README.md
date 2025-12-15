@@ -109,10 +109,13 @@ python websocket_streaming.py
 **Shows**:
 - Token-by-token streaming over WebSocket
 - Using `async_stream_events()` directly (low-level API)
-- Custom approval providers for WebSocket
+- Manual conversation history management
 - FastAPI integration patterns
 - HTML test client included
-- Concurrent message handling (no deadlock)
+- Concurrent message receiver pattern
+
+**Note**: This example focuses on basic streaming mechanics. For tool execution
+with approval, see `../fastapi_websocket_server.py` (ConversationService).
 
 **Key Concepts**:
 

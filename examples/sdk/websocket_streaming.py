@@ -2,17 +2,21 @@
 """WebSocket Streaming Example using async_stream_events().
 
 Demonstrates low-level WebSocket integration with Consoul SDK using the
-async_stream_events() API (SOUL-234) and custom approval providers (SOUL-235).
+async_stream_events() API (SOUL-234) for token-by-token streaming.
 
 This example shows the lower-level streaming API compared to the high-level
 ConversationService used in examples/fastapi_websocket_server.py.
 
 Key Features:
 - Direct usage of async_stream_events() for fine-grained control
-- WebSocket-based tool approval workflow
 - Token-by-token streaming to web clients
-- Concurrent message receiver (prevents approval deadlock)
+- Manual conversation history management
+- Concurrent message receiver pattern
 - Embedded HTML test client
+
+Note: This example focuses on basic streaming mechanics without tools.
+For tool execution with approval, see examples/fastapi_websocket_server.py
+which uses ConversationService.
 
 Usage:
     # Install dependencies
@@ -50,14 +54,10 @@ import argparse
 import asyncio
 import contextlib
 import logging
-from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-
-if TYPE_CHECKING:
-    from consoul.ai.tools.approval import ToolApprovalRequest, ToolApprovalResponse
 
 # Configure logging
 logging.basicConfig(
@@ -83,90 +83,10 @@ app.add_middleware(
 )
 
 
-class WebSocketApprovalProvider:
-    """WebSocket-based approval provider for tool execution.
-
-    Implements the tool approval protocol to send approval requests via
-    WebSocket and wait for client responses.
-
-    This is a simplified version compared to examples/fastapi_websocket_server.py,
-    focused on demonstrating the approval provider pattern with async_stream_events().
-
-    Example:
-        >>> provider = WebSocketApprovalProvider(websocket)
-        >>> # Tool approval requests will be sent via websocket
-        >>> # and responses awaited before tool execution
-    """
-
-    def __init__(self, websocket: WebSocket, timeout: float = 60.0):
-        """Initialize WebSocket approval provider.
-
-        Args:
-            websocket: Active WebSocket connection
-            timeout: Maximum seconds to wait for approval response
-        """
-        self.websocket = websocket
-        self.timeout = timeout
-        self._pending_approvals: dict[str, asyncio.Future[bool]] = {}
-
-    async def request_approval(
-        self, request: ToolApprovalRequest
-    ) -> ToolApprovalResponse:
-        """Request approval for tool execution via WebSocket.
-
-        Args:
-            request: Tool approval request with name, args, and risk level
-
-        Returns:
-            ToolApprovalResponse with approval decision
-        """
-        from consoul.ai.tools.approval import ToolApprovalResponse
-
-        # Create future to wait for client response
-        approval_future: asyncio.Future[bool] = asyncio.Future()
-        self._pending_approvals[request.tool_name] = approval_future
-
-        # Send approval request to client
-        try:
-            await self.websocket.send_json(
-                {
-                    "type": "tool_request",
-                    "tool": request.tool_name,
-                    "arguments": request.arguments,
-                    "risk_level": request.risk_level,
-                }
-            )
-
-            # Wait for client response with timeout
-            approved = await asyncio.wait_for(approval_future, timeout=self.timeout)
-
-            return ToolApprovalResponse(
-                approved=approved,
-                reason="Approved by user" if approved else "Denied by user",
-            )
-
-        except asyncio.TimeoutError:
-            logger.warning(
-                f"Tool approval timeout for {request.tool_name} (60s timeout)"
-            )
-            return ToolApprovalResponse(approved=False, reason="Approval timeout")
-        except Exception as e:
-            logger.error(f"Error requesting tool approval: {e}")
-            return ToolApprovalResponse(approved=False, reason=f"Error: {e}")
-        finally:
-            # Clean up pending approval
-            self._pending_approvals.pop(request.tool_name, None)
-
-    def handle_approval_response(self, tool_name: str, approved: bool) -> None:
-        """Handle approval response from client.
-
-        Args:
-            tool_name: Name of tool being approved/denied
-            approved: True if approved, False if denied
-        """
-        future = self._pending_approvals.get(tool_name)
-        if future and not future.done():
-            future.set_result(approved)
+# Note: WebSocketApprovalProvider removed for simplicity.
+# This example focuses on the async_stream_events() streaming API.
+# For tool execution with approval, see examples/fastapi_websocket_server.py
+# which uses ConversationService that handles tool integration properly.
 
 
 # HTML test client (embedded)
@@ -509,9 +429,9 @@ async def websocket_endpoint(websocket: WebSocket):
     # Import SDK components (demonstrates low-level usage)
     from consoul.ai import get_chat_model
     from consoul.ai.async_streaming import async_stream_events
-    from consoul.ai.tools import ToolRegistry
 
-    # Initialize model
+    # Initialize model (without tools for simplicity)
+    # For tool usage, see examples/fastapi_websocket_server.py (ConversationService)
     try:
         model = get_chat_model("gpt-4o-mini")
     except Exception as e:
@@ -521,20 +441,12 @@ async def websocket_endpoint(websocket: WebSocket):
         )
         return
 
-    # Create approval provider first (needed for ToolRegistry)
-    approval_provider = WebSocketApprovalProvider(websocket)
-
-    # Create tool registry with bash tool
-    from consoul.config import load_config
-
-    config = load_config()
-    config.tools.allowed_tools = ["bash"]  # Enable bash for testing
-    tool_registry = ToolRegistry(config, approval_provider=approval_provider)
-
-    # Bind tools to model
-    tools = tool_registry.get_tools()
-    if tools:
-        model = model.bind_tools(tools)
+    # Note: This example focuses on async_stream_events() streaming mechanics.
+    # For tool execution with approval, see the ConversationService example:
+    #   examples/fastapi_websocket_server.py
+    #
+    # Tool integration requires ToolRegistry setup which is better handled
+    # by the high-level ConversationService that manages the full lifecycle.
 
     # Conversation messages (manual management)
     messages: list = []
@@ -552,14 +464,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 if message_type == "message":
                     # Queue user messages for processing
                     await message_queue.put(data)
-                elif message_type == "tool_approval":
-                    # Handle tool approval immediately (non-blocking)
-                    tool_name = data.get("tool")
-                    approved = data.get("approved", False)
-                    logger.info(
-                        f"Tool approval response: tool={tool_name}, approved={approved}"
-                    )
-                    approval_provider.handle_approval_response(tool_name, approved)
                 else:
                     logger.warning(f"Unknown message type: {message_type}")
                     await websocket.send_json(
