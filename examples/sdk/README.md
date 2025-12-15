@@ -97,6 +97,54 @@ console = Consoul(tools="safe", discover_tools=True)
 
 ## Advanced Features
 
+### WebSocket Streaming
+
+Real-time token streaming for web applications using `async_stream_events()`:
+
+```bash
+python websocket_streaming.py
+```
+
+**File**: `websocket_streaming.py`
+**Shows**:
+- Token-by-token streaming over WebSocket
+- Using `async_stream_events()` directly (low-level API)
+- Custom approval providers for WebSocket
+- FastAPI integration patterns
+- HTML test client included
+- Concurrent message handling (no deadlock)
+
+**Key Concepts**:
+
+```python
+# Low-level streaming API for fine-grained control
+from consoul.ai import get_chat_model
+from consoul.ai.async_streaming import async_stream_events
+
+model = get_chat_model("gpt-4o")
+messages = [{"role": "user", "content": "Hello!"}]
+
+# Stream events directly to WebSocket
+async for event in async_stream_events(model, messages):
+    if event.type == "token":
+        await websocket.send_json({"token": event.data["text"]})
+    elif event.type == "tool_call":
+        await websocket.send_json({"tool": event.data})
+    elif event.type == "done":
+        await websocket.send_json({"complete": True})
+```
+
+**Architecture Comparison**:
+
+| Approach | API Level | Use Case | Example |
+|----------|-----------|----------|---------|
+| **ConversationService** | High-level | Quick integration, automatic history | `../fastapi_websocket_server.py` |
+| **async_stream_events** | Low-level | Fine-grained control, custom workflows | `websocket_streaming.py` |
+
+**When to use each**:
+- **ConversationService**: Building chat applications with managed conversation state
+- **async_stream_events**: Building custom streaming workflows, integrating with existing systems
+
 ### Model Registry
 
 Access comprehensive model metadata, pricing, and capabilities:
@@ -188,6 +236,7 @@ python read_file_example.py
 - `cli_approval_example.py` - Custom approval
 - `custom_audit_logger.py` - Audit logging
 - `web_approval_provider.py` - Remote approval
+- `websocket_streaming.py` - WebSocket streaming with async_stream_events()
 
 ### By Feature
 
@@ -208,6 +257,12 @@ python read_file_example.py
 
 **Model Management**:
 - `model_registry_example.py` - Model metadata and pricing
+
+**Backend Integration**:
+- `websocket_streaming.py` - WebSocket streaming with async_stream_events()
+- `backend_approval_example.py` - Backend approval patterns
+- `web_approval_provider.py` - HTTP-based approval
+- `../fastapi_websocket_server.py` - High-level ConversationService
 
 ## Running Examples
 
