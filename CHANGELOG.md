@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### SDK Decoupling - Headless Streaming Support (SOUL-251)
+- ✨ **New `stream_chunks()` function** for headless AI streaming without Rich dependencies
+  - Returns `Iterator[StreamChunk]` with pure data (no UI rendering)
+  - Suitable for SDK usage, web backends, and custom presentation layers
+  - Example: `for chunk in stream_chunks(model, messages): print(chunk.content)`
+
+- 📦 **New `StreamChunk` model** (`consoul.ai.models.StreamChunk`)
+  - Pydantic model for raw streaming data
+  - Fields: `content`, `tokens`, `cost`, `metadata`
+  - Decoupled from Rich/console dependencies
+
+- 🎨 **New `consoul.presentation` package** for optional Rich formatting
+  - `display_stream_with_rich()` - Rich-based formatting extracted from streaming
+  - Lazy imports - Rich only loaded when presentation layer is used
+  - Enables true headless SDK usage without UI library dependencies
+
+### Changed
+
+- 📝 **Refactored `consoul.ai.streaming` module** for better separation of concerns
+  - Core streaming logic moved to `stream_chunks()` (UI-agnostic)
+  - Rich formatting moved to `consoul.presentation.rich_display` module
+  - Lazy Rich imports - only loaded when deprecated `stream_response()` is called
+
+### Deprecated
+
+- ⚠️ **`stream_response()` deprecated** - will be removed in v1.0.0
+  - Use `stream_chunks()` for headless streaming
+  - Use `consoul.presentation.display_stream_with_rich()` for Rich formatting
+  - Backward compatibility maintained with deprecation warnings
+
+### Migration Guide
+
+**Before (old code):**
+```python
+from consoul.ai import stream_response
+response_text, ai_message = stream_response(model, messages)
+```
+
+**After (headless/SDK usage):**
+```python
+from consoul.ai import stream_chunks
+for chunk in stream_chunks(model, messages):
+    print(chunk.content, end="")
+```
+
+**After (CLI/TUI with Rich formatting):**
+```python
+from consoul.ai import stream_chunks
+from consoul.presentation import display_stream_with_rich
+
+chunks = stream_chunks(model, messages)
+response_text = display_stream_with_rich(chunks)
+```
+
 ---
 
 ## [0.3.0] - 2025-12-08

@@ -41,8 +41,8 @@ class TestStreamResponse:
     """Tests for stream_response function."""
 
     @pytest.mark.skip(reason="CLI-only streaming feature not testable with mocks")
-    @patch("consoul.ai.streaming.Live")
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.live.Live")
+    @patch("rich.console.Console")
     def test_stream_response_basic(self, mock_console_class, mock_live_class):
         """Test basic streaming functionality with spinner."""
         mock_console = MagicMock()
@@ -69,7 +69,7 @@ class TestStreamResponse:
         update_calls = mock_live.update.call_args_list
         assert len(update_calls) > 0
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_stream_response_basic_no_spinner(self, mock_console_class):
         """Test basic streaming functionality without spinner."""
         mock_console = MagicMock()
@@ -97,7 +97,7 @@ class TestStreamResponse:
         )
         assert "Assistant: " in printed_text
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_stream_response_with_empty_chunks(self, mock_console_class):
         """Test streaming with empty chunks (metadata chunks)."""
         mock_console = MagicMock()
@@ -124,7 +124,7 @@ class TestStreamResponse:
         # Empty chunks should not affect output
         mock_model.stream.assert_called_once_with(messages)
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_stream_response_keyboard_interrupt(self, mock_console_class):
         """Test graceful handling of keyboard interrupt (Ctrl+C)."""
         mock_console = MagicMock()
@@ -154,7 +154,7 @@ class TestStreamResponse:
         assert error.partial_response == "Hello "
         assert "interrupted by user" in str(error).lower()
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_stream_response_streaming_error(self, mock_console_class):
         """Test handling of streaming errors with partial response preservation."""
         mock_console = MagicMock()
@@ -180,7 +180,7 @@ class TestStreamResponse:
         assert error.partial_response == "Partial response"
         assert "Network error" in str(error)
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_stream_response_no_prefix(self, mock_console_class):
         """Test streaming without 'Assistant:' prefix."""
         mock_console = MagicMock()
@@ -204,7 +204,7 @@ class TestStreamResponse:
         )
         assert "Assistant: " not in printed_text
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_stream_response_custom_console(self, mock_console_class):
         """Test using custom console instance."""
         custom_console = MagicMock()
@@ -223,7 +223,7 @@ class TestStreamResponse:
         mock_console_class.assert_not_called()
         assert custom_console.print.called
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_stream_response_empty_response(self, mock_console_class):
         """Test streaming with no content (all empty chunks)."""
         mock_console = MagicMock()
@@ -249,7 +249,7 @@ class TestStreamResponse:
         )
         assert "Assistant: " not in printed_text
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_stream_response_long_text(self, mock_console_class):
         """Test streaming with many tokens."""
         mock_console = MagicMock()
@@ -269,7 +269,7 @@ class TestStreamResponse:
         assert ai_message.content == "The quick brown fox"
         mock_model.stream.assert_called_once()
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_stream_response_multiline(self, mock_console_class):
         """Test streaming with newlines."""
         mock_console = MagicMock()
@@ -288,7 +288,7 @@ class TestStreamResponse:
         assert result_text.count("\n") == 2
         assert ai_message.content == result_text
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_stream_response_special_characters(self, mock_console_class):
         """Test streaming with special characters."""
         mock_console = MagicMock()
@@ -312,7 +312,7 @@ class TestStreamResponse:
 class TestStreamingErrorPreservation:
     """Tests for partial response preservation during errors."""
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_partial_response_on_error(self, mock_console_class):
         """Test that partial response is preserved on any error."""
         mock_console = MagicMock()
@@ -335,7 +335,7 @@ class TestStreamingErrorPreservation:
 
         assert exc_info.value.partial_response == "Start middle"
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_empty_partial_response_on_immediate_error(self, mock_console_class):
         """Test error before any tokens are received."""
         mock_console = MagicMock()
@@ -361,9 +361,9 @@ class TestStreamingErrorPreservation:
 class TestStreamingSpinner:
     """Tests for spinner progress indicator during streaming."""
 
-    @patch("consoul.ai.streaming.Live")
+    @patch("rich.live.Live")
     @patch("consoul.ai.streaming.Spinner")
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_spinner_shows_during_streaming(
         self, mock_console_class, mock_spinner_class, mock_live_class
     ):
@@ -404,7 +404,7 @@ class TestStreamingSpinner:
         assert mock_live.update.called
         assert mock_live.update.call_count == 3  # Once for each token
 
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.console.Console")
     def test_spinner_disabled_fallback(self, mock_console_class):
         """Test fallback to simple printing when spinner is disabled."""
         mock_console = MagicMock()
@@ -423,8 +423,8 @@ class TestStreamingSpinner:
         # Should use console.print directly, not Live
         assert mock_console.print.called
 
-    @patch("consoul.ai.streaming.Live")
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.live.Live")
+    @patch("rich.console.Console")
     def test_spinner_with_empty_chunks(self, mock_console_class, mock_live_class):
         """Test that empty chunks are skipped even with spinner enabled."""
         mock_console = MagicMock()
@@ -453,8 +453,8 @@ class TestStreamingSpinner:
         # Should only update twice (for non-empty chunks)
         assert mock_live.update.call_count == 2
 
-    @patch("consoul.ai.streaming.Live")
-    @patch("consoul.ai.streaming.Console")
+    @patch("rich.live.Live")
+    @patch("rich.console.Console")
     def test_spinner_without_prefix(self, mock_console_class, mock_live_class):
         """Test spinner mode without showing Assistant prefix."""
         mock_console = MagicMock()

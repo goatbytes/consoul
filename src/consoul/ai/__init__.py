@@ -24,6 +24,7 @@ from consoul.ai.exceptions import (
     TokenLimitExceededError,
 )
 from consoul.ai.history import ConversationHistory
+from consoul.ai.models import StreamChunk
 from consoul.ai.providers import (
     build_model_params,
     get_chat_model,
@@ -37,7 +38,7 @@ from consoul.ai.reasoning import (
     extract_reasoning_patterns,
     extract_reasoning_xml,
 )
-from consoul.ai.streaming import stream_response
+from consoul.ai.streaming import stream_chunks, stream_response
 from consoul.ai.tools import (
     BlockedCommandError,
     RiskLevel,
@@ -59,6 +60,7 @@ __all__ = [
     "MissingDependencyError",
     "ProviderInitializationError",
     "RiskLevel",
+    "StreamChunk",
     "StreamEvent",
     "StreamingError",
     "TokenLimitExceededError",
@@ -79,7 +81,8 @@ __all__ = [
     "get_chat_model",
     "get_model_token_limit",
     "get_provider_from_model",
-    "stream_response",
+    "stream_chunks",
+    "stream_response",  # Deprecated - use stream_chunks or presentation.display_stream_with_rich
     "supports_tool_calling",
     "validate_provider_dependencies",
 ]

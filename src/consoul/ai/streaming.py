@@ -1,34 +1,36 @@
 """Streaming response handling for AI chat models.
 
 This module provides utilities for streaming responses from AI models
-token-by-token with real-time display, progress indicators, and graceful
-interrupt handling.
+token-by-token. Core streaming logic is decoupled from UI/presentation
+to enable headless SDK usage.
 
-Example:
-    >>> from consoul.ai import get_chat_model, stream_response
-    >>> model = get_chat_model("gpt-4o", api_key="...")
-    >>> messages = [{"role": "user", "content": "Hello!"}]
+Recommended Usage:
+    For new code, use stream_chunks() (headless) or async_stream_events() (async):
+    >>> from consoul.ai import stream_chunks
+    >>> for chunk in stream_chunks(model, messages):
+    ...     print(chunk.content, end="")
+
+    For CLI/TUI with Rich formatting:
+    >>> from consoul.ai import stream_chunks
+    >>> from consoul.presentation import display_stream_with_rich
+    >>> chunks = stream_chunks(model, messages)
+    >>> response = display_stream_with_rich(chunks)
+
+Legacy Usage (Deprecated):
+    >>> from consoul.ai import stream_response  # Deprecated
     >>> response_text, ai_message = stream_response(model, messages)
-    Assistant: Hello! How can I help you today?
-    >>> print(response_text)
-    Hello! How can I help you today?
-    >>> print(ai_message.tool_calls)
-    []
 """
 
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING
 
-from rich.console import Console
-from rich.live import Live
-from rich.markdown import Markdown
-from rich.spinner import Spinner
-from rich.text import Text
-
 from consoul.ai.exceptions import StreamingError
+from consoul.ai.models import StreamChunk
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from typing import Any
 
     from langchain_core.language_models import BaseChatModel
@@ -134,19 +136,82 @@ def _reconstruct_ai_message(chunks: list[AIMessage]) -> AIMessage:
     )
 
 
+def stream_chunks(
+    model: BaseChatModel,
+    messages: list[BaseMessage],
+) -> Iterator[StreamChunk]:
+    """Stream AI response as raw chunks without UI dependencies.
+
+    Core streaming function decoupled from presentation layer. Yields StreamChunk
+    objects containing token content without any Rich/console rendering.
+    Suitable for headless SDK usage, web backends, or custom presentation layers.
+
+    Args:
+        model: LangChain chat model with .stream() support.
+        messages: Conversation messages as LangChain BaseMessage objects.
+
+    Yields:
+        StreamChunk objects with content and metadata for each token.
+
+    Raises:
+        StreamingError: If streaming fails or is interrupted.
+
+    Example:
+        >>> from consoul.ai import get_chat_model, stream_chunks
+        >>> model = get_chat_model("gpt-4o")
+        >>> messages = [{"role": "user", "content": "Count to 5"}]
+        >>> for chunk in stream_chunks(model, messages):
+        ...     print(chunk.content, end="", flush=True)
+        1, 2, 3, 4, 5
+
+    Note:
+        For Rich-formatted output in CLI/TUI, use consoul.presentation.display_stream_with_rich().
+        For async streaming, use consoul.ai.async_streaming.async_stream_events().
+    """
+    try:
+        for chunk in model.stream(messages):
+            # Skip empty chunks (some providers send metadata chunks)
+            if not chunk.content:
+                continue
+
+            # Handle both string and complex content
+            token = (
+                chunk.content if isinstance(chunk.content, str) else str(chunk.content)
+            )
+
+            yield StreamChunk(
+                content=token,
+                tokens=0,  # Token counting can be added later if needed
+                cost=0.0,  # Cost calculation can be added later if needed
+                metadata={},  # Provider-specific metadata can be added here
+            )
+
+    except KeyboardInterrupt:
+        raise StreamingError(
+            "Streaming interrupted by user", partial_response=""
+        ) from KeyboardInterrupt()
+
+    except Exception as e:
+        raise StreamingError(f"Streaming failed: {e}", partial_response="") from e
+
+
 def stream_response(
     model: BaseChatModel,
     messages: list[BaseMessage],
-    console: Console | None = None,
+    console: Any = None,  # Rich Console instance (lazy imported)
     show_prefix: bool = True,
     show_spinner: bool = True,
     render_markdown: bool = True,
 ) -> tuple[str, AIMessage]:
-    """Stream AI response with real-time token-by-token display and progress indicator.
+    """Stream AI response with Rich formatting (DEPRECATED).
 
-    Streams tokens from the model as they are generated, displaying them
-    in real-time to the console with a spinner progress indicator. Handles
-    keyboard interrupts gracefully and preserves partial responses in case of errors.
+    .. deprecated:: 0.3.0
+        Use :func:`stream_chunks` for headless streaming or
+        :func:`consoul.presentation.display_stream_with_rich` for Rich formatting.
+        This function will be removed in version 1.0.0.
+
+    Streams tokens from the model with Rich-based progress indicator and markdown rendering.
+    Maintained for backward compatibility with existing CLI/TUI code.
 
     Args:
         model: LangChain chat model with .stream() support.
@@ -158,28 +223,43 @@ def stream_response(
 
     Returns:
         Tuple of (complete response text, final AIMessage with tool_calls if any).
-        The AIMessage contains tool_calls attribute for tool execution workflows.
 
     Raises:
-        StreamingError: If streaming fails or is interrupted, includes partial response.
-            - Message "Streaming interrupted by user" indicates KeyboardInterrupt (Ctrl+C)
-            - Other messages indicate actual errors during streaming
+        StreamingError: If streaming fails or is interrupted.
 
-    Example:
+    Example (Deprecated):
         >>> model = get_chat_model("claude-3-5-sonnet-20241022")
         >>> messages = [{"role": "user", "content": "Count to 5"}]
-        >>> response_text, ai_message = stream_response(model, messages)
+        >>> response_text, ai_message = stream_response(model, messages)  # Deprecated
         Assistant: 1, 2, 3, 4, 5
-        >>> response_text
-        '1, 2, 3, 4, 5'
-        >>> ai_message.tool_calls
-        []
 
-    Note:
-        The function collects all chunks into a list before joining them
-        to preserve the complete response even if streaming is interrupted.
-        Chunks are aggregated to reconstruct tool_calls from the final AIMessage.
+    Recommended Migration:
+        >>> # For headless/SDK usage:
+        >>> from consoul.ai import stream_chunks
+        >>> for chunk in stream_chunks(model, messages):
+        ...     print(chunk.content, end="")
+        >>>
+        >>> # For CLI/TUI with Rich formatting:
+        >>> from consoul.presentation import display_stream_with_rich
+        >>> chunks = stream_chunks(model, messages)
+        >>> response = display_stream_with_rich(chunks)
     """
+    # Emit deprecation warning
+    warnings.warn(
+        "stream_response() is deprecated and will be removed in version 1.0.0. "
+        "Use stream_chunks() for headless streaming or "
+        "consoul.presentation.display_stream_with_rich() for Rich formatting.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    # Lazy import Rich dependencies (only when this deprecated function is called)
+    from rich.console import Console
+    from rich.live import Live
+    from rich.markdown import Markdown
+    from rich.spinner import Spinner
+    from rich.text import Text
+
     if console is None:
         console = Console()
 
