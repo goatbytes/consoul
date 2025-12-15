@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from langchain_core.language_models.chat_models import BaseChatModel
 
     from consoul.config import ConsoulConfig
-    from consoul.sdk.models import ModelInfo
+    from consoul.sdk.models import ModelCapabilities, ModelInfo, PricingInfo
     from consoul.sdk.services.tool import ToolService
 
 logger = logging.getLogger(__name__)
@@ -201,6 +201,81 @@ class ModelService:
         tools = [meta.tool for meta in tool_metadata_list]
         self._model = cast("BaseChatModel", self._model.bind_tools(tools))
         logger.info(f"Bound {len(tools)} tools to model {self.current_model_id}")
+
+    def list_ollama_models(
+        self,
+        include_context: bool = False,
+        base_url: str = "http://localhost:11434",
+    ) -> list[ModelInfo]:
+        """List locally installed Ollama models.
+
+        Efficient method to discover what's actually installed on the device.
+        No catalog overhead - directly queries Ollama API.
+
+        Args:
+            include_context: Fetch detailed context length (slower, requires /api/show per model)
+            base_url: Ollama service URL (default: http://localhost:11434)
+
+        Returns:
+            List of ModelInfo for installed Ollama models
+
+        Example:
+            >>> service = ModelService.from_config()
+            >>> local_models = service.list_ollama_models()
+            >>> for model in local_models:
+            ...     print(f"{model.name} - {model.context_window}")
+            llama3.2:latest - 128K
+            qwen2.5-coder:7b - 32K
+
+            >>> # Get detailed context info (slower)
+            >>> detailed = service.list_ollama_models(include_context=True)
+        """
+        from consoul.sdk.models import ModelInfo
+
+        try:
+            from consoul.ai.providers import get_ollama_models, is_ollama_running
+
+            if not is_ollama_running(base_url=base_url):
+                logger.warning(f"Ollama service not running at {base_url}")
+                return []
+
+            models = []
+            for model_info in get_ollama_models(
+                base_url=base_url, include_context=include_context
+            ):
+                model_name = model_info.get("name", "")
+                if not model_name:
+                    continue
+
+                # Format context length
+                context_length = model_info.get("context_length")
+                context_str = self._format_context_length(context_length)
+
+                # Format size
+                size_bytes = model_info.get("size", 0)
+                size_gb = size_bytes / (1024**3) if size_bytes else 0
+                description = f"Local Ollama model ({size_gb:.1f}GB)"
+
+                # Detect vision support from model name
+                supports_vision = self._detect_vision_from_name(model_name)
+
+                models.append(
+                    ModelInfo(
+                        id=model_name,
+                        name=model_name,
+                        provider="ollama",
+                        context_window=context_str,
+                        description=description,
+                        supports_vision=supports_vision,
+                    )
+                )
+
+            logger.debug(f"Discovered {len(models)} Ollama models")
+            return models
+
+        except Exception as e:
+            logger.warning(f"Failed to list Ollama models: {e}")
+            return []
 
     def list_models(self, provider: str | None = None) -> list[ModelInfo]:
         """List available models including dynamically discovered local models.
@@ -529,7 +604,7 @@ class ModelService:
 
     def get_model_pricing(
         self, model_id: str, tier: str = "standard"
-    ) -> "PricingInfo | None":
+    ) -> PricingInfo | None:
         """Get pricing information for a specific model.
 
         Args:
@@ -564,7 +639,7 @@ class ModelService:
             notes=pricing_tier.notes,
         )
 
-    def get_model_capabilities(self, model_id: str) -> "ModelCapabilities | None":
+    def get_model_capabilities(self, model_id: str) -> ModelCapabilities | None:
         """Get capability information for a specific model.
 
         Args:
