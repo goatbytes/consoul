@@ -492,18 +492,27 @@ async def websocket_endpoint(websocket: WebSocket):
                 try:
                     # Stream events using low-level API
                     async for event in async_stream_events(model, messages):
-                        # Send event to client
-                        await websocket.send_json(
-                            {"type": event.type, "data": event.data}
-                        )
-
-                        # For "done" event, add AI message to conversation
+                        # Prepare serializable data for client
                         if event.type == "done":
+                            # Extract text from AIMessage for "done" event
                             ai_message = event.data.get("message")
+                            serializable_data = {
+                                "text": event.data.get("text", ""),
+                                "complete": True,
+                            }
+                            # Add to conversation history
                             if ai_message:
                                 messages.append(
                                     {"role": "assistant", "content": ai_message.content}
                                 )
+                        else:
+                            # For token and tool_call events, data is already serializable
+                            serializable_data = event.data
+
+                        # Send event to client
+                        await websocket.send_json(
+                            {"type": event.type, "data": serializable_data}
+                        )
 
                 except Exception as e:
                     logger.error(f"Error processing message: {e}", exc_info=True)
