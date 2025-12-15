@@ -521,20 +521,20 @@ async def websocket_endpoint(websocket: WebSocket):
         )
         return
 
+    # Create approval provider first (needed for ToolRegistry)
+    approval_provider = WebSocketApprovalProvider(websocket)
+
     # Create tool registry with bash tool
     from consoul.config import load_config
 
     config = load_config()
     config.tools.allowed_tools = ["bash"]  # Enable bash for testing
-    tool_registry = ToolRegistry(config)
+    tool_registry = ToolRegistry(config, approval_provider=approval_provider)
 
     # Bind tools to model
     tools = tool_registry.get_tools()
     if tools:
         model = model.bind_tools(tools)
-
-    # Create approval provider
-    approval_provider = WebSocketApprovalProvider(websocket)
 
     # Conversation messages (manual management)
     messages: list = []
