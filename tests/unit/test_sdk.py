@@ -676,3 +676,133 @@ class TestConsoulToolDiscovery:
         # Should have disabled tools since nothing was discovered
         assert console.tools_enabled is False
         mock_discover.assert_called_once()
+
+
+class TestConsoulApprovalProvider:
+    """Test custom approval provider functionality."""
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    def test_custom_approval_provider(
+        self, mock_registry_class: Mock, mock_get_model: Mock
+    ) -> None:
+        """Test that custom approval provider is passed to ToolRegistry."""
+        from consoul.ai.tools.approval import ToolApprovalRequest, ToolApprovalResponse
+
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        # Create mock approval provider
+        class MockApprovalProvider:
+            async def request_approval(
+                self, request: ToolApprovalRequest
+            ) -> ToolApprovalResponse:
+                return ToolApprovalResponse(approved=True)
+
+        provider = MockApprovalProvider()
+        console = Consoul(tools=True, approval_provider=provider, persist=False)
+
+        # Verify ToolRegistry was created with custom provider
+        assert console.tools_enabled is True
+        mock_registry_class.assert_called_once()
+
+        # Get the call arguments
+        call_kwargs = mock_registry_class.call_args.kwargs
+        assert call_kwargs["approval_provider"] == provider
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.CliApprovalProvider")
+    def test_default_approval_provider(
+        self,
+        mock_cli_provider_class: Mock,
+        mock_registry_class: Mock,
+        mock_get_model: Mock,
+    ) -> None:
+        """Test that CliApprovalProvider is used by default."""
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        mock_cli_provider = Mock()
+        mock_cli_provider_class.return_value = mock_cli_provider
+
+        # Create Consoul without approval_provider parameter
+        console = Consoul(tools=True, persist=False)
+
+        # Verify CliApprovalProvider was instantiated
+        mock_cli_provider_class.assert_called_once_with(show_arguments=True)
+
+        # Verify it was passed to ToolRegistry
+        assert console.tools_enabled is True
+        call_kwargs = mock_registry_class.call_args.kwargs
+        assert call_kwargs["approval_provider"] == mock_cli_provider
+
+    @patch("consoul.sdk.get_chat_model")
+    def test_approval_provider_with_tools_disabled(self, mock_get_model: Mock) -> None:
+        """Test that approval_provider is ignored when tools are disabled."""
+        from consoul.ai.tools.approval import ToolApprovalRequest, ToolApprovalResponse
+
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+
+        # Create mock approval provider
+        class MockApprovalProvider:
+            async def request_approval(
+                self, request: ToolApprovalRequest
+            ) -> ToolApprovalResponse:
+                return ToolApprovalResponse(approved=True)
+
+        provider = MockApprovalProvider()
+
+        # Should not raise error even with custom provider
+        console = Consoul(tools=False, approval_provider=provider, persist=False)
+
+        # Verify tools are disabled and registry was not created
+        assert console.tools_enabled is False
+        assert console.registry is None
+        assert console.approval_provider == provider  # Stored but not used
+
+    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.ToolRegistry")
+    def test_web_approval_provider_integration(
+        self, mock_registry_class: Mock, mock_get_model: Mock
+    ) -> None:
+        """Test integration with WebApprovalProvider example."""
+        from examples.sdk.web_approval_provider import WebApprovalProvider
+
+        mock_model = Mock()
+        mock_model_with_tools = Mock()
+        mock_get_model.return_value = mock_model
+
+        mock_registry = Mock()
+        mock_registry.bind_to_model.return_value = mock_model_with_tools
+        mock_registry_class.return_value = mock_registry
+
+        # Create WebApprovalProvider instance
+        web_provider = WebApprovalProvider(
+            approval_url="http://localhost:8080/approve",
+            auth_token="test-token",
+            timeout=60,
+        )
+
+        console = Consoul(
+            tools=["bash", "grep"], approval_provider=web_provider, persist=False
+        )
+
+        # Verify web provider was passed to registry
+        assert console.tools_enabled is True
+        call_kwargs = mock_registry_class.call_args.kwargs
+        assert call_kwargs["approval_provider"] == web_provider
+
+        # Verify tools were registered
+        assert mock_registry.register.call_count == 2

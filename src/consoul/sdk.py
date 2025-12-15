@@ -40,6 +40,8 @@ from consoul.config.models import ConsoulConfig, ToolConfig
 if TYPE_CHECKING:
     from langchain_core.tools import BaseTool
 
+    from consoul.ai.tools.approval import ApprovalProvider
+
 
 class ConsoulResponse:
     """Response from Consoul chat/ask methods.
@@ -113,6 +115,7 @@ class Consoul:
         persist: bool = True,
         api_key: str | None = None,
         discover_tools: bool = False,
+        approval_provider: ApprovalProvider | None = None,
     ):
         """Initialize Consoul SDK.
 
@@ -143,6 +146,10 @@ class Consoul:
             api_key: Override API key (falls back to environment)
             discover_tools: Auto-discover tools from .consoul/tools/ (default: False)
                             Discovered tools default to CAUTION risk level.
+            approval_provider: Custom approval provider for tool execution.
+                              If None, defaults to CliApprovalProvider (terminal prompts).
+                              Use this for web backends, WebSocket/SSE, or custom UX.
+                              See examples/sdk/web_approval_provider.py for reference.
 
         Raises:
             ValueError: If profile not found or invalid parameters
@@ -192,6 +199,15 @@ class Consoul:
 
                 >>> # Only discovered tools (no built-in)
                 >>> console = Consoul(tools=False, discover_tools=True)
+
+            Custom approval provider (for web backends):
+                >>> from examples.sdk.web_approval_provider import WebApprovalProvider
+                >>> provider = WebApprovalProvider(
+                ...     approval_url="https://api.example.com/approve",
+                ...     auth_token="secret"
+                ... )
+                >>> console = Consoul(tools=True, approval_provider=provider)
+                >>> # Tool approvals now go through web API instead of terminal
 
         Available tool categories:
             search, file-edit, web, execute
@@ -292,6 +308,7 @@ class Consoul:
         # Initialize tools if requested
         self.tools_spec = tools
         self.discover_tools = discover_tools
+        self.approval_provider = approval_provider
         self.tools_enabled = (
             False  # Will be set to True if tools are actually registered
         )
@@ -449,7 +466,10 @@ class Consoul:
             audit_logging=True,
         )
 
-        approval_provider = CliApprovalProvider(show_arguments=True)
+        # Use custom approval provider or default to CLI
+        approval_provider = self.approval_provider or CliApprovalProvider(
+            show_arguments=True
+        )
 
         self.registry = ToolRegistry(
             config=tool_config,

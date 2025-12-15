@@ -1,11 +1,11 @@
 {
   "created_at": "2025-12-07T19:38:13.727135",
-  "updated_at": "2025-12-07T19:38:13.727143",
+  "updated_at": "2025-12-15T08:21:55.349684",
   "id": "SOUL-234",
   "uuid": "78ed0adf-639a-49f8-aae9-6ad15cba541a",
   "title": "Extract async streaming primitives from CLI-bound streaming.py",
   "description": "**As a** backend developer using Consoul SDK\n**I want** async streaming functions that yield events instead of printing to console\n**So that** I can integrate streaming AI responses into WebSocket/SSE endpoints\n\n**Context:**\nCurrent streaming.py (lines 137-287) is synchronous and tightly coupled to Rich console output. The core logic for reconstructing AIMessage from chunks (_reconstruct_ai_message, lines 38-134) is excellent and reusable, but stream_response() prints directly to terminal using Rich.Live, Spinner, and Console.\n\nWeb backends need:\n- Async generators that yield events\n- Separation of chunk accumulation from display\n- Event-based protocol for WebSocket streaming\n- No Rich/console dependencies\n\nReference implementation exists in examples/sdk/web_approval_provider.py showing async patterns.\n\n**Technical Notes:**\n- Current: src/consoul/ai/streaming.py:137-287 (stream_response)\n- Reusable: src/consoul/ai/streaming.py:38-134 (_reconstruct_ai_message)\n- Create: src/consoul/ai/async_streaming.py\n- Pattern: async for event in stream_tokens(model, messages)\n- Events: {\"type\": \"token\"|\"tool_call\"|\"done\", \"data\": {...}}\n- Keep existing stream_response() for CLI/TUI (no breaking changes)\n- LangChain supports: async for chunk in model.astream(messages)\n\n**Acceptance Criteria:**\n\n**Given** I have a LangChain model and messages\n**When** I call async_stream_events(model, messages)\n**Then** I receive an async generator yielding StreamEvent objects\n\n**Given** streaming is in progress\n**When** tokens arrive from the model\n**Then** each token yields {\"type\": \"token\", \"data\": {\"text\": \"...\"}}\n\n**Given** the model completes a tool call\n**When** tool_call_chunks are accumulated\n**Then** yields {\"type\": \"tool_call\", \"data\": {\"name\": \"bash\", \"args\": {...}}}\n\n**Given** streaming completes successfully\n**When** the final chunk arrives\n**Then** yields {\"type\": \"done\", \"data\": {\"message\": AIMessage(...)}}\n\n**Testing Considerations:**\n- Mock async model.astream() responses\n- Test tool call chunk accumulation\n- Test error handling during streaming\n- Verify _reconstruct_ai_message() integration\n- Test keyboard interrupt handling\n- Compare output with existing stream_response()\n\n**Implementation Hints:**\n- Create StreamEvent Pydantic model\n- Extract _reconstruct_ai_message to shared utility\n- Pattern: async def async_stream_events(model, messages) -> AsyncGenerator[StreamEvent]\n- Accumulate chunks in list, yield events progressively\n- Final event includes complete AIMessage with tool_calls\n- Add async_streaming.py, keep streaming.py for CLI\n- Reference: examples/sdk/web_approval_provider.py:66-128 (async HTTP patterns)",
-  "status": "todo",
+  "status": "in_progress",
   "type": "feature",
   "priority": "high",
   "labels": [
@@ -18,10 +18,24 @@
   "epic_id": "EPIC-011",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-12-15T08:21:55.349560",
+      "updated_at": "2025-12-15T08:21:55.349562",
+      "id": "20251215082155-b6dbe7aa",
+      "ticket_id": "SOUL-234",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation completed:\n\n✅ Created src/consoul/ai/async_streaming.py with:\n  - StreamEvent Pydantic model (token, tool_call, done event types)\n  - async_stream_events() async generator function\n  - Full error handling and keyboard interrupt support\n  - Uses shared _reconstruct_ai_message() for consistency\n\n✅ Created comprehensive test suite (tests/ai/test_async_streaming.py):\n  - 16 tests covering all functionality\n  - Tests for token streaming, tool calls, error handling\n  - Integration tests comparing with sync streaming.py\n  - All tests passing ✓\n\n✅ Updated src/consoul/ai/__init__.py to export new functions\n\n✅ No breaking changes - existing stream_response() untouched\n\nReady for WebSocket/SSE integration. Example usage in docstring shows how to use events in async web handlers.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 5,
   "order": 0,
   "custom_fields": {}

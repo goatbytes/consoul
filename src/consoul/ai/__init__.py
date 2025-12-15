@@ -7,6 +7,7 @@ Includes tool calling system for executing tools (bash, Python, file operations)
 with security controls, user approval, and audit logging.
 """
 
+from consoul.ai.async_streaming import StreamEvent, async_stream_events
 from consoul.ai.context import (
     count_message_tokens,
     create_token_counter,
@@ -58,6 +59,7 @@ __all__ = [
     "MissingDependencyError",
     "ProviderInitializationError",
     "RiskLevel",
+    "StreamEvent",
     "StreamingError",
     "TokenLimitExceededError",
     "ToolError",
@@ -66,6 +68,7 @@ __all__ = [
     "ToolNotFoundError",
     "ToolRegistry",
     "ToolValidationError",
+    "async_stream_events",
     "build_model_params",
     "count_message_tokens",
     "create_token_counter",
