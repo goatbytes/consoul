@@ -522,9 +522,9 @@ async def websocket_endpoint(websocket: WebSocket):
         return
 
     # Create tool registry with bash tool
-    from consoul.config import ConsoulConfig
+    from consoul.config import load_config
 
-    config = ConsoulConfig()
+    config = load_config()
     config.tools.allowed_tools = ["bash"]  # Enable bash for testing
     tool_registry = ToolRegistry(config)
 
