@@ -1,10 +1,10 @@
 {
   "created_at": "2025-12-02T16:27:49.571250",
-  "updated_at": "2025-12-02T16:27:49.571252",
+  "updated_at": "2025-12-15T21:18:43.082934Z",
   "id": "EPIC-010",
   "title": "Public Release Preparation (v0.2.0)",
   "description": "Prepare the Consoul repository for public release on GitHub and PyPI.\n\n**Goal:** Release v0.2.0 as the first public version with clean documentation, updated dependencies, and proper versioning.\n\n**Scope:**\n- Version number update (0.1.0 → 0.2.0)\n- Dependency updates to latest stable versions\n- Documentation URL corrections\n- CHANGELOG.md updates for release notes\n- Final sensitive data audit\n- GitHub release configuration\n- PyPI publishing preparation\n\n**Target Date:** 2025-12-05\n**Milestone:** First Public Release",
-  "status": "draft",
+  "status": "completed",
   "owner": "jared@goatbytes.io",
   "target_date": "2025-12-05",
   "labels": [],

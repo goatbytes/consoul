@@ -1,8 +1,73 @@
 # Consoul Examples
 
-This directory contains example scripts demonstrating Consoul's AI provider capabilities.
+This directory contains example scripts demonstrating Consoul's AI provider capabilities and SDK integration patterns.
 
 ## Available Examples
+
+### FastAPI WebSocket Server (`fastapi_websocket_server.py`) 🆕
+
+**Real-time AI chat server with WebSocket support** - Proof-of-concept validating that Consoul SDK works independently without TUI/CLI dependencies.
+
+**Features:**
+- WebSocket-based real-time chat
+- Token-by-token streaming responses
+- Tool execution with WebSocket approval
+- Multi-user concurrent support
+- Clean REST API architecture
+- No TUI/CLI dependencies (pure SDK usage)
+
+**Installation:**
+```bash
+pip install consoul fastapi uvicorn websockets
+```
+
+**Usage:**
+```bash
+# Start server
+python examples/fastapi_websocket_server.py
+
+# Connect with test client
+python examples/fastapi_websocket_client.py
+
+# Or use wscat
+npm install -g wscat
+wscat -c ws://localhost:8000/ws/chat
+```
+
+**Server Endpoints:**
+- `ws://localhost:8000/ws/chat` - WebSocket chat endpoint
+- `http://localhost:8000/health` - Health check
+
+**WebSocket Protocol:**
+
+Client → Server:
+```json
+{"type": "message", "content": "What is 2+2?"}
+{"type": "tool_approval", "id": "call_123", "approved": true}
+```
+
+Server → Client:
+```json
+{"type": "token", "content": "AI response chunk", "cost": 0.0001}
+{"type": "tool_request", "id": "call_123", "name": "bash_execute", "arguments": {...}, "risk_level": "caution"}
+{"type": "done"}
+{"type": "error", "message": "error details"}
+```
+
+**Architecture:**
+- `ConversationService` - Core AI chat logic (from SDK)
+- `WebSocketApprovalProvider` - Custom tool approval via WebSocket
+- Per-connection isolated conversation state
+- Demonstrates SDK-first architecture
+
+**What This Proves:**
+✅ SDK works without TUI/CLI dependencies
+✅ Service layer provides clean integration
+✅ Streaming works over WebSocket
+✅ Tool execution works with custom approval
+✅ Multi-user scenarios are possible
+
+---
 
 ### 1. Interactive Chat (`interactive_chat.py`)
 
