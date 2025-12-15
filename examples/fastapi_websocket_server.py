@@ -182,36 +182,71 @@ async def websocket_chat(websocket: WebSocket):
     await websocket.accept()
     logger.info(f"WebSocket connection established: {websocket.client}")
 
-    try:
-        # Import SDK components (proof that it works without TUI!)
-        from consoul.sdk.services.conversation import ConversationService
+    # Import SDK components (proof that it works without TUI!)
+    from consoul.sdk.services.conversation import ConversationService
 
-        # Create conversation service for this connection
-        # Each WebSocket gets isolated conversation state
-        service = ConversationService.from_config()
+    # Create conversation service for this connection
+    # Each WebSocket gets isolated conversation state
+    service = ConversationService.from_config()
 
-        # Create WebSocket approval provider for tool execution
-        approval_provider = WebSocketApprovalProvider(websocket)
+    # Create WebSocket approval provider for tool execution
+    approval_provider = WebSocketApprovalProvider(websocket)
 
-        logger.info("ConversationService initialized successfully (headless mode)")
+    logger.info("ConversationService initialized successfully (headless mode)")
 
-        # Main message loop
-        while True:
-            # Receive message from client
-            data = await websocket.receive_json()
-            message_type = data.get("type")
+    # Queue for incoming user messages (prevents blocking during streaming)
+    message_queue: asyncio.Queue[dict] = asyncio.Queue()
 
-            if message_type == "message":
-                # User message - stream AI response
+    async def receive_messages():
+        """Background task: continuously receive and route incoming messages.
+
+        This task runs concurrently with response streaming, ensuring tool
+        approval messages can be processed while the AI is generating a response.
+        """
+        try:
+            while True:
+                data = await websocket.receive_json()
+                message_type = data.get("type")
+
+                if message_type == "message":
+                    # Queue user messages for processing
+                    await message_queue.put(data)
+                elif message_type == "tool_approval":
+                    # Handle tool approval immediately (non-blocking)
+                    tool_call_id = data.get("id")
+                    approved = data.get("approved", False)
+                    logger.info(
+                        f"Tool approval response: id={tool_call_id}, approved={approved}"
+                    )
+                    approval_provider.handle_approval_response(tool_call_id, approved)
+                else:
+                    logger.warning(f"Unknown message type: {message_type}")
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "message": f"Unknown message type: {message_type}",
+                        }
+                    )
+        except WebSocketDisconnect:
+            logger.info("WebSocket disconnected in receiver task")
+        except Exception as e:
+            logger.error(f"Error in receiver task: {e}", exc_info=True)
+
+    async def process_messages():
+        """Main task: process queued user messages and stream responses."""
+        try:
+            while True:
+                # Get next user message from queue
+                data = await message_queue.get()
                 user_message = data.get("content", "")
-                logger.info(f"Received message: {user_message[:100]}")
+                logger.info(f"Processing message: {user_message[:100]}")
 
                 try:
                     # Stream AI response token by token
+                    # While streaming, the receiver task continues to handle approvals
                     async for token in service.send_message(
                         user_message, on_tool_request=approval_provider
                     ):
-                        # Send token to client
                         await websocket.send_json(
                             {
                                 "type": "token",
@@ -227,27 +262,25 @@ async def websocket_chat(websocket: WebSocket):
                     logger.error(f"Error processing message: {e}", exc_info=True)
                     await websocket.send_json({"type": "error", "message": str(e)})
 
-            elif message_type == "tool_approval":
-                # Tool approval response from client
-                tool_call_id = data.get("id")
-                approved = data.get("approved", False)
+        except Exception as e:
+            logger.error(f"Error in processor task: {e}", exc_info=True)
 
-                logger.info(
-                    f"Tool approval response: id={tool_call_id}, approved={approved}"
-                )
-                approval_provider.handle_approval_response(tool_call_id, approved)
+    # Run receiver and processor concurrently
+    receiver_task = asyncio.create_task(receive_messages())
+    processor_task = asyncio.create_task(process_messages())
 
-            else:
-                logger.warning(f"Unknown message type: {message_type}")
-                await websocket.send_json(
-                    {
-                        "type": "error",
-                        "message": f"Unknown message type: {message_type}",
-                    }
-                )
+    try:
+        # Wait for either task to complete (disconnect or error)
+        _done, pending = await asyncio.wait(
+            [receiver_task, processor_task], return_when=asyncio.FIRST_COMPLETED
+        )
 
-    except WebSocketDisconnect:
-        logger.info(f"WebSocket disconnected: {websocket.client}")
+        # Cancel remaining tasks
+        for task in pending:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
     except Exception as e:
         logger.error(f"WebSocket error: {e}", exc_info=True)
         with contextlib.suppress(Exception):

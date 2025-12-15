@@ -58,6 +58,8 @@ Server → Client:
 - `ConversationService` - Core AI chat logic (from SDK)
 - `WebSocketApprovalProvider` - Custom tool approval via WebSocket
 - Per-connection isolated conversation state
+- Concurrent message receiver task (prevents approval deadlock)
+- Message queue for processing user messages
 - Demonstrates SDK-first architecture
 
 **What This Proves:**
