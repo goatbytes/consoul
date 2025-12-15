@@ -166,8 +166,10 @@ consoul/
 ├── src/consoul/          # Main package source code
 │   ├── __init__.py       # Package metadata
 │   ├── __main__.py       # CLI entry point
+│   ├── sdk/              # SDK layer (headless services)
 │   ├── ai/               # AI integration modules
 │   ├── tui/              # Textual TUI components
+│   ├── cli/              # CLI commands
 │   ├── config/           # Configuration management
 │   └── utils/            # Utility functions
 ├── tests/                # Test suite
@@ -175,12 +177,25 @@ consoul/
 │   ├── unit/             # Unit tests
 │   └── integration/      # Integration tests
 ├── docs/                 # Documentation
+│   ├── development/      # Development guides
+│   ├── api/              # SDK documentation
+│   └── user-guide/       # User documentation
 ├── .github/              # GitHub Actions workflows
 ├── pyproject.toml        # Project configuration
 ├── poetry.lock           # Locked dependencies
 ├── Makefile              # Development task automation
 └── README.md             # Project README
 ```
+
+## Architecture
+
+Consoul uses a three-layer architecture that separates business logic from presentation:
+
+- **SDK Layer** (`src/consoul/sdk/`) - Headless services with no UI dependencies
+- **TUI Layer** (`src/consoul/tui/`) - Terminal user interface using Textual
+- **CLI Layer** (`src/consoul/cli/`) - Command-line interface using Typer
+
+For detailed architecture documentation, see [development/architecture.md](development/architecture.md).
 
 ## Troubleshooting
 
@@ -294,8 +309,10 @@ After setting up your environment:
 
 1. Run `make quality` to verify everything works
 2. Run `make test` to ensure all tests pass
-3. Review [CONTRIBUTING.md](contributing.md) for contribution guidelines
-4. Check open issues on GitHub for tasks to work on
-5. Sign the [Contributor License Agreement](https://forms.gle/J5iqyH4hrHQQDfUCA)
+3. Read the [Architecture Guide](development/architecture.md) to understand the codebase structure
+4. Review the [Service Layer Guide](development/service-layer.md) for development patterns
+5. Check the [Testing Guide](development/testing.md) for testing requirements
+6. Review [CONTRIBUTING.md](contributing.md) for contribution guidelines
+7. Sign the [Contributor License Agreement](https://forms.gle/J5iqyH4hrHQQDfUCA)
 
 Happy coding! 🚀

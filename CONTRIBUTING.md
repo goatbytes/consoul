@@ -1,8 +1,21 @@
-# Contributing to Our Project
+# Contributing to Consoul
 
 Thank you for your interest in contributing! We're excited to have you join our community. Everyone
 is welcome to contribute, whether you're fixing bugs, adding features, or improving documentation.
-Here's how you can get started:
+
+## Architecture Overview
+
+Consoul uses a three-layer architecture to separate concerns and enable headless SDK usage:
+
+- **SDK Layer** (`src/consoul/sdk/`, `src/consoul/ai/`) - Headless services with no UI dependencies
+- **TUI Layer** (`src/consoul/tui/`) - Textual-based terminal interface
+- **CLI Layer** (`src/consoul/cli/`) - Command-line argument parsing
+
+**Key principle**: Business logic belongs in the SDK layer. UI code should only handle presentation.
+
+For detailed architecture documentation, see [docs/development/architecture.md](docs/development/architecture.md).
+
+## Getting Started
 
 ### Start with a Fork
 
@@ -20,6 +33,17 @@ main project.
 
 3. **Submit a Pull Request:** Once you're ready, send us a pull request. Describe what you've done
    and how it affects the project. We're eager to see your ideas!
+
+### Pull Request Checklist
+
+Before submitting, ensure your PR meets these requirements:
+
+- [ ] **Layer Separation**: No TUI/CLI imports in SDK layer (`src/consoul/sdk/`, `src/consoul/ai/`)
+- [ ] **Tests**: Unit tests for services, integration tests for UI components
+- [ ] **Type Hints**: All public APIs have proper type annotations
+- [ ] **Documentation**: Docstrings for new public functions/classes
+- [ ] **Pre-commit**: All pre-commit hooks pass (`make pre-commit`)
+- [ ] **Quality Checks**: Code passes linting and formatting (`make quality`)
 
 ### What Happens Next?
 

@@ -1,10 +1,10 @@
 {
   "created_at": "2025-11-13T08:37:54.579800",
-  "updated_at": "2025-11-14T23:25:49.767941",
+  "updated_at": "2025-12-15T23:37:05.422751Z",
   "id": "EPIC-005",
   "title": "File Operations System (Read & Edit)",
   "description": "Create a comprehensive file operations system for Consoul that enables AI agents to safely read and edit files with proper security controls, validation, and user approval.\n\nThis extends the tool calling system (EPIC-004) with file I/O capabilities including:\n\n**Read Operations (safe, read-only)**:\n- read_file: Line-numbered text file reading with offset/limit\n- PDF support: Page extraction from PDF files\n- Size limits: Truncation controls for large files\n- Security: Path validation, extension filtering, blocked paths\n\n**Edit Operations (require approval)**:\n- edit_file_lines: Line-based editing with exact line ranges\n- edit_file_search_replace: Search/replace with progressive matching (strict → whitespace → fuzzy)\n- create_file: File creation with overwrite protection\n- delete_file: File deletion (DANGEROUS - always requires approval)\n- append_to_file: Append content to existing files\n\n**Key Features**:\n- Optimistic locking (expected_hash) prevents concurrent edit conflicts\n- Progressive matching with tolerance levels for robustness\n- Atomic writes (temp file → replace) prevent file corruption\n- TUI diff previews for all edit operations\n- Comprehensive audit logging with checksums\n- Security-first: RiskLevel.CAUTION for edits, DANGEROUS for deletes\n\n**Dependencies**:\n- Blocked by: EPIC-004 (Tool Calling System)\n- Enables: AI-assisted coding, file refactoring, documentation updates",
-  "status": "active",
+  "status": "completed",
   "owner": "jared@goatbytes.io",
   "target_date": "2025-12-31",
   "labels": [],

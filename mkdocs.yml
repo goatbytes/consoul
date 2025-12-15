@@ -217,6 +217,9 @@ nav:
     - SearxNG Setup: advanced/searxng-setup.md
   - Development:
     - Setup: development.md
+    - Architecture: development/architecture.md
+    - Service Layer: development/service-layer.md
+    - Testing: development/testing.md
     - Contributing: contributing.md
   - Security: SECURITY.md
   - FAQs: faqs.md

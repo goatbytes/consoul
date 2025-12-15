@@ -38,8 +38,8 @@
     }
   },
   "epic_view": {
-    "sort_column": null,
-    "sort_reverse": false,
+    "sort_column": 2,
+    "sort_reverse": true,
     "filters": {
       "status": [],
       "owner": null
