@@ -300,8 +300,54 @@ claude_3_haiku = ModelEntry(
     },
 )
 
+# Claude Opus 4.1
+claude_opus_4_1 = ModelEntry(
+    metadata=ModelMetadata(
+        id="claude-opus-4-1-20250805",
+        name="Claude Opus 4.1",
+        provider="anthropic",
+        author="Anthropic",
+        description="Upgraded for agentic tasks, real-world coding, and reasoning",
+        context_window=200_000,
+        max_output_tokens=16_384,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.REASONING,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.BATCH,
+        ],
+        created=date(2025, 8, 5),
+        aliases=["claude-opus-4.1"],
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=5.0,
+            output_price=25.0,
+            cache_read=0.5,
+            cache_write_5m=6.25,
+            cache_write_1h=10.0,
+            effective_date=date(2025, 8, 5),
+        ),
+        "batch": PricingTier(
+            tier="batch",
+            input_price=2.5,
+            output_price=12.5,
+            effective_date=date(2025, 8, 5),
+            notes="50% discount for batch processing",
+        ),
+    },
+)
+
 # Register all models
 _registry.register(claude_opus_4_5)
+_registry.register(claude_opus_4_1)
 _registry.register(claude_sonnet_4_5)
 _registry.register(claude_haiku_4_5)
 _registry.register(claude_3_5_sonnet_v2)

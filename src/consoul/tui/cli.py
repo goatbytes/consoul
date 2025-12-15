@@ -67,9 +67,9 @@ def tui(
 
         apply_macos_pytorch_fixes()
 
-    from consoul.config import load_config
+    from consoul.config import load_tui_config
 
-    # Load Consoul config first to get TUI settings
+    # Load Consoul TUI config (includes core config + TUI settings)
     consoul_config = None
 
     # Get CLI context from parent command
@@ -80,7 +80,7 @@ def tui(
 
         if model_override:
             # Load full config first to preserve TUI and other settings
-            consoul_config = load_config()
+            consoul_config = load_tui_config()
 
             # Determine provider and create provider config
             from consoul.config.models import Provider, ProviderConfig
@@ -113,9 +113,9 @@ def tui(
             consoul_config.current_model = model_override
         else:
             # Load default config
-            consoul_config = load_config()
+            consoul_config = load_tui_config()
     else:
-        consoul_config = load_config()
+        consoul_config = load_tui_config()
 
     # Handle --preset CLI override (takes precedence over --tools)
     if preset is not None:

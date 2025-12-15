@@ -12,6 +12,7 @@ from consoul.tui.widgets.chat_view import ChatView
 from consoul.tui.widgets.command_output_bubble import CommandOutputBubble
 from consoul.tui.widgets.contextual_top_bar import ContextualTopBar
 from consoul.tui.widgets.conversation_list import ConversationList
+from consoul.tui.widgets.enhanced_model_picker import EnhancedModelPicker
 from consoul.tui.widgets.export_modal import ExportModal
 from consoul.tui.widgets.file_attachment_modal import FileAttachmentModal
 from consoul.tui.widgets.file_chip import FileChip
@@ -22,6 +23,7 @@ from consoul.tui.widgets.initialization_error_screen import InitializationErrorS
 from consoul.tui.widgets.input_area import InputArea
 from consoul.tui.widgets.message_bubble import MessageBubble
 from consoul.tui.widgets.mlx_conversion_modal import MLXConversionModal
+from consoul.tui.widgets.model_card import ModelCard
 from consoul.tui.widgets.model_picker_modal import ModelPickerModal
 from consoul.tui.widgets.permission_manager_screen import PermissionManagerScreen
 from consoul.tui.widgets.profile_editor_modal import ProfileEditorModal
@@ -43,6 +45,7 @@ __all__ = [
     "CommandOutputBubble",
     "ContextualTopBar",
     "ConversationList",
+    "EnhancedModelPicker",
     "ExportModal",
     "FileAttachmentModal",
     "FileChip",
@@ -53,6 +56,7 @@ __all__ = [
     "InputArea",
     "MLXConversionModal",
     "MessageBubble",
+    "ModelCard",
     "ModelPickerModal",
     "PermissionManagerScreen",
     "ProfileEditorModal",

@@ -255,10 +255,121 @@ gemini_1_5_flash = ModelEntry(
     },
 )
 
+# Gemini 3.0 Pro
+gemini_3_0_pro = ModelEntry(
+    metadata=ModelMetadata(
+        id="gemini-3.0-pro",
+        name="Gemini 3.0 Pro",
+        provider="google",
+        author="Google",
+        description="Most intelligent model - outperforms GPT-5 Pro on benchmarks",
+        context_window=2_000_000,
+        max_output_tokens=65_535,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE, InputModality.AUDIO],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.REASONING,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.JSON_MODE,
+        ],
+        created=date(2025, 11, 18),
+        aliases=["gemini-3-pro", "gemini-3.0-pro-latest"],
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=2.00,
+            output_price=8.00,
+            cache_read=0.50,
+            effective_date=date(2025, 11, 18),
+        ),
+    },
+)
+
+# Gemini 3.0 Deep Think
+gemini_3_0_deep_think = ModelEntry(
+    metadata=ModelMetadata(
+        id="gemini-3.0-deep-think",
+        name="Gemini 3.0 Deep Think",
+        provider="google",
+        author="Google",
+        description="Advanced reasoning variant with extended thinking capabilities",
+        context_window=2_000_000,
+        max_output_tokens=65_535,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE, InputModality.AUDIO],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.REASONING,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.JSON_MODE,
+        ],
+        created=date(2025, 11, 18),
+        aliases=["gemini-3-deep-think"],
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=3.00,
+            output_price=12.00,
+            cache_read=0.75,
+            effective_date=date(2025, 11, 18),
+        ),
+    },
+)
+
+# Gemini 2.0 Flash Thinking Experimental
+gemini_2_0_flash_thinking = ModelEntry(
+    metadata=ModelMetadata(
+        id="gemini-2.0-flash-thinking-exp",
+        name="Gemini 2.0 Flash Thinking",
+        provider="google",
+        author="Google",
+        description="Fast reasoning with visible thought process - experimental",
+        context_window=1_048_576,
+        max_output_tokens=65_535,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE, InputModality.AUDIO],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.REASONING,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.JSON_MODE,
+        ],
+        created=date(2025, 2, 5),
+        aliases=["gemini-2.0-flash-thinking-experimental"],
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=0.00,  # Free during experimental phase
+            output_price=0.00,
+            effective_date=date(2025, 2, 5),
+            notes="Free during experimental phase",
+        ),
+    },
+)
+
 # Register all models
+_registry.register(gemini_3_0_pro)
+_registry.register(gemini_3_0_deep_think)
 _registry.register(gemini_2_5_pro)
 _registry.register(gemini_2_5_flash)
 _registry.register(gemini_2_5_flash_lite)
 _registry.register(gemini_2_0_flash)
+_registry.register(gemini_2_0_flash_thinking)
 _registry.register(gemini_1_5_pro)
 _registry.register(gemini_1_5_flash)

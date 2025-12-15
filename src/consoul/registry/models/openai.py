@@ -374,12 +374,392 @@ o3_mini = ModelEntry(
     },
 )
 
+# O3
+o3 = ModelEntry(
+    metadata=ModelMetadata(
+        id="o3",
+        name="O3",
+        provider="openai",
+        author="OpenAI",
+        description="Advanced reasoning model with agentic tool use",
+        context_window=128_000,
+        max_output_tokens=100_000,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.REASONING,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.BATCH,
+        ],
+        created=date(2025, 2, 1),
+        aliases=["o3-regular"],
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=2.75,
+            output_price=11.00,
+            cache_read=0.69,
+            effective_date=date(2025, 2, 1),
+        ),
+        "batch": PricingTier(
+            tier="batch",
+            input_price=1.38,
+            output_price=5.50,
+            effective_date=date(2025, 2, 1),
+        ),
+    },
+)
+
+# O3 Pro
+o3_pro = ModelEntry(
+    metadata=ModelMetadata(
+        id="o3-pro",
+        name="O3 Pro",
+        provider="openai",
+        author="OpenAI",
+        description="Premium reasoning model designed to think longer",
+        context_window=128_000,
+        max_output_tokens=100_000,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.REASONING,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.BATCH,
+        ],
+        created=date(2025, 2, 1),
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=5.00,
+            output_price=20.00,
+            cache_read=1.25,
+            effective_date=date(2025, 2, 1),
+        ),
+        "batch": PricingTier(
+            tier="batch",
+            input_price=2.50,
+            output_price=10.00,
+            effective_date=date(2025, 2, 1),
+        ),
+    },
+)
+
+# O4 Mini
+o4_mini = ModelEntry(
+    metadata=ModelMetadata(
+        id="o4-mini",
+        name="O4 Mini",
+        provider="openai",
+        author="OpenAI",
+        description="Fast, cost-efficient reasoning optimized for math & coding",
+        context_window=128_000,
+        max_output_tokens=65_536,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.REASONING,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.BATCH,
+        ],
+        created=date(2025, 2, 1),
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=1.10,
+            output_price=4.40,
+            cache_read=0.55,
+            effective_date=date(2025, 2, 1),
+        ),
+        "batch": PricingTier(
+            tier="batch",
+            input_price=0.55,
+            output_price=2.20,
+            effective_date=date(2025, 2, 1),
+        ),
+    },
+)
+
+# GPT-4.5
+gpt_4_5 = ModelEntry(
+    metadata=ModelMetadata(
+        id="gpt-4.5",
+        name="GPT-4.5",
+        provider="openai",
+        author="OpenAI",
+        description="Advanced preview model with enhanced capabilities",
+        context_window=128_000,
+        max_output_tokens=16_384,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.BATCH,
+            Capability.JSON_MODE,
+        ],
+        created=date(2025, 3, 1),
+        aliases=["gpt-4-5"],
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=4.00,
+            output_price=16.00,
+            cache_read=1.00,
+            effective_date=date(2025, 3, 1),
+        ),
+        "batch": PricingTier(
+            tier="batch",
+            input_price=2.00,
+            output_price=8.00,
+            effective_date=date(2025, 3, 1),
+        ),
+    },
+)
+
+# GPT-5
+gpt_5 = ModelEntry(
+    metadata=ModelMetadata(
+        id="gpt-5",
+        name="GPT-5",
+        provider="openai",
+        author="OpenAI",
+        description="Flagship model with 400K context and reduced hallucinations",
+        context_window=400_000,
+        max_output_tokens=128_000,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.BATCH,
+            Capability.JSON_MODE,
+        ],
+        created=date(2025, 8, 7),
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=1.25,
+            output_price=10.00,
+            cache_read=0.31,
+            effective_date=date(2025, 8, 7),
+        ),
+        "batch": PricingTier(
+            tier="batch",
+            input_price=0.63,
+            output_price=5.00,
+            effective_date=date(2025, 8, 7),
+        ),
+    },
+)
+
+# GPT-5 Mini
+gpt_5_mini = ModelEntry(
+    metadata=ModelMetadata(
+        id="gpt-5-mini",
+        name="GPT-5 Mini",
+        provider="openai",
+        author="OpenAI",
+        description="Efficient variant with 400K context",
+        context_window=400_000,
+        max_output_tokens=128_000,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.BATCH,
+            Capability.JSON_MODE,
+        ],
+        created=date(2025, 8, 7),
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=0.25,
+            output_price=2.00,
+            cache_read=0.06,
+            effective_date=date(2025, 8, 7),
+        ),
+        "batch": PricingTier(
+            tier="batch",
+            input_price=0.13,
+            output_price=1.00,
+            effective_date=date(2025, 8, 7),
+        ),
+    },
+)
+
+# GPT-5 Nano
+gpt_5_nano = ModelEntry(
+    metadata=ModelMetadata(
+        id="gpt-5-nano",
+        name="GPT-5 Nano",
+        provider="openai",
+        author="OpenAI",
+        description="Ultra-efficient variant with 400K context",
+        context_window=400_000,
+        max_output_tokens=128_000,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.BATCH,
+            Capability.JSON_MODE,
+        ],
+        created=date(2025, 8, 7),
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=0.05,
+            output_price=0.40,
+            cache_read=0.01,
+            effective_date=date(2025, 8, 7),
+        ),
+        "batch": PricingTier(
+            tier="batch",
+            input_price=0.03,
+            output_price=0.20,
+            effective_date=date(2025, 8, 7),
+        ),
+    },
+)
+
+# GPT-5.1
+gpt_5_1 = ModelEntry(
+    metadata=ModelMetadata(
+        id="gpt-5.1",
+        name="GPT-5.1",
+        provider="openai",
+        author="OpenAI",
+        description="Enhanced flagship with improved reasoning and coding",
+        context_window=400_000,
+        max_output_tokens=128_000,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.BATCH,
+            Capability.JSON_MODE,
+        ],
+        created=date(2025, 11, 12),
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=1.25,
+            output_price=10.00,
+            cache_read=0.31,
+            effective_date=date(2025, 11, 12),
+        ),
+        "batch": PricingTier(
+            tier="batch",
+            input_price=0.63,
+            output_price=5.00,
+            effective_date=date(2025, 11, 12),
+        ),
+    },
+)
+
+# GPT-5.2
+gpt_5_2 = ModelEntry(
+    metadata=ModelMetadata(
+        id="gpt-5.2",
+        name="GPT-5.2",
+        provider="openai",
+        author="OpenAI",
+        description="Latest flagship with enhanced reasoning and coding performance",
+        context_window=400_000,
+        max_output_tokens=128_000,
+        modality=Modality(
+            inputs=[InputModality.TEXT, InputModality.IMAGE],
+            outputs=[OutputModality.TEXT],
+        ),
+        capabilities=[
+            Capability.VISION,
+            Capability.TOOLS,
+            Capability.STREAMING,
+            Capability.CACHING,
+            Capability.BATCH,
+            Capability.JSON_MODE,
+        ],
+        created=date(2025, 12, 11),
+    ),
+    pricing={
+        "standard": PricingTier(
+            tier="standard",
+            input_price=1.25,
+            output_price=10.00,
+            cache_read=0.31,
+            effective_date=date(2025, 12, 11),
+        ),
+        "batch": PricingTier(
+            tier="batch",
+            input_price=0.63,
+            output_price=5.00,
+            effective_date=date(2025, 12, 11),
+        ),
+    },
+)
+
 # Register all models
+_registry.register(gpt_5_2)
+_registry.register(gpt_5_1)
+_registry.register(gpt_5)
+_registry.register(gpt_5_mini)
+_registry.register(gpt_5_nano)
+_registry.register(gpt_4_5)
 _registry.register(gpt_4_1)
 _registry.register(gpt_4_1_mini)
 _registry.register(gpt_4_1_nano)
 _registry.register(gpt_4o)
 _registry.register(gpt_4o_mini)
+_registry.register(o4_mini)
+_registry.register(o3)
+_registry.register(o3_pro)
+_registry.register(o3_mini)
 _registry.register(o1)
 _registry.register(o1_mini)
-_registry.register(o3_mini)
