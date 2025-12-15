@@ -190,3 +190,46 @@ class TestBuildEnhancedSystemPrompt:
         # Should have env context + tool docs
         assert "Working Directory: /test" in result
         assert "# Available Tools" in result
+
+    def test_custom_prompt_with_marker_and_injections(self, mock_tool_registry, mocker):
+        """Test custom prompt with {AVAILABLE_TOOLS} marker gets tool docs and context."""
+        mocker.patch(
+            "consoul.ai.environment.get_environment_context",
+            return_value="Working Directory: /test",
+        )
+
+        # Custom prompt with marker - should get tool docs + env context
+        prompt = "Custom AI {AVAILABLE_TOOLS} End"
+        result = build_enhanced_system_prompt(
+            prompt,
+            tool_registry=mock_tool_registry,
+            include_env_context=True,
+            include_git_context=False,
+            auto_append_tools=True,
+        )
+
+        assert "Working Directory: /test" in result
+        assert "{AVAILABLE_TOOLS}" not in result
+        assert "# Available Tools" in result
+        assert "bash_execute" in result
+
+    def test_custom_prompt_selective_injections(self, mock_tool_registry, mocker):
+        """Test custom prompt with selective control parameters."""
+        mocker.patch(
+            "consoul.ai.environment.get_environment_context",
+            return_value="Working Directory: /test",
+        )
+
+        # Custom prompt, env context enabled, tool docs disabled
+        prompt = "Custom prompt without tools"
+        result = build_enhanced_system_prompt(
+            prompt,
+            tool_registry=mock_tool_registry,
+            include_env_context=True,
+            include_git_context=False,
+            auto_append_tools=False,
+        )
+
+        assert "Working Directory: /test" in result
+        assert "Custom prompt without tools" in result
+        assert "# Available Tools" not in result

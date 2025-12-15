@@ -238,18 +238,16 @@ class ConversationService:
                 model = model.bind_tools(enabled_tools)  # type: ignore[assignment]
 
         # Build and add system prompt if configured
-        if custom_system_prompt:
-            # User provided custom prompt - use it verbatim
-            conversation.add_system_message(custom_system_prompt)
-        elif active_profile.system_prompt:
-            # Use profile prompt with controlled injections
+        base_prompt = custom_system_prompt or active_profile.system_prompt
+        if base_prompt:
+            # Apply controlled injections to custom or profile prompt
             from consoul.ai.prompt_builder import build_enhanced_system_prompt
 
             # Only pass tool_registry if user wants tool docs
             registry_for_prompt = tool_registry if include_tool_docs else None
 
             system_prompt = build_enhanced_system_prompt(
-                base_prompt=active_profile.system_prompt,
+                base_prompt=base_prompt,
                 tool_registry=registry_for_prompt,
                 include_env_context=include_env_context,
                 include_git_context=include_git_context,
