@@ -1,11 +1,11 @@
 {
   "created_at": "2025-12-10T00:54:39.963884",
-  "updated_at": "2025-12-15T17:02:35.381693Z",
+  "updated_at": "2025-12-15T19:41:22.970164Z",
   "id": "SOUL-254",
   "uuid": "a05805cf-ef02-4189-ab17-1cbe524eae7c",
   "title": "Extract slash command processor from ChatSession",
   "description": "**As a** Consoul developer\n**I want** slash command processing extracted to separate module\n**So that** command handling is testable and maintainable independently\n\n**Context:**\nCurrently, src/consoul/cli/chat_session.py contains slash command processing logic mixed with session management. Commands like /help, /clear, /tokens, /system, /export should be in a dedicated command processor for better separation of concerns and testability.\n\n**Technical Notes:**\n- Extract from: src/consoul/cli/chat_session.py (command methods)\n- Create: src/consoul/cli/command_processor.py\n- Pattern: Command pattern with registry\n- Keep: CLI-specific (not moving to SDK - these are CLI features)\n- Reference: CLI analysis recommended this extraction\n\n**Acceptance Criteria:**\n\n**Given** A slash command is entered in CLI\n**When** User types /help, /clear, etc.\n**Then** CommandProcessor handles it independently\n\n**Given** New command needs to be added\n**When** Developer creates command handler\n**Then** Registration is simple and documented\n\n**Given** Command processing logic\n**When** Unit tests are needed\n**Then** Commands can be tested without ChatSession\n\n**Given** Error in command\n**When** Processing fails\n**Then** Clear error message is shown\n\n**Testing Considerations:**\n- Test each command independently\n- Test command registration\n- Test unknown command handling\n- Test command with arguments\n- Test command error handling\n- Verify session state access\n\n**Implementation Hints:**\n- Create CommandProcessor class in cli/command_processor.py\n- Use command registry pattern: {'/help': help_handler, '/clear': clear_handler}\n- Each handler: async def command_name(session: ChatSession, args: str) -> str\n- Extract _cmd_help, _cmd_clear, _cmd_tokens, etc. from ChatSession\n- ChatSession.process_command() becomes CommandProcessor.process()\n- Maintain access to session for stateful commands\n- Add command discovery (list all available commands)\n- Document command API for future extensions",
-  "status": "todo",
+  "status": "done",
   "type": "task",
   "priority": "medium",
   "labels": [
