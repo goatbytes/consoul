@@ -562,7 +562,7 @@ def chat(
                 # Check for slash commands
                 if session.process_command(user_input):
                     # Command was handled, check if exit was requested
-                    if session._should_exit:
+                    if session.should_exit:
                         break
                     # Otherwise continue to next prompt
                     continue
@@ -1997,7 +1997,7 @@ def resume_history(
                 # Check for slash commands
                 if session.process_command(user_input):
                     # Command was handled, check if exit was requested
-                    if session._should_exit:
+                    if session.should_exit:
                         break
                     # Otherwise continue to next prompt
                     continue
