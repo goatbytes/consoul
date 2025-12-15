@@ -89,6 +89,64 @@ Configuration models for profiles and tools.
         - get_trimmed_messages
         - count_tokens
 
+## Service Layer
+
+Headless services for SDK integration without TUI dependencies.
+
+### ConversationService
+
+Service layer for AI conversation management with streaming responses and tool execution.
+
+::: consoul.sdk.services.conversation.ConversationService
+    options:
+      show_root_heading: true
+      heading_level: 4
+      members:
+        - from_config
+        - send_message
+        - get_stats
+        - get_history
+        - clear
+
+### ToolService
+
+Service layer for tool management and execution.
+
+::: consoul.sdk.services.tool.ToolService
+    options:
+      show_root_heading: true
+      heading_level: 4
+      members:
+        - from_config
+        - list_tools
+        - needs_approval
+        - get_tools_count
+
+### ModelService
+
+Service layer for AI model management and initialization.
+
+::: consoul.sdk.services.model.ModelService
+    options:
+      show_root_heading: true
+      heading_level: 4
+      members:
+        - from_config
+        - get_model
+        - switch_model
+        - list_ollama_models
+        - list_mlx_models
+        - list_gguf_models
+        - list_huggingface_models
+        - list_models
+        - get_current_model_info
+        - supports_vision
+        - supports_tools
+        - list_available_models
+        - get_model_pricing
+        - get_model_capabilities
+        - get_model_metadata
+
 ## Tool Catalog
 
 Tool discovery and resolution utilities.
