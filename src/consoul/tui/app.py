@@ -1747,11 +1747,12 @@ class ConsoulApp(App[None]):
                 ):
                     self._switch_provider_and_model(provider, model_name)
 
-        from consoul.tui.widgets import ModelPickerModal
+        from consoul.tui.widgets import EnhancedModelPicker
 
-        modal = ModelPickerModal(
+        modal = EnhancedModelPicker(
             current_model=self.current_model,
             current_provider=self.consoul_config.current_provider,
+            model_service=self.model_service,
         )
         self.push_screen(modal, on_model_selected)
 

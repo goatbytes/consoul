@@ -102,7 +102,7 @@ class HeliconeClient:
                 f"Fetched {data.get('metadata', {}).get('total_models', 0)} "
                 f"models from Helicone"
             )
-            return data
+            return data  # type: ignore[no-any-return]
 
         except httpx.HTTPError as e:
             logger.error(f"Failed to fetch from Helicone API: {e}")
@@ -153,7 +153,7 @@ class HeliconeClient:
                 or (operator == "startsWith" and model_id.startswith(model_name))
                 or (operator == "includes" and model_name in model_id)
             ):
-                return entry
+                return entry  # type: ignore[no-any-return]
 
         return None
 
@@ -178,7 +178,7 @@ class HeliconeClient:
         if show_in_playground_only:
             models = [m for m in models if m.get("show_in_playground")]
 
-        return models
+        return models  # type: ignore[no-any-return]
 
     def _is_cache_valid(self) -> bool:
         """Check if cache exists and is not stale."""
@@ -195,7 +195,7 @@ class HeliconeClient:
         """Load pricing data from cache file."""
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         with open(self.cache_file) as f:
-            return json.load(f)
+            return json.load(f)  # type: ignore[no-any-return]
 
     def _save_cache(self, data: dict[str, Any]) -> None:
         """Save pricing data to cache file."""

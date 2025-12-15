@@ -206,6 +206,8 @@ class ModelService:
         self,
         include_context: bool = False,
         base_url: str = "http://localhost:11434",
+        enrich_descriptions: bool = True,
+        use_context_cache: bool = True,
     ) -> list[ModelInfo]:
         """List locally installed Ollama models.
 
@@ -213,8 +215,10 @@ class ModelService:
         No catalog overhead - directly queries Ollama API.
 
         Args:
-            include_context: Fetch detailed context length (slower, requires /api/show per model)
+            include_context: Fetch detailed context (slower, /api/show per model)
             base_url: Ollama service URL (default: http://localhost:11434)
+            enrich_descriptions: Fetch descriptions from ollama.com (default: True)
+            use_context_cache: Use cached context sizes (default: True)
 
         Returns:
             List of ModelInfo for installed Ollama models
@@ -239,6 +243,39 @@ class ModelService:
                 logger.warning(f"Ollama service not running at {base_url}")
                 return []
 
+            # Load context cache if enabled
+            context_cache_map = {}
+            if use_context_cache and not include_context:
+                try:
+                    from consoul.ai.context_cache import get_global_cache
+
+                    cache = get_global_cache()
+                    context_cache_map = cache.get_all()
+                    logger.debug(
+                        f"Loaded {len(context_cache_map)} cached context sizes"
+                    )
+                except Exception as e:
+                    logger.debug(f"Could not load context cache: {e}")
+
+            # Fetch library descriptions and capabilities if requested (cached for 24 hours)
+            library_descriptions = {}
+            library_capabilities = {}
+            if enrich_descriptions:
+                try:
+                    from consoul.ai.ollama_library import fetch_library_models
+
+                    library_models = fetch_library_models()
+                    for lib_model in library_models:
+                        # Map library name to description and capabilities
+                        library_descriptions[lib_model.name] = lib_model.description
+                        library_capabilities[lib_model.name] = {
+                            "vision": lib_model.supports_vision,
+                            "tools": lib_model.supports_tools,
+                            "reasoning": lib_model.supports_reasoning,
+                        }
+                except Exception as e:
+                    logger.debug(f"Could not fetch ollama.com descriptions: {e}")
+
             models = []
             for model_info in get_ollama_models(
                 base_url=base_url, include_context=include_context
@@ -247,17 +284,39 @@ class ModelService:
                 if not model_name:
                     continue
 
-                # Format context length
+                # Format context length (from API or cache)
                 context_length = model_info.get("context_length")
+
+                # If not from API, try cache
+                if context_length is None and model_name in context_cache_map:
+                    context_length = context_cache_map[model_name]
+
                 context_str = self._format_context_length(context_length)
 
                 # Format size
                 size_bytes = model_info.get("size", 0)
                 size_gb = size_bytes / (1024**3) if size_bytes else 0
-                description = f"Local Ollama model ({size_gb:.1f}GB)"
 
-                # Detect vision support from model name
-                supports_vision = self._detect_vision_from_name(model_name)
+                # Get rich description from ollama.com library if available
+                # Extract base model name without tag (e.g., "llama3.2:latest" -> "llama3.2")
+                base_model_name = model_name.split(":")[0]
+                description = library_descriptions.get(
+                    base_model_name, f"Local Ollama model ({size_gb:.1f}GB)"
+                )
+
+                # Append size to library description if we got one
+                if base_model_name in library_descriptions:
+                    description = f"{description} ({size_gb:.1f}GB)"
+
+                # Get capabilities from library data (ollama.com), fallback to name detection
+                caps = library_capabilities.get(base_model_name, {})
+                supports_vision = caps.get(
+                    "vision", self._detect_vision_from_name(model_name)
+                )
+                supports_tools = caps.get(
+                    "tools", self._detect_tool_support_from_name(model_name)
+                )
+                supports_reasoning = caps.get("reasoning", False)
 
                 models.append(
                     ModelInfo(
@@ -267,6 +326,8 @@ class ModelService:
                         context_window=context_str,
                         description=description,
                         supports_vision=supports_vision,
+                        supports_tools=supports_tools,
+                        supports_reasoning=supports_reasoning,
                     )
                 )
 
@@ -275,6 +336,271 @@ class ModelService:
 
         except Exception as e:
             logger.warning(f"Failed to list Ollama models: {e}")
+            return []
+
+    def refresh_ollama_context_in_background(
+        self,
+        model_ids: list[str] | None = None,
+        base_url: str = "http://localhost:11434",
+    ) -> None:
+        """Refresh Ollama context sizes in background thread.
+
+        This method fetches context sizes from Ollama API and caches them
+        for fast future lookups. Runs in background to not block UI.
+
+        Args:
+            model_ids: List of model IDs to refresh (None = all installed models)
+            base_url: Ollama service URL
+
+        Example:
+            >>> service = ModelService.from_config()
+            >>> # Get models fast (from cache)
+            >>> models = service.list_ollama_models()
+            >>> # Refresh cache in background for next time
+            >>> service.refresh_ollama_context_in_background()
+        """
+        try:
+            from consoul.ai.context_cache import get_global_cache
+            from consoul.ai.providers import get_ollama_models, is_ollama_running
+
+            if not is_ollama_running(base_url=base_url):
+                return
+
+            # Get model IDs if not provided
+            if model_ids is None:
+                all_models = get_ollama_models(base_url=base_url, include_context=False)
+                model_ids = [m.get("name", "") for m in all_models if m.get("name")]
+
+            if not model_ids:
+                return
+
+            # Define fetch function for cache
+            def fetch_context(model_id: str) -> int | None:
+                """Fetch context size for a single model."""
+                import requests
+
+                try:
+                    response = requests.post(
+                        f"{base_url}/api/show",
+                        json={"name": model_id},
+                        timeout=5,
+                    )
+                    if response.status_code == 200:
+                        data = response.json()
+                        model_info = data.get("model_info", {})
+                        # Try to find context_length
+                        for key, value in model_info.items():
+                            if "context_length" in key.lower():
+                                return int(value)
+                except Exception:
+                    pass
+                return None
+
+            # Start background refresh
+            cache = get_global_cache()
+            cache.refresh_in_background(
+                model_ids=model_ids,
+                fetch_func=fetch_context,
+                on_complete=lambda sizes: logger.debug(
+                    f"Background refresh complete: {len(sizes)} contexts cached"
+                ),
+            )
+
+            logger.debug(
+                f"Started background context refresh for {len(model_ids)} models"
+            )
+
+        except Exception as e:
+            logger.debug(f"Failed to start background context refresh: {e}")
+
+    def list_mlx_models(self) -> list[ModelInfo]:
+        """List locally installed MLX models.
+
+        Efficient method using HuggingFace scan_cache_dir() for better performance.
+        Scans HF cache (~/.cache/huggingface/hub), ~/.cache/mlx, and ~/.lmstudio/models.
+
+        Returns:
+            List of ModelInfo for installed MLX models
+
+        Example:
+            >>> service = ModelService.from_config()
+            >>> mlx_models = service.list_mlx_models()
+            >>> for model in mlx_models:
+            ...     print(f"{model.name} - {model.description}")
+            mlx-community/Llama-3.2-3B-Instruct-4bit - Local MLX model (1.8GB)
+            mlx-community/Qwen2.5-Coder-7B-Instruct-4bit - Local MLX model (4.2GB)
+        """
+        from consoul.sdk.models import ModelInfo
+
+        try:
+            from consoul.ai.providers import get_local_mlx_models
+
+            models = []
+            for model_info in get_local_mlx_models():
+                model_name = model_info.get("name", "")
+                if not model_name:
+                    continue
+
+                # Get size
+                size_gb = model_info.get("size_gb", 0)
+                description = f"Local MLX model ({size_gb:.1f}GB)"
+
+                # Detect capabilities from model name
+                supports_vision = self._detect_vision_from_name(model_name)
+                supports_tools = self._detect_tool_support_from_name(model_name)
+
+                # Format context size if available
+                context_size = model_info.get("context_size")
+                context_str = self._format_context_length(context_size)
+
+                models.append(
+                    ModelInfo(
+                        id=model_name,
+                        name=model_name,
+                        provider="mlx",
+                        context_window=context_str,
+                        description=description,
+                        supports_vision=supports_vision,
+                        supports_tools=supports_tools,
+                    )
+                )
+
+            logger.debug(f"Discovered {len(models)} MLX models")
+            return models
+
+        except Exception as e:
+            logger.warning(f"Failed to list MLX models: {e}")
+            return []
+
+    def list_gguf_models(self) -> list[ModelInfo]:
+        """List locally installed GGUF models.
+
+        Efficient method using HuggingFace scan_cache_dir() for better performance.
+        Scans HF cache (~/.cache/huggingface/hub) and ~/.lmstudio/models.
+
+        GGUF models can be used with llama.cpp for local inference.
+
+        Returns:
+            List of ModelInfo for installed GGUF models
+
+        Example:
+            >>> service = ModelService.from_config()
+            >>> gguf_models = service.list_gguf_models()
+            >>> for model in gguf_models:
+            ...     print(f"{model.name} - {model.description}")
+            llama-2-7b-chat.Q4_K_M.gguf - Local GGUF model (3.8GB, Q4 quant)
+            mistral-7b-instruct-v0.2.Q8_0.gguf - Local GGUF model (7.7GB, Q8 quant)
+        """
+        from consoul.sdk.models import ModelInfo
+
+        try:
+            from consoul.ai.providers import get_gguf_models_from_cache
+
+            models = []
+            for model_info in get_gguf_models_from_cache():
+                model_name = model_info.get("name", "")
+                if not model_name:
+                    continue
+
+                # Get size and quantization info
+                size_gb = model_info.get("size_gb", 0)
+                quant = model_info.get("quant", "unknown")
+                repo = model_info.get("repo", "unknown")
+
+                # Create description with quant info
+                description = f"Local GGUF model ({size_gb:.1f}GB, {quant} quant)"
+
+                # Use repo as the ID for better identification
+                model_id = f"{repo}/{model_name}" if repo != "unknown" else model_name
+
+                # Detect capabilities from model name
+                supports_vision = self._detect_vision_from_name(model_name)
+                supports_tools = self._detect_tool_support_from_name(model_name)
+
+                # GGUF context windows vary by model - set to unknown
+                context_str = "?"
+
+                models.append(
+                    ModelInfo(
+                        id=model_id,
+                        name=model_name,
+                        provider="llamacpp",
+                        context_window=context_str,
+                        description=description,
+                        supports_vision=supports_vision,
+                        supports_tools=supports_tools,
+                    )
+                )
+
+            logger.debug(f"Discovered {len(models)} GGUF models")
+            return models
+
+        except Exception as e:
+            logger.warning(f"Failed to list GGUF models: {e}")
+            return []
+
+    def list_huggingface_models(self) -> list[ModelInfo]:
+        """List locally cached HuggingFace models.
+
+        Scans HuggingFace Hub cache (~/.cache/huggingface/hub) for downloaded models.
+        Excludes MLX and GGUF-only models (discovered by other methods).
+
+        Returns models with safetensors, PyTorch bin files, Flax msgpack, etc.
+
+        Returns:
+            List of ModelInfo for cached HuggingFace models
+
+        Example:
+            >>> service = ModelService.from_config()
+            >>> hf_models = service.list_huggingface_models()
+            >>> for model in hf_models:
+            ...     print(f"{model.name} - {model.description}")
+            meta-llama/Llama-3.1-8B-Instruct - HuggingFace model (8.5GB, safetensors)
+            google/flan-t5-base - HuggingFace model (1.2GB, pytorch)
+        """
+        from consoul.sdk.models import ModelInfo
+
+        try:
+            from consoul.ai.providers import get_huggingface_local_models
+
+            models = []
+            for model_info in get_huggingface_local_models():
+                model_name = model_info.get("name", "")
+                if not model_name:
+                    continue
+
+                # Get size and model type info
+                size_gb = model_info.get("size_gb", 0)
+                model_type = model_info.get("model_type", "unknown")
+
+                # Create description with model type
+                description = f"HuggingFace model ({size_gb:.1f}GB, {model_type})"
+
+                # Detect capabilities from model name
+                supports_vision = self._detect_vision_from_name(model_name)
+                supports_tools = self._detect_tool_support_from_name(model_name)
+
+                # Format context size if available
+                context_size = model_info.get("context_size")
+                context_str = self._format_context_length(context_size)
+
+                models.append(
+                    ModelInfo(
+                        id=model_name,
+                        name=model_name,
+                        provider="huggingface",
+                        context_window=context_str,
+                        description=description,
+                        supports_vision=supports_vision,
+                        supports_tools=supports_tools,
+                    )
+                )
+
+            logger.debug(f"Discovered {len(models)} HuggingFace models")
+            return models
+
+        except Exception as e:
+            logger.warning(f"Failed to list HuggingFace models: {e}")
             return []
 
     def list_models(self, provider: str | None = None) -> list[ModelInfo]:
@@ -301,7 +627,7 @@ class ModelService:
             static_models = MODEL_CATALOG.copy()
 
         # Add dynamic local models if provider matches or if showing all
-        local_providers = {"ollama", "llamacpp", "mlx"}
+        local_providers = {"ollama", "llamacpp", "mlx", "huggingface"}
         if provider in local_providers or provider is None:
             dynamic_models = self._discover_local_models(provider)
             static_models.extend(dynamic_models)
@@ -370,7 +696,7 @@ class ModelService:
         return supports_tool_calling(self._model)
 
     def _discover_local_models(self, provider: str | None = None) -> list[ModelInfo]:
-        """Discover locally available models (Ollama/LlamaCpp/MLX).
+        """Discover locally available models (Ollama/LlamaCpp/MLX/HuggingFace).
 
         Args:
             provider: Specific local provider or None for all
@@ -381,12 +707,23 @@ class ModelService:
         models = []
 
         # Discover Ollama models if Ollama is running
+        # Use public method to get enhanced descriptions
+        # Note: include_context=False for faster loading (context fetching is slow)
+        # Context sizes can be fetched lazily if needed
         if provider in (None, "ollama"):
-            models.extend(self._discover_ollama_models())
+            models.extend(self.list_ollama_models(include_context=False))
 
-        # Note: LlamaCpp and MLX discovery not yet implemented
-        # These require filesystem scanning which is expensive
-        # Will be added in follow-up work
+        # Discover MLX models using efficient HuggingFace scan_cache_dir()
+        if provider in (None, "mlx"):
+            models.extend(self.list_mlx_models())
+
+        # Discover GGUF/LlamaCpp models using efficient HuggingFace scan_cache_dir()
+        if provider in (None, "llamacpp"):
+            models.extend(self.list_gguf_models())
+
+        # Discover HuggingFace models using efficient HuggingFace scan_cache_dir()
+        if provider in (None, "huggingface"):
+            models.extend(self.list_huggingface_models())
 
         return models
 
@@ -414,8 +751,9 @@ class ModelService:
                 context_length = model_info.get("context_length")
                 context_str = self._format_context_length(context_length)
 
-                # Detect vision support from model name
+                # Detect capabilities from model name
                 supports_vision = self._detect_vision_from_name(model_name)
+                supports_tools = self._detect_tool_support_from_name(model_name)
 
                 models.append(
                     ModelInfo(
@@ -425,6 +763,7 @@ class ModelService:
                         context_window=context_str,
                         description="Local Ollama model",
                         supports_vision=supports_vision,
+                        supports_tools=supports_tools,
                     )
                 )
 
@@ -506,6 +845,31 @@ class ModelService:
         ]
 
         return any(indicator in model_lower for indicator in vision_indicators)
+
+    def _detect_tool_support_from_name(self, model_name: str) -> bool:
+        """Detect tool/function calling capability from model name.
+
+        Args:
+            model_name: Model name/ID
+
+        Returns:
+            True if model likely supports tool calling
+
+        Note:
+            Most modern chat models support tools. This detects models that
+            explicitly DON'T support tools (embedding models, base models, etc.)
+        """
+        model_lower = model_name.lower()
+
+        # Models that DON'T support tools
+        no_tool_indicators = [
+            "embed",  # Embedding models (nomic-embed, mxbai-embed, etc.)
+            "base",  # Base/foundation models without instruction tuning
+            "completion",  # Completion-only models
+        ]
+
+        # If it's an embedding or base model, no tools; otherwise most modern chat/instruct models support tools
+        return not any(indicator in model_lower for indicator in no_tool_indicators)
 
     # Registry-based methods for comprehensive model metadata
 

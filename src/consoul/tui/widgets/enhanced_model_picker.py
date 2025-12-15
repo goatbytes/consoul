@@ -24,8 +24,11 @@ if TYPE_CHECKING:
 
     from consoul.config.models import Provider
     from consoul.registry.types import ModelEntry
+    from consoul.sdk.models import ModelInfo
+    from consoul.sdk.services.model import ModelService
 
 from consoul.registry import list_models
+from consoul.tui.widgets.local_model_card import LocalModelCard
 from consoul.tui.widgets.model_card import ModelCard
 
 __all__ = ["EnhancedModelPicker"]
@@ -138,7 +141,8 @@ class EnhancedModelPicker(ModalScreen[tuple[str, str] | None]):
     def __init__(
         self,
         current_model: str,
-        current_provider: "Provider",
+        current_provider: Provider,
+        model_service: ModelService | None = None,
         **kwargs: str,
     ) -> None:
         """Initialize the enhanced model picker.
@@ -146,14 +150,147 @@ class EnhancedModelPicker(ModalScreen[tuple[str, str] | None]):
         Args:
             current_model: Currently selected model ID
             current_provider: Currently selected provider
+            model_service: Optional ModelService instance for local model discovery
             **kwargs: Additional arguments for ModalScreen
         """
         super().__init__(**kwargs)
         self.current_model = current_model
         self.current_provider = current_provider
+        self.model_service = model_service
         self._all_models = list_models(active_only=True)
+        self._local_models: list[ModelInfo] = []
         self._selected_model_id: str | None = None
         self._selected_provider: str | None = None
+
+    def _get_model_priority(self, model: ModelInfo) -> tuple[int, int, int, str]:
+        """Get sorting priority for a model.
+
+        Priority order:
+        1. Provider (ollama -> mlx -> llamacpp -> huggingface)
+        2. Model family priority (gpt-oss, granite, qwen, llama, gemma, devstral, mistral)
+        3. Popularity on ollama.com (from static data)
+        4. Model name
+
+        Returns:
+            Tuple for sorting (provider_priority, family_priority, popularity, name)
+        """
+        # Provider priority
+        provider_order = {"ollama": 0, "mlx": 1, "llamacpp": 2, "huggingface": 3}
+        provider_priority = provider_order.get(model.provider, 99)
+
+        # Model family priority
+        model_name_lower = model.name.lower()
+        family_priorities = {
+            "gpt-oss": 0,
+            "granite": 1,
+            "qwen": 2,
+            "llama": 3,
+            "gemma": 4,
+            "devstral": 5,
+            "mistral": 6,
+        }
+
+        family_priority = 99  # Default for unknown families
+        for family, priority in family_priorities.items():
+            if family in model_name_lower:
+                family_priority = priority
+                break
+
+        # Popularity from ollama.com static data
+        popularity = 999999  # Default for models not in static data
+        if model.provider == "ollama":
+            # Try to get popularity from static data
+            try:
+                from consoul.ai.ollama_library import load_static_models
+
+                static_models = load_static_models()
+                # Extract base model name (remove tag)
+                base_name = (
+                    model.name.split(":")[0] if ":" in model.name else model.name
+                )
+
+                # Find matching model in static data
+                for static_model in static_models:
+                    if static_model.name == base_name:
+                        # Parse num_pulls (e.g., "100M+", "1B+", "500K+")
+                        pulls_str = static_model.num_pulls
+                        if pulls_str and pulls_str != "Pulls":
+                            # Convert to number for sorting
+                            # B (billion) = 1000000000, M (million) = 1000000, K (thousand) = 1000
+                            multipliers = {
+                                "B": 1_000_000_000,
+                                "M": 1_000_000,
+                                "K": 1_000,
+                            }
+                            for suffix, multiplier in multipliers.items():
+                                if suffix in pulls_str.upper():
+                                    try:
+                                        num = float(
+                                            pulls_str.upper()
+                                            .replace(suffix, "")
+                                            .replace("+", "")
+                                            .strip()
+                                        )
+                                        popularity = -int(
+                                            num * multiplier
+                                        )  # Negative for descending sort
+                                        break
+                                    except (ValueError, AttributeError):
+                                        pass
+                        break
+            except Exception:
+                pass  # Ignore errors, use default popularity
+
+        return (provider_priority, family_priority, popularity, model_name_lower)
+
+    def _discover_local_models(self) -> list[ModelInfo]:
+        """Discover locally available models.
+
+        Returns:
+            List of ModelInfo for all local models, sorted by:
+            1. Provider (ollama first, then MLX, llamacpp, huggingface)
+            2. Model family priority (gpt-oss, granite, qwen, llama, gemma, devstral, mistral)
+            3. Popularity on ollama.com
+            4. Model name alphabetically
+        """
+        from contextlib import suppress
+
+        if not self.model_service:
+            return []
+
+        local_models: list[ModelInfo] = []
+
+        with suppress(Exception):
+            # Discover Ollama models (fast - uses cached context sizes)
+            # Context sizes are loaded from cache (~/.consoul/cache/ollama_context_sizes.json)
+            # Background thread refreshes cache for next time (no UI blocking)
+            local_models.extend(
+                self.model_service.list_ollama_models(
+                    include_context=False,
+                    use_context_cache=True,
+                )
+            )
+
+            # Trigger background refresh of context sizes for next time
+            # This runs in a separate thread and won't block the UI
+            self.model_service.refresh_ollama_context_in_background()
+
+        with suppress(Exception):
+            # Discover GGUF models
+            local_models.extend(self.model_service.list_gguf_models())
+
+        with suppress(Exception):
+            # Discover MLX models
+            local_models.extend(self.model_service.list_mlx_models())
+
+        with suppress(Exception):
+            # Discover HuggingFace models
+            local_models.extend(self.model_service.list_huggingface_models())
+
+        # Sort by custom priority (provider -> family -> popularity -> name)
+        local_models.sort(key=self._get_model_priority)
+
+        return local_models
 
     def _group_by_provider(self) -> dict[str, list[ModelEntry]]:
         """Group models by provider.
@@ -180,11 +317,69 @@ class EnhancedModelPicker(ModalScreen[tuple[str, str] | None]):
                 yield Label("Select AI Model", id="modal-title")
                 yield Button(" ✖ ", id="close-button")
 
-            # Group models by provider
+            # Discover local models
+            self._local_models = self._discover_local_models()
+
+            # Group cloud models by provider
             providers = self._group_by_provider()
 
+            # Determine initial tab
+            initial_tab = self.current_provider.value
+            # If current provider is local, show local tab
+            if self.current_provider.value in (
+                "ollama",
+                "llamacpp",
+                "mlx",
+                "huggingface",
+            ):
+                initial_tab = "local"
+
             # Tabbed content for providers
-            with TabbedContent(initial=self.current_provider.value):
+            with TabbedContent(initial=initial_tab):
+                # Local models tab (first)
+                if self._local_models or self.model_service:
+                    with TabPane("Local", id="local"):
+                        # Search input and filter dropdown
+                        with Horizontal(id="search-filter-container"):
+                            yield Input(
+                                placeholder="Search local models...",
+                                id="search-local",
+                            )
+                            yield Select(
+                                [
+                                    ("All Local", "all"),
+                                    ("Ollama", "ollama"),
+                                    ("GGUF/LlamaCpp", "llamacpp"),
+                                    ("MLX", "mlx"),
+                                    ("HuggingFace", "huggingface"),
+                                    ("Vision", "vision"),
+                                ],
+                                value="all",
+                                id="filter-local",
+                            )
+
+                        # Models scroll container
+                        with (
+                            Vertical(id="models-container"),
+                            VerticalScroll(id="models-scroll-local"),
+                        ):
+                            if self._local_models:
+                                # Add local model cards
+                                for model in self._local_models:
+                                    is_current = model.id == self.current_model
+                                    card = LocalModelCard(model, is_current=is_current)
+                                    card.add_class("model-card-local")
+                                    card.add_class(f"local-provider-{model.provider}")
+                                    yield card
+                            else:
+                                # No local models found
+                                yield Label(
+                                    "No local models found.\n\n"
+                                    "Install Ollama, GGUF, MLX, or HuggingFace models to see them here.",
+                                    classes="model-description",
+                                )
+
+                # Cloud provider tabs
                 for provider_name, models in sorted(providers.items()):
                     with TabPane(provider_name.title(), id=provider_name):
                         # Search input and filter dropdown
@@ -210,24 +405,42 @@ class EnhancedModelPicker(ModalScreen[tuple[str, str] | None]):
                             VerticalScroll(id=f"models-scroll-{provider_name}"),
                         ):
                             # Add model cards
-                            for model in models:
-                                is_current = model.id == self.current_model
-                                card = ModelCard(model, is_current=is_current)
-                                card.add_class(f"model-card-{provider_name}")
-                                yield card
+                            model_entry: ModelEntry
+                            for model_entry in models:
+                                is_current = model_entry.id == self.current_model
+                                cloud_model_card: ModelCard = ModelCard(
+                                    model_entry, is_current=is_current
+                                )
+                                cloud_model_card.add_class(
+                                    f"model-card-{provider_name}"
+                                )
+                                yield cloud_model_card
 
     def on_mount(self) -> None:
         """Handle mount event."""
-        # Pre-select the current model
-        for card in self.query(ModelCard):
-            if card.model_id == self.current_model:
-                card.is_selected = True
-                self._selected_model_id = card.model_id
-                self._selected_provider = card.provider
+        # Pre-select the current model (check both cloud and local cards)
+        cloud_card: ModelCard
+        for cloud_card in self.query(ModelCard):
+            if cloud_card.model_id == self.current_model:
+                cloud_card.is_selected = True
+                self._selected_model_id = cloud_card.model_id
+                self._selected_provider = cloud_card.provider
+                break
+
+        local_card: LocalModelCard
+        for local_card in self.query(LocalModelCard):
+            if local_card.model_id == self.current_model:
+                local_card.is_selected = True
+                self._selected_model_id = local_card.model_id
+                self._selected_provider = local_card.provider
                 break
 
         # Focus the search input for the current provider
         search_id = f"search-{self.current_provider.value}"
+        # For local providers, use local search
+        if self.current_provider.value in ("ollama", "llamacpp", "mlx", "huggingface"):
+            search_id = "search-local"
+
         try:
             search_input = self.query_one(f"#{search_id}", Input)
             search_input.focus()
@@ -236,6 +449,15 @@ class EnhancedModelPicker(ModalScreen[tuple[str, str] | None]):
 
     def on_model_card_card_clicked(self, message: ModelCard.CardClicked) -> None:
         """Handle model card clicks - select and dismiss immediately."""
+        message.stop()
+
+        # Select and dismiss with the clicked model
+        self.dismiss((message.provider, message.model_id))
+
+    def on_local_model_card_card_clicked(
+        self, message: LocalModelCard.CardClicked
+    ) -> None:
+        """Handle local model card clicks - select and dismiss immediately."""
         message.stop()
 
         # Select and dismiss with the clicked model
@@ -289,6 +511,12 @@ class EnhancedModelPicker(ModalScreen[tuple[str, str] | None]):
 
     def _apply_capability_filters(self, provider: str) -> None:
         """Apply capability filters to cards for the given provider."""
+        # Handle local tab separately
+        if provider == "local":
+            self._apply_local_filters()
+            return
+
+        # Handle cloud provider tabs
         for card in self.query(ModelCard):
             if not card.has_class(f"model-card-{provider}"):
                 continue
@@ -313,6 +541,46 @@ class EnhancedModelPicker(ModalScreen[tuple[str, str] | None]):
 
             # Show only if both search and capability match
             card.display = search_match and capability_match
+
+    def _apply_local_filters(self) -> None:
+        """Apply filters to local model cards."""
+        query = self.search_query.lower()
+
+        for card in self.query(LocalModelCard):
+            if not card.has_class("model-card-local"):
+                continue
+
+            # First check if it matches search query
+            search_match = True
+            if query:
+                name_match = query in card.model.name.lower()
+                desc_match = query in card.model.description.lower()
+                search_match = name_match or desc_match
+
+            # Then check provider/capability filters
+            filter_match = True
+            if self.filter_vision:
+                # Vision filter
+                filter_match = card.model.supports_vision
+            elif self.filter_tools:
+                # Tools filter (not applicable to local, show all)
+                filter_match = True
+            elif self.filter_reasoning:
+                # Reasoning filter (not applicable to local, show all)
+                filter_match = True
+            else:
+                # Check for provider-specific filter by looking at select value
+                # This will be "ollama", "llamacpp", "mlx", "huggingface", or "all"
+                try:
+                    select = self.query_one("#filter-local", Select)
+                    filter_value = str(select.value)
+                    if filter_value in ("ollama", "llamacpp", "mlx", "huggingface"):
+                        filter_match = card.model.provider == filter_value
+                except Exception:
+                    pass
+
+            # Show only if both search and filter match
+            card.display = search_match and filter_match
 
     def action_cancel(self) -> None:
         """Cancel action."""

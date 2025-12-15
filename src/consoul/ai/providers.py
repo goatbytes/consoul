@@ -97,6 +97,51 @@ API_KEY_ENV_VARS = {
 }
 
 
+def _extract_context_from_config(config_path: Path) -> int | None:
+    """Extract context window size from HuggingFace config.json.
+
+    Args:
+        config_path: Path to config.json file
+
+    Returns:
+        Context window size in tokens, or None if not found
+
+    Example:
+        >>> from pathlib import Path
+        >>> config_path = Path("~/.cache/huggingface/hub/.../config.json")
+        >>> context = _extract_context_from_config(config_path)
+        >>> print(context)
+        40960
+    """
+    import json
+
+    try:
+        if not config_path.exists():
+            return None
+
+        with open(config_path) as f:
+            config = json.load(f)
+
+        # Try common config keys for context size
+        # Different model architectures use different key names
+        context_keys = [
+            "max_position_embeddings",  # Most common (BERT, GPT, Llama, etc.)
+            "n_positions",  # GPT-2, GPT-J
+            "seq_length",  # Some older models
+            "max_sequence_length",  # Alternative naming
+            "model_max_length",  # Tokenizer config (sometimes in config.json)
+        ]
+
+        for key in context_keys:
+            if key in config:
+                return int(config[key])
+
+        return None
+
+    except Exception:
+        return None
+
+
 def is_ollama_running(base_url: str = "http://localhost:11434") -> bool:
     """Check if Ollama service is running locally.
 
@@ -187,16 +232,23 @@ def get_huggingface_local_models() -> list[dict[str, Any]]:
     Scans the HuggingFace cache directory (~/.cache/huggingface/hub/) and
     returns information about downloaded models.
 
+    Filters out:
+    - MLX models (already discovered by get_local_mlx_models)
+    - GGUF models (already discovered by get_gguf_models_from_cache)
+
+    Returns models with safetensors, PyTorch bin files, etc.
+
     Returns:
-        List of model dicts with 'name', 'size', and 'revisions' keys.
+        List of model dicts with 'name', 'size', 'model_type', and 'revisions' keys.
         Sorted by name. Returns empty list if no models cached or scan fails.
 
     Example:
         >>> models = get_huggingface_local_models()
         >>> for model in models:
-        ...     print(f"{model['name']} ({model['size_gb']:.1f}GB)")
-        meta-llama/Llama-3.1-8B-Instruct (8.5GB)
-        google/flan-t5-base (1.2GB)
+        ...     name, size, model_type = model['name'], model['size_gb'], model['model_type']
+        ...     print(f"{name} ({size:.1f}GB) - {model_type}")
+        meta-llama/Llama-3.1-8B-Instruct (8.5GB) - safetensors
+        google/flan-t5-base (1.2GB) - pytorch
     """
     try:
         from huggingface_hub import scan_cache_dir
@@ -211,15 +263,61 @@ def get_huggingface_local_models() -> list[dict[str, Any]]:
         model_list: list[dict[str, Any]] = []
         for repo in cache_info.repos:
             # Only include models (not datasets)
-            if repo.repo_type == "model":
-                model_info: dict[str, Any] = {
-                    "name": repo.repo_id,
-                    "size": repo.size_on_disk,
-                    "size_gb": repo.size_on_disk / (1024**3),  # Convert to GB
-                    "nb_files": repo.nb_files,
-                    "revisions": len(list(repo.revisions)),
-                }
-                model_list.append(model_info)
+            if repo.repo_type != "model":
+                continue
+
+            repo_id = repo.repo_id.lower()
+
+            # Skip MLX models (discovered separately)
+            if "mlx" in repo_id or "mlx-community" in repo_id:
+                continue
+
+            # Check if this repo has any files (need to look at snapshot)
+            if not repo.revisions:
+                continue
+
+            latest_revision = next(iter(repo.revisions))
+            snapshot_path = latest_revision.snapshot_path
+
+            if not snapshot_path.exists():
+                continue
+
+            # Skip if only contains GGUF files (discovered separately)
+            has_gguf = any(snapshot_path.glob("*.gguf"))
+            has_other = (
+                any(snapshot_path.glob("*.safetensors"))
+                or any(snapshot_path.glob("*.bin"))
+                or any(snapshot_path.glob("pytorch_model*.bin"))
+                or any(snapshot_path.glob("model*.safetensors"))
+            )
+
+            # Skip repos that only have GGUF files
+            if has_gguf and not has_other:
+                continue
+
+            # Detect model type from files
+            model_type = "unknown"
+            if any(snapshot_path.glob("*.safetensors")):
+                model_type = "safetensors"
+            elif any(snapshot_path.glob("*.bin")):
+                model_type = "pytorch"
+            elif any(snapshot_path.glob("*.msgpack")):
+                model_type = "flax"
+
+            # Extract context size from config.json
+            config_path = snapshot_path / "config.json"
+            context_size = _extract_context_from_config(config_path)
+
+            model_info: dict[str, Any] = {
+                "name": repo.repo_id,
+                "size": repo.size_on_disk,
+                "size_gb": repo.size_on_disk / (1024**3),  # Convert to GB
+                "nb_files": repo.nb_files,
+                "revisions": len(list(repo.revisions)),
+                "model_type": model_type,
+                "context_size": context_size,
+            }
+            model_list.append(model_info)
 
         # Sort by name alphabetically
         model_list.sort(key=lambda m: m.get("name", "").lower())
@@ -238,26 +336,93 @@ _GGUF_CACHE_TTL = 300  # 5 minutes in seconds
 def _scan_gguf_models() -> list[dict[str, Any]]:
     """Internal function to scan GGUF models from cache directories.
 
-    This is the actual scanning logic, separated for caching purposes.
+    Optimized to use HuggingFace scan_cache_dir() for better performance.
     """
     from pathlib import Path
 
     gguf_models: list[dict[str, Any]] = []
+    seen_paths: set[str] = set()
 
-    # Directories to scan for GGUF models
-    scan_dirs = [
-        Path.home() / ".cache" / "huggingface" / "hub",
+    # 1. Scan HuggingFace cache using scan_cache_dir() (most efficient)
+    try:
+        from huggingface_hub import scan_cache_dir
+
+        hf_cache_info = scan_cache_dir()
+
+        for repo in hf_cache_info.repos:
+            if repo.revisions:
+                latest_revision = next(iter(repo.revisions))
+                snapshot_path = latest_revision.snapshot_path
+
+                if snapshot_path.exists():
+                    # Look for .gguf files in this repo
+                    for gguf_file in snapshot_path.glob("*.gguf"):
+                        try:
+                            size_bytes = gguf_file.stat().st_size
+                            size_gb = size_bytes / (1024**3)
+                            model_path = str(gguf_file)
+
+                            if model_path not in seen_paths:
+                                seen_paths.add(model_path)
+
+                                # Extract quantization type from filename
+                                name = gguf_file.name
+                                quant = "unknown"
+                                for q in [
+                                    "IQ4",
+                                    "IQ3",
+                                    "Q4",
+                                    "Q5",
+                                    "Q8",
+                                    "Q2",
+                                    "Q3",
+                                    "Q6",
+                                    "F16",
+                                    "F32",
+                                ]:
+                                    if q.lower() in name.lower():
+                                        quant = q
+                                        break
+
+                                gguf_models.append(
+                                    {
+                                        "name": name,
+                                        "path": model_path,
+                                        "size": size_bytes,
+                                        "size_gb": size_gb,
+                                        "quant": quant,
+                                        "repo": repo.repo_id,
+                                    }
+                                )
+                        except Exception:
+                            continue
+    except Exception:
+        # If HuggingFace Hub not available, fall back to manual scan
+        pass
+
+    # 2. Manual scan for LM Studio and other directories
+    manual_scan_dirs = [
         Path.home() / ".lmstudio" / "models",
     ]
 
-    for cache_dir in scan_dirs:
+    # Only scan HF cache manually if scan_cache_dir() failed
+    if not gguf_models:
+        manual_scan_dirs.insert(0, Path.home() / ".cache" / "huggingface" / "hub")
+
+    for cache_dir in manual_scan_dirs:
         if not cache_dir.exists():
             continue
 
         # Search for .gguf files in all repo directories
         for gguf_file in cache_dir.rglob("*.gguf"):
             try:
-                # Get actual file size (resolve symlink if needed)
+                model_path = str(gguf_file)
+                if model_path in seen_paths:
+                    continue
+
+                seen_paths.add(model_path)
+
+                # Get actual file size
                 actual_file = gguf_file.resolve()
                 size_bytes = actual_file.stat().st_size
                 size_gb = size_bytes / (1024**3)
@@ -293,22 +458,22 @@ def _scan_gguf_models() -> list[dict[str, Any]]:
                             break
                 elif cache_dir.name == "models":
                     # LM Studio format: Org/ModelName/file.gguf
-                    # Get the two parent directories (Org/ModelName)
                     parts = gguf_file.relative_to(cache_dir).parts
                     if len(parts) >= 3:
                         repo_dir = f"{parts[0]}/{parts[1]}"
                     elif len(parts) == 2:
                         repo_dir = parts[0]
 
-                model_info: dict[str, Any] = {
-                    "name": name,
-                    "path": str(gguf_file),
-                    "size": size_bytes,
-                    "size_gb": size_gb,
-                    "quant": quant,
-                    "repo": repo_dir or "unknown",
-                }
-                gguf_models.append(model_info)
+                gguf_models.append(
+                    {
+                        "name": name,
+                        "path": model_path,
+                        "size": size_bytes,
+                        "size_gb": size_gb,
+                        "quant": quant,
+                        "repo": repo_dir or "unknown",
+                    }
+                )
 
             except Exception:
                 # Skip files we can't read
@@ -367,31 +532,81 @@ def get_gguf_models_from_cache(force_refresh: bool = False) -> list[dict[str, An
     return models
 
 
-def get_local_mlx_models() -> list[dict[str, Any]]:
+def get_local_mlx_models(use_cache: bool = True) -> list[dict[str, Any]]:
     """Scan for locally downloaded MLX models.
 
-    Looks in both ~/.lmstudio/models and ~/.cache/mlx for directories
-    containing MLX model files (identified by config.json and .safetensors).
+    Optimized to use HuggingFace scan_cache_dir() for better performance.
+    Looks in HuggingFace cache, ~/.cache/mlx, and ~/.lmstudio/models.
+
+    Args:
+        use_cache: Use cached results if available (default: True)
 
     Returns:
         List of MLX model dicts with 'name', 'path', 'size_gb' keys.
+        Sorted by name.
     """
     from pathlib import Path
 
     mlx_models: list[dict[str, Any]] = []
+    seen_paths: set[str] = set()
 
-    # Directories to scan for MLX models
-    scan_dirs = [
-        Path.home() / ".lmstudio" / "models",
+    # 1. Scan HuggingFace cache using scan_cache_dir() (most efficient)
+    try:
+        from huggingface_hub import scan_cache_dir
+
+        hf_cache_info = scan_cache_dir()
+
+        # Filter for MLX models (mlx-community or models with mlx in name)
+        for repo in hf_cache_info.repos:
+            repo_id = repo.repo_id
+            if (
+                "mlx" in repo_id.lower() or "mlx-community" in repo_id
+            ) and repo.revisions:
+                latest_revision = next(iter(repo.revisions))
+                # HF cache path: ~/.cache/huggingface/hub/models--org--name/snapshots/hash
+                snapshot_path = latest_revision.snapshot_path
+
+                # Check if it's actually an MLX model (has safetensors)
+                if snapshot_path.exists():
+                    has_safetensors = any(snapshot_path.glob("*.safetensors"))
+                    if has_safetensors:
+                        size_gb = repo.size_on_disk / (1024**3)
+                        model_path = str(snapshot_path)
+
+                        # Extract context size from config.json
+                        config_path = snapshot_path / "config.json"
+                        context_size = _extract_context_from_config(config_path)
+
+                        if model_path not in seen_paths:
+                            seen_paths.add(model_path)
+                            mlx_models.append(
+                                {
+                                    "name": repo_id,
+                                    "path": model_path,
+                                    "size_gb": size_gb,
+                                    "context_size": context_size,
+                                }
+                            )
+    except Exception:
+        # If HuggingFace Hub not available or scan fails, continue with manual scan
+        pass
+
+    # 2. Manual scan for custom directories (fallback + additional locations)
+    custom_dirs = [
         Path.home() / ".cache" / "mlx",
+        Path.home() / ".lmstudio" / "models",
     ]
 
-    for base_dir in scan_dirs:
+    for base_dir in custom_dirs:
         if not base_dir.exists():
             continue
 
         # Look for directories with safetensors files (MLX format)
         for model_dir in base_dir.rglob("*/"):
+            model_path = str(model_dir)
+            if model_path in seen_paths:
+                continue
+
             # Check if this looks like an MLX model directory
             has_config = (model_dir / "config.json").exists()
             has_safetensors = any(model_dir.glob("*.safetensors"))
@@ -408,11 +623,17 @@ def get_local_mlx_models() -> list[dict[str, Any]]:
                 )
                 size_gb = total_size / (1024**3)
 
+                # Extract context size from config.json
+                config_path = model_dir / "config.json"
+                context_size = _extract_context_from_config(config_path)
+
+                seen_paths.add(model_path)
                 mlx_models.append(
                     {
                         "name": model_name,
-                        "path": str(model_dir),
+                        "path": model_path,
                         "size_gb": size_gb,
+                        "context_size": context_size,
                     }
                 )
 

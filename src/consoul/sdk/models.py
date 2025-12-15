@@ -259,6 +259,7 @@ class ModelInfo:
     description: str
     supports_vision: bool = False
     supports_tools: bool = True
+    supports_reasoning: bool = False
     max_output_tokens: int | None = None
     created: str | None = None
     pricing: PricingInfo | None = None
