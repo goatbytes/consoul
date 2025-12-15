@@ -509,7 +509,7 @@ async def websocket_endpoint(websocket: WebSocket):
     # Import SDK components (demonstrates low-level usage)
     from consoul.ai import get_chat_model
     from consoul.ai.async_streaming import async_stream_events
-    from consoul.ai.tools import create_registry
+    from consoul.ai.tools import ToolRegistry
 
     # Initialize model
     try:
@@ -526,7 +526,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
     config = ConsoulConfig()
     config.tools.allowed_tools = ["bash"]  # Enable bash for testing
-    tool_registry = create_registry(config)
+    tool_registry = ToolRegistry(config)
 
     # Bind tools to model
     tools = tool_registry.get_tools()
