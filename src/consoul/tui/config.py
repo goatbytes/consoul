@@ -10,7 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from consoul.config.models import ConsoulCoreConfig
+from consoul.config.models import ConsoulCoreConfig  # noqa: TC001
 
 __all__ = ["ConsoulTuiConfig", "TuiConfig"]
 
@@ -188,6 +188,16 @@ class ConsoulTuiConfig(BaseModel):
     def thinking_models(self):  # type: ignore[no-untyped-def]
         """Access core.thinking_models."""
         return self.core.thinking_models
+
+    @property
+    def provider_configs(self):  # type: ignore[no-untyped-def]
+        """Access core.provider_configs."""
+        return self.core.provider_configs
+
+    @property
+    def tool_presets(self):  # type: ignore[no-untyped-def]
+        """Access core.tool_presets."""
+        return self.core.tool_presets
 
     def get_active_profile(self):  # type: ignore[no-untyped-def]
         """Delegate to core.get_active_profile()."""
