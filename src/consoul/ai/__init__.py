@@ -25,6 +25,7 @@ from consoul.ai.exceptions import (
 )
 from consoul.ai.history import ConversationHistory
 from consoul.ai.models import StreamChunk
+from consoul.ai.prompt_builder import build_enhanced_system_prompt
 from consoul.ai.providers import (
     build_model_params,
     get_chat_model,
@@ -71,6 +72,7 @@ __all__ = [
     "ToolRegistry",
     "ToolValidationError",
     "async_stream_events",
+    "build_enhanced_system_prompt",
     "build_model_params",
     "count_message_tokens",
     "create_token_counter",

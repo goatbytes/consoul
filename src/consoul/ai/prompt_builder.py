@@ -17,24 +17,27 @@ if TYPE_CHECKING:
 def build_system_prompt(
     base_prompt: str | None,
     tool_registry: ToolRegistry | None,
+    auto_append_tools: bool = True,
 ) -> str | None:
     """Build system prompt with dynamic tool documentation.
 
     Replaces the {AVAILABLE_TOOLS} marker in the base prompt with a dynamically
     generated tools section based on currently enabled tools.
 
-    If no marker is present but tools are available, appends tools section to end.
-    This provides smart fallback for custom profiles without explicit markers.
+    If no marker is present but tools are available, appends tools section to end
+    (controlled by auto_append_tools parameter).
 
     Args:
         base_prompt: Base system prompt template (may contain {AVAILABLE_TOOLS})
         tool_registry: Tool registry to query for enabled tools (optional)
+        auto_append_tools: If False, only replace {AVAILABLE_TOOLS} marker,
+                          don't auto-append when marker is absent (default: True)
 
     Returns:
         Complete system prompt with tool documentation, or None if no base prompt
 
     Example:
-        >>> # With marker
+        >>> # With marker (always replaced regardless of auto_append_tools)
         >>> prompt = build_system_prompt(
         ...     "You are an AI assistant.\\n\\n{AVAILABLE_TOOLS}",
         ...     tool_registry
@@ -42,13 +45,22 @@ def build_system_prompt(
         >>> "bash_execute" in prompt
         True
 
-        >>> # Without marker (smart fallback)
+        >>> # Without marker (auto-append enabled - default behavior)
         >>> prompt = build_system_prompt(
         ...     "You are an AI assistant.",
         ...     tool_registry  # has tools
         ... )
         >>> "# Available Tools" in prompt
         True
+
+        >>> # Without marker (auto-append disabled - SDK use case)
+        >>> prompt = build_system_prompt(
+        ...     "You are an AI assistant.",
+        ...     tool_registry,  # has tools
+        ...     auto_append_tools=False
+        ... )
+        >>> "# Available Tools" in prompt
+        False
     """
     if not base_prompt:
         return None
@@ -60,7 +72,7 @@ def build_system_prompt(
         if enabled_tools:
             tools_section = format_tools_documentation(enabled_tools)
 
-    # Strategy 1: Replace marker if present
+    # Strategy 1: Replace marker if present (always, regardless of auto_append_tools)
     if "{AVAILABLE_TOOLS}" in base_prompt:
         if tools_section:
             return base_prompt.replace("{AVAILABLE_TOOLS}", tools_section)
@@ -68,13 +80,92 @@ def build_system_prompt(
             # No tools - replace with "no tools" message
             return base_prompt.replace("{AVAILABLE_TOOLS}", _format_no_tools_message())
 
-    # Strategy 2: Smart fallback - append tools if available
-    if tools_section:
+    # Strategy 2: Smart fallback - append tools ONLY if auto_append_tools is True
+    if auto_append_tools and tools_section:
         # Append tools section to end (for profiles without explicit marker)
         return f"{base_prompt}\n\n{tools_section}"
 
-    # Strategy 3: No marker, no tools - return as-is
+    # Strategy 3: No marker, auto-append disabled, or no tools - return as-is
     return base_prompt
+
+
+def build_enhanced_system_prompt(
+    base_prompt: str | None,
+    tool_registry: ToolRegistry | None = None,
+    include_env_context: bool = True,
+    include_git_context: bool = True,
+    auto_append_tools: bool = True,
+) -> str | None:
+    """Build system prompt with full control over all injections.
+
+    One-stop function for comprehensive prompt building with control over
+    environment context, git info, and tool documentation. Perfect for SDK
+    users who want fine-grained control.
+
+    Args:
+        base_prompt: Base system prompt template (may contain {AVAILABLE_TOOLS})
+        tool_registry: Optional tool registry for tool documentation
+        include_env_context: Include OS/shell/working directory info (default: True)
+        include_git_context: Include git repository info (default: True)
+        auto_append_tools: Auto-append tool docs if no marker present (default: True)
+
+    Returns:
+        Complete system prompt with requested injections, or None if no base prompt
+
+    Example - SDK user with full control:
+        >>> # Tools enabled but no docs, no env context
+        >>> prompt = build_enhanced_system_prompt(
+        ...     "You are an AI assistant.",
+        ...     tool_registry=my_registry,
+        ...     include_env_context=False,
+        ...     include_git_context=False,
+        ...     auto_append_tools=False,
+        ... )
+        >>> prompt == "You are an AI assistant."
+        True
+
+    Example - CLI/TUI default behavior:
+        >>> # Everything enabled (current behavior)
+        >>> prompt = build_enhanced_system_prompt(
+        ...     "You are an AI assistant.",
+        ...     tool_registry=my_registry,
+        ... )
+        >>> "Working Directory:" in prompt
+        True
+        >>> "# Available Tools" in prompt
+        True
+
+    Example - Custom tool doc placement:
+        >>> # Use marker for control
+        >>> prompt = build_enhanced_system_prompt(
+        ...     "Assistant\\n\\n{AVAILABLE_TOOLS}\\n\\nContext:",
+        ...     tool_registry=my_registry,
+        ...     include_env_context=False,
+        ... )
+        >>> "# Available Tools" in prompt
+        True
+        >>> "{AVAILABLE_TOOLS}" not in prompt
+        True
+    """
+    if not base_prompt:
+        return None
+
+    # Inject environment context if requested
+    if include_env_context or include_git_context:
+        from consoul.ai.environment import get_environment_context
+
+        env_context = get_environment_context(
+            include_system_info=include_env_context,
+            include_git_info=include_git_context,
+        )
+        if env_context:
+            # Prepend environment context to system prompt
+            base_prompt = f"{env_context}\n\n{base_prompt}"
+
+    # Build final prompt with tool documentation
+    return build_system_prompt(
+        base_prompt, tool_registry, auto_append_tools=auto_append_tools
+    )
 
 
 def format_tools_documentation(tools: list[ToolMetadata]) -> str:

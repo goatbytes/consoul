@@ -101,7 +101,15 @@ class ConversationService:
         self.executor = ThreadPoolExecutor(max_workers=1)
 
     @classmethod
-    def from_config(cls, config: ConsoulConfig | None = None) -> ConversationService:
+    def from_config(
+        cls,
+        config: ConsoulConfig | None = None,
+        custom_system_prompt: str | None = None,
+        include_tool_docs: bool = True,
+        include_env_context: bool = True,
+        include_git_context: bool = True,
+        auto_append_tools: bool = True,
+    ) -> ConversationService:
         """Create ConversationService from configuration.
 
         Factory method that initializes model, conversation history, and
@@ -110,16 +118,31 @@ class ConversationService:
 
         Args:
             config: Optional Consoul configuration (loads default if None)
+            custom_system_prompt: Custom system prompt (overrides profile prompt)
+            include_tool_docs: Include tool documentation in system prompt (default: True)
+            include_env_context: Include OS/shell/directory info (default: True)
+            include_git_context: Include git repository info (default: True)
+            auto_append_tools: Auto-append tool docs if no marker present (default: True)
 
         Returns:
             Initialized ConversationService ready for use
 
-        Example:
+        Example - Default behavior (CLI/TUI):
             >>> service = ConversationService.from_config()
-            >>> # Or with custom config:
-            >>> from consoul.config import ConsoulConfig
-            >>> config = ConsoulConfig.load()
-            >>> service = ConversationService.from_config(config)
+
+        Example - SDK with custom prompt, tools but no docs:
+            >>> service = ConversationService.from_config(
+            ...     custom_system_prompt="My AI assistant",
+            ...     include_tool_docs=False,  # Tools enabled, not documented
+            ... )
+
+        Example - Full SDK control:
+            >>> service = ConversationService.from_config(
+            ...     custom_system_prompt="Clean prompt",
+            ...     include_tool_docs=False,
+            ...     include_env_context=False,
+            ...     include_git_context=False,
+            ... )
         """
         # Import here to avoid circular dependencies
         from consoul.ai import ConversationHistory, get_chat_model
@@ -213,6 +236,28 @@ class ConversationService:
             ]
             if enabled_tools:
                 model = model.bind_tools(enabled_tools)  # type: ignore[assignment]
+
+        # Build and add system prompt if configured
+        if custom_system_prompt:
+            # User provided custom prompt - use it verbatim
+            conversation.add_system_message(custom_system_prompt)
+        elif active_profile.system_prompt:
+            # Use profile prompt with controlled injections
+            from consoul.ai.prompt_builder import build_enhanced_system_prompt
+
+            # Only pass tool_registry if user wants tool docs
+            registry_for_prompt = tool_registry if include_tool_docs else None
+
+            system_prompt = build_enhanced_system_prompt(
+                base_prompt=active_profile.system_prompt,
+                tool_registry=registry_for_prompt,
+                include_env_context=include_env_context,
+                include_git_context=include_git_context,
+                auto_append_tools=auto_append_tools,
+            )
+
+            if system_prompt:
+                conversation.add_system_message(system_prompt)
 
         return cls(
             model=model,

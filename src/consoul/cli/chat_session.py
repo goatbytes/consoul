@@ -107,6 +107,8 @@ class ChatSession:
     def _build_system_prompt(self, profile: Any, config: ConsoulConfig) -> str:
         """Build complete system prompt with environment context and tool documentation.
 
+        Delegates to SDK's build_enhanced_system_prompt() for consistency.
+
         Args:
             profile: Active profile configuration
             config: Complete Consoul configuration
@@ -114,8 +116,7 @@ class ChatSession:
         Returns:
             Complete system prompt with environment context and tool documentation
         """
-        from consoul.ai.environment import get_environment_context
-        from consoul.ai.prompt_builder import build_system_prompt
+        from consoul.ai.prompt_builder import build_enhanced_system_prompt
 
         # Start with base system prompt from profile
         base_prompt = profile.system_prompt or ""
@@ -130,7 +131,7 @@ class ChatSession:
                 f"Prepended system prompt override ({len(self.system_prompt_override)} chars)"
             )
 
-        # Inject environment context if enabled
+        # Get context settings from profile
         include_system = (
             profile.context.include_system_info if hasattr(profile, "context") else True
         )
@@ -138,19 +139,13 @@ class ChatSession:
             profile.context.include_git_info if hasattr(profile, "context") else True
         )
 
-        if include_system or include_git:
-            env_context = get_environment_context(
-                include_system_info=include_system,
-                include_git_info=include_git,
-            )
-            if env_context:
-                # Prepend environment context to system prompt
-                base_prompt = f"{env_context}\n\n{base_prompt}"
-                logger.debug(f"Injected environment context ({len(env_context)} chars)")
-
-        # Build final system prompt with tool documentation
-        system_prompt = build_system_prompt(
-            base_prompt, self.conversation_service.tool_registry
+        # Use SDK builder with CLI defaults (auto-append enabled)
+        system_prompt = build_enhanced_system_prompt(
+            base_prompt=base_prompt,
+            tool_registry=self.conversation_service.tool_registry,
+            include_env_context=include_system,
+            include_git_context=include_git,
+            auto_append_tools=True,  # CLI wants auto-append
         )
 
         return system_prompt or base_prompt

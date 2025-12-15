@@ -42,23 +42,17 @@ class SystemPromptBuilder:
     def build(self) -> str | None:
         """Build complete system prompt with context and tool docs.
 
-        Injects environment context (OS, working directory, git info) based on
-        profile settings, then replaces {AVAILABLE_TOOLS} marker with dynamically
-        generated tool documentation.
+        Delegates to SDK's build_enhanced_system_prompt() for consistency.
 
         Returns:
             Complete system prompt with environment context and tool docs, or None
         """
-        from consoul.ai.environment import get_environment_context
-        from consoul.ai.prompt_builder import build_system_prompt
+        from consoul.ai.prompt_builder import build_enhanced_system_prompt
 
         if not self.profile or not self.profile.system_prompt:
             return None
 
-        # Start with base system prompt
-        base_prompt = self.profile.system_prompt
-
-        # Inject environment context if enabled
+        # Get context settings from profile
         include_system = (
             self.profile.context.include_system_info
             if hasattr(self.profile, "context")
@@ -70,15 +64,11 @@ class SystemPromptBuilder:
             else True
         )
 
-        if include_system or include_git:
-            env_context = get_environment_context(
-                include_system_info=include_system,
-                include_git_info=include_git,
-            )
-            if env_context:
-                # Prepend environment context to system prompt
-                base_prompt = f"{env_context}\n\n{base_prompt}"
-                logger.debug(f"Injected environment context ({len(env_context)} chars)")
-
-        # Build final system prompt with tool documentation
-        return build_system_prompt(base_prompt, self.tool_registry)
+        # Use SDK builder with TUI defaults (auto-append enabled)
+        return build_enhanced_system_prompt(
+            base_prompt=self.profile.system_prompt,
+            tool_registry=self.tool_registry,
+            include_env_context=include_system,
+            include_git_context=include_git,
+            auto_append_tools=True,  # TUI wants auto-append
+        )
