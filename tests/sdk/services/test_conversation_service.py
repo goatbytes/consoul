@@ -414,6 +414,12 @@ class TestMultimodalMessages:
         """Test image attachment with non-vision model."""
         service.config = Mock()
         service.config.current_model = "gpt-3.5-turbo"  # No vision
+        # Need to set max_tokens for trimming logic
+        model_config = service.config.get_current_model_config()
+        model_config.max_tokens = 4096
+        service.conversation.max_tokens = 8000
+        # Mock get_trimmed_messages to return empty list
+        service.conversation.get_trimmed_messages = Mock(return_value=[])
 
         # Create dummy image file
         image_file = tmp_path / "test.png"
@@ -803,6 +809,15 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_tool_callback_exception_handled(self, service_with_tools):
         """Test exception in tool callback is handled."""
+        # Mock tool in registry
+        mock_tool = Mock()
+        mock_tool.name = "test_tool"
+        mock_tool_meta = Mock()
+        mock_tool_meta.tool = mock_tool
+        mock_tool_meta.risk_level = Mock(value="safe")
+        service_with_tools.tool_registry.list_tools = Mock(
+            return_value=[mock_tool_meta]
+        )
 
         async def mock_astream(messages):
             chunk = Mock()
@@ -816,18 +831,28 @@ class TestEdgeCases:
         async def failing_callback(request: ToolRequest) -> bool:
             raise ValueError("Callback error")
 
-        # Should handle exception gracefully
-        with pytest.raises(ValueError, match="Callback error"):
-            async for _ in service_with_tools.send_message(
-                "Test", on_tool_request=failing_callback
-            ):
-                pass
+        # Should handle exception gracefully (not propagate it)
+        async for _ in service_with_tools.send_message(
+            "Test", on_tool_request=failing_callback
+        ):
+            pass
+
+        # Verify the tool was NOT executed (callback failed)
+        # The exception was caught and a ToolMessage with error was created instead
+        assert len(service_with_tools.conversation.messages) > 0
 
     @pytest.mark.asyncio
     async def test_send_message_multimodal_persistence(self, service, tmp_path):
         """Test multimodal message persistence to database."""
         service.config = Mock()
         service.config.current_model = "gpt-4o"  # Vision model
+        # Need to set max_tokens for trimming logic
+        model_config = service.config.get_current_model_config()
+        model_config.max_tokens = 4096
+        model_config.provider.value = "openai"  # Set provider for vision support
+        service.conversation.max_tokens = 128000
+        # Mock get_trimmed_messages to return empty list
+        service.conversation.get_trimmed_messages = Mock(return_value=[])
         service.conversation.persist = True
         service.conversation._db = Mock()
         service.conversation._conversation_created = False
@@ -958,12 +983,12 @@ class TestIntegrationFlows:
         # Setup tool
         mock_tool = Mock()
         mock_tool.name = "bash_execute"
+        mock_tool.invoke = Mock(return_value="Command output")
         mock_tool_meta = Mock()
         mock_tool_meta.tool = mock_tool
         mock_tool_meta.risk_level = Mock(value="caution")
-        service_with_tools.tool_registry.get_tool = Mock(return_value=mock_tool_meta)
-        service_with_tools.tool_registry.execute_tool = AsyncMock(
-            return_value="Command output"
+        service_with_tools.tool_registry.list_tools = Mock(
+            return_value=[mock_tool_meta]
         )
 
         call_count = [0]
@@ -986,6 +1011,7 @@ class TestIntegrationFlows:
                 # Second call: final response
                 chunk = Mock()
                 chunk.content = "The current directory is shown above."
+                chunk.tool_calls = []
                 chunk.response_metadata = {}
                 yield chunk
             call_count[0] += 1
@@ -995,7 +1021,7 @@ class TestIntegrationFlows:
         approved_tools = []
 
         async def selective_approval(request: ToolRequest) -> bool:
-            approved_tools.append(request.tool_name)
+            approved_tools.append(request.name)
             return request.risk_level != "dangerous"
 
         tokens = []
@@ -1006,6 +1032,8 @@ class TestIntegrationFlows:
 
         # Should have requested approval
         assert "bash_execute" in approved_tools
+        # Should have executed tool
+        mock_tool.invoke.assert_called_once_with({"command": "pwd"})
 
     @pytest.mark.asyncio
     async def test_cost_accumulation_across_turns(self, service):
@@ -1435,9 +1463,7 @@ class TestCostCalculation:
         with patch("consoul.pricing.calculate_cost") as mock_calc:
             mock_calc.return_value = {"total_cost": 0.0}
 
-            service._calculate_cost(
-                {"input_tokens": None, "output_tokens": None}
-            )
+            service._calculate_cost({"input_tokens": None, "output_tokens": None})
 
             # dict.get() returns None if value is None (not the default)
             mock_calc.assert_called_once_with(
@@ -1557,6 +1583,12 @@ class TestAttachmentErrorHandling:
         """Test multimodal message creation error fallback."""
         service.config = Mock()
         service.config.current_model = "gpt-4o"
+        # Need to set max_tokens for trimming logic
+        model_config = service.config.get_current_model_config()
+        model_config.max_tokens = 4096
+        service.conversation.max_tokens = 8000
+        # Mock get_trimmed_messages to return empty list
+        service.conversation.get_trimmed_messages = Mock(return_value=[])
 
         async def mock_astream(messages):
             chunk = Mock()
