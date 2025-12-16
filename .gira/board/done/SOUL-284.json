@@ -1,11 +1,11 @@
 {
   "created_at": "2025-12-15T22:54:53.063465",
-  "updated_at": "2025-12-16T06:55:06.629230Z",
+  "updated_at": "2025-12-15T23:59:23.631016",
   "id": "SOUL-284",
   "uuid": "fb06be94-e3d5-45f3-8c3c-4fa1fa4c7909",
   "title": "Release Consoul v0.4.0 - SDK Decoupling & Thinking Mode",
   "description": "Release v0.4.0 with SDK decoupling, thinking mode support, and async streaming architecture.\n\n## Release Highlights\n\n**Major Features:**\n- SDK Service Layer (ConversationService, ModelService, ToolService)\n- Thinking mode support for reasoning models (phi4, DeepSeek-R1, o1)\n- Async streaming architecture with WebSocket support\n- Headless SDK without UI dependencies\n- Enhanced model picker with card-based UI\n\n**Stats:**\n- 104 commits since v0.3.0\n- 22 new features\n- 37 bug fixes\n- No breaking changes\n\n## Release Tasks\n\n1. Update CHANGELOG.md\n2. Update version in pyproject.toml\n3. Run test suite and quality checks\n4. Build and publish MkDocs docs\n5. Commit version updates\n6. Merge develop to main\n7. Create git tag v0.4.0\n8. Create GitHub release (triggers PyPI publish)\n9. Verify PyPI and docs publication\n10. Post-release cleanup",
-  "status": "in_progress",
+  "status": "done",
   "type": "task",
   "priority": "high",
   "labels": [],
@@ -13,10 +13,24 @@
   "epic_id": "EPIC-010",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-12-15T23:59:23.630911",
+      "updated_at": "2025-12-15T23:59:23.630912",
+      "id": "20251215235923-95d969dc",
+      "ticket_id": "SOUL-284",
+      "author": "jared@goatbytes.io",
+      "content": "Release v0.4.0 completed successfully. GitHub release created at https://github.com/goatbytes/consoul/releases/tag/v0.4.0. PyPI publication will complete automatically via GitHub Actions.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "order": 0,
   "custom_fields": {}
 }
