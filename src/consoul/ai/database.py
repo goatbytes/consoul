@@ -26,7 +26,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -224,7 +224,7 @@ class ConversationDatabase:
             True
         """
         session_id = session_id or str(uuid.uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         metadata_json = json.dumps(metadata or {})
 
         try:
@@ -276,7 +276,7 @@ class ConversationDatabase:
             >>> msg_id > 0
             True
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         # Default message_type to role if not specified
         msg_type = message_type or role
 
@@ -345,7 +345,7 @@ class ConversationDatabase:
         Raises:
             DatabaseError: If save operation fails
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -565,7 +565,7 @@ class ConversationDatabase:
                 # Update summary
                 conn.execute(
                     "UPDATE conversations SET summary = ?, updated_at = ? WHERE session_id = ?",
-                    (summary, datetime.utcnow().isoformat(), session_id),
+                    (summary, datetime.now(timezone.utc).isoformat(), session_id),
                 )
         except ConversationNotFoundError:
             raise
@@ -687,7 +687,7 @@ class ConversationDatabase:
                 branch_metadata = {
                     "branched_from": source_session_id,
                     "branch_message_id": branch_at_message_id,
-                    "branch_timestamp": datetime.utcnow().isoformat(),
+                    "branch_timestamp": datetime.now(timezone.utc).isoformat(),
                 }
 
                 # Merge with title from source if available
@@ -754,7 +754,7 @@ class ConversationDatabase:
                 # Update conversation updated_at timestamp
                 conn.execute(
                     "UPDATE conversations SET updated_at = ? WHERE session_id = ?",
-                    (datetime.utcnow().isoformat(), new_session_id),
+                    (datetime.now(timezone.utc).isoformat(), new_session_id),
                 )
 
                 return new_session_id
@@ -1132,7 +1132,7 @@ class ConversationDatabase:
                 metadata_json = json.dumps(existing_metadata)
 
                 # Update metadata and updated_at timestamp
-                now = datetime.utcnow().isoformat()
+                now = datetime.now(timezone.utc).isoformat()
                 conn.execute(
                     "UPDATE conversations SET metadata = ?, updated_at = ? WHERE session_id = ?",
                     (metadata_json, now, session_id),

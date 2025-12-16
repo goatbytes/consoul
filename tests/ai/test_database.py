@@ -837,7 +837,7 @@ class TestRetentionCleanup:
     def test_delete_conversations_older_than(self, tmp_path):
         """Test deleting conversations older than specified days."""
         import sqlite3
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         db = ConversationDatabase(tmp_path / "test.db")
 
@@ -851,7 +851,7 @@ class TestRetentionCleanup:
 
         # Manually update the old conversation's timestamp to 31 days ago
         # (must be done after save_message since it updates updated_at)
-        old_timestamp = (datetime.utcnow() - timedelta(days=31)).isoformat()
+        old_timestamp = (datetime.now(timezone.utc) - timedelta(days=31)).isoformat()
         with sqlite3.connect(db.db_path) as conn:
             conn.execute(
                 "UPDATE conversations SET updated_at = ? WHERE session_id = ?",
@@ -888,7 +888,7 @@ class TestRetentionCleanup:
     def test_delete_conversations_older_than_cascades(self, tmp_path):
         """Test that deleting old conversations also deletes their messages."""
         import sqlite3
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         db = ConversationDatabase(tmp_path / "test.db")
 
@@ -898,7 +898,7 @@ class TestRetentionCleanup:
         db.save_message(session_old, "assistant", "Old message 2", 5)
 
         # Make it old (must be done after save_message since it updates updated_at)
-        old_timestamp = (datetime.utcnow() - timedelta(days=31)).isoformat()
+        old_timestamp = (datetime.now(timezone.utc) - timedelta(days=31)).isoformat()
         with sqlite3.connect(db.db_path) as conn:
             conn.execute(
                 "UPDATE conversations SET updated_at = ? WHERE session_id = ?",

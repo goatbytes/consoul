@@ -31,7 +31,7 @@ Example:
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import (
@@ -575,7 +575,7 @@ class ConversationHistory:
         # Build metadata
         metadata: dict[str, Any] = {
             "system_prompt": str(system_prompt),
-            "system_prompt_stored_at": datetime.utcnow().isoformat(),
+            "system_prompt_stored_at": datetime.now(timezone.utc).isoformat(),
         }
         if profile_name:
             metadata["profile_name"] = profile_name
