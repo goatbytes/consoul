@@ -428,6 +428,13 @@ class ProfileUIOrchestrator:
                 app.conversation._model = app.chat_model
                 app.conversation.model_name = app.current_model
 
+            # Update ConversationService model reference (CRITICAL!)
+            if hasattr(app, "conversation_service") and app.conversation_service:
+                app.conversation_service.model = app.chat_model
+                logger.debug(
+                    f"Updated ConversationService model reference to {model_name}"
+                )
+
             # Update top bar display
             app._update_top_bar_state()
 
