@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from consoul.sdk.thinking import ThinkingDetector
 from consoul.tui.utils.streaming_widget_manager import StreamingWidgetManager
 
 if TYPE_CHECKING:
@@ -40,6 +41,7 @@ class StreamingOrchestrator:
         self.conversation_service = conversation_service
         self.chat_view = chat_view
         self.app = app
+        self.thinking_detector = ThinkingDetector()
 
     async def stream_message(
         self, content: str, attachments: list[Attachment] | None = None
@@ -86,10 +88,8 @@ class StreamingOrchestrator:
                 if first_token:
                     first_token_content = token.content
 
-                    # Check if first token indicates thinking mode
-                    from consoul.tui.widgets import StreamingResponse
-
-                    if StreamingResponse().detect_thinking_start(first_token_content):
+                    # Check if first token indicates thinking mode (SDK detector)
+                    if self.thinking_detector.detect_start(first_token_content):
                         thinking_mode = True
                         logger.debug(
                             "[THINKING] Detected thinking tags at start of stream"
@@ -132,10 +132,12 @@ class StreamingOrchestrator:
                     if thinking_indicator:
                         await thinking_indicator.add_token(token.content)
 
-                    # Check if thinking has ended
+                    # Check if thinking has ended (SDK detector)
                     if (
                         stream_manager.stream_widget
-                        and stream_manager.stream_widget.detect_thinking_end()
+                        and self.thinking_detector.detect_end(
+                            stream_manager.stream_widget.thinking_buffer
+                        )
                     ):
                         logger.debug(
                             "[THINKING] Detected end of thinking tags, switching to normal streaming"

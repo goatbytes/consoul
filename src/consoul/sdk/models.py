@@ -220,6 +220,37 @@ class ModelCapabilities:
 
 
 @dataclass
+class ThinkingContent:
+    """Extracted thinking content from reasoning model responses.
+
+    Reasoning models (DeepSeek-R1, Qwen QWQ, o1-preview) output chain-of-thought
+    reasoning in XML tags like <think>...</think>. This model separates the
+    thinking process from the final answer.
+
+    Attributes:
+        thinking: Content within thinking tags (reasoning process)
+        answer: Content outside thinking tags (final response)
+        has_thinking: Whether thinking content was detected
+
+    Example:
+        >>> detector = ThinkingDetector()
+        >>> content = detector.extract(
+        ...     "<think>Let me solve this...</think>The answer is 42"
+        ... )
+        >>> print(content.thinking)
+        Let me solve this...
+        >>> print(content.answer)
+        The answer is 42
+        >>> if content.has_thinking:
+        ...     # Show thinking in collapsible UI element
+    """
+
+    thinking: str
+    answer: str
+    has_thinking: bool
+
+
+@dataclass
 class ModelInfo:
     """Information about an available AI model.
 
