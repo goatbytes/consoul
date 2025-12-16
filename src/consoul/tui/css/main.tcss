@@ -188,7 +188,6 @@ ChatView:focus {
 }
 
 .thinking-section > CollapsibleTitle {
-    background: $surface-darken-2;
     color: $text-muted;
     text-style: italic;
     padding: 0 1;
