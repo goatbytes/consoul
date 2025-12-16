@@ -10,11 +10,12 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from consoul.tui.utils.streaming_widget_manager import StreamingWidgetManager
+
 if TYPE_CHECKING:
     from consoul.sdk.models import Attachment
     from consoul.sdk.services.conversation import ConversationService
     from consoul.tui.app import ConsoulApp
-    from consoul.tui.utils.streaming_widget_manager import StreamingWidgetManager
     from consoul.tui.widgets.chat_view import ChatView
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,6 @@ class StreamingOrchestrator:
             attachments: Optional list of file attachments
         """
         from consoul.tui.app import TUIToolApprover
-        from consoul.tui.utils import StreamingWidgetManager
 
         # Update streaming state
         self.app.streaming = True
@@ -61,6 +61,9 @@ class StreamingOrchestrator:
 
         # Begin timing BEFORE API request to accurately measure time-to-first-token
         stream_manager.begin_timing()
+
+        # Store content for potential retry
+        user_message = content
 
         try:
             # Create tool approver for this conversation
@@ -103,7 +106,68 @@ class StreamingOrchestrator:
 
         except Exception as e:
             logger.error(f"Error streaming via ConversationService: {e}", exc_info=True)
+
+            # Check if this is a "model does not support tools" error from Ollama
+            error_msg = str(e).lower()
+            if "does not support tools" in error_msg and "400" in error_msg:
+                logger.warning(
+                    f"Model {self.app.current_model} rejected tool calls. "
+                    "Retrying without tools..."
+                )
+
+                # Remove tool binding by reinitializing model
+                await self._retry_without_tools(stream_manager, user_message)
+                return
+
+            # Handle other errors normally
             await stream_manager.handle_stream_error(e)
+
+    async def _retry_without_tools(
+        self, stream_manager: StreamingWidgetManager, user_message: str
+    ) -> None:
+        """Retry streaming after removing tool binding from model.
+
+        This handles the case where an Ollama model accepts bind_tools()
+        but rejects tool usage at runtime with a 400 error.
+
+        Args:
+            stream_manager: Stream manager to clean up and restart
+            user_message: Original user message to retry
+        """
+        # Remove the failed stream widget if it exists
+        if stream_manager.stream_widget:
+            await stream_manager.stream_widget.remove()
+
+        # Reinitialize model WITHOUT tools by creating fresh ModelService
+        # This automatically skips tool binding if model doesn't support it
+        from consoul.sdk.services import ModelService
+
+        # Create new ModelService without tool_service to skip tool binding
+        if self.app.consoul_config:
+            self.app.model_service = ModelService.from_config(
+                self.app.consoul_config,  # type: ignore[arg-type]
+                tool_service=None,
+            )
+            self.app.chat_model = self.app.model_service.get_model()
+
+            # Update ConversationService model reference
+            if self.conversation_service:
+                self.conversation_service.model = self.app.chat_model
+
+            # Update Conversation model reference
+            if self.app.conversation:
+                self.app.conversation._model = self.app.chat_model
+
+        # Show notification to user
+        self.app.notify(
+            f"Model {self.app.current_model} doesn't support tools. Retrying...",
+            severity="warning",
+            timeout=3,
+        )
+
+        # Retry streaming by calling stream_message again
+        # The conversation already has the user message, so we pass the same content
+        await self.stream_message(user_message)
 
     async def _handle_title_generation(
         self, stream_manager: StreamingWidgetManager

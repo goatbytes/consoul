@@ -201,7 +201,22 @@ class ModelService:
         if not tool_metadata_list:
             return
 
-        # Check if model supports tool calling
+        # Check registry for tool support (only works for registered models)
+        try:
+            from consoul.registry import get_model as get_registry_model
+
+            registry_entry = get_registry_model(self.current_model_id)
+            if registry_entry and not registry_entry.supports_tools():
+                logger.info(
+                    f"Model {self.current_model_id} does not support tools "
+                    "(verified by registry). Skipping tool binding."
+                )
+                return
+        except Exception:
+            # Registry check failed - continue with runtime check
+            pass
+
+        # Runtime check using LangChain bind_tools (for non-registry models like Ollama)
         if not supports_tool_calling(self._model):
             logger.warning(
                 f"Model {self.current_model_id} does not support tool calling. "
