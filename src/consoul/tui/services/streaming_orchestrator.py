@@ -65,6 +65,11 @@ class StreamingOrchestrator:
         # Store content for potential retry
         user_message = content
 
+        # Thinking mode tracking
+        thinking_mode = False
+        thinking_indicator = None
+        first_token_content: str | None = None
+
         try:
             # Create tool approver for this conversation
             tool_approver = TUIToolApprover(self.app)
@@ -77,19 +82,96 @@ class StreamingOrchestrator:
                 attachments=attachments,
                 on_tool_request=tool_approver.on_tool_request,
             ):
-                # On first token, create and show stream widget
+                # On first token, check for thinking mode and create widgets
                 if first_token:
+                    first_token_content = token.content
+
+                    # Check if first token indicates thinking mode
+                    from consoul.tui.widgets import StreamingResponse
+
+                    if StreamingResponse().detect_thinking_start(first_token_content):
+                        thinking_mode = True
+                        logger.debug(
+                            "[THINKING] Detected thinking tags at start of stream"
+                        )
+
+                        # Create and show thinking indicator
+                        from consoul.tui.widgets.thinking_indicator import (
+                            ThinkingIndicator,
+                        )
+
+                        thinking_indicator = ThinkingIndicator()
+                        await self.chat_view.hide_typing_indicator()
+                        await self.chat_view.add_message(thinking_indicator)
+
+                    # Create stream widget (shown immediately if not in thinking mode)
                     stream_widget = await stream_manager.start_streaming()
                     self.app._current_stream = stream_widget
+
+                    # If not thinking mode, widget is already shown by start_streaming()
+                    # If thinking mode, we'll show it later after thinking ends
+                    if thinking_mode:
+                        # Remove the auto-shown stream widget - we'll show it after thinking
+                        await stream_widget.remove()
+
                     first_token = False
 
                 # Check for cancellation
                 if self.app._stream_cancelled:
+                    if thinking_indicator:
+                        await thinking_indicator.remove()
                     await stream_manager.cancel_stream()
                     return
 
-                # Add token to stream
-                await stream_manager.add_token(token.content, token.cost)
+                # Route tokens based on thinking mode
+                if thinking_mode:
+                    # In thinking mode - buffer and show in thinking indicator
+                    if stream_manager.stream_widget:
+                        stream_manager.stream_widget.thinking_buffer += token.content
+
+                    if thinking_indicator:
+                        await thinking_indicator.add_token(token.content)
+
+                    # Check if thinking has ended
+                    if (
+                        stream_manager.stream_widget
+                        and stream_manager.stream_widget.detect_thinking_end()
+                    ):
+                        logger.debug(
+                            "[THINKING] Detected end of thinking tags, switching to normal streaming"
+                        )
+                        thinking_mode = False
+
+                        # Remove thinking indicator
+                        if thinking_indicator:
+                            await thinking_indicator.remove()
+                            thinking_indicator = None
+
+                        # Show stream widget for the answer portion
+                        if stream_manager.stream_widget:
+                            await self.chat_view.add_message(
+                                stream_manager.stream_widget
+                            )
+
+                        # Don't add thinking buffer to stream - it will be extracted later
+                    # Note: Still collect content even in thinking mode for final bubble
+                    stream_manager.collected_content.append(token.content)
+                    stream_manager.token_count += 1
+                    if token.cost is not None:
+                        stream_manager.total_cost += token.cost
+                else:
+                    # Normal streaming mode - add token to stream widget
+                    await stream_manager.add_token(token.content, token.cost)
+
+            # If still in thinking mode when stream ends, transition to showing stream widget
+            if thinking_mode and thinking_indicator:
+                logger.debug(
+                    "[THINKING] Stream ended while in thinking mode, removing indicator"
+                )
+                await thinking_indicator.remove()
+                # Show the stream widget with all content (thinking will be extracted later)
+                if stream_manager.stream_widget:
+                    await self.chat_view.add_message(stream_manager.stream_widget)
 
             # Finalize stream if we got any tokens
             if stream_manager.stream_widget:
