@@ -113,6 +113,7 @@ class StreamingWidgetManager:
         Returns:
             The final MessageBubble, or None if stream was empty
         """
+        from consoul.sdk.thinking import ThinkingDetector
         from consoul.tui.widgets import MessageBubble
 
         if not self.stream_widget:
@@ -136,6 +137,22 @@ class StreamingWidgetManager:
             if self.first_token_time is not None:
                 time_to_first_token = self.first_token_time - self.stream_start_time
 
+        # Extract thinking content using SDK detector
+        thinking_content_str: str | None = None
+        display_content = final_content
+
+        if final_content.strip():
+            detector = ThinkingDetector()
+            thinking_result = detector.extract(final_content)
+            if thinking_result.has_thinking:
+                thinking_content_str = thinking_result.thinking
+                display_content = thinking_result.answer
+                logger.debug(
+                    f"[THINKING] Extracted thinking content: "
+                    f"{len(thinking_content_str)} chars thinking, "
+                    f"{len(display_content)} chars answer"
+                )
+
         # Finalize and remove stream widget
         await self.stream_widget.finalize_stream()
         await self.stream_widget.remove()
@@ -153,9 +170,9 @@ class StreamingWidgetManager:
                 conversation_service.conversation
             )
 
-        # Create MessageBubble with timing metadata
+        # Create MessageBubble with timing metadata and thinking content
         final_bubble = MessageBubble(
-            final_content,
+            display_content,
             role="assistant",
             show_metadata=True,
             token_count=self.token_count if self.token_count > 0 else None,
@@ -163,6 +180,7 @@ class StreamingWidgetManager:
             time_to_first_token=time_to_first_token,
             estimated_cost=self.total_cost if self.total_cost > 0 else None,
             tool_calls=tool_calls_list,
+            thinking_content=thinking_content_str,
         )
 
         # Add final bubble to chat view
