@@ -7,30 +7,151 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.4.0] - 2025-12-16
+
+**Major Feature Release - SDK Decoupling & Thinking Mode Support**
+
+This release represents a significant architectural milestone with the completion of SDK decoupling (EPIC-012, EPIC-013), making Consoul's AI capabilities available as a standalone SDK. It also introduces thinking mode support for reasoning models and modern async streaming architecture.
+
+**Stats:** 104 commits since v0.3.0 (22 features, 37 fixes, 0 breaking changes)
+
 ### Added
 
-#### SDK Decoupling - Headless Streaming Support (SOUL-251)
-- ✨ **New `stream_chunks()` function** for headless AI streaming without Rich dependencies
+#### SDK Service Layer (EPIC-013)
+- 🏗️ **ConversationService** - Centralized conversation management
+  - Message history tracking and persistence
+  - Async streaming support with approval workflow
+  - Tool execution orchestration
+  - Integration tests verifying SDK independence (SOUL-278)
+  - Comprehensive unit tests achieving 76.43% coverage (SOUL-255, SOUL-256)
+
+- 🤖 **ModelService** - Model registry and discovery
+  - Unified interface for all AI providers (OpenAI, Anthropic, Google, Ollama, HuggingFace)
+  - Dynamic local model discovery (Ollama, llamacpp, MLX)
+  - Context window and capability detection
+  - Model metadata from centralized registry (SOUL-276)
+
+- 🛠️ **ToolService** - Tool catalog and execution
+  - Tool registration and permission management
+  - Async tool execution with approval hooks
+  - Configurable approval providers (SOUL-234, SOUL-235)
+  - WebSocket-compatible tool handling
+
+#### Thinking Mode Support (SOUL-280, SOUL-283)
+- 🧠 **Native support for reasoning models**
+  - phi4-reasoning:14b, DeepSeek-R1, Qwen QWQ, o1-preview
+  - Automatic detection of thinking tags (`<think>`, `<thinking>`, `<reasoning>`)
+  - Real-time streaming display with ThinkingIndicator widget
+  - Collapsible thinking sections in final message bubbles
+
+- 📦 **ThinkingDetector SDK module** (`consoul.sdk.thinking`)
+  - Stateless detection of thinking tag boundaries
+  - Content extraction separating reasoning from answers
+  - Suitable for headless and TUI usage
+
+- ⚙️ **Configurable system prompt tools** (SOUL-272)
+  - `include_tools` config option to control tool documentation
+  - Prevents large system prompts from suppressing reasoning behavior
+  - Enables minimal prompts for reasoning models
+
+#### Async Streaming Architecture (SOUL-279, SOUL-234)
+- 🔄 **Modern async/await streaming**
+  - `StreamingOrchestrator` for TUI streaming coordination
+  - Async approval workflow for tool execution
+  - Configurable approval providers (CLI, TUI, WebSocket)
+  - Real-time token collection and display
+
+- 🌐 **WebSocket streaming support** (SOUL-257, SOUL-277)
+  - FastAPI proof-of-concept demonstrating SDK independence
+  - WebSocket approval provider for remote tool approval
+  - Concurrent message handling preventing deadlocks
+  - Example implementations in SDK documentation
+
+#### Headless SDK Support (SOUL-251)
+- ✨ **`stream_chunks()` function** for UI-agnostic streaming
   - Returns `Iterator[StreamChunk]` with pure data (no UI rendering)
   - Suitable for SDK usage, web backends, and custom presentation layers
   - Example: `for chunk in stream_chunks(model, messages): print(chunk.content)`
 
-- 📦 **New `StreamChunk` model** (`consoul.ai.models.StreamChunk`)
+- 📦 **StreamChunk model** (`consoul.ai.models.StreamChunk`)
   - Pydantic model for raw streaming data
   - Fields: `content`, `tokens`, `cost`, `metadata`
   - Decoupled from Rich/console dependencies
 
-- 🎨 **New `consoul.presentation` package** for optional Rich formatting
+- 🎨 **`consoul.presentation` package** for optional Rich formatting
   - `display_stream_with_rich()` - Rich-based formatting extracted from streaming
   - Lazy imports - Rich only loaded when presentation layer is used
   - Enables true headless SDK usage without UI library dependencies
 
+#### Enhanced Model Picker (SOUL-276)
+- 🎨 **Card-based model picker UI**
+  - `EnhancedModelPicker` with model cards showing metadata
+  - Provider filtering and search functionality
+  - Model registry integration for accurate context windows
+  - Local model discovery for Ollama
+  - Better UX for browsing 100+ models
+
+#### Documentation & Testing
+- 📚 **Service layer API reference** (SOUL-258)
+  - Comprehensive SDK service documentation
+  - WebSocket streaming examples (SOUL-277)
+  - Developer guide updates (SOUL-259)
+
+- ✅ **Comprehensive test coverage**
+  - ConversationService unit tests (SOUL-255)
+  - ModelService and ToolService tests (SOUL-256)
+  - SDK independence integration tests (SOUL-278)
+  - Overall test coverage improvements
+
+### Fixed
+
+- 🐛 **IndexError in docs generator** (SOUL-272)
+  - Fixed crash when processing empty/whitespace command names
+  - Added comprehensive unit tests for edge cases
+  - Ensures `consoul describe` works reliably
+
+- 🎨 **Thinking mode UI improvements**
+  - Removed black background from thinking collapsible label
+  - Fixed thinking content extraction for MessageBubble
+  - Proper separation of reasoning from final answers
+
+- 🔧 **Model switching updates**
+  - ConversationService now updates model reference correctly
+  - Tool execution bugs fixed in SDK services
+  - Ollama models without tool support handled gracefully (SOUL-280)
+
+- 🌐 **WebSocket streaming fixes** (SOUL-277)
+  - AIMessage serialization for JSON transmission
+  - Approval deadlock resolution with concurrent receivers
+  - Correct ToolRegistry and approval provider initialization
+
 ### Changed
 
-- 📝 **Refactored `consoul.ai.streaming` module** for better separation of concerns
-  - Core streaming logic moved to `stream_chunks()` (UI-agnostic)
-  - Rich formatting moved to `consoul.presentation.rich_display` module
-  - Lazy Rich imports - only loaded when deprecated `stream_response()` is called
+- 🏗️ **TUI refactored to use SDK services** (EPIC-012, SOUL-270)
+  - Extracted 1,600+ lines of code from `app.py` to reusable SDK
+  - 10-phase refactoring completed over 40+ commits
+  - Message submission orchestration (SOUL-270 Phase 9)
+  - Streaming widget management extracted
+  - Profile and tool approval orchestration separated
+  - Conversation loading moved to `ConversationDisplayService`
+  - Better separation of concerns and testability
+
+- 📝 **System prompt building** (SOUL-253)
+  - Moved to SDK with full programmatic control
+  - Profile-based configuration support
+  - Tool documentation inclusion now optional
+
+- 🎯 **CLI session orchestration** (SOUL-252, SOUL-254)
+  - Extracted from ChatSession to SDK
+  - Slash command processor separated
+  - Reusable across CLI and TUI
+
+- 📊 **Model registry integration**
+  - Replaced static catalog with dynamic registry
+  - Accurate pricing and context window data
+  - Support for 100+ models across all providers
 
 ### Deprecated
 
@@ -41,26 +162,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Migration Guide
 
-**Before (old code):**
-```python
-from consoul.ai import stream_response
-response_text, ai_message = stream_response(model, messages)
-```
-
-**After (headless/SDK usage):**
+**Headless streaming (new SDK approach):**
 ```python
 from consoul.ai import stream_chunks
+
 for chunk in stream_chunks(model, messages):
     print(chunk.content, end="")
 ```
 
-**After (CLI/TUI with Rich formatting):**
+**CLI/TUI with Rich formatting:**
 ```python
 from consoul.ai import stream_chunks
 from consoul.presentation import display_stream_with_rich
 
 chunks = stream_chunks(model, messages)
 response_text = display_stream_with_rich(chunks)
+```
+
+**Using SDK services:**
+```python
+from consoul.sdk import ConversationService, ModelService, ToolService
+
+# Initialize services
+model_service = ModelService(model, config)
+tool_service = ToolService(tool_registry)
+conversation_service = ConversationService(
+    config=config,
+    model_service=model_service,
+    tool_service=tool_service
+)
+
+# Send message with streaming
+async for chunk in conversation_service.send_message_stream("Hello!"):
+    print(chunk.content, end="")
 ```
 
 ---
