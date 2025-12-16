@@ -2256,6 +2256,15 @@ def main() -> None:
         # TUI dependencies not installed, CLI will work without TUI subcommand
         pass
 
+    # Register release command
+    try:
+        from consoul.commands.release import release
+
+        cli.add_command(release)
+    except ImportError:
+        # Release dependencies may not be available
+        pass
+
     cli(obj={})
 
 
