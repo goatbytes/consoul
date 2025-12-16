@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.1] - 2025-12-16
+
+**Hotfix Release - Critical Bug Fix**
+
+### Fixed
+
+- 🐛 **Critical: Fixed TypeError in chat, ask, and resume commands** (8bfcd74)
+  - Removed invalid `tool_registry` parameter from `ChatSession.__init__()` calls
+  - Added `approval_provider` parameter to `ConversationService.from_config()`
+  - Fixed approval provider flow: CLI → ChatSession → ConversationService → ToolRegistry
+  - Error was introduced during SDK refactoring (EPIC-012) when `tool_registry` parameter was removed from ChatSession
+  - Affected commands: `consoul chat`, `consoul ask`, `consoul resume`
+  - Error message: `TypeError: ChatSession.__init__() got an unexpected keyword argument 'tool_registry'`
+
+---
+
 ## [0.4.0] - 2025-12-16
 
 **Major Feature Release - SDK Decoupling & Thinking Mode Support**

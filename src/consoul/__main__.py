@@ -411,7 +411,6 @@ def chat(
         with console.status("[cyan]Initializing chat model...[/cyan]", spinner="dots"):
             session = ChatSession(
                 config=config,
-                tool_registry=tool_registry,
                 approval_provider=approval_provider,
                 system_prompt_override=system_prompt,
             )
@@ -995,7 +994,6 @@ def ask(
         with console.status("[cyan]Initializing...[/cyan]", spinner="dots"):
             session = ChatSession(
                 config=config,
-                tool_registry=tool_registry,
                 approval_provider=approval_provider,
                 system_prompt_override=system_prompt,
             )
@@ -1967,7 +1965,6 @@ def resume_history(
         with console.status("[cyan]Initializing chat model...[/cyan]", spinner="dots"):
             session = ChatSession(
                 config=config,
-                tool_registry=tool_registry,
                 approval_provider=approval_provider,
                 resume_session_id=session_id,
             )

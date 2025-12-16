@@ -92,7 +92,9 @@ class ChatSession:
         logger.info(
             f"Initializing conversation service: {config.current_provider.value}/{config.current_model}"
         )
-        self.conversation_service = ConversationService.from_config(config)
+        self.conversation_service = ConversationService.from_config(
+            config, approval_provider=self.approval_provider
+        )
 
         # Override system prompt if provided
         profile = config.get_active_profile()

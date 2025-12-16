@@ -109,6 +109,7 @@ class ConversationService:
         include_env_context: bool = True,
         include_git_context: bool = True,
         auto_append_tools: bool = True,
+        approval_provider: Any | None = None,
     ) -> ConversationService:
         """Create ConversationService from configuration.
 
@@ -123,6 +124,7 @@ class ConversationService:
             include_env_context: Include OS/shell/directory info (default: True)
             include_git_context: Include git repository info (default: True)
             auto_append_tools: Auto-append tool docs if no marker present (default: True)
+            approval_provider: Optional approval provider for tool execution
 
         Returns:
             Initialized ConversationService ready for use
@@ -208,8 +210,10 @@ class ConversationService:
             if config.tools.image_analysis:
                 set_analyze_images_config(config.tools.image_analysis)
 
-            # Create tool registry with config
-            tool_registry = ToolRegistry(config.tools)
+            # Create tool registry with config and approval provider
+            tool_registry = ToolRegistry(
+                config.tools, approval_provider=approval_provider
+            )
 
             # Get all available tools from catalog
             for tool, risk_level, categories in TOOL_CATALOG.values():
