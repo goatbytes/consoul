@@ -74,8 +74,12 @@ def parse_command_schema(schema: dict[str, Any]) -> list[dict[str, Any]]:
                 for subcmd in cmd.get("commands", []):
                     # For groups, we want to include subcommands in the info
                     # but also process them recursively
+                    # Extract simple command name, handling edge cases
+                    parts = subcmd["name"].split()
                     subcmd_info = {
-                        "name": subcmd["name"].split()[-1],  # Just the command name
+                        "name": parts[-1]
+                        if parts
+                        else subcmd["name"],  # Just the command name
                         "description": subcmd.get("description", ""),
                         "type": subcmd["type"],
                         "arguments": subcmd.get("arguments", []),
