@@ -6,6 +6,10 @@ This guide will help you install Consoul on your system.
 
 - Python 3.10 or higher
 - pip (Python package installer)
+- C compiler (for tree-sitter compilation):
+  - **macOS**: Xcode Command Line Tools (`xcode-select --install`)
+  - **Linux**: build-essential package (`sudo apt-get install build-essential`)
+  - **Windows**: Visual Studio Build Tools 2019+ OR MinGW
 
 ## Installation Methods
 
@@ -14,6 +18,10 @@ This guide will help you install Consoul on your system.
 Install the latest stable release from PyPI:
 
 ```bash
+# Install with TUI (recommended)
+pip install 'consoul[tui]'
+
+# Or install SDK/CLI only
 pip install consoul
 ```
 
@@ -48,8 +56,8 @@ For an isolated installation that doesn't affect your system Python:
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 
-# Install Consoul
-pipx install consoul
+# Install Consoul with TUI
+pipx install 'consoul[tui]'
 ```
 
 ## Verify Installation
@@ -161,6 +169,46 @@ pip install --upgrade pip
 # Install with all dependencies
 pip install --upgrade consoul
 ```
+
+### tree-sitter Compilation Errors
+
+If you encounter errors related to tree-sitter compilation:
+
+**macOS:**
+```bash
+# Install Xcode Command Line Tools
+xcode-select --install
+
+# Verify compiler is available
+gcc --version
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+# Install build tools
+sudo apt-get update
+sudo apt-get install build-essential
+
+# Verify compiler is available
+gcc --version
+```
+
+**Windows:**
+```bash
+# Install Visual Studio Build Tools from:
+# https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022
+
+# Or use MinGW
+# https://www.mingw-w64.org/
+```
+
+**Validation:**
+```bash
+# Test tree-sitter compilation after installing compiler
+python -c "from tree_sitter import Language, Parser; print('✓ tree-sitter OK')"
+```
+
+**Note:** If tree-sitter installation fails, basic text search (grep_search) will still work. Code structure search gracefully degrades without tree-sitter.
 
 ## Next Steps
 

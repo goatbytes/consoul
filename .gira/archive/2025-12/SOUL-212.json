@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-02T14:38:13.589891",
+  "updated_at": "2025-12-06T08:40:49.310438Z",
+  "id": "SOUL-212",
+  "uuid": "72a114f3-1b35-4e06-989b-46cc863bef33",
+  "title": "Add --system-file flag to read system prompt from file",
+  "description": "Allow loading system prompts from files for easier management and reuse.\n\nCurrent workaround:\nconsoul ask --system \"$(cat prompt.txt)\" \"question\"\n\nProposed:\nconsoul ask --system-file prompt.txt \"question\"\n\nBenefits:\n- Easier to manage long/complex system prompts\n- Reusable prompt templates\n- Version control friendly\n- No shell escaping issues\n\nImplementation:\n1. Add --system-file flag alongside --system\n2. Read file content and use as system_prompt_override\n3. Validate file exists and is readable\n4. Error handling for large files (maybe 10KB limit?)\n5. Mutually exclusive with --system flag\n\nRelated to: SOUL-207",
+  "status": "done",
+  "type": "feature",
+  "priority": "low",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-06T00:45:29.646808",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

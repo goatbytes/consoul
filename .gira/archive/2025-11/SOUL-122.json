@@ -1,0 +1,47 @@
+{
+  "created_at": "2025-11-16T08:02:54.180980",
+  "updated_at": "2025-11-16T08:42:37.125980",
+  "id": "SOUL-122",
+  "uuid": "1d2c5eb4-ec8e-4c93-8cf6-41805d1963e6",
+  "title": "Create HuggingFaceModelConfig class with provider-specific parameters",
+  "description": "**As a** Consoul developer\n**I want** a HuggingFaceModelConfig class for HuggingFace-specific parameters\n**So that** users can configure HuggingFace models with proper type validation\n\n**Context:**\nHuggingFace models support various configuration parameters through both HuggingFaceEndpoint and HuggingFacePipeline. Research shows these key parameters:\n- task: text-generation, text2text-generation, summarization\n- max_new_tokens: Maximum tokens to generate\n- do_sample: Enable/disable sampling\n- repetition_penalty: Penalize repeated tokens\n- temperature: Sampling temperature\n- top_p, top_k: Nucleus and top-k sampling\n- model_kwargs: Additional model-specific parameters\n\nFollowing the pattern of other provider configs (OpenAIModelConfig, AnthropicModelConfig), create a HuggingFaceModelConfig class.\n\n**Technical Notes:**\n- src/consoul/config/models.py - Add after OllamaModelConfig (line 241)\n- Extend BaseModelConfig like other provider configs\n- Use Literal[Provider.HUGGINGFACE] for provider field\n- Include HuggingFace-specific parameters\n- Support both endpoint-based and pipeline-based parameters\n- Reference: https://docs.langchain.com/oss/python/integrations/chat/huggingface/\n- Update ModelConfig union type to include HuggingFaceModelConfig\n- Add to __all__ exports\n\n**Acceptance Criteria:**\n\nGiven I create a HuggingFaceModelConfig instance\nWhen I set model=\"meta-llama/Llama-3.1-8B-Instruct\"\nThen the config validates and sets provider to HUGGINGFACE\n\nGiven I configure HuggingFace-specific parameters\nWhen I set task=\"text-generation\", max_new_tokens=512, do_sample=False\nThen Pydantic validates all parameters correctly\n\nGiven I provide invalid task parameter\nWhen I set task=\"invalid-task\"\nThen validation error is raised\n\nGiven I check the ModelConfig union type\nWhen I review the type definition\nThen HuggingFaceModelConfig is included in the union\n\n**Testing Considerations:**\n- Test config instantiation with valid parameters\n- Test Pydantic validation for invalid values\n- Test serialization/deserialization to YAML\n- Test that provider field is correctly typed\n- Verify mypy type checking with new config class\n- Test model_kwargs for additional parameters\n\n**Implementation Hints:**\n```python\nclass HuggingFaceModelConfig(BaseModelConfig):\n    \"\"\"HuggingFace-specific model configuration.\"\"\"\n    \n    provider: Literal[Provider.HUGGINGFACE] = Provider.HUGGINGFACE\n    task: Literal[\n        \"text-generation\",\n        \"text2text-generation\", \n        \"summarization\"\n    ] | None = Field(\n        default=\"text-generation\",\n        description=\"HuggingFace task type\"\n    )\n    max_new_tokens: int | None = Field(\n        default=512,\n        gt=0,\n        le=4096,\n        description=\"Maximum new tokens to generate\"\n    )\n    do_sample: bool = Field(\n        default=True,\n        description=\"Enable sampling (vs greedy decoding)\"\n    )\n    repetition_penalty: float | None = Field(\n        default=None,\n        ge=1.0,\n        le=2.0,\n        description=\"Repetition penalty (1.0 = no penalty)\"\n    )\n    top_p: float | None = Field(\n        default=None,\n        ge=0.0,\n        le=1.0,\n        description=\"Nucleus sampling parameter\"\n    )\n    top_k: int | None = Field(\n        default=None,\n        gt=0,\n        description=\"Top-k sampling parameter\"\n    )\n    model_kwargs: dict[str, Any] | None = Field(\n        default=None,\n        description=\"Additional model-specific kwargs\"\n    )\n\n# Update union type\nModelConfig = Annotated[\n    OpenAIModelConfig \n    | AnthropicModelConfig \n    | GoogleModelConfig \n    | OllamaModelConfig\n    | HuggingFaceModelConfig,  # Add this\n    Field(discriminator=\"provider\"),\n]\n```\n\nFiles to modify:\n- src/consoul/config/models.py (add HuggingFaceModelConfig class)\n- tests/config/test_models.py (add tests for new config)\n\nDependencies: SOUL-121",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "ai",
+    "config",
+    "providers",
+    "enhancement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-16T08:42:37.125893",
+      "updated_at": "2025-11-16T08:42:37.125894",
+      "id": "20251116084237-6f2b840a",
+      "ticket_id": "SOUL-122",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation completed successfully.\n\nChanges made:\n- Created HuggingFaceModelConfig class in src/consoul/config/models.py (lines 244-290)\n  - Added provider field with Literal[Provider.HUGGINGFACE]\n  - Added task parameter with validation for text-generation, text2text-generation, summarization\n  - Added max_new_tokens (512 default, range 1-4096)\n  - Added do_sample (True default)\n  - Added repetition_penalty (range 1.0-2.0)\n  - Added top_p and top_k parameters\n  - Added model_kwargs for additional parameters\n- Updated ModelConfigUnion to include HuggingFaceModelConfig (line 295)\n- Added HuggingFaceModelConfig to build_model_params in providers.py (lines 335-349)\n- Added HuggingFaceModelConfig to get_chat_model in providers.py (lines 518-531)\n- Added comprehensive test suite in tests/config/test_models.py:\n  - 9 tests covering all parameters and validation\n  - Test defaults, valid values, invalid values, and edge cases\n  \nAll tests passing (9/9). Type checking passes with no HuggingFace-related errors.\nConfig follows the same pattern as OpenAI/Anthropic/Google/Ollama configs.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-19T20:23:41.930391",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

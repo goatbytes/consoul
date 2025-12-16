@@ -1,0 +1,32 @@
+{
+  "created_at": "2025-11-26T00:53:08.300387",
+  "updated_at": "2025-11-26T19:33:32.592285Z",
+  "id": "SOUL-171",
+  "uuid": "548f19d0-bdd5-4142-a889-e2eb2f9ec957",
+  "title": "Add chat command slash commands for session control",
+  "description": "**As a** Consoul chat user  \n**I want** slash commands for session control\n**So that** I can manage the conversation without exiting\n\n**Context:**\nClaude Code and similar tools provide in-chat commands for:\n- /help - Show available commands\n- /clear - Clear conversation history\n- /tokens - Show token usage\n- /cost - Show API cost (if tracked)\n- /model - Switch model mid-session\n- /profile - Switch profile\n- /tools - Toggle tools on/off\n- /save - Save conversation\n- /load - Load previous conversation\n- /export - Export to file\n\nThese improve UX by keeping users in the chat context.\n\n**Technical Notes:**\n- Detect commands starting with /\n- Parse command and arguments\n- Implement handlers for each command\n- Update session state as needed\n- Provide feedback messages\n- src/consoul/cli/chat_session.py - add command processing\n- Use Rich for formatted command help output\n\n**Acceptance Criteria:**\n\n**Given** I type /help in chat\n**When** command is processed\n**Then** all available slash commands are listed with descriptions\n\n**Given** I type /clear in chat\n**When** command executes\n**Then** conversation history is cleared and confirmation shown\n\n**Given** I type /tokens in chat\n**When** command executes\n**Then** current token count and limit are displayed\n\n**Given** I type /model gpt-4o in chat\n**When** command executes\n**Then** model switches and confirmation shown\n\n**Given** I type /tools none in chat\n**When** command executes\n**Then** tools are disabled for session\n\n**Given** I type /export chat.md in chat\n**When** command executes\n**Then** conversation is exported to markdown file\n\n**Given** I type an invalid command like /invalid\n**When** command is processed\n**Then** helpful error message suggests /help\n\n**Testing Considerations:**\n- Test each slash command\n- Test with/without arguments\n- Test invalid commands\n- Test command history (should not include slash commands)\n- Verify state changes persist\n- Test export formats (markdown, json)\n\n**Implementation Hints:**\n```python\ndef process_command(self, cmd: str) -> bool:\n    \\\"\\\"\\\"Process slash command. Returns True if handled.\\\"\\\"\\\"\n    if not cmd.startswith('/'):\n        return False\n    \n    parts = cmd[1:].split(maxsplit=1)\n    command = parts[0].lower()\n    args = parts[1] if len(parts) > 1 else ''\n    \n    handlers = {\n        'help': self._cmd_help,\n        'clear': self._cmd_clear,\n        'tokens': self._cmd_tokens,\n        'model': self._cmd_model,\n        'tools': self._cmd_tools,\n        'export': self._cmd_export,\n    }\n    \n    if command in handlers:\n        handlers[command](args)\n        return True\n    else:\n        console.print(f\"Unknown command: /{command}\")\n        console.print(\"Type /help for available commands\")\n        return True\n\ndef _cmd_help(self, args: str):\n    table = Table(title=\"Available Commands\")\n    table.add_column(\"Command\", style=\"cyan\")\n    table.add_column(\"Description\")\n    table.add_row(\"/help\", \"Show this help\")\n    table.add_row(\"/clear\", \"Clear conversation history\")\n    # ... add all commands\n    console.print(table)\n```\n\n- Consider tab completion for slash commands\n- Add command aliases (e.g., /? for /help)\n- Document in --help output and user guide\n\nDependencies: SOUL-170 (Main chat implementation)",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "cli",
+    "ux-improvement",
+    "enhancement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:11.102383",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

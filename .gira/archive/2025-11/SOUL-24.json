@@ -1,0 +1,34 @@
+{
+  "created_at": "2025-11-08T16:29:10.075023",
+  "updated_at": "2025-11-11T04:27:46.241951Z",
+  "id": "SOUL-24",
+  "uuid": "8d5050fc-7360-4c36-a1f4-407fb49839db",
+  "title": "Implement Ollama provider support for local models",
+  "description": "## User Story\nAs a Consoul user, I want to use local Ollama models so that I can run AI features offline without API costs or privacy concerns.\n\n## Description\nImplement full support for Ollama's local models using LangChain's `ChatOllama` integration. Support popular open-source models (Llama 3, Mistral, CodeLlama) with automatic Ollama detection, model listing, and offline operation.\n\n## Technical Notes\n- **File**: `src/consoul/ai/providers/ollama.py`\n- **LangChain Docs**: https://python.langchain.com/docs/integrations/chat/ollama/\n- **Package**: `langchain-ollama`\n- **Default URL**: `http://localhost:11434`\n- Supported models: llama3, mistral, codellama, phi, gemma\n- Ollama detection via health check endpoint\n- Model listing via Ollama API\n- No API key required (local operation)\n- Streaming support via `.stream()`\n\n## Acceptance Criteria\n- **Given** Ollama is running locally\n- **When** user specifies an Ollama model\n- **Then** the model is initialized and works offline\n\n- **Given** Ollama is not running\n- **When** attempting to use Ollama\n- **Then** error suggests starting Ollama: `ollama serve`\n\n- **Given** a model not yet downloaded\n- **When** attempting to use the model\n- **Then** error suggests: `ollama pull {model}`\n\n- **Given** a streaming request\n- **When** generating a response\n- **Then** tokens are yielded one at a time\n\n- **Given** no internet connection\n- **When** using a downloaded Ollama model\n- **Then** the model works offline\n\n## Testing Considerations\n- Mock Ollama health check endpoint\n- Test Ollama detection logic\n- Verify model listing functionality\n- Test offline operation\n- Mock missing Ollama service\n- Mock model not found errors\n- Test streaming functionality\n\n## Implementation Hints\n```python\nfrom langchain_ollama import ChatOllama\nimport requests\n\ndef is_ollama_running() -> bool:\n    \"\"\"Check if Ollama service is running.\"\"\"\n    try:\n        response = requests.get(\"http://localhost:11434/api/tags\")\n        return response.status_code == 200\n    except:\n        return False\n\ndef create_ollama_model(\n    model: str = \"llama3\",\n    temperature: float = 0.7,\n    streaming: bool = False,\n    **kwargs\n):\n    \"\"\"Create Ollama chat model.\"\"\"\n    if not is_ollama_running():\n        raise RuntimeError(\"Ollama not running. Start with: ollama serve\")\n    \n    return ChatOllama(\n        model=model,\n        temperature=temperature,\n        streaming=streaming,\n        **kwargs\n    )\n```\n\n## Dependencies\n- SOUL-20 (provider initialization)\n\n## Story Points\n5 - Additional complexity for Ollama detection and offline operation",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "ai",
+    "providers",
+    "ollama",
+    "local"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-002",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:32.294056",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

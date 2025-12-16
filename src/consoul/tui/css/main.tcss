@@ -1,0 +1,793 @@
+/* Consoul TUI - Main Stylesheet
+ * Base styles and layout definitions
+ */
+
+/* ============================================================================
+ * Global Styles
+ * ============================================================================ */
+
+Screen {
+    background: $surface;
+    color: $text;
+}
+
+ConsoulApp {
+    layout: vertical;
+}
+
+/* ============================================================================
+ * Header & Footer
+ * ============================================================================ */
+
+Header {
+    dock: top;
+    height: 3;
+    background: $primary;
+    color: $text;
+    content-align: center middle;
+}
+
+Footer {
+    dock: bottom;
+    height: 1;
+}
+
+/* ============================================================================
+ * Layout Containers
+ * ============================================================================ */
+
+.main-container {
+    width: 100%;
+    height: 100%;
+    layout: horizontal;
+}
+
+.content-area {
+    width: 1fr;
+    height: 100%;
+    layout: vertical;
+}
+
+/* ============================================================================
+ * Chat View
+ * ============================================================================ */
+
+ChatView {
+    width: 100%;
+    height: 1fr;
+    background: $panel;
+    padding: 1 1 1 2;
+    border: solid $accent;
+    scrollbar-gutter: stable;
+}
+
+ChatView:focus {
+    border: round $accent;
+}
+
+.chat-messages {
+    width: 100%;
+    height: auto;
+    layout: vertical;
+}
+
+/* ============================================================================
+ * Message Bubbles
+ * ============================================================================ */
+
+.message {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    margin: 1 2 1 0;  /* margin: top right bottom left - right margin for scrollbar spacing */
+}
+
+.message-user {
+    color: $text;
+    border: round $accent;
+    border-title-color: $accent;
+    border-title-align: right;
+}
+
+.message-assistant {
+    color: $text;
+    border: round $secondary;
+    border-title-color: $secondary;
+    border-title-align: left;
+}
+
+.message-system {
+    # background: $surface-lighten-1;
+    color: $text-muted;
+    border: round $accent;
+    border-title-color: $accent;
+}
+
+.message-error {
+    background: $error;
+    color: $text;
+    border: thick $warning;
+    border-title-color: $warning;
+}
+
+/* Message content */
+.message-content {
+    padding: 0;  /* Remove horizontal padding to align with metadata */
+    margin: 0;  /* Remove all margins */
+}
+
+/* Remove excessive bottom margin from last element in message content */
+.message-content > *:last-child {
+    margin-bottom: 0;
+}
+
+/* System messages (tool execution displays) */
+.system-message {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    margin: 1 2 1 0;
+    color: $text-muted;
+    border: round $accent;
+    border-title-color: $accent;
+}
+
+/* Message metadata */
+.message-metadata {
+    width: 100%;
+    height: auto;
+    layout: horizontal;
+    align: left middle;
+    padding-top: 1;
+}
+
+.metadata-text {
+    width: 1fr;
+    height: auto;
+}
+
+.copy-button, .tools-button, .branch-button {
+    width: auto;
+    min-width: 5;
+    height: 1;
+    padding: 0 1;
+    background: transparent;
+    color: $text-muted;
+    border: none;
+}
+
+.copy-button:hover, .tools-button:hover, .branch-button:hover {
+    background: $surface-lighten-1;
+    color: $accent;
+}
+
+.copy-button:focus, .tools-button:focus, .branch-button:focus {
+    background: $surface-lighten-1;
+    color: $primary;
+}
+
+.message-timestamp {
+    color: $text-muted;
+    text-style: italic;
+}
+
+.message-tokens {
+    color: $accent;
+    text-style: bold;
+}
+
+/* ============================================================================
+ * Thinking Section (Reasoning/Chain-of-Thought)
+ * ============================================================================ */
+
+.thinking-section {
+    background: $surface-darken-1;
+    border: dashed gray;
+    margin: 0 0 1 0;
+    padding: 0;
+}
+
+.thinking-section > CollapsibleTitle {
+    color: $text-muted;
+    text-style: italic;
+    padding: 0 1;
+}
+
+.thinking-section > CollapsibleTitle:hover {
+    background: $surface-darken-1;
+    color: $accent;
+}
+
+.thinking-section > Contents {
+    padding: 1 2;
+}
+
+.thinking-content {
+    color: $text-muted;
+    text-style: italic;
+}
+
+/* ============================================================================
+ * Thinking Indicator (Real-time streaming indicator)
+ * ============================================================================ */
+
+ThinkingIndicator {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    margin: 1 2 1 0;
+    background: $surface-darken-1;
+    border: dashed $primary;
+    border-title-color: $primary;
+    border-title-align: left;
+}
+
+ThinkingIndicator .thinking-text {
+    width: 100%;
+    height: auto;
+    color: $text-muted;
+    text-style: italic;
+}
+
+ThinkingIndicator .thinking-dots {
+    width: auto;
+    height: auto;
+    color: $primary;
+    text-style: bold;
+}
+
+/* ============================================================================
+ * Tool Call Widget
+ * ============================================================================ */
+
+.tool-call-widget {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    margin: 1 0;
+    border: round $accent;
+}
+
+.tool-pending {
+    border: round $warning;
+    border-title-color: $warning;
+}
+
+.tool-executing {
+    border: round $primary;
+    border-title-color: $primary;
+}
+
+.tool-success {
+    border: round $success;
+    border-title-color: $success;
+}
+
+.tool-error {
+    border: thick $error;
+    border-title-color: $error;
+}
+
+.tool-denied {
+    border: round gray;
+    border-title-color: $text-muted;
+}
+
+.tool-header {
+    width: 100%;
+    height: auto;
+    color: $text;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+.tool-arguments {
+    width: 100%;
+    height: auto;
+    padding: 1 0;
+}
+
+.tool-status {
+    width: 100%;
+    height: auto;
+    padding: 1 0;
+}
+
+.tool-output {
+    width: 100%;
+    height: auto;
+    color: $text;
+}
+
+/* ============================================================================
+ * Input Area
+ * ============================================================================ */
+
+InputArea {
+    dock: bottom;
+    height: auto;
+    layout: vertical;
+    padding: 1 1 0 1;
+    background: $panel;
+    border: solid $accent;
+}
+
+/* Input controls container (attachment button + text area) */
+#input-controls {
+    width: 100%;
+    height: auto;
+    layout: horizontal;
+    align: left middle;
+}
+
+/* Attachment button */
+#attachment-button {
+    width: auto;
+    min-width: 10;
+    height: 3;
+    margin-left: 1;
+    background: $panel;
+    color: $text-muted;
+    border: round $primary;
+    content-align: center middle;
+}
+
+#attachment-button:hover {
+    # background: $surface-lighten-1;
+    color: $text;
+    border: round $success;
+}
+
+#attachment-button:focus {
+    border: round $success 30%;
+    color: $text;
+}
+
+#send-button {
+    width: auto;
+    min-width: 10;
+    height: 3;
+    margin-left: 1;
+    background: $panel;
+    color: $text-muted;
+    border: round $primary;
+    content-align: center middle;
+}
+
+#send-button:hover {
+    # background: $surface-lighten-1;
+    color: $text;
+    border: round $success;
+}
+
+#send-button:focus {
+    border: round $primary 30%;
+    color: $text;
+}
+
+InputArea SendableTextArea {
+    width: 1fr;
+    height: auto;
+    min-height: 3;
+    max-height: 10;
+    background: $panel;
+    color: $text;
+    border: round $primary;
+}
+
+InputArea SendableTextArea:focus {
+    border: round $primary 30%;
+}
+
+/* File chips container */
+#file-chips-container {
+    width: 100%;
+    height: auto;
+    layout: horizontal;
+    align: left middle;
+    padding-top: 1;
+}
+
+/* Individual file chip */
+FileChip {
+    width: auto;
+    height: 3;
+    background: $panel;
+    border: solid $primary;
+    padding: 0 1;
+    margin-right: 1;
+}
+
+FileChip Label {
+    width: auto;
+    padding-right: 1;
+    color: $text;
+}
+
+FileChip Button {
+    width: 3;
+    min-width: 3;
+    background: $error;
+    color: $text;
+    border: none;
+}
+
+FileChip Button:hover {
+    background: $warning;
+}
+
+FileChip Button:focus {
+    background: $error;
+    text-style: bold;
+}
+
+/* ============================================================================
+ * Conversation List (Sidebar)
+ * ============================================================================ */
+
+.conversation-list {
+    width: 20%;
+    min-width: 20;
+    max-width: 40;
+    height: 100%;
+    background: $surface-darken-1;
+    # border-right: solid $accent;
+    # padding: 1;
+}
+
+.conversation-item {
+    width: 100%;
+    height: 3;
+    background: $surface;
+    color: $text;
+    padding: 0 1;
+    margin: 0 0 1 0;
+    border-left: wide $primary;
+}
+
+.conversation-item:hover {
+    background: $surface-lighten-1;
+    border-left: wide $accent;
+}
+
+.conversation-item.active {
+    background: $primary;
+    color: $text;
+    border-left: wide $success;
+    text-style: bold;
+}
+
+.conversation-title {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.conversation-preview {
+    width: 100%;
+    color: $text-muted;
+    text-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ============================================================================
+ * Modals
+ * ============================================================================ */
+
+/* Global ModalScreen background with transparency */
+ModalScreen {
+    background: $surface 85%;
+}
+
+.modal-overlay {
+    background: $surface 70%;
+    align: center middle;
+}
+
+.modal {
+    width: 80;
+    height: auto;
+    max-height: 30;
+    background: $panel;
+    border: thick $primary;
+    padding: 2;
+}
+
+.modal-title {
+    dock: top;
+    height: 3;
+    content-align: center middle;
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+
+.modal-content {
+    width: 100%;
+    height: auto;
+    padding: 1;
+}
+
+.modal-actions {
+    dock: bottom;
+    height: 3;
+    align: center middle;
+    layout: horizontal;
+    padding: 1;
+}
+
+.modal-button {
+    width: 15;
+    height: 3;
+    margin: 0 1;
+    content-align: center middle;
+    background: $secondary;
+    color: $text;
+    border: round $accent;
+}
+
+.modal-button:hover {
+    background: $primary;
+    border: thick $accent;
+}
+
+.modal-button.primary {
+    background: $success;
+    border: round $success;
+}
+
+.modal-button.danger {
+    background: $error;
+    border: round $error;
+}
+
+/* ============================================================================
+ * Streaming Response
+ * ============================================================================ */
+
+StreamingResponse {
+    width: 100%;
+    height: auto;
+    background: transparent;
+    color: $text;
+    padding: 1 2;
+    margin: 1 2 1 0;
+    border: round $success;
+    border-title-color: $success;
+    scrollbar-size: 0 0;
+    overflow-y: hidden;
+}
+
+StreamingResponse.streaming {
+    background: transparent;
+    border: round $accent;
+    border-title-color: $accent;
+}
+
+.streaming-cursor {
+    background: $accent;
+    color: $surface;
+    text-style: bold blink;
+}
+
+/* ============================================================================
+ * Code Blocks (Markdown)
+ * ============================================================================ */
+
+.code-block {
+    width: 100%;
+    height: auto;
+    background: $surface-darken-1;
+    color: $text;
+    padding: 1;
+    border: round $accent;
+    overflow-x: auto;
+}
+
+.code-inline {
+    background: $surface-lighten-1;
+    color: $accent;
+    padding: 0 1;
+}
+
+/* ============================================================================
+ * Status Indicators
+ * ============================================================================ */
+
+.status-badge {
+    width: auto;
+    height: 1;
+    padding: 0 1;
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+
+.status-badge.streaming {
+    background: $warning;
+}
+
+.status-badge.error {
+    background: $error;
+}
+
+.status-badge.success {
+    background: $success;
+}
+
+/* ============================================================================
+ * Loading & Progress
+ * ============================================================================ */
+
+.loading-spinner {
+    width: 100%;
+    height: 3;
+    content-align: center middle;
+    color: $primary;
+    text-style: bold;
+}
+
+LoadingIndicator {
+    color: $primary;
+}
+
+/* Loading indicator in ChatView */
+ChatView LoadingIndicator {
+    width: 100%;
+    height: 100%;
+    align: center middle;
+    color: $accent;
+}
+
+/* Hide message bubbles while loading */
+ChatView.loading > MessageBubble,
+ChatView.loading > Static,
+ChatView.loading > .system-message {
+    display: none;
+}
+
+ProgressBar {
+    background: $surface-darken-1;
+}
+
+ProgressBar > .bar {
+    background: $success;
+}
+
+/* ============================================================================
+ * DataTable (Conversation List)
+ * ============================================================================ */
+
+DataTable {
+    background: $surface;
+    color: $text;
+}
+
+DataTable > .datatable--header {
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: $primary;
+    color: $text;
+}
+
+DataTable > .datatable--hover {
+    background: $surface-lighten-1;
+}
+
+/* ============================================================================
+ * ConversationList Sidebar
+ * ============================================================================ */
+
+ConversationList {
+    width: 20%;
+    min-width: 20;
+    max-width: 40;
+    height: 100%;
+    background: $surface-darken-1;
+    # border-right: solid $accent;
+    padding: 0 1;
+}
+
+ConversationList #cards-container {
+    background: $surface-darken-1;
+    height: 100%;
+    padding: 1 0 1 1;  /* padding: top right bottom left - no right padding for scrollbar */
+}
+
+/* Empty state for conversation list */
+ConversationList #empty-conversation-label {
+    display: none;  /* Hidden by default, shown via Python when row_count == 0 */
+    width: 100%;
+    height: 100%;
+}
+
+ConversationList.empty #empty-conversation-label {
+    display: block;
+    hatch: right $surface-lighten-1 67%;  /* Diagonal lines */
+    align: center middle;
+}
+
+#empty-conversation-label Label {
+    text-align: center;
+    color: $text-muted;
+}
+
+/* ============================================================================
+ * Scrollbars
+ * ============================================================================ */
+
+/* Textual uses Scrollbar widget for scrollbars, not CSS pseudo-elements */
+Scrollbar {
+    background: $surface-darken-1;
+}
+
+ScrollbarCorner {
+    background: $surface-darken-1;
+}
+
+/* ============================================================================
+ * Historical Attachments (loaded from saved conversations)
+ * ============================================================================ */
+
+.historical-attachments {
+    width: 100%;
+    height: auto;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+/* ============================================================================
+ * Command Output Bubble
+ * ============================================================================ */
+
+CommandOutputBubble {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    margin: 1 2 1 0;
+    border: solid $accent;
+    border-title-color: $accent;
+}
+
+CommandOutputBubble.command-success {
+    border: solid $success;
+    border-title-color: $success;
+}
+
+CommandOutputBubble.command-error {
+    border: solid $error;
+    border-title-color: $error;
+}
+
+CommandOutputBubble .command-header {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+}
+
+CommandOutputBubble .command-text {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+}
+
+CommandOutputBubble .command-status {
+    width: 100%;
+    height: auto;
+    margin-top: 1;
+}
+
+CommandOutputBubble .command-output {
+    width: 100%;
+    height: auto;
+}
+
+CommandOutputBubble #command-output-collapsible {
+    width: 100%;
+    height: auto;
+}

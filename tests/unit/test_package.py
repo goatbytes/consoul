@@ -12,7 +12,7 @@ class TestPackageMetadata:
         """Test that __version__ is defined."""
         assert hasattr(consoul, "__version__")
         assert isinstance(consoul.__version__, str)
-        assert consoul.__version__ == "0.1.0"
+        assert consoul.__version__ == "0.2.0"
 
     def test_author_exists(self) -> None:
         """Test that __author__ is defined."""
@@ -33,7 +33,13 @@ class TestPackageMetadata:
         # Check that __all__ is sorted alphabetically
         assert consoul.__all__ == sorted(consoul.__all__)
         # Verify expected exports
-        expected = ["__author__", "__license__", "__version__"]
+        expected = [
+            "Consoul",
+            "ConsoulResponse",
+            "__author__",
+            "__license__",
+            "__version__",
+        ]
         assert consoul.__all__ == expected
 
 

@@ -1,0 +1,38 @@
+{
+  "created_at": "2025-11-14T22:31:44.175257",
+  "updated_at": "2025-11-15T09:05:03.533297Z",
+  "id": "SOUL-107",
+  "uuid": "d7806e2a-46f5-454a-8dfc-0568231c5f9a",
+  "title": "Implement delete_file and append_to_file operations",
+  "description": "**As a** Consoul AI agent\n**I want** to delete files and append content to existing files\n**So that** I can perform complete file management workflows\n\n**Context:**\nCompleting the CRUD suite for file operations. Both operations are high-risk and require approval:\n- delete_file: DANGEROUS risk level (always prompt, even in permissive modes per cursor-agent pattern)\n- append_to_file: CAUTION risk level (can create large files)\n\ncursor-agent insights:\n- delete_file always requires approval even in \"yolo mode\"\n- Tombstone entry in audit log for forensics\n- append_to_file is common for logging, markdown docs, test fixtures\n\n**Technical Notes:**\n- Add to src/consoul/ai/tools/implementations/file_edit.py\n- delete_file registers with RiskLevel.DANGEROUS (always requires approval)\n- append_to_file registers with RiskLevel.CAUTION\n- Both return structured FileEditResult\n- delete_file checks path exists before attempting\n- append_to_file can optionally create file if missing (create_if_missing flag)\n- Audit logging for both operations\n\nFiles to modify:\n- src/consoul/ai/tools/implementations/file_edit.py\n- src/consoul/ai/tools/implementations/__init__.py\n\n**Acceptance Criteria:**\n\n**Given** I delete an existing file\n**When** file exists and user approves\n**Then** file is deleted and audit log records operation with tombstone\n\n**Given** I delete non-existent file\n**When** file doesn't exist\n**Then** operation fails with \"File not found\" error\n\n**Given** I try to delete file in blocked path (/etc/passwd)\n**When** path validation runs\n**Then** operation rejected with security error\n\n**Given** I append to existing file\n**When** file exists\n**Then** content appended to end with newline separator if needed\n\n**Given** I append to non-existent file with create_if_missing=True\n**When** file doesn't exist\n**Then** file created with appended content\n\n**Given** I append to non-existent file with create_if_missing=False\n**When** file doesn't exist\n**Then** operation fails with \"File not found, set create_if_missing=True\" error\n\n**Given** append operation exceeds max_payload_bytes\n**When** validation runs\n**Then** operation rejected with size limit error\n\n**Testing Considerations:**\n- Test delete with existing file\n- Test delete with missing file\n- Test delete requires approval even in permissive mode\n- Test append to existing file (preserves original content)\n- Test append with newline handling\n- Test append with create_if_missing flag\n- Test path validation for both operations\n- Verify audit log entries\n\n**Implementation Hints:**\n```python\n@tool\ndef delete_file(\n    file_path: str,\n) -> str:\n    \"\"\"\n    Delete file (DANGEROUS - always requires approval).\n    \n    Returns JSON with:\n    - status: \"deleted\" | \"error\"\n    - path: Absolute path that was deleted\n    - timestamp: Deletion timestamp for audit\n    \"\"\"\n    config = get_file_edit_config()\n    path = _validate_file_path(file_path, config)\n    \n    if not path.exists():\n        raise FileNotFoundError(...)\n    \n    # Delete file\n    path.unlink()\n    \n    # Return tombstone entry\n    return json.dumps({\n        \"status\": \"deleted\",\n        \"path\": str(path),\n        \"timestamp\": datetime.utcnow().isoformat(),\n    })\n\n@tool\ndef append_to_file(\n    file_path: str,\n    content: str,\n    create_if_missing: bool = False,\n) -> str:\n    \"\"\"Append content to end of file.\"\"\"\n    config = get_file_edit_config()\n    path = _validate_file_path(file_path, config)\n    \n    if not path.exists():\n        if not create_if_missing:\n            raise FileNotFoundError(...)\n        path.touch()\n    \n    # Read existing, append, atomic write\n    original = path.read_text()\n    separator = \"\\n\" if original and not original.endswith(\"\\n\") else \"\"\n    new_content = original + separator + content\n    \n    _atomic_write(path, new_content)\n```\n\nRegister with:\n- delete_file: RiskLevel.DANGEROUS\n- append_to_file: RiskLevel.CAUTION",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "file-edit",
+    "enhancement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-005",
+  "blocked_by": [
+    "SOUL-104"
+  ],
+  "blocks": [
+    "SOUL-108",
+    "SOUL-109",
+    "SOUL-111"
+  ],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-16T08:16:44.075031",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

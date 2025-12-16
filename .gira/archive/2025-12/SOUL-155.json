@@ -1,0 +1,34 @@
+{
+  "created_at": "2025-11-23T19:50:19.000752",
+  "updated_at": "2025-12-03T23:07:35.006048Z",
+  "id": "SOUL-155",
+  "uuid": "7f0c2a6b-b213-4477-83f2-04c2654e2bff",
+  "title": "Add --tools CLI flag to consoul tui command",
+  "description": "**As a** Consoul TUI user\n**I want** a --tools CLI flag to specify tool availability per session\n**So that** I can quickly experiment with different tool sets without editing config\n\n**Context:**\nUsers need quick control over tool availability without modifying config files. This aligns with SDK patterns (tools parameter in Consoul() constructor) and provides session-based tool control.\n\nSimilar to how --model and --temperature override config, --tools should override the config.tools.allowed_tools setting for that session.\n\n**Technical Notes:**\n- src/consoul/tui/cli.py:17-29 - Add new Click option\n- Parse tools specification (same logic as SDK):\n  - \"all\" = all tools\n  - \"safe\" / \"caution\" / \"dangerous\" = risk level filtering\n  - \"search\" / \"file-edit\" / \"web\" / \"execute\" = category filtering\n  - \"bash,grep,code_search\" = comma-separated tool names\n  - \"none\" = no tools\n- Pass parsed tools to ConsoulApp initialization\n- Reuse SDK validation logic from src/consoul/sdk.py:313-411\n- CLI flag overrides config when specified\n- Falls back to config when not specified\n\n**Acceptance Criteria:**\n\n**Given** I run consoul tui --tools safe\n**When** TUI initializes\n**Then** only SAFE risk level tools are registered\n\n**Given** I run consoul tui --tools \"bash,grep,code_search\"\n**When** TUI initializes\n**Then** only those 3 tools are registered\n\n**Given** I run consoul tui --tools search,web\n**When** TUI initializes  \n**Then** all search and web category tools are registered\n\n**Given** I run consoul tui --tools none\n**When** TUI initializes\n**Then** no tools are registered (chat-only mode)\n\n**Given** I run consoul tui without --tools flag\n**When** TUI initializes\n**Then** config.tools.allowed_tools is used (or all tools if empty)\n\n**Testing Considerations:**\n- Test each specification type (all, risk level, category, list, none)\n- Test CLI override of config\n- Test invalid specifications (error handling)\n- Test comma-separated parsing\n- Test category expansion\n- Verify help text is clear\n\n**Implementation Hints:**\n1. Add Click option:\n   ```python\n   @click.option(\n       \"--tools\",\n       type=str,\n       help=\"Tool specification: 'all', 'safe', 'caution', 'none', \"\n            \"category names (search/file-edit/web/execute), \"\n            \"or comma-separated tool names (bash,grep,code_search)\",\n   )\n   def tui(ctx, theme, debug, log_file, test_mode, tools):\n   ```\n2. Parse tools specification in cli.py before passing to ConsoulApp\n3. Reuse SDK's _validate_and_resolve_tools() logic or extract to shared module\n4. Pass resolved tool list to app.py initialization\n5. Document in --help and user guide\n\n**Dependencies:**\n- SOUL-154 (Use allowed_tools for registration)",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "tui",
+    "cli",
+    "tools",
+    "enhancement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 3,
+  "custom_fields": {},
+  "epic": "EPIC-008",
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:10.132297",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

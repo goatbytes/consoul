@@ -1,0 +1,33 @@
+{
+  "created_at": "2025-11-23T13:18:45.974452",
+  "updated_at": "2025-11-24T20:09:48.921230Z",
+  "id": "SOUL-146",
+  "uuid": "f13e0a65-7e9c-4928-b6c2-5c038e1dbf9e",
+  "title": "Add collapsible thinking section to MessageBubble widget",
+  "description": "**As a** Consoul TUI user\n**I want** AI reasoning/thinking displayed in a collapsible section within message bubbles\n**So that** I can expand to see the model's thought process when needed without cluttering the conversation\n\n**Context:**\nFollowing SOUL-145 (reasoning extraction), we need to display the extracted thinking in the TUI. Best UX approach (from discussion):\n- Collapsed by default with \"\u25b6 Thinking\" toggle\n- Expandable on click to show full reasoning content\n- Visually distinct styling (dimmed background, italic text, dashed border)\n- Separate from main response content\n- Preserves conversation flow when collapsed\n\nModern AI chat interfaces (ChatGPT, Claude.ai, Gemini) show reasoning separately with collapsible sections or separate bubbles. For TUI, collapsible is better to save vertical space.\n\n**Technical Notes:**\n- Modify src/consoul/tui/widgets/message_bubble.py\n- Add thinking_content: str | None parameter to MessageBubble.__init__\n- Create ThinkingSection container widget (Collapsible or custom)\n- Update MessageBubble.compose() to include thinking section when present\n- Style with CSS in src/consoul/tui/css/main.tcss\n- Use Textual's Collapsible widget or implement toggle with reactive state\n- Add \ud83e\udde0 or \ud83d\udcad icon for thinking section\n- Support click to expand/collapse\n- Consider keyboard shortcut (e.g., 't' to toggle)\n\n**Acceptance Criteria:**\n\n**Given** a MessageBubble is created with thinking_content=\"Step 1: analyze...\"\n**When** the bubble is rendered\n**Then** a collapsed \"\u25b6 Thinking\" section appears above the response\n\n**Given** a thinking section is collapsed\n**When** I click on it\n**Then** it expands to show the full thinking content\n\n**Given** a thinking section is expanded\n**When** I click on it again\n**Then** it collapses back to \"\u25b6 Thinking\"\n\n**Given** a MessageBubble has no thinking content\n**When** the bubble is rendered\n**Then** no thinking section is displayed\n\n**Given** thinking content has multiple paragraphs\n**When** expanded\n**Then** all content is visible with proper formatting\n\n**Testing Considerations:**\n- Test with thinking content present\n- Test with thinking content absent\n- Test expand/collapse interaction\n- Test long thinking content (scrolling)\n- Test styling matches design (dimmed, italic, border)\n- Test keyboard navigation\n- Smoke test with actual AI responses\n\n**Implementation Hints:**\n```python\n# src/consoul/tui/widgets/message_bubble.py\n\nclass MessageBubble(Container):\n    def __init__(\n        self,\n        content: str,\n        role: Literal[\"user\", \"assistant\", \"system\", \"error\"] = \"user\",\n        timestamp: datetime | None = None,\n        token_count: int | None = None,\n        show_metadata: bool = True,\n        tool_calls: list[dict[str, Any]] | None = None,\n        message_id: int | None = None,\n        thinking_content: str | None = None,  # NEW\n        **kwargs: Any,\n    ) -> None:\n        # ...\n        self.thinking_content = thinking_content\n    \n    def compose(self) -> ComposeResult:\n        # Add thinking section if present\n        if self.thinking_content:\n            with Collapsible(\n                title=\"Thinking\",\n                collapsed=True,\n                classes=\"thinking-section\"\n            ):\n                yield Markdown(self.thinking_content, classes=\"thinking-content\")\n        \n        # Original content\n        yield Markdown(self.content_text, id=\"message-content\")\n        \n        # Metadata...\n```\n\n```css\n/* src/consoul/tui/css/main.tcss */\n\n.thinking-section {\n    background: $surface-darken-1;\n    border: dashed $text-muted;\n    margin: 1;\n}\n\n.thinking-content {\n    color: $text-muted;\n    text-style: italic;\n}\n\n.thinking-section CollapsibleTitle {\n    color: $text-muted;\n}\n\n.thinking-section CollapsibleTitle:hover {\n    color: $accent;\n}\n```\n\nFiles to modify:\n- src/consoul/tui/widgets/message_bubble.py\n- src/consoul/tui/css/main.tcss\n\nDependencies: SOUL-145 (reasoning extraction)",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "ai",
+    "enhancement",
+    "ux-improvement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:09.386793",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

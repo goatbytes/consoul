@@ -1,0 +1,633 @@
+"""Configuration loader with YAML support and precedence handling.
+
+This module provides functionality to load, merge, and validate Consoul
+configuration from multiple sources with clear precedence rules.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from consoul.config.env import load_env_settings
+from consoul.config.models import (
+    ConsoulConfig,
+    ConsoulCoreConfig,
+    ProfileConfig,
+    Provider,
+)
+from consoul.config.profiles import get_builtin_profiles
+
+
+def find_config_files() -> tuple[Path | None, Path | None]:
+    """Find global and project config files.
+
+    Returns:
+        Tuple of (global_config_path, project_config_path).
+        Either or both may be None if not found.
+    """
+    # Global config in user's home directory
+    global_config_path = Path.home() / ".consoul" / "config.yaml"
+    global_config: Path | None = (
+        global_config_path if global_config_path.exists() else None
+    )
+
+    # Project config - search upward from cwd to find .consoul/ or .git/
+    project_config = find_project_config()
+
+    return global_config, project_config
+
+
+def find_project_config() -> Path | None:
+    """Find project-specific config by walking up directory tree.
+
+    Searches for .consoul/config.yaml starting from current directory
+    and walking up to the git root or filesystem root.
+
+    Returns:
+        Path to project config file, or None if not found.
+    """
+    current = Path.cwd()
+
+    # Walk up the directory tree
+    while True:
+        # Check for .consoul/config.yaml in current directory
+        config_path = current / ".consoul" / "config.yaml"
+        if config_path.exists():
+            return config_path
+
+        # Check if we've reached a git repository root
+        if (current / ".git").exists():
+            # Check one more time in this directory
+            config_path = current / ".consoul" / "config.yaml"
+            if config_path.exists():
+                return config_path
+            # Don't search beyond git root
+            break
+
+        # Move up one directory
+        parent = current.parent
+        if parent == current:  # Reached filesystem root
+            break
+        current = parent
+
+    return None
+
+
+def expand_env_vars(value: Any) -> Any:
+    """Recursively expand environment variables in config values.
+
+    Supports ${VAR_NAME} and $VAR_NAME syntax.
+    If the environment variable is not set, the original string is returned unchanged.
+
+    Args:
+        value: Configuration value (can be string, dict, list, or primitive)
+
+    Returns:
+        Value with environment variables expanded
+    """
+    if isinstance(value, str):
+        # Match ${VAR_NAME} or $VAR_NAME patterns
+        def replace_env_var(match: re.Match[str]) -> str:
+            var_name = match.group(1) or match.group(2)
+            return os.environ.get(var_name, match.group(0))
+
+        # Pattern: ${VAR_NAME} or $VAR_NAME
+        pattern = r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)"
+        return re.sub(pattern, replace_env_var, value)
+
+    if isinstance(value, dict):
+        return {k: expand_env_vars(v) for k, v in value.items()}
+
+    if isinstance(value, list):
+        return [expand_env_vars(item) for item in value]
+
+    # Return primitives unchanged (int, float, bool, None, etc.)
+    return value
+
+
+def load_yaml_config(path: Path) -> dict[str, Any]:
+    """Load and parse YAML config file with environment variable expansion.
+
+    Supports ${VAR_NAME} and $VAR_NAME syntax for environment variables.
+    If the environment variable is not set, the original string is kept unchanged.
+
+    Args:
+        path: Path to YAML config file.
+
+    Returns:
+        Parsed configuration dictionary with env vars expanded, or empty dict if file doesn't exist.
+
+    Raises:
+        yaml.YAMLError: If YAML syntax is invalid.
+        OSError: If file cannot be read.
+    """
+    if not path or not path.exists():
+        return {}
+
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            content = yaml.safe_load(f)
+            # Handle empty files
+            if content is None:
+                return {}
+            if not isinstance(content, dict):
+                raise ValueError(
+                    f"Config file must contain a YAML mapping, got {type(content).__name__}"
+                )
+            # Expand environment variables (guaranteed to return dict since input is dict)
+            expanded = expand_env_vars(content)
+            if not isinstance(expanded, dict):  # type guard
+                raise ValueError(
+                    f"Environment expansion corrupted config structure, got {type(expanded).__name__}"
+                )
+            return expanded
+    except yaml.YAMLError as e:
+        raise yaml.YAMLError(f"Invalid YAML in {path}: {e}") from e
+    except OSError as e:
+        raise OSError(f"Cannot read config file {path}: {e}") from e
+
+
+def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """Deep merge two dictionaries.
+
+    Args:
+        base: Base dictionary (lower precedence).
+        override: Override dictionary (higher precedence).
+
+    Returns:
+        Merged dictionary. Override values take precedence.
+        Nested dicts are recursively merged.
+        Lists and other values are replaced, not merged.
+    """
+    result = base.copy()
+
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            # Recursively merge nested dictionaries
+            result[key] = deep_merge(result[key], value)
+        else:
+            # Replace value (including lists)
+            result[key] = value
+
+    return result
+
+
+def merge_configs(*configs: dict[str, Any]) -> dict[str, Any]:
+    """Merge multiple config dictionaries in precedence order.
+
+    Args:
+        *configs: Configuration dictionaries in order from lowest to highest precedence.
+
+    Returns:
+        Merged configuration dictionary.
+    """
+    if not configs:
+        return {}
+
+    result: dict[str, Any] = {}
+    for config in configs:
+        if config:  # Skip None or empty dicts
+            result = deep_merge(result, config)
+
+    return result
+
+
+def load_env_config(env_settings: Any | None = None) -> dict[str, Any]:
+    """Load configuration from CONSOUL_* environment variables and .env files.
+
+    This function converts EnvSettings into config dict format for merging.
+    Supports both environment variables and .env file values.
+
+    Args:
+        env_settings: Optional EnvSettings instance. If None, loads fresh settings.
+
+    Returns:
+        Configuration dictionary parsed from environment variables and .env files.
+    """
+    if env_settings is None:
+        env_settings = load_env_settings()
+
+    env_config: dict[str, Any] = {}
+
+    # Active profile (CONSOUL_PROFILE)
+    if env_settings.consoul_profile:
+        env_config["active_profile"] = env_settings.consoul_profile
+
+    # Model configuration overrides
+    model_overrides: dict[str, Any] = {}
+    if env_settings.consoul_model_provider:
+        model_overrides["provider"] = env_settings.consoul_model_provider
+    if env_settings.consoul_model_name:
+        model_overrides["model"] = env_settings.consoul_model_name
+    if env_settings.consoul_temperature is not None:
+        model_overrides["temperature"] = env_settings.consoul_temperature
+    if env_settings.consoul_max_tokens is not None:
+        model_overrides["max_tokens"] = env_settings.consoul_max_tokens
+
+    # If we have model overrides, we need to apply them to the active profile
+    # This requires knowing the active profile, which we'll handle in load_config
+    if model_overrides:
+        env_config["_model_overrides"] = model_overrides
+
+    # Conversation overrides
+    conversation_overrides: dict[str, Any] = {}
+    if env_settings.consoul_history_file:
+        conversation_overrides["history_file"] = env_settings.consoul_history_file
+
+    if conversation_overrides:
+        env_config["_conversation_overrides"] = conversation_overrides
+
+    return env_config
+
+
+def select_intelligent_default_model() -> tuple[Provider, str]:
+    """Intelligently select a default model based on available API keys and services.
+
+    Priority order:
+    1. If Anthropic API key exists -> use Claude
+    2. If OpenAI API key exists -> use GPT-4
+    3. If Google API key exists -> use Gemini
+    4. If Ollama is running -> use best available Ollama model
+    5. Fallback -> Anthropic Claude (even without key, for better error message)
+
+    Returns:
+        Tuple of (Provider, model_name)
+    """
+    # Check for API keys in environment
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    openai_key = os.getenv("OPENAI_API_KEY")
+    google_key = os.getenv("GOOGLE_API_KEY")
+
+    # Priority 1: Anthropic (most capable general model)
+    if anthropic_key:
+        return (Provider.ANTHROPIC, "claude-3-opus-20240229")
+
+    # Priority 2: OpenAI
+    if openai_key:
+        return (Provider.OPENAI, "gpt-5-nano")
+
+    # Priority 3: Google
+    if google_key:
+        return (Provider.GOOGLE, "gemini-2.5-flash")
+
+    # Priority 4: Ollama (free, local)
+    try:
+        import requests
+
+        response = requests.get("http://localhost:11434/api/tags", timeout=1)
+        if response.status_code == 200:
+            models = response.json().get("models", [])
+            if models:
+                # Prefer larger, more capable models
+                # Look for qwen, llama, or other high-quality models
+                for preferred_pattern in ["qwen2.5", "qwen3", "llama3", "mistral"]:
+                    for model in models:
+                        model_name = model.get("name", "")
+                        if preferred_pattern in model_name.lower():
+                            return (Provider.OLLAMA, model_name)
+                # If no preferred model, use the first available
+                return (Provider.OLLAMA, models[0]["name"])
+    except Exception:
+        pass  # Ollama not available
+
+    # Fallback: Default to Anthropic (will error gracefully if no API key)
+    return (Provider.ANTHROPIC, "claude-3-5-sonnet-20241022")
+
+
+def create_default_config() -> dict[str, Any]:
+    """Create default configuration with all built-in profiles.
+
+    Intelligently selects the default model based on available API keys and services.
+
+    Returns:
+        Default configuration dictionary with all built-in profiles.
+    """
+    # Select intelligent default based on what's available
+    default_provider, default_model = select_intelligent_default_model()
+
+    return {
+        "profiles": get_builtin_profiles(),
+        "active_profile": "default",
+        "current_provider": default_provider.value,
+        "current_model": default_model,
+        "provider_configs": {
+            Provider.OPENAI.value: {
+                "api_key_env": "OPENAI_API_KEY",
+                "default_temperature": 1.0,
+                "default_max_tokens": 4096,
+            },
+            Provider.ANTHROPIC.value: {
+                "api_key_env": "ANTHROPIC_API_KEY",
+                "default_temperature": 1.0,
+                "default_max_tokens": 4096,
+            },
+            Provider.GOOGLE.value: {
+                "api_key_env": "GOOGLE_API_KEY",
+                "default_temperature": 1.0,
+                "default_max_tokens": 4096,
+            },
+            Provider.OLLAMA.value: {
+                "api_base": "http://localhost:11434",
+                "default_temperature": 1.0,
+                "default_max_tokens": 4096,
+            },
+        },
+        "global_settings": {},
+    }
+
+
+def load_profile(profile_name: str, config: ConsoulConfig) -> ProfileConfig:
+    """Load a profile by name from custom or built-in profiles.
+
+    Args:
+        profile_name: Name of the profile to load.
+        config: ConsoulConfig instance to check for custom profiles.
+
+    Returns:
+        ProfileConfig instance.
+
+    Raises:
+        KeyError: If the profile doesn't exist.
+    """
+    # Check custom profiles first (they override built-in)
+    if profile_name in config.profiles:
+        return config.profiles[profile_name]
+
+    # Fall back to built-in profiles
+    builtin = get_builtin_profiles()
+    if profile_name in builtin:
+        return ProfileConfig(**builtin[profile_name])
+
+    # Profile not found
+    available = sorted(set(config.profiles.keys()) | set(builtin.keys()))
+    raise KeyError(
+        f"Profile '{profile_name}' not found. "
+        f"Available profiles: {', '.join(available)}"
+    )
+
+
+def load_config(
+    global_config_path: Path | None = None,
+    project_config_path: Path | None = None,
+    cli_overrides: dict[str, Any] | None = None,
+    profile_name: str | None = None,
+) -> ConsoulConfig:
+    """Load and merge configuration from all sources.
+
+    Precedence order (lowest to highest):
+    1. Defaults (built-in profiles + default settings)
+    2. Global config (~/.consoul/config.yaml)
+    3. Project config (.consoul/config.yaml)
+    4. Environment variables (CONSOUL_*)
+    5. CLI overrides (passed as argument)
+
+    Args:
+        global_config_path: Optional path to global config file.
+            If None, searches in default location.
+        project_config_path: Optional path to project config file.
+            If None, searches upward from cwd.
+        cli_overrides: Optional dictionary of CLI argument overrides.
+        profile_name: Optional profile name to set as active.
+            If provided, sets active_profile after loading.
+
+    Returns:
+        Validated ConsoulConfig instance.
+
+    Raises:
+        yaml.YAMLError: If config file has invalid YAML syntax.
+        ValidationError: If merged config doesn't match schema.
+    """
+    # 1. Start with defaults
+    default_config = create_default_config()
+
+    # 2. Find config files if not provided
+    if global_config_path is None or project_config_path is None:
+        found_global, found_project = find_config_files()
+        if global_config_path is None:
+            global_config_path = found_global
+        if project_config_path is None:
+            project_config_path = found_project
+
+    # 3. Load environment settings (shared for both config and API keys)
+    env_settings = load_env_settings()
+
+    # Warn if .env file exists but not in .gitignore
+    from consoul.utils.security import warn_if_env_not_ignored
+
+    warn_if_env_not_ignored()
+
+    # 4. Load each config source
+    global_config = load_yaml_config(global_config_path) if global_config_path else {}
+    project_config = (
+        load_yaml_config(project_config_path) if project_config_path else {}
+    )
+    env_config = load_env_config(env_settings)
+
+    # 5. Determine active profile from precedence chain
+    active = (
+        profile_name  # CLI has highest precedence
+        or env_config.get("active_profile")
+        or project_config.get("active_profile")
+        or global_config.get("active_profile")
+        or default_config.get("active_profile", "default")
+    )
+
+    # 6. Apply model and conversation overrides from env vars to the active profile
+    env_overrides: dict[str, Any] = {}
+    profile_overrides: dict[str, Any] = {}
+
+    if "_model_overrides" in env_config:
+        model_overrides = env_config.pop("_model_overrides")
+        profile_overrides["model"] = model_overrides
+
+    if "_conversation_overrides" in env_config:
+        conversation_overrides = env_config.pop("_conversation_overrides")
+        profile_overrides["conversation"] = conversation_overrides
+
+    if profile_overrides:
+        env_overrides = {"profiles": {active: profile_overrides}}
+        if "active_profile" not in env_config:
+            env_overrides["active_profile"] = active
+
+    # 7. Merge in precedence order
+    merged = merge_configs(
+        default_config,
+        global_config,
+        project_config,
+        env_config,
+        env_overrides,
+        cli_overrides or {},
+    )
+
+    # 8. Set active profile if specified via CLI (highest precedence)
+    if profile_name is not None:
+        merged["active_profile"] = profile_name
+
+    # 9. Remove tui section if present (for backward compatibility)
+    # ConsoulCoreConfig doesn't have a tui field, so we discard it
+    # TUI applications should use load_tui_config() instead
+    merged.pop("tui", None)
+
+    # 10. Validate with Pydantic and attach env_settings (already loaded)
+    config = ConsoulConfig(**merged)
+    config.env_settings = env_settings
+
+    return config
+
+
+def load_tui_config(
+    global_config_path: Path | None = None,
+    project_config_path: Path | None = None,
+    cli_overrides: dict[str, Any] | None = None,
+    profile_name: str | None = None,
+) -> Any:
+    """Load configuration for TUI applications.
+
+    This function loads YAML configs, preserves TUI settings, and creates
+    a ConsoulTuiConfig with both core SDK config + TUI settings.
+
+    Args:
+        global_config_path: Optional path to global config file.
+        project_config_path: Optional path to project config file.
+        cli_overrides: Optional dictionary of CLI argument overrides.
+        profile_name: Optional profile name to set as active.
+
+    Returns:
+        ConsoulTuiConfig instance with core SDK config + TUI settings.
+    """
+    from consoul.tui.config import ConsoulTuiConfig, TuiConfig
+
+    # 1. Start with defaults
+    default_config = create_default_config()
+
+    # 2. Find config files if not provided
+    if global_config_path is None or project_config_path is None:
+        found_global, found_project = find_config_files()
+        if global_config_path is None:
+            global_config_path = found_global
+        if project_config_path is None:
+            project_config_path = found_project
+
+    # 3. Load environment settings (shared for both config and API keys)
+    env_settings = load_env_settings()
+
+    # Warn if .env file exists but not in .gitignore
+    from consoul.utils.security import warn_if_env_not_ignored
+
+    warn_if_env_not_ignored()
+
+    # 4. Load each config source (raw YAML dicts - preserves tui section)
+    global_config = load_yaml_config(global_config_path) if global_config_path else {}
+    project_config = (
+        load_yaml_config(project_config_path) if project_config_path else {}
+    )
+    env_config = load_env_config(env_settings)
+
+    # 5. Determine active profile from precedence chain
+    active = (
+        profile_name  # CLI has highest precedence
+        or env_config.get("active_profile")
+        or project_config.get("active_profile")
+        or global_config.get("active_profile")
+        or default_config.get("active_profile", "default")
+    )
+
+    # 6. Apply model and conversation overrides from env vars to the active profile
+    env_overrides: dict[str, Any] = {}
+    profile_overrides: dict[str, Any] = {}
+
+    if "_model_overrides" in env_config:
+        model_overrides = env_config.pop("_model_overrides")
+        profile_overrides["model"] = model_overrides
+
+    if "_conversation_overrides" in env_config:
+        conversation_overrides = env_config.pop("_conversation_overrides")
+        profile_overrides["conversation"] = conversation_overrides
+
+    if profile_overrides:
+        env_overrides = {"profiles": {active: profile_overrides}}
+        if "active_profile" not in env_config:
+            env_overrides["active_profile"] = active
+
+    # 7. Merge in precedence order (preserves tui section in merged dict)
+    merged = merge_configs(
+        default_config,
+        global_config,
+        project_config,
+        env_config,
+        env_overrides,
+        cli_overrides or {},
+    )
+
+    # 8. Set active profile if specified via CLI (highest precedence)
+    if profile_name is not None:
+        merged["active_profile"] = profile_name
+
+    # 9. Extract tui section BEFORE creating core config
+    # This preserves user's TUI settings from config files
+    tui_dict = merged.pop("tui", {})
+
+    # 10. Validate core config with Pydantic (without tui field)
+    core_config = ConsoulCoreConfig(**merged)
+    core_config.env_settings = env_settings
+
+    # 11. Create TUI config from extracted tui dict
+    tui_config = TuiConfig(**tui_dict) if tui_dict else TuiConfig()
+
+    # 12. Combine into ConsoulTuiConfig
+    return ConsoulTuiConfig(core=core_config, tui=tui_config)
+
+
+def save_config(
+    config: ConsoulConfig | Any, path: Path, include_api_keys: bool = False
+) -> None:
+    """Save configuration to YAML file.
+
+    Args:
+        config: ConsoulConfig or ConsoulTuiConfig instance to save.
+        path: Path where config file should be saved.
+        include_api_keys: Whether to include API keys in output.
+            Default False for security. WARNING: Setting this to True
+            will expose sensitive API keys in the config file.
+
+    Raises:
+        OSError: If file cannot be written.
+    """
+    # Ensure directory exists
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Handle ConsoulTuiConfig - convert to flat dict with core + tui fields
+    if hasattr(config, "core") and hasattr(config, "tui"):
+        # ConsoulTuiConfig - merge core and tui into single dict
+        core_dict = config.core.model_dump(mode="json")
+        tui_dict = config.tui.model_dump(mode="json")
+        config_dict = {**core_dict, "tui": tui_dict}
+    else:
+        # ConsoulCoreConfig - convert directly
+        config_dict = config.model_dump(mode="json")
+
+    # The serializer removes api_keys, so we need to add them back if requested
+    # Warning: This exposes sensitive data!
+    api_keys = config.core.api_keys if hasattr(config, "core") else config.api_keys
+    if include_api_keys and api_keys:
+        config_dict["api_keys"] = {
+            key: value.get_secret_value() for key, value in api_keys.items()
+        }
+
+    # Write YAML
+    try:
+        with path.open("w", encoding="utf-8") as f:
+            yaml.safe_dump(
+                config_dict,
+                f,
+                default_flow_style=False,
+                sort_keys=False,
+                allow_unicode=True,
+            )
+    except OSError as e:
+        raise OSError(f"Cannot write config file {path}: {e}") from e

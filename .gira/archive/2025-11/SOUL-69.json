@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-11-11T15:57:06.291011",
+  "updated_at": "2025-11-12T17:32:39.420241Z",
+  "id": "SOUL-69",
+  "uuid": "4ebedffd-6bfe-422d-97b4-f63ce2cc0460",
+  "title": "Replace inline tool call widgets with modal + icon button",
+  "description": "Replace the current inline ToolCallWidget with a more compact UX:\n\nCurrent Issue:\n- Tool call widgets are displayed inline in the chat, taking up significant vertical space\n- Breaks conversation flow with tall UI elements\n- Poor UX especially for simple commands like 'pwd'\n\nProposed Solution:\n- Remove inline ToolCallWidget from assistant message bubbles\n- Add a \ud83d\udee0\ufe0f icon button next to the copy button in assistant messages that used tools\n- Clicking the icon opens a modal showing tool call details:\n  * List of all tool calls for that message (supports multiple tools)\n  * For each tool: name, arguments (syntax highlighted), status, output\n  * Clean, formatted display with proper spacing\n  * Close button to dismiss\n\nBenefits:\n- Chat flows naturally without tall inline widgets\n- Progressive disclosure - details available on demand\n- Better supports multiple tool calls per message\n- Consistent with existing UI patterns (modal + icon button)\n- Cleaner, more professional appearance\n\nImplementation Tasks:\n1. Create ToolCallDetailsModal widget\n2. Add tool call tracking to assistant messages\n3. Add \ud83d\udee0\ufe0f button to message metadata (conditionally shown when tools were used)\n4. Remove ToolCallWidget from chat message rendering\n5. Update streaming response handler to track tool calls\n6. Test with single and multiple tool calls\n7. Update CSS for modal styling\n\nFiles to modify:\n- src/consoul/tui/widgets/ (new modal)\n- src/consoul/tui/widgets/chat_view.py (message rendering)\n- src/consoul/tui/app.py (tool call tracking/handling)\n- src/consoul/tui/css/main.tcss (modal styles)\n\nFiles to deprecate:\n- src/consoul/tui/widgets/tool_call_widget.py (can remove after migration)",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:34.773001",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "created_at": "2025-12-10T00:51:14.399718",
+  "updated_at": "2025-12-15T17:02:35.375641Z",
+  "id": "SOUL-245",
+  "uuid": "12f46d33-dc8c-490f-9bb2-de5a122141cb",
+  "title": "Create ConversationService facade for headless conversation management",
+  "description": "**As a** Consoul developer\n**I want** a clean ConversationService facade in the SDK layer\n**So that** business logic for streaming, message handling, and conversation management can be reused across TUI, CLI, and FastAPI/WebSocket backends\n\n**Context:**\nCurrently, tui/app.py contains ~1,106 lines of business logic for conversation management (lines 1597-2740). This includes:\n- Message submission handling (lines 1597-1799, 202 lines)\n- Streaming logic with token queues and thread management (lines 1836-2740, 904 lines)  \n- Multimodal message creation (lines 1275-1435, 160 lines)\n- Cost calculation and token counting\n\nThis prevents reusing the conversation logic in other contexts (web backends, CLIs, notebooks). The service layer will encapsulate this business logic behind a clean async interface that returns simple data types instead of LangChain-specific types.\n\n**Technical Notes:**\n- Extract from: src/consoul/tui/app.py lines 1597-2740, 1275-1435\n- Create new: src/consoul/sdk/services/conversation.py\n- Hide: BaseChatModel, AIMessage, ToolMessage, HumanMessage from callers\n- Provide: AsyncIterator[Token] interface for streaming\n- Handle: Multimodal attachments, inline commands, cost tracking\n- Integrate: ConversationHistory, ToolService (for tool execution)\n- Reference: Analysis found 904 lines of streaming logic alone\n\n**Acceptance Criteria:**\n\n**Given** I have a ConversationService instance\n**When** I call send_message() with text and attachments\n**Then** I receive an async iterator of tokens without importing LangChain\n\n**Given** A streaming response with tool calls\n**When** The service detects tool execution needed\n**Then** on_tool_request callback is invoked for approval\n\n**Given** A multimodal message with images\n**When** I send_message() with image attachments\n**Then** Images are properly encoded and formatted for the provider\n\n**Given** A conversation is streaming\n**When** Token limits or errors occur\n**Then** Appropriate exceptions are raised with cost data preserved\n\n**Testing Considerations:**\n- Mock LangChain model.astream() responses\n- Test tool call detection and callback invocation\n- Test multimodal message formatting for different providers\n- Test cost calculation during streaming\n- Test error handling (network, rate limits, token limits)\n- Test conversation history integration\n- Verify no UI dependencies in service code\n\n**Implementation Hints:**\n- Create ConversationService class with from_config() factory\n- Extract _stream_ai_response() logic from app.py:1836-2740\n- Extract _create_multimodal_message() logic from app.py:1275-1435  \n- Extract message handling from app.py:1597-1799\n- Return dataclass Token(content: str, cost: float | None) instead of AIMessage chunks\n- Use callbacks for tool approval instead of direct modal pushing\n- Maintain conversation history internally\n- Provide get_stats(), get_history(), clear() methods",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "sdk",
+    "refactor",
+    "ai",
+    "core",
+    "breaking-change"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-013",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-10T15:51:52.239251",
+      "updated_at": "2025-12-10T15:51:52.239252",
+      "id": "20251210155152-5b5c4ccd",
+      "ticket_id": "SOUL-245",
+      "author": "jared@goatbytes.io",
+      "content": "\u2705 **Completed** - ConversationService implementation finished\n\n**Commits:**\n- b0717e4: Initial ConversationService facade (781 lines)\n- b621650: Fixed tool approval callback to support both async callables and protocol implementations\n\n**Delivered:**\n- ConversationService with streaming, tool execution, multimodal support\n- Data models: Token, Attachment, ConversationStats, ToolRequest\n- ToolExecutionCallback protocol\n- Zero TUI dependencies (verified)\n- Full async streaming API\n- Provider-agnostic (OpenAI, Anthropic, Google, Ollama)\n\n**Files Created:**\n- src/consoul/sdk/services/conversation.py (781 lines)\n- src/consoul/sdk/models.py\n- src/consoul/sdk/protocols.py\n- src/consoul/sdk/__init__.py\n- src/consoul/sdk/services/__init__.py\n\n**Next Steps:**\n- SOUL-255: Unit tests\n- SOUL-263: TUI integration (validation)",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 13,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-16T03:36:00.345251+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

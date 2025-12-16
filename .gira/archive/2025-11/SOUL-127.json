@@ -1,0 +1,31 @@
+{
+  "created_at": "2025-11-16T08:04:53.553289",
+  "updated_at": "2025-11-20T04:22:37.145964Z",
+  "id": "SOUL-127",
+  "uuid": "3ac3d45a-aa6b-4885-9be3-66313cc415d4",
+  "title": "Document HuggingFace provider usage in README and configuration guide",
+  "description": "**As a** Consoul user\n**I want** documentation on using HuggingFace models\n**So that** I can configure and use HuggingFace providers effectively\n\n**Context:**\nAfter implementing HuggingFace support, users need clear documentation on:\n- How to get a HuggingFace API token\n- How to configure HuggingFace models\n- Which models are supported/recommended\n- Example configurations\n- Troubleshooting common issues\n\n**Technical Notes:**\n- README.md - Add HuggingFace to supported providers list\n- docs/configuration.md - Add HuggingFace section\n- examples/config.yaml - Add HuggingFace example profile\n- Link to HuggingFace Hub: https://huggingface.co/models\n\n**Acceptance Criteria:**\n\nGiven I read README.md\nWhen I check the providers section\nThen HuggingFace is listed with brief description\n\nGiven I read the configuration guide\nWhen I check the HuggingFace section\nThen I see step-by-step setup instructions\n\nGiven I check example configs\nWhen I review examples/config.yaml\nThen HuggingFace profile examples are included\n\n**Testing Considerations:**\n- Verify all links work\n- Test example configurations\n- Ensure code blocks have correct syntax\n\n**Implementation Hints:**\nAdd HuggingFace to README providers list, create configuration guide section with setup steps and model recommendations, add example YAML configs.\n\nFiles to modify:\n- README.md\n- docs/configuration.md\n- examples/config.yaml\n\nDependencies: SOUL-121, SOUL-122, SOUL-123",
+  "status": "done",
+  "type": "task",
+  "priority": "low",
+  "labels": [
+    "documentation",
+    "providers"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-19T20:23:41.979342",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

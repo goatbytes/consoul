@@ -1,0 +1,67 @@
+{
+  "created_at": "2025-11-17T13:13:33.821448",
+  "updated_at": "2025-11-20T04:23:22.885496Z",
+  "id": "SOUL-135",
+  "uuid": "c9f630da-385a-41bf-a5a3-49f9bd0750ba",
+  "title": "Fix MLX model loading 'fds_to_keep' subprocess error",
+  "description": "",
+  "status": "done",
+  "type": "bug",
+  "priority": "high",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-17T13:13:59.579691",
+      "updated_at": "2025-11-17T13:13:59.579691",
+      "id": "20251117131359-2e47be64",
+      "ticket_id": "SOUL-135",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed 'bad value(s) in fds_to_keep' subprocess error when loading MLX models.\n\nRoot Cause:\n- MLXPipeline.from_model_id() spawns subprocess which fails with fds_to_keep error\n- langchain-community's MLXPipeline uses subprocess internally, incompatible with TUI environment\n\nSolution:\n- Rewrote MLXChatWrapper to load models directly with mlx_lm.load() instead of MLXPipeline\n- Bypasses subprocess entirely, models load in-process\n- Updated providers.py to instantiate MLXChatWrapper with model_id directly\n- All parameters (temperature, max_tokens, top_p, repetition_penalty) passed as constructor args\n\nFiles Modified:\n- src/consoul/ai/mlx_chat_wrapper.py: Complete rewrite to use mlx_lm.load() directly\n- src/consoul/ai/providers.py (lines 1067-1121): Updated MLX provider to use new wrapper\n\nResult:\n- MLX models now load without subprocess errors\n- Users can successfully switch to MLX models in TUI",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-17T13:16:48.892076",
+      "updated_at": "2025-11-17T13:16:48.892076",
+      "id": "20251117131648-60040956",
+      "ticket_id": "SOUL-135",
+      "author": "jared@goatbytes.io",
+      "content": "Update: HF_HUB_DISABLE_PROGRESS_BARS doesn't fully fix the issue.\n\nRoot cause is deeper:\n- Even CACHED HuggingFace models (mlx-community/model-name) trigger multiprocessing\n- mlx_lm.load() tries to verify cache, which spawns subprocess\n- Subprocess creation fails in TUI with 'fds_to_keep' error\n\nWorking solution:\n- Use LOCAL file paths: /Users/username/.lmstudio/models/mlx-community/model-name \u2705\n- Model loaded successfully when using absolute path (see log line 84)\n\nUser Impact:\n- Users should select LOCAL MLX models from ~/.lmstudio/models/ directory\n- These appear in the Local > MLX tab in model picker\n- HuggingFace repo IDs (mlx-community/*) will fail in TUI\n\nNext steps:\n- Consider filtering out HF repo ID models from MLX tab in TUI\n- Only show local file path models\n- Or pre-download models outside TUI before launching",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-17T13:22:49.969795",
+      "updated_at": "2025-11-17T13:22:49.969796",
+      "id": "20251117132249-4b3b3948",
+      "ticket_id": "SOUL-135",
+      "author": "jared@goatbytes.io",
+      "content": "Final fix: Removed all HuggingFace repo ID models from Local > MLX tab.\n\nChanges made to model_picker_modal.py:\n1. Line 835-840: Removed HF repo ID suggestions from general MLX section\n2. Lines 1082-1084: Removed mlx_suggestions dict from _populate_mlx_models()\n   - Was showing: mlx-community/Meta-Llama-3.1-8B-Instruct-4bit, etc.\n   - These fail with fds_to_keep errors in TUI\n\nWhat's shown now in Local > MLX tab:\n- \u2705 Only local file-path models from ~/.lmstudio/models/\n- \u2705 These load successfully without multiprocessing issues\n- \u274c No HuggingFace repo IDs (they would fail)\n\nUser experience:\n- Users see only working local MLX models\n- No confusing errors when selecting MLX models\n- Clear expectation: Local tab = local files only\n\nFiles modified:\n- src/consoul/tui/widgets/model_picker_modal.py (lines 835-840, 1082-1084)\n- src/consoul/ai/mlx_chat_wrapper.py (added HF_HUB_DISABLE_PROGRESS_BARS, better error messages)\n- src/consoul/ai/providers.py (improved error messages for fds_to_keep)",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-19T20:23:41.826861",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

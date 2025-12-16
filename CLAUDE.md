@@ -303,6 +303,7 @@ gira ticket list
 3. **Update Regularly**: Move tickets through the workflow as you progress
 4. **Reference in Commits**: Always include ticket IDs in commit messages
 5. **Break Down Complex Work**: Create subtasks for large tickets
+6. **Never Run the TUI**: Don't run `consoul` or TUI apps from chat sessions. Ask the user to test instead.
 
 ---
 

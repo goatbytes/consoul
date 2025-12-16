@@ -1,0 +1,48 @@
+{
+  "created_at": "2025-11-13T08:37:54.579800",
+  "updated_at": "2025-12-15T23:37:05.422751Z",
+  "id": "EPIC-005",
+  "title": "File Operations System (Read & Edit)",
+  "description": "Create a comprehensive file operations system for Consoul that enables AI agents to safely read and edit files with proper security controls, validation, and user approval.\n\nThis extends the tool calling system (EPIC-004) with file I/O capabilities including:\n\n**Read Operations (safe, read-only)**:\n- read_file: Line-numbered text file reading with offset/limit\n- PDF support: Page extraction from PDF files\n- Size limits: Truncation controls for large files\n- Security: Path validation, extension filtering, blocked paths\n\n**Edit Operations (require approval)**:\n- edit_file_lines: Line-based editing with exact line ranges\n- edit_file_search_replace: Search/replace with progressive matching (strict → whitespace → fuzzy)\n- create_file: File creation with overwrite protection\n- delete_file: File deletion (DANGEROUS - always requires approval)\n- append_to_file: Append content to existing files\n\n**Key Features**:\n- Optimistic locking (expected_hash) prevents concurrent edit conflicts\n- Progressive matching with tolerance levels for robustness\n- Atomic writes (temp file → replace) prevent file corruption\n- TUI diff previews for all edit operations\n- Comprehensive audit logging with checksums\n- Security-first: RiskLevel.CAUTION for edits, DANGEROUS for deletes\n\n**Dependencies**:\n- Blocked by: EPIC-004 (Tool Calling System)\n- Enables: AI-assisted coding, file refactoring, documentation updates",
+  "status": "completed",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2025-12-31",
+  "labels": [],
+  "tickets": [
+    "SOUL-79",
+    "SOUL-80",
+    "SOUL-81",
+    "SOUL-82",
+    "SOUL-83",
+    "SOUL-85",
+    "SOUL-86",
+    "SOUL-103",
+    "SOUL-104",
+    "SOUL-105",
+    "SOUL-106",
+    "SOUL-107",
+    "SOUL-108",
+    "SOUL-109",
+    "SOUL-111",
+    "SOUL-120"
+  ],
+  "comments": [
+    {
+      "created_at": "2025-11-13T08:48:09.933129",
+      "updated_at": "2025-11-13T08:48:09.933129",
+      "id": "20251113084809-0ac95673",
+      "epic_id": "EPIC-005",
+      "author": "jared@goatbytes.io",
+      "content": "Epic promoted to TODO status. This is Phase 2 of the tool calling roadmap (EPIC-004), adding safe read-only file operations. All 7 tickets have been created with comprehensive acceptance criteria following the Consoul Ticket Writer skill. Implementation order: SOUL-79 (config) → SOUL-80 (core tool) → SOUL-82 (truncation) / SOUL-81 (PDF, parallel) → SOUL-83 (registration) → SOUL-85 (tests) → SOUL-86 (docs). Dependencies will be encoded via blocked_by links.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "comment_count": 1,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}

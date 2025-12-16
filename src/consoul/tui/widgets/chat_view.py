@@ -1,0 +1,240 @@
+"""ChatView widget for displaying conversation messages.
+
+This module provides the main chat display area that shows conversation
+messages in a scrollable vertical layout with auto-scrolling support.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING
+
+from textual.containers import VerticalScroll
+from textual.reactive import reactive
+
+if TYPE_CHECKING:
+    from textual.events import MouseScrollDown, MouseScrollUp
+    from textual.widget import Widget
+
+__all__ = ["ChatView"]
+
+logger = logging.getLogger(__name__)
+
+
+class ChatView(VerticalScroll):
+    """Main chat message display area.
+
+    Displays conversation messages in a scrollable vertical layout.
+    Automatically scrolls to bottom when new messages arrive.
+
+    Attributes:
+        auto_scroll: Whether to automatically scroll to bottom on new messages
+        message_count: Number of messages currently displayed
+    """
+
+    # Reactive state
+    auto_scroll: reactive[bool] = reactive(True)
+    message_count: reactive[int] = reactive(0)
+
+    def __init__(self) -> None:
+        """Initialize ChatView."""
+        super().__init__()
+        self.can_focus = True
+        self._typing_indicator: Widget | None = None
+        self._loading_indicator: Widget | None = None
+        self._user_scrolled_away = (
+            False  # Track if user manually scrolled away from bottom
+        )
+        self._is_loading = False  # Track if we're loading a conversation
+
+    def on_mount(self) -> None:
+        """Initialize chat view on mount."""
+        self.border_title = "Conversation"
+
+    async def add_message(self, message_widget: Widget) -> None:
+        """Add a message to the chat view.
+
+        Mounts the message widget and auto-scrolls to bottom if enabled.
+        Only counts user and assistant messages (not system/error/tool messages).
+
+        Args:
+            message_widget: Widget (typically MessageBubble) to add
+        """
+        role = (
+            getattr(message_widget, "role", "unknown")
+            if hasattr(message_widget, "role")
+            else "unknown"
+        )
+        logger.debug(
+            f"Adding message - role: {role}, "
+            f"auto_scroll: {self.auto_scroll}, "
+            f"is_loading: {self._is_loading}"
+        )
+
+        await self.mount(message_widget)
+
+        # Only count user and assistant messages (not system/error/tool)
+        if hasattr(message_widget, "role") and role in ("user", "assistant"):
+            self.message_count += 1
+
+        # Skip auto-scroll if we're loading a conversation (will scroll after all messages loaded)
+        if self._is_loading:
+            return
+
+        # Only auto-scroll if enabled AND user hasn't manually scrolled away
+        if self.auto_scroll and not self._user_scrolled_away:
+            # Defer scroll until after layout pass to avoid race condition
+            # Widget height isn't finalized until after next layout
+            self.call_after_refresh(self.scroll_end, animate=True)
+
+    async def clear_messages(self) -> None:
+        """Remove all messages from the chat view.
+
+        Resets message count to 0 and removes all child widgets.
+        """
+        await self.remove_children()
+        self.message_count = 0
+
+    def watch_message_count(self, count: int) -> None:
+        """Update border title with message count.
+
+        Called automatically when message_count changes.
+
+        Args:
+            count: New message count value
+        """
+        if count > 0:
+            self.border_title = f"Conversation ({count} messages)"
+        else:
+            self.border_title = "Conversation"
+
+    async def show_typing_indicator(self) -> None:
+        """Show typing indicator to signal AI is processing.
+
+        Displays animated "Thinking..." indicator below last message.
+        Call hide_typing_indicator() when first streaming token arrives.
+        """
+        from consoul.tui.widgets.typing_indicator import TypingIndicator
+
+        # Only show if not already showing
+        if self._typing_indicator is None:
+            logger.debug("[SCROLL] Showing typing indicator")
+            self._typing_indicator = TypingIndicator()
+            await self.mount(self._typing_indicator)
+
+            # Only auto-scroll if enabled AND user hasn't manually scrolled away
+            if self.auto_scroll and not self._user_scrolled_away:
+                # Defer scroll until after layout pass to avoid race condition
+                # Use two refresh cycles to ensure both user message and typing indicator are laid out
+                def _scroll_after_layout() -> None:
+                    logger.debug(
+                        f"[SCROLL] Scrolling after typing indicator layout - "
+                        f"scroll_y: {self.scroll_y}, max_scroll_y: {self.max_scroll_y}"
+                    )
+                    self.call_after_refresh(self.scroll_end, animate=True)
+
+                self.call_after_refresh(_scroll_after_layout)
+
+    async def hide_typing_indicator(self) -> None:
+        """Hide typing indicator when streaming begins.
+
+        Removes the typing indicator widget if currently displayed.
+        Safe to call even if indicator is not showing.
+        """
+        if self._typing_indicator is not None:
+            await self._typing_indicator.remove()
+            self._typing_indicator = None
+
+    async def show_loading_indicator(self) -> None:
+        """Show loading indicator while conversation is being loaded.
+
+        Displays centered loading spinner with message.
+        Call hide_loading_indicator() when loading completes.
+        """
+        from textual.widgets import LoadingIndicator
+
+        # Only show if not already showing
+        if self._loading_indicator is None:
+            logger.debug("Showing loading indicator")
+            self._is_loading = True
+            # Add loading class to hide existing messages
+            self.add_class("loading")
+            self._loading_indicator = LoadingIndicator()
+            await self.mount(self._loading_indicator)
+
+    async def hide_loading_indicator(self) -> None:
+        """Hide loading indicator when conversation finishes loading.
+
+        Removes the loading indicator widget if currently displayed.
+        Safe to call even if indicator is not showing.
+        """
+        if self._loading_indicator is not None:
+            self._is_loading = False
+            await self._loading_indicator.remove()
+            self._loading_indicator = None
+            # Remove loading class to show messages
+            self.remove_class("loading")
+
+    def scroll_to_bottom_after_load(self) -> None:
+        """Scroll to bottom after loading conversation messages.
+
+        Waits for layout to complete (max_scroll_y > 0) before scrolling.
+        Uses polling with set_timer to retry until layout is ready.
+        """
+
+        def _attempt_scroll() -> None:
+            if self.max_scroll_y > 0:
+                # Layout complete, scroll to bottom
+                self.scroll_end(animate=False, force=True)
+            else:
+                # Layout not ready, try again
+                self.set_timer(0.1, _attempt_scroll)
+
+        # Start polling after a short delay
+        self.set_timer(0.1, _attempt_scroll)
+
+    def _is_at_bottom(self) -> bool:
+        """Check if the scroll position is at or near the bottom.
+
+        Returns:
+            True if within 5 units of the bottom, False otherwise
+        """
+        return self.scroll_y >= self.max_scroll_y - 5
+
+    def on_mouse_scroll_up(self, event: MouseScrollUp) -> None:
+        """Handle mouse scroll up event to detect user scrolling away from bottom.
+
+        Any upward scroll suspends auto-scroll to let users review previous messages
+        without being yanked back down during streaming.
+
+        Args:
+            event: MouseScrollUp event from Textual
+        """
+        # Any upward scroll means user wants to review history - suspend auto-scroll
+        if not self._user_scrolled_away:
+            self._user_scrolled_away = True
+            logger.info(
+                f"Scroll up - suspending auto-scroll "
+                f"(scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
+            )
+        else:
+            logger.debug("Scroll up - already suspended")
+
+    def on_mouse_scroll_down(self, event: MouseScrollDown) -> None:
+        """Handle mouse scroll down event to detect user returning to bottom.
+
+        When user scrolls back down to the bottom, we re-enable auto-scroll.
+
+        Args:
+            event: MouseScrollDown event from Textual
+        """
+        # Re-enable auto-scroll if user scrolls back to bottom
+        logger.debug(
+            f"Scroll down (scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
+        )
+        if self._user_scrolled_away and self._is_at_bottom():
+            self._user_scrolled_away = False
+            logger.info(
+                f"Scrolled back to bottom - resuming auto-scroll "
+                f"(scroll_y: {self.scroll_y}, max: {self.max_scroll_y})"
+            )

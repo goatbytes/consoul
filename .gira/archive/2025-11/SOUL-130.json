@@ -1,0 +1,33 @@
+{
+  "created_at": "2025-11-16T23:46:13.123308",
+  "updated_at": "2025-11-20T04:23:22.884686Z",
+  "id": "SOUL-130",
+  "uuid": "b30bc314-7fc6-42c4-ae4b-4cb995f0eec4",
+  "title": "Implement macOS PyTorch segfault workarounds",
+  "description": "",
+  "status": "done",
+  "type": "bug",
+  "priority": "high",
+  "labels": [
+    "macos",
+    "ai",
+    "pytorch",
+    "huggingface"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-19T20:23:41.765524",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

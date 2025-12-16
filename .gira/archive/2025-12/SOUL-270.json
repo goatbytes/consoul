@@ -1,0 +1,62 @@
+{
+  "created_at": "2025-12-11T16:43:59.950531",
+  "updated_at": "2025-12-15T17:02:35.355408Z",
+  "id": "SOUL-270",
+  "uuid": "35e28116-cdb0-4c54-9ca4-d72f1b298545",
+  "title": "Final refactoring verification and line count achievement",
+  "description": "**As a** Consoul developer\n**I want** to verify all refactoring is complete and achieve <2,000 line target\n**So that** SOUL-249 goal is met and app.py is maintainable pure UI code\n\n**Context:**\nThis is the final verification ticket for SOUL-249. After completing SOUL-265, 267, 268, and 269, this ticket:\n- Verifies all refactoring is complete\n- Identifies any remaining opportunities\n- Ensures <2,000 line target is achieved\n- Documents final architecture\n- Performs comprehensive integration testing\n\n**Dependencies:**\n- SOUL-265: ConversationService audit complete\n- SOUL-267: ToolService integration complete\n- SOUL-268: ModelService integration complete\n- SOUL-269: TUI data models implemented\n\n**Current Progress (estimated after previous tickets):**\n- Starting: 5,881 lines\n- SOUL-265 reduction: ~300 lines \u2192 5,581 lines\n- SOUL-267 reduction: ~200 lines \u2192 5,381 lines\n- SOUL-268 reduction: ~350 lines \u2192 5,031 lines\n- SOUL-269 reduction: ~150 lines \u2192 4,881 lines\n- **Still need to reduce:** ~2,881 more lines to reach <2,000 target\n\n**Remaining Opportunities:**\n- Extract conversation loading logic to service\n- Extract title generation to service\n- Simplify widget initialization\n- Remove remaining business logic from event handlers\n- Extract database operations to separate module\n- Move attachment handling to service layer\n\n**Technical Notes:**\n- Measure: Current line count with `wc -l src/consoul/tui/app.py`\n- Target: <2,000 lines of pure UI orchestration\n- Review: All methods in app.py for business logic\n- Identify: Any remaining SDK imports that shouldn't be there\n- Document: Final architecture (what's in TUI vs SDK)\n- Update: Architecture documentation\n\n**Acceptance Criteria:**\n\n**Given** All sub-tickets are complete\n**When** I measure app.py line count\n**Then** It is <2,000 lines\n\n**Given** app.py should be pure UI\n**When** I review all methods\n**Then** No business logic exists (only widget orchestration)\n\n**Given** TUI should use SDK services\n**When** I check SDK imports\n**Then** Only service layer and TUI models are imported\n\n**Given** All refactoring is done\n**When** I run full integration tests\n**Then** All TUI features work without regression\n\n**Given** Architecture is complete\n**When** I review separation of concerns\n**Then** Clear boundaries exist: SDK (business) vs TUI (presentation)\n\n**Testing Considerations:**\n- **Comprehensive manual testing:**\n  - Message sending (text, multimodal)\n  - Tool execution (approval, auto-approved)\n  - Model switching\n  - Conversation history\n  - Cost tracking\n  - Error handling\n  - All keyboard shortcuts\n  - All modals and screens\n- Performance testing (no slowdown from refactoring)\n- Memory usage check\n- Startup time measurement\n\n**Implementation Hints:**\n\nIf <2,000 lines not yet achieved, consider:\n\n1. **Extract conversation loading** (~200 lines):\n   - Create ConversationService.load_history()\n   - Move from app.py:4906-5100\n\n2. **Extract title generation** (~100 lines):\n   - Move to ConversationService\n   - Remove from app.py\n\n3. **Extract attachment handling** (~150 lines):\n   - Create AttachmentService\n   - Handle encoding/decoding in service\n\n4. **Simplify event handlers** (~200 lines):\n   - Reduce on_message_bubble_copy() complexity\n   - Simplify on_input_area_command_submit()\n   - Extract command processing logic\n\n5. **Move database operations** (~300 lines):\n   - Create DatabaseService for message persistence\n   - Remove DB calls from app.py\n\n6. **Create config service** (~100 lines):\n   - Extract config loading/saving\n   - Remove from app.py\n\n**Final Deliverables:**\n- app.py: <2,000 lines \u2705\n- Architecture doc: Clear layer separation documented\n- Test report: All features verified working\n- Performance metrics: No regression\n- Migration guide: For developers updating TUI code\n\n**Success Metrics:**\n- Line count: <2,000 lines in app.py\n- Test coverage: No functionality regression\n- Code quality: All mypy and ruff checks pass\n- Maintainability: Clear separation of concerns\n- Performance: No slowdown from refactoring",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "tui",
+    "refactor",
+    "verification",
+    "testing"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-013",
+  "parent_id": "SOUL-249",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-12T19:25:28.983872",
+      "updated_at": "2025-12-12T19:25:28.983874",
+      "id": "20251212192528-83d92e2d",
+      "ticket_id": "SOUL-270",
+      "author": "jared@goatbytes.io",
+      "content": "## Progress Update - First Extraction Complete\n\n**Current State:**\n- Lines: 4,005 (was 4,126)\n- Reduction: 123 lines\n- Target: <2,000 lines\n- Remaining: ~2,005 lines (50% reduction needed)\n\n**Completed Work:**\n\u2705 Phase 1: Audit complete\n\u2705 Phase 2: Extraction opportunities identified  \n\u2705 Created ConversationDisplayService (src/consoul/sdk/services/conversation_display.py)\n\u2705 Refactored `on_conversation_list_conversation_selected` (243 \u2192 60 lines UI code)\n\u2705 Extracted message transformation business logic to SDK\n\u2705 Commit: f1f4b8b\n\n**Key Findings from Audit:**\n- Top 10 methods = 1,790 lines (44.7% of file)\n- Even reducing top 10 by 50% only saves 895 lines \u2192 3,110 lines remaining\n- <2,000 target requires cutting file in HALF\n\n**Architecture Analysis:**\nThe <2,000 line target is achievable but requires extensive work:\n1. Extract ALL remaining business logic to services\n2. Create additional widget components (split large methods into reusable widgets)\n3. Potentially split ConsoulApp into multiple smaller app classes\n4. Estimated 12-16 hours of additional focused work\n\n**Next Extraction Candidates:**\n1. `on_input_area_message_submit` (259 lines) - File attachment handling\n2. `_stream_via_conversation_service` (219 lines) - Streaming orchestration  \n3. `on_tool_approval_requested` (214 lines) - Tool approval modal logic\n4. `_switch_profile` (154 lines) - Profile switching logic\n5. `on_tool_approval_result` (150 lines) - Tool result handling\n\n**Recommendation:**\n- Continue with 2-3 more strategic extractions (targeting ~500 more lines)\n- Intermediate goal: <3,500 lines (current: 4,005)\n- Create follow-up ticket for final push to <2,000 if needed\n- This allows incremental progress while maintaining stability",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-13T10:41:49.222551",
+      "updated_at": "2025-12-13T10:41:49.222552",
+      "id": "20251213104149-a1cd87fc",
+      "ticket_id": "SOUL-270",
+      "author": "jared@goatbytes.io",
+      "content": "\u2705 Target achieved! Final line count: 1,932 lines (<2,000 target)\n\nAll refactoring complete:\n- Created ConversationDisplayService\n- Created MessageSubmissionOrchestrator  \n- Created StreamingOrchestrator\n- Created InitializationOrchestrator\n- Comprehensive TUI data models in place\n- Fixed critical config bug in load_tui_config()\n- All tests passing\n\nApp.py reduced from 5,881 \u2192 1,932 lines (67% reduction)",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 2,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-16T03:35:59.143362+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

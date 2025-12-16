@@ -79,10 +79,12 @@
     "on_failure": "warn"
   },
   "git": {
-    "auto_stage_moves": true
+    "auto_stage_moves": true,
+    "auto_stage_archives": true
   },
   "default_assignee": null,
   "working_hours": {
     "timezone": "America/Los_Angeles"
-  }
+  },
+  "git.auto_stage_archives": true
 }

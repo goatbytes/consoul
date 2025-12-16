@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-07T19:40:34.244343",
+  "updated_at": "2025-12-16T03:35:02.134357Z",
+  "id": "SOUL-240",
+  "uuid": "47be84b9-6adf-4d90-925c-0b15838331aa",
+  "title": "Create complete FastAPI + WebSocket backend example",
+  "description": "**As a** developer building web applications with Consoul\n**I want** a complete, working FastAPI backend example with frontend client\n**So that** I can understand best practices and quickly bootstrap projects\n\n**Context:**\nChatGPT recommends comprehensive examples as essential for adoption (lines 2541-2553). Developers need more than API docs - they need working code showing:\n- FastAPI app structure\n- HTTP + WebSocket endpoints\n- Session management\n- Tool approval via WebSocket\n- TypeScript/React client consuming the API\n\nThis bridges gap between SDK and production use.\n\n**Technical Notes:**\n- Depends on: SOUL-234, SOUL-235, SOUL-236, SOUL-237, SOUL-238\n- Create: examples/backend/\n  - fastapi_app.py (complete backend)\n  - client/ (TypeScript/React frontend)\n  - requirements.txt\n  - README.md (setup instructions)\n  - docker-compose.yml (optional)\n- Demonstrate: HTTP chat, WebSocket streaming, tool approval, session management\n- Frontend: Next.js or Vite + React with WebSocket client\n- Real-world: Error handling, reconnection, loading states\n\n**Acceptance Criteria:**\n\n**Given** developer clones repository\n**When** follows README instructions\n**Then** can run complete backend + frontend in < 5 minutes\n\n**Given** backend is running\n**When** frontend connects\n**Then** can send messages via HTTP and WebSocket\n\n**Given** tool call requires approval\n**When** AI requests tool execution\n**Then** frontend displays approval modal and sends response\n\n**Given** WebSocket disconnects\n**When** network issue occurs\n**Then** frontend shows reconnection UI and restores session\n\n**Given** multiple users access app\n**When** concurrent requests arrive\n**Then** sessions remain isolated with no data leakage\n\n**Testing Considerations:**\n- Manual testing with actual OpenAI/Anthropic API keys\n- Test all endpoints (HTTP, WebSocket)\n- Test tool approval workflow end-to-end\n- Test error scenarios (API down, invalid input)\n- Test with multiple browser sessions\n- Verify session isolation\n\n**Implementation Hints:**\n- Backend structure:\n  - app.py: FastAPI app with endpoints\n  - sessions.py: Session management with create_session()\n  - config.py: Settings (API keys via env)\n- Frontend components:\n  - ChatInterface.tsx: Message list + input\n  - WebSocketClient.ts: Connection management\n  - ApprovalModal.tsx: Tool approval UI\n- Use uvicorn for development server\n- TypeScript types match Pydantic models\n- Include .env.example with placeholder API keys\n- Docker: Optional containerization\n- README sections:\n  1. Setup (Python + Node)\n  2. Configuration (API keys)\n  3. Running (backend + frontend)\n  4. Architecture overview\n  5. Customization guide\n- Reference: ChatGPT ProtoStack example (lines 2487-2553)",
+  "status": "backlog",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "backend",
+    "documentation",
+    "examples"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-011",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

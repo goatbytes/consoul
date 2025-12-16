@@ -1,0 +1,48 @@
+{
+  "created_at": "2025-11-23T19:49:54.137108",
+  "updated_at": "2025-11-29T23:31:28.828640Z",
+  "id": "SOUL-154",
+  "uuid": "724174ce-075b-4b9e-932c-8881fb5874d3",
+  "title": "Use allowed_tools config for tool registration in TUI",
+  "description": "**As a** Consoul TUI user\n**I want** the allowed_tools config to control which tools are registered\n**So that** I can limit AI capabilities and reduce context usage\n\n**Context:**\nCurrently, the TUI hardcodes all 13 tools during registration (src/consoul/tui/app.py:360-453), ignoring the allowed_tools whitelist from config. The whitelist only blocks execution (src/consoul/ai/tools/registry.py:253-256), meaning:\n- Non-whitelisted tools are still registered and bound to the model\n- AI sees tools it can't use (wasted context)\n- Inconsistent with SDK behavior (which respects tool specifications)\n\nThis creates a registration vs. execution gap. Users expect allowed_tools to control registration, not just execution.\n\n**Technical Notes:**\n- src/consoul/tui/app.py:360-453 - Hardcoded tool registration\n- src/consoul/ai/tools/catalog.py - Use get_tool_by_name() to lookup tools\n- src/consoul/config/models.py:1204-1207 - allowed_tools field already exists\n- Empty allowed_tools list = all tools (backward compatible)\n- Non-empty list = only register those tools\n- Use TOOL_CATALOG.values() for default \"all tools\" case\n\n**Acceptance Criteria:**\n\n**Given** I have allowed_tools = [\"bash\", \"grep_search\", \"code_search\"] in config\n**When** I launch the TUI\n**Then** only those 3 tools are registered and bound to the model\n\n**Given** I have allowed_tools = [] (empty list) in config\n**When** I launch the TUI\n**Then** all 13 tools are registered (backward compatible)\n\n**Given** I specify a non-existent tool name in allowed_tools\n**When** TUI initialization occurs\n**Then** I get a clear error listing available tool names\n\n**Testing Considerations:**\n- Test with empty list (all tools)\n- Test with specific tool names\n- Test with invalid tool name (error handling)\n- Verify only specified tools are bound to model\n- Check that tool_registry.list_tools() returns only registered tools\n- Ensure conversation context is smaller with fewer tools\n\n**Implementation Hints:**\n1. Replace hardcoded registration loop with dynamic lookup:\n   ```python\n   from consoul.ai.tools.catalog import get_tool_by_name, TOOL_CATALOG\n   \n   # Determine which tools to register\n   if consoul_config.tools.allowed_tools:\n       tools_to_register = []\n       for name in consoul_config.tools.allowed_tools:\n           result = get_tool_by_name(name)\n           if result:\n               tools_to_register.append(result)\n   else:\n       # Empty list = all tools\n       tools_to_register = list(TOOL_CATALOG.values())\n   \n   # Register filtered tools\n   for tool, risk_level, categories in tools_to_register:\n       self.tool_registry.register(tool, risk_level=risk_level, enabled=True)\n   ```\n2. Remove individual hardcoded register() calls (lines 360-453)\n3. Validate tool names and provide clear error messages\n4. Document in user guide that allowed_tools now controls registration",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "tui",
+    "tools",
+    "config",
+    "enhancement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-29T15:31:26.839624",
+      "updated_at": "2025-11-29T15:31:26.839625",
+      "id": "20251129153126-351743eb",
+      "ticket_id": "SOUL-154",
+      "author": "jared@goatbytes.io",
+      "content": "Code review completed. Dynamic tool registration based on allowed_tools config successfully implemented:\n\n\u2705 Implementation (bc887ee):\n- Replaced 94 lines of hardcoded tool registration with dynamic lookup (net -64 lines)\n- Added get_tool_by_name(), get_all_tool_names(), TOOL_CATALOG imports\n- Implemented three registration paths:\n  1. Non-empty allowed_tools: register only specified tools\n  2. Empty allowed_tools: register all 13 tools (backward compatible)\n  3. risk_filter: enable tools up to risk level (SOUL-156)\n\n\u2705 Validation:\n- Validates tool names against catalog\n- Normalizes friendly names (\"bash\") to actual names (\"bash_execute\")\n- Clear error messages listing available tools\n- Properly sets enabled state for each tool\n\n\u2705 Catalog Updates:\n- Added missing tools: \"read\" (read_file), \"wikipedia\" (wikipedia_search)\n- Added aliases for tool name resolution\n- Total: 13 tools in catalog\n\n\u2705 Security Model:\n- allowed_tools controls registration (not just execution)\n- risk_filter enables by risk level without bypassing approval workflow\n- Tool Manager shows all tools (enabled state tracked separately)\n\n\u2705 Testing Verified:\n- Empty list registers all tools\n- Specific lists work correctly\n- Aliases resolve properly\n- Invalid names error correctly\n\nAll acceptance criteria met. Ready for production.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 3,
+  "order": 1,
+  "custom_fields": {},
+  "epic": "EPIC-008",
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:09.938170",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

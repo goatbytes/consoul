@@ -1,0 +1,42 @@
+{
+  "created_at": "2025-11-08T14:19:57.155034",
+  "updated_at": "2025-11-09T00:02:44.895642Z",
+  "id": "SOUL-13",
+  "uuid": "52345ae7-4551-4f7d-939b-d8207f96fb36",
+  "title": "Setup development environment documentation",
+  "description": "Create docs/development.md with: environment setup (pyenv/venv), dependency installation, running tests, code quality checks, building docs, and troubleshooting guide for contributors.",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-001",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-08T15:07:32.919771",
+      "updated_at": "2025-11-08T15:07:32.919772",
+      "id": "20251108150732-e6f57607",
+      "ticket_id": "SOUL-13",
+      "author": "jared@goatbytes.io",
+      "content": "Created comprehensive development environment documentation:\n\n**Content:**\n- Prerequisites: Python 3.10+, Poetry, Git\n- Environment setup: pyenv, Poetry installation, repo cloning, dependency installation\n- Development workflow: testing, code quality, pre-commit hooks, building, docs, updates, cleaning\n- Project structure overview\n- Troubleshooting: Poetry, dependencies, pre-commit, type checking, test failures\n- Code style guidelines: Python style (88 char, 4 spaces, type hints, Google docstrings)\n- Commit message format (conventional commits with Gira reference)\n- Branch naming conventions\n- IDE setup: VS Code (recommended extensions), PyCharm\n- Next steps for contributors including CLA link\n\n**Commands documented:**\n- All Makefile commands with both make and Poetry alternatives\n- Pre-commit hook installation and usage\n- Dependency management and updates\n- Build and clean operations\n\nDocumentation provides complete onboarding for new contributors.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:30.123009",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

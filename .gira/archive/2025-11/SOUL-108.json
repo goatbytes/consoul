@@ -1,0 +1,38 @@
+{
+  "created_at": "2025-11-14T22:32:11.490041",
+  "updated_at": "2025-11-15T17:35:16.273956Z",
+  "id": "SOUL-108",
+  "uuid": "82b9400d-d1e4-4bea-a77c-740e3f66d7c8",
+  "title": "Add TUI diff preview for file edit operations",
+  "description": "**As a** Consoul user\n**I want** to see a syntax-highlighted diff preview before approving file edits\n**So that** I can review exactly what changes will be made before accepting them\n\n**Context:**\nFile edits are high-impact operations that should show clear previews in the TUI approval modal. The preview should:\n- Use unified diff format (familiar to developers)\n- Syntax highlight the diff (red for deletions, green for additions)\n- Show context lines around changes\n- Display file path, line numbers, and change summary\n- Integrate with existing ToolCallWidget pattern\n\nGit-style preview gives users confidence in AI edits.\n\nSee Codex research: docs/research/line_based_file_editing_research.md (TUI section)\n\n**Technical Notes:**\n- Modify src/consoul/tui/widgets/tool_call_widget.py (or create file_edit_preview.py)\n- Use Rich's Syntax for diff highlighting\n- FileEditResult.preview contains unified diff string (from difflib.unified_diff)\n- Detection: check if tool_name in [\"edit_file_lines\", \"edit_file_search_replace\", \"create_file\", \"delete_file\"]\n- Show in approval modal before user confirms\n- Include metadata: file path, lines changed, bytes written\n\nDiff preview example:\n```diff\n--- src/main.py\t(original)\n+++ src/main.py\t(modified)\n@@ -10,3 +10,3 @@\n def process_data(data):\n-    return data.upper()\n+    return data.strip().upper()\n```\n\nFiles to modify:\n- src/consoul/tui/widgets/tool_call_widget.py (or create separate widget)\n- src/consoul/tui/widgets/tool_approval_modal.py (if separate modal needed)\n\n**Acceptance Criteria:**\n\n**Given** AI requests file edit operation\n**When** approval modal appears\n**Then** I see syntax-highlighted diff preview with file path and change summary\n\n**Given** edit affects multiple line ranges\n**When** preview renders\n**Then** I see separate hunks for each changed section with context lines\n\n**Given** file is very large (>1000 lines) with small edit\n**When** preview renders\n**Then** I see only changed sections with \"... X lines unchanged ...\" placeholders\n\n**Given** edit is create_file operation\n**When** preview renders\n**Then** I see all new content with \"new file\" marker\n\n**Given** edit is delete_file operation\n**When** preview renders\n**Then** I see \"Delete file: /path/to/file\" with file size and warning\n\n**Given** dry_run preview is shown\n**When** user approves\n**Then** tool executes with dry_run=False\n\n**Testing Considerations:**\n- Manual TUI testing with real file edits\n- Test diff rendering for small/medium/large edits\n- Test syntax highlighting works\n- Test scrolling for long diffs\n- Test approval/rejection workflow\n- Test create_file and delete_file previews\n\n**Implementation Hints:**\n```python\n# In ToolCallWidget or FileEditPreviewWidget\ndef render_file_edit_preview(self, result: dict) -> Text:\n    from rich.syntax import Syntax\n    \n    preview = result.get(\"preview\", \"\")\n    file_path = result.get(\"path\", \"unknown\")\n    changed_lines = result.get(\"changed_lines\", [])\n    \n    # Create header\n    header = Text(f\"File: {file_path}\\n\", style=\"bold cyan\")\n    header.append(f\"Lines changed: {', '.join(changed_lines)}\\n\\n\")\n    \n    # Syntax highlight the diff\n    diff_syntax = Syntax(\n        preview,\n        \"diff\",\n        theme=\"monokai\",\n        line_numbers=False,\n        word_wrap=True,\n    )\n    \n    return header + diff_syntax\n```\n\nUse Textual's Container or VerticalScroll for long previews\nIntegrate with existing approval flow from ToolRegistry",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "file-edit",
+    "ux-improvement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-005",
+  "blocked_by": [
+    "SOUL-104",
+    "SOUL-105",
+    "SOUL-106",
+    "SOUL-107"
+  ],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-16T08:16:44.123312",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

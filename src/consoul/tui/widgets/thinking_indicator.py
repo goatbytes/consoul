@@ -1,0 +1,163 @@
+"""ThinkingIndicator widget for showing AI reasoning/chain-of-thought state.
+
+This module provides a visual indicator that appears when the AI is streaming
+thinking/reasoning content (e.g., content within <think> tags). It shows the
+streaming thinking content in real-time with a pulsing animation to indicate
+the model is in "thinking mode" before providing the answer.
+"""
+
+from __future__ import annotations
+
+import re
+from typing import TYPE_CHECKING
+
+from textual.containers import Container
+from textual.reactive import reactive
+from textual.widgets import RichLog, Static
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
+
+__all__ = ["ThinkingIndicator"]
+
+
+class ThinkingIndicator(Container):
+    """Visual indicator for AI thinking/reasoning state during streaming.
+
+    Displays streaming thinking content in real-time with an animated
+    "🧠 Thinking..." header and pulsing dots to show that the AI is currently
+    outputting chain-of-thought reasoning before providing the final answer.
+
+    Attributes:
+        dot_count: Number of dots currently displayed (cycles 0-3)
+        thinking_content: Full accumulated thinking content
+    """
+
+    DEFAULT_CSS = """
+    ThinkingIndicator {
+        width: 100%;
+        height: auto;
+        padding: 0;
+        margin: 1 0;
+        background: $surface-darken-1;
+        border: dashed $primary;
+        border-title-color: $primary;
+        border-title-align: left;
+        layout: vertical;
+    }
+
+    ThinkingIndicator #thinking-header {
+        width: 100%;
+        height: auto;
+        padding: 0 2;
+        background: $surface-darken-2;
+        layout: horizontal;
+    }
+
+    ThinkingIndicator .thinking-text {
+        width: 1fr;
+        height: auto;
+        color: $text-muted;
+        text-style: italic;
+    }
+
+    ThinkingIndicator .thinking-dots {
+        width: auto;
+        height: auto;
+        color: $primary;
+        text-style: bold;
+    }
+
+    ThinkingIndicator #thinking-content-log {
+        width: 100%;
+        height: auto;
+        padding: 1 2;
+        color: $text-muted;
+        text-style: italic;
+        background: transparent;
+        scrollbar-size: 0 0;
+    }
+    """
+
+    # Reactive state
+    dot_count: reactive[int] = reactive(0)
+
+    def __init__(self, **kwargs) -> None:  # type: ignore[no-untyped-def]
+        """Initialize ThinkingIndicator.
+
+        Args:
+            **kwargs: Additional keyword arguments passed to Container
+        """
+        super().__init__(**kwargs)
+        self.border_title = "🧠 Thinking"
+        self.thinking_content = ""  # Raw content with tags
+        self.display_content = ""  # Filtered content without tags
+
+    def compose(self) -> ComposeResult:
+        """Compose thinking indicator widgets.
+
+        Yields:
+            Header with text/dots and RichLog for streaming content
+        """
+        # Header with "Reasoning" text and animated dots
+        with Container(id="thinking-header"):
+            yield Static("Reasoning", classes="thinking-text", id="thinking-text")
+            yield Static("", classes="thinking-dots", id="thinking-dots")
+
+        # Scrollable content area for streaming thinking
+        yield RichLog(
+            id="thinking-content-log",
+            wrap=True,
+            markup=True,
+        )
+
+    def on_mount(self) -> None:
+        """Start pulsing animation on mount."""
+        # Update dots every 400ms (slightly faster than typing indicator)
+        self.set_interval(0.4, self._update_dots)
+
+    def _update_dots(self) -> None:
+        """Update pulsing dots animation."""
+        # Cycle through 0-3 dots
+        self.dot_count = (self.dot_count + 1) % 4
+
+        # Update dots display (use non-breaking space to maintain height)
+        dots_widget = self.query_one("#thinking-dots", Static)
+        dots_text = "." * self.dot_count if self.dot_count > 0 else "\u00a0"
+        dots_widget.update(dots_text)
+
+    def _strip_thinking_tags(self, text: str) -> str:
+        """Remove thinking XML tags from text.
+
+        Strips opening and closing tags: <think>, <thinking>, <reasoning>
+
+        Args:
+            text: Text potentially containing thinking tags
+
+        Returns:
+            Text with thinking tags removed
+        """
+        # Remove opening tags
+        text = re.sub(r"<think>|<thinking>|<reasoning>", "", text, flags=re.IGNORECASE)
+        # Remove closing tags
+        text = re.sub(
+            r"</think>|</thinking>|</reasoning>", "", text, flags=re.IGNORECASE
+        )
+        return text
+
+    async def add_token(self, token: str) -> None:
+        """Add a streaming token to the thinking content display.
+
+        Tokens are accumulated in raw form (with tags) but displayed
+        with tags stripped out for cleaner presentation.
+
+        Args:
+            token: Text token from thinking stream
+        """
+        self.thinking_content += token
+        # Strip tags for display
+        self.display_content = self._strip_thinking_tags(self.thinking_content)
+        content_log = self.query_one("#thinking-content-log", RichLog)
+        # Clear and rewrite with updated content (simple approach for thinking display)
+        content_log.clear()
+        content_log.write(self.display_content)

@@ -1,0 +1,32 @@
+{
+  "created_at": "2025-11-23T13:18:18.774839",
+  "updated_at": "2025-11-24T20:09:48.917294Z",
+  "id": "SOUL-145",
+  "uuid": "fe81a937-8172-42c5-a2dd-85adb4f1e627",
+  "title": "Implement reasoning/thinking block extraction for AI responses",
+  "description": "**As a** Consoul user\n**I want** AI reasoning/thinking processes to be automatically detected and extracted from responses\n**So that** I can understand the model's thought process and optionally view or hide it\n\n**Context:**\nModern reasoning models (QwQ, DeepSeek-R1, Phi4-reasoning, Cogito) output their chain-of-thought reasoning in special tags like `<think>...</think>`, `<thinking>...</thinking>`, or `<reasoning>...</reasoning>`. This reasoning is valuable for understanding how the model arrived at its conclusion, but can be verbose and clutter the main response.\n\nResearch shows:\n- DeepSeek-R1 uses `<think>` tags (can be nested)\n- QwQ uses `<think>` tags\n- Ollama supports `--think` mode flag\n- Some models use markdown patterns like `**Reasoning:**`\n\nTesting with `test_reasoning_detection.py` confirmed that:\n- XML tag extraction works (Test 3)\n- Heuristic detection works (Test 4)\n- Ollama API doesn't provide separate thinking field\n\n**Technical Notes:**\n- Create src/consoul/ai/reasoning.py module\n- Implement multi-pattern detection (XML tags, markdown, heuristics)\n- Handle nested tags properly (e.g., `<think>...<think>...</think>...</think>`)\n- Return tuple: (reasoning_content | None, response_text)\n- Support multiple tag types: think, thinking, reasoning\n- Pattern matching should be case-insensitive\n- Follow LangChain integration patterns from src/consoul/ai/\n\n**Acceptance Criteria:**\n\n**Given** I receive a response with `<think>reasoning here</think>actual answer`\n**When** I call extract_reasoning(text)\n**Then** I get (reasoning=\"reasoning here\", response=\"actual answer\")\n\n**Given** I receive a response with nested `<think>` tags\n**When** extract_reasoning is called\n**Then** nested content is handled correctly without corruption\n\n**Given** I receive a response with no reasoning tags\n**When** extract_reasoning is called\n**Then** I get (reasoning=None, response=original_text)\n\n**Given** I receive markdown format `**Reasoning:**\\nthinking\\n\\n**Answer:**\\nanswer`\n**When** extract_reasoning is called\n**Then** reasoning and answer are correctly separated\n\n**Testing Considerations:**\n- Unit tests with sample texts (use test_reasoning_simple.py samples)\n- Test each tag type (think, thinking, reasoning)\n- Test nested tags\n- Test markdown patterns\n- Test mixed content\n- Test edge cases (empty tags, malformed tags)\n- Test heuristic fallback\n\n**Implementation Hints:**\n```python\n# src/consoul/ai/reasoning.py\n\nfrom typing import Literal\n\nREASONING_PATTERNS = [\n    (r'<think>(.*?)</think>', 'xml-think'),\n    (r'<thinking>(.*?)</thinking>', 'xml-thinking'),\n    (r'<reasoning>(.*?)</reasoning>', 'xml-reasoning'),\n    (r'\\*\\*Reasoning:\\*\\*(.*?)(?=\\n\\n|\\*\\*Answer:|\\Z)', 'markdown'),\n]\n\ndef extract_reasoning_xml(text: str, tag: str = \"think\") -> tuple[str | None, str]:\n    \"\"\"Extract reasoning using XML tags with nested support.\"\"\"\n    # See test_reasoning_simple.py for implementation\n\ndef extract_reasoning_patterns(text: str) -> tuple[str | None, str, str | None]:\n    \"\"\"Try multiple patterns to extract reasoning.\"\"\"\n    # Return (reasoning, response, pattern_matched)\n\ndef extract_reasoning(text: str, model_name: str | None = None) -> tuple[str | None, str]:\n    \"\"\"Auto-detect and extract reasoning from model output.\"\"\"\n    # Try XML first, then patterns, then heuristics\n```\n\nFiles to create:\n- src/consoul/ai/reasoning.py\n- tests/ai/test_reasoning.py",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "ai",
+    "enhancement",
+    "reasoning"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:12.615766",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

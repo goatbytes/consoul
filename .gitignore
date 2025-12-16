@@ -136,6 +136,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
 .envrc
 .venv
 env/
@@ -143,6 +144,21 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Security - API keys, secrets, and credentials
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+*.crt
+*secrets.yaml
+*secrets.yml
+credentials.json
+*credentials*.json
+*.local.yaml
+*.local.yml
+config.local.*
 
 # Spyder project settings
 .spyderproject
@@ -173,7 +189,7 @@ cython_debug/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+.idea/
 
 # Abstra
 # Abstra is an AI-powered process automation framework.
@@ -205,7 +221,20 @@ safety-report.json
 .cursorignore
 .cursorindexingignore
 
+# Claude Code
+#  Local settings with user-specific permissions and preferences
+.claude/settings.local.json
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Local/Dev Files
+.local
+docs/assets/screenshots/consoul-themes.gif
+
+# Debug/Log files
+consoul-log.txt
+log.txt
+scroll-log-*.txt

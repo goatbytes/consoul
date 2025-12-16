@@ -12,35 +12,36 @@ edit_uri: edit/main/docs/
 copyright: Copyright &copy; 2025 GoatBytes.IO
 
 # Configuration
+watch:
+  - docs/overrides
+
 theme:
   name: material
+  custom_dir: docs/overrides
   favicon: assets/img/favicon.png
-  logo: assets/img/logo.svg
+  logo: assets/img/consoul-top-bar.svg
 
   # Color scheme and branding
   palette:
     # Palette toggle for light mode (default)
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: custom
-      accent: cyan
+      primary: white
+      accent: blue
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     # Palette toggle for dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: custom
-      accent: cyan
+      primary: black
+      accent: blue
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
 
-  # Typography
-  font:
-    heading: 'Inter'
-    text: 'Inter'
-    code: 'JetBrains Mono'
+  # Typography - use system fonts for better performance
+  font: false
 
   # Features
   features:
@@ -76,8 +77,25 @@ theme:
 # Plugins
 plugins:
   - search:
+      # Search word separator regex for optimal tokenization:
+      # - [\s\-,:!=\[\]()"`/]+ : Split on whitespace and special characters
+      # - \.(?!\d) : Split on periods (except in version numbers like 3.12)
+      # - &[lg]t; : Split on HTML entities (&lt; &gt;)
+      # - (?!\b)(?=[A-Z][a-z]) : Split camelCase/PascalCase (TUI, SDK, etc.)
+      # This ensures terms like "TUI", "CLI", "SDK" are searchable as complete tokens
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
       lang: en
+  - glightbox:
+      touchNavigation: true
+      loop: false
+      effect: zoom
+      slide_effect: slide
+      width: 100%
+      height: auto
+      zoomable: true
+      draggable: true
+      skip_classes:
+        - skip-lightbox
   - mkdocstrings:
       handlers:
         python:
@@ -97,6 +115,12 @@ plugins:
 # Customization
 extra_css:
   - assets/css/consoul.css
+  - assets/css/termynal.css
+  - assets/css/copilot-style.css
+
+extra_javascript:
+  - assets/js/termynal.js
+  - assets/js/custom.js
 
 extra:
   homepage: https://goatbytes.io
@@ -158,16 +182,44 @@ markdown_extensions:
 
 # Page tree
 nav:
-  - Home:
-    - Overview: index.md
+  - Home: index.md
+  - Introduction:
+    - Getting Started: user-guide/getting-started.md
     - Installation: installation.md
     - Quick Start: quickstart.md
-  - User Guide:
-    - Getting Started: user-guide/getting-started.md
     - Configuration: user-guide/configuration.md
-    - Usage: user-guide/usage.md
+  - TUI:
+    - Overview: user-guide/tui.md
+    - Interface Guide: user-guide/tui/interface.md
+    - Features: user-guide/tui/features.md
+    - Keyboard Shortcuts: user-guide/tui/keyboard-shortcuts.md
+    - Modals & Dialogs: user-guide/tui/modals.md
+    - Themes: user-guide/tui/themes.md
+    - Configuration: user-guide/tui/configuration.md
+  - SDK:
+    - Overview: api/index.md
+    - Tutorial: api/tutorial.md
+    - Integration Guide: api/integration-guide.md
+    - Model Registry: api/model-registry.md
+    - Tools: api/tools.md
+    - Tool Configuration: sdk-tools.md
+    - Building Agents: api/agents.md
+    - API Reference: api/reference.md
+  - CLI:
+    - Overview: cli-reference/index.md
+    - Commands: user-guide/usage.md
+    - Chat Mode: user-guide/cli-chat.md
+  - Tools:
+    - File Editing: user-guide/file-editing.md
+    - Image Analysis: user-guide/image-analysis.md
+    - Code Search: user-guide/code-search.md
+  - Advanced:
+    - SearxNG Setup: advanced/searxng-setup.md
   - Development:
     - Setup: development.md
+    - Architecture: development/architecture.md
+    - Service Layer: development/service-layer.md
+    - Testing: development/testing.md
     - Contributing: contributing.md
-  - API Reference:
-    - Overview: api/index.md
+  - Security: SECURITY.md
+  - FAQs: faqs.md

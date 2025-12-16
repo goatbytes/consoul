@@ -1,0 +1,73 @@
+# CLI Reference
+
+Complete reference for all Consoul commands and options.
+
+## Table of Contents
+
+{% if commands %}
+{% for command in commands | sort(attribute='name') %}
+- [`{{ command.name }}`](#{{ command.name | lower | replace(' ', '-') }}) - {{ command.description }}
+{% endfor %}
+{% endif %}
+
+## Global Options
+
+These options can be used with any command:
+
+- `--help` - Show help message and exit
+- `--profile PROFILE` - Configuration profile to use (default: default)
+- `--list-profiles` - List all available profiles and exit
+- `--temperature FLOAT` - Override model temperature (0.0-2.0)
+- `--model TEXT` - Override model name
+- `--max-tokens INT` - Override maximum tokens to generate
+
+## Commands
+
+{% for command in commands | sort(attribute='name') %}
+### `{{ command.name }}`
+
+{{ command.description }}
+
+```bash
+{{ command.name }}{% if command.arguments %} {% for arg in command.arguments %}{% if arg.required %}<{{ arg.name }}>{% else %}[{{ arg.name }}]{% endif %}{% if not loop.last %} {% endif %}{% endfor %}{% endif %}{% if command.options %} [options]{% endif %}
+```
+
+{% if command.arguments %}
+**Arguments:**
+
+{% for arg in command.arguments %}
+- `{{ arg.name }}` - {{ arg.description }}{% if not arg.required %} (optional{% if arg.default is not none %}, default: {{ arg.default }}{% endif %}){% else %} (required){% endif %}
+{% if arg.type %}  - Type: `{{ arg.type }}`
+{% endif %}{% endfor %}
+{% endif %}
+
+{% if command.options %}
+**Options:**
+
+{% for opt in command.options %}
+- `{% if opt.short_name %}{{ opt.short_name }}, {% endif %}--{{ opt.name }}` - {{ opt.description }}
+{% if opt.type and opt.type != 'string' %}  - Type: `{{ opt.type }}`
+{% endif %}{% if opt.choices %}  - Choices: {% for choice in opt.choices %}`{{ choice }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}{% if opt.default is not none and opt.default != '' and (opt.type != 'boolean' or opt.default != false) %}  - Default: `{{ opt.default }}`
+{% endif %}{% endfor %}
+{% endif %}
+
+{% if command.type == 'group' and command.commands %}
+**Subcommands:**
+
+{% for subcmd in command.commands | sort(attribute='name') %}
+- `{{ subcmd.name }}` - {{ subcmd.description }}
+{% endfor %}
+
+See individual command documentation for details.
+{% endif %}
+
+---
+
+{% endfor %}
+
+## See Also
+
+- [User Guide](../user-guide/getting-started.md) - Getting started with Consoul
+- [TUI Guide](../user-guide/tui.md) - Terminal User Interface documentation
+- [Configuration](../user-guide/configuration.md) - Configuration reference

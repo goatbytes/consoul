@@ -1,0 +1,80 @@
+# `{{ command.name }}`
+
+{{ command.description }}
+
+## Usage
+
+```bash
+{{ command.name }}{% if command.arguments %} {% for arg in command.arguments %}{% if arg.required %}<{{ arg.name }}>{% else %}[{{ arg.name }}]{% endif %}{% if not loop.last %} {% endif %}{% endfor %}{% endif %}{% if command.options %} [options]{% endif %}
+```
+
+{% if command.arguments %}
+## Arguments
+
+{% for arg in command.arguments %}
+### `{{ arg.name }}`
+
+{{ arg.description }}
+
+- **Required**: {% if arg.required %}Yes{% else %}No{% endif %}
+{% if arg.type %}
+- **Type**: `{{ arg.type }}`
+{% endif %}{% if arg.default is not none %}
+- **Default**: `{{ arg.default }}`
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if command.options %}
+## Options
+
+{% for opt in command.options %}
+### `{% if opt.short_name %}{{ opt.short_name }}, {% endif %}--{{ opt.name }}`
+
+{{ opt.description }}
+{% if opt.type %}
+- **Type**: `{{ opt.type }}`
+{% endif %}{% if opt.choices %}
+- **Choices**: {% for choice in opt.choices %}`{{ choice }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}{% if opt.default is not none and opt.default != '' and (opt.type != 'boolean' or opt.default != false) %}
+- **Default**: `{{ opt.default }}`
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if command.type == 'group' and command.commands %}
+## Subcommands
+
+This is a command group with the following subcommands:
+
+{% for subcmd in command.commands | sort(attribute='name') %}
+### `{{ subcmd.name }}`
+
+{{ subcmd.description }}
+
+```bash
+{{ subcmd.name }}{% if subcmd.arguments %} {% for arg in subcmd.arguments %}{% if arg.required %}<{{ arg.name }}>{% else %}[{{ arg.name }}]{% endif %}{% endfor %}{% endif %}
+```
+{% if subcmd.arguments %}
+**Arguments:**
+{% for arg in subcmd.arguments %}
+- `{{ arg.name }}` ({% if arg.required %}required{% else %}optional{% endif %}) - {{ arg.description }}
+{% endfor %}
+{% endif %}
+
+{% if subcmd.options %}
+**Options:**
+{% for opt in subcmd.options %}
+- `{% if opt.short_name %}{{ opt.short_name }}, {% endif %}--{{ opt.name }}` - {{ opt.description }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+## See Also
+
+- [CLI Reference](./cli-reference.md) - Complete reference for all Consoul commands
+- [Getting Started](../user-guide/getting-started.md) - Quick start guide

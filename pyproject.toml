@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "consoul"
-version = "0.1.0"
+version = "0.4.0"
 description = "AI-powered terminal assistant with rich TUI - brings ChatGPT/Claude to your command line"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -43,21 +43,74 @@ classifiers = [
 ]
 
 dependencies = [
-    "textual>=6.5.0",
-    "langchain>=1.0.0",
-    "langchain-openai>=1.0.0",
-    "langchain-anthropic>=1.0.0",
-    "langchain-google-genai>=3.0.0",
-    "click>=8.1.0",
-    "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
-    "python-dotenv>=1.0.0",
+    # Core SDK dependencies
+    "langchain>=1.0.7",
+    "langchain-community (>=0.4.1,<0.5.0)",
+    "langchain-openai>=1.0.3",
+    "langchain-anthropic>=1.0.4",
+    "langchain-google-genai>=3.0.3",
+    "langchain-ollama>=1.0.0",
+    "langchain-huggingface>=1.0.1",
+    "pydantic>=2.12.4",
+    "pydantic-settings>=2.12.0",
+    "python-dotenv>=1.2.1",
+    "pyyaml (>=6.0.3,<7.0.0)",
+    "requests>=2.32.5",
+    "urllib3>=2.6.0",
+    "tiktoken>=0.12.0",
+    "grep-ast>=0.9.0",
+    "tree-sitter>=0.25.2",
+    "tree-sitter-language-pack>=0.11.0",
+    "diskcache>=5.6.3",
+    "duckduckgo-search>=8.1.1",
+    "ddgs>=9.9.0",  # Required by langchain-community's DuckDuckGoSearchAPIWrapper
+    "prompt-toolkit (>=3.0.52,<4.0.0)",
+    "trafilatura (>=2.0.0,<3.0.0)",
+    "rich>=14.2.0",
 ]
+
+# https://pypi.org/project/textual
+# https://pypi.org/project/langchain
+# https://pypi.org/project/langchain-openai
+# https://pypi.org/project/langchain-anthropic
+# https://pypi.org/project/langchain-google-genai
+# https://pypi.org/project/langchain-ollama
+# https://pypi.org/project/langchain-huggingface
+# https://pypi.org/project/click
+# https://pypi.org/project/pydantic
+# https://pypi.org/project/pydantic-settings
+# https://pypi.org/project/python-dotenv
+# https://pypi.org/project/pyyaml (
+# https://pypi.org/project/requests
+# https://pypi.org/project/tiktoken
+# https://pypi.org/project/pyperclip
+# https://pypi.org/project/grep-ast
+# https://pypi.org/project/tree-sitter
+# https://pypi.org/project/tree-sitter-language-pack
+# https://pypi.org/project/diskcache
+# https://pypi.org/project/duckduckgo-search
+
+[project.optional-dependencies]
+# TUI dependencies (terminal user interface)
+tui = ["textual>=6.6.0", "click>=8.3.1", "pyperclip>=1.11.0", "pillow>=10.0.0"]
+
+# Feature-specific dependencies
+pdf = ["pypdf>=6.2.0"]
+ollama-library = ["beautifulsoup4>=4.12.0"]
+
+# Local model execution
+huggingface-local = ["transformers>=4.45.0", "torch>=2.8.0", "accelerate>=1.2.0"]
+huggingface-quantization = ["transformers>=4.45.0", "torch>=2.8.0", "accelerate>=1.2.0", "bitsandbytes>=0.45.0"]
+llamacpp = ["llama-cpp-python>=0.3.0"]
+mlx = ["mlx-lm>=0.28.0"]
+
+# Convenience bundles
+all = ["textual>=6.6.0", "click>=8.3.1", "pyperclip>=1.11.0", "pillow>=10.0.0", "pypdf>=6.2.0", "beautifulsoup4>=4.12.0"]
 
 
 [project.urls]
 Homepage = "https://github.com/goatbytes/consoul"
-Documentation = "https://consoul.readthedocs.io"
+Documentation = "https://consoul.goatbytes.io"
 Repository = "https://github.com/goatbytes/consoul"
 Issues = "https://github.com/goatbytes/consoul/issues"
 Changelog = "https://github.com/goatbytes/consoul/blob/main/CHANGELOG.md"
@@ -68,14 +121,14 @@ consoul = "consoul.__main__:main"
 # Poetry configuration
 [tool.poetry]
 name = "consoul"
-version = "0.1.0"
+version = "0.4.0"
 description = "AI-powered terminal assistant with rich TUI - brings ChatGPT/Claude to your command line"
 authors = ["GoatBytes.IO <jared@goatbytes.io>"]
 license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/goatbytes/consoul"
 repository = "https://github.com/goatbytes/consoul"
-documentation = "https://consoul.readthedocs.io"
+documentation = "https://consoul.goatbytes.io"
 keywords = ["ai", "assistant", "terminal", "tui", "cli", "chatgpt", "claude", "langchain", "textual"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -96,34 +149,93 @@ packages = [{include = "consoul", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-textual = "^6.5.0"
-langchain = "^1.0.0"
-langchain-openai = "^1.0.0"
-langchain-anthropic = "^1.0.0"
-langchain-google-genai = "^3.0.0"
-click = "^8.1.0"
-pydantic = "^2.0.0"
-pydantic-settings = "^2.0.0"
-python-dotenv = "^1.0.0"
+
+# Core SDK dependencies
+langchain = "^1.0.7"
+langchain-openai = "^1.0.3"
+langchain-anthropic = "^1.0.4"
+langchain-google-genai = "^3.0.3"
+langchain-ollama = "^1.0.0"
+langchain-huggingface = "^1.0.1"
+pydantic = "^2.12.4"
+pydantic-settings = "^2.12.0"
+python-dotenv = "^1.2.1"
+pyyaml = ">=6.0.3,<7.0.0"
+requests = "^2.32.5"
+urllib3 = "^2.6.0"  # Security fix for CVE-2025-66471, CVE-2025-66418
+tiktoken = "^0.12.0"
+
+# TUI dependencies (optional)
+textual = {version = "^6.6.0", optional = true, extras = ["syntax"]}
+tree-sitter-markdown = {version = "^0.5.1", optional = true}  # Markdown syntax highlighting for TextArea
+click = {version = "^8.3.1", optional = true}
+pyperclip = {version = "^1.11.0", optional = true}
+pillow = {version = "^10.0.0", optional = true}
+
+# Feature-specific dependencies (optional)
+pypdf = {version = "^6.2.0", optional = true}
+beautifulsoup4 = {version = "^4.12.0", optional = true}
+
+# HuggingFace local execution dependencies
+transformers = {version = "^4.45.0", optional = true}
+torch = {version = ">=2.8.0,<3.0.0", optional = true, python = "<3.14"}  # Updated for CVE-2025-32434, CVE-2025-3730, CVE-2025-2953
+accelerate = {version = "^1.2.0", optional = true}
+bitsandbytes = {version = "^0.45.0", optional = true}
+
+# Llama.cpp local execution (recommended for macOS)
+llama-cpp-python = {version = "^0.3.0", optional = true}
+
+# MLX local execution (Apple Silicon optimized, no PyTorch needed)
+mlx-lm = {version = "^0.28.0", optional = true}
+
+# Code search dependencies (AST parsing and caching)
+grep-ast = "^0.9.0"                    # AST parsing and tag extraction (used by Aider)
+tree-sitter = "^0.25.2"                # Tree-sitter parser core
+tree-sitter-language-pack = "^0.11.0"  # Multi-language parser bundle (100+ languages)
+diskcache = "^5.6.3"                   # SQLite-backed disk caching
+
+# Web search dependencies
+duckduckgo-search = "^8.1.1"           # Free web search via DuckDuckGo (zero setup)
+
+[tool.poetry.extras]
+# TUI dependencies (terminal user interface)
+tui = ["textual", "tree-sitter-markdown", "click", "pyperclip", "pillow"]
+
+# Feature-specific dependencies
+pdf = ["pypdf"]
+ollama-library = ["beautifulsoup4"]
+
+# Local model execution
+huggingface-local = ["transformers", "torch", "accelerate"]  # torch updated to 2.8+ for security fixes
+huggingface-quantization = ["transformers", "torch", "accelerate", "bitsandbytes"]
+llamacpp = ["llama-cpp-python"]  # Recommended for local execution on macOS
+mlx = ["mlx-lm"]  # Apple Silicon optimized, best for M-series Macs
+
+# Convenience bundles
+all = ["textual", "click", "pyperclip", "pillow", "pypdf", "beautifulsoup4"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.2.0"
+pytest = "^8.4.2"
 pytest-cov = "^7.0.0"
-pytest-asyncio = "^1.0.0"
-pytest-mock = "^3.12.0"
-ruff = "^0.14.0"
-mypy = "^1.7.0"
-pre-commit = "^4.0.0"
+pytest-asyncio = "^1.2.0"
+pytest-mock = "^3.15.1"
+ruff = "^0.14.4"
+mypy = "^1.18.2"
+pre-commit = "^4.4.0"
 attrs = "^25.4.0"
+types-pyyaml = "^6.0.12.20250915"
+types-requests = "^2.32.4.20250913"
+types-pyperclip = "^1.9.0.20250801"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.6.1"
-mkdocs-material = "^9.5.50"
-mkdocstrings = {extras = ["python"], version = "^0.27.0"}
+mkdocs-material = "^9.6.23"
+mkdocs-glightbox = "^0.5.2"
+mkdocstrings = {extras = ["python"], version = "^0.30.1"}
 
 [tool.poetry.group.security.dependencies]
-safety = "^3.0.0"
-bandit = {extras = ["toml"], version = "^1.7.0"}
+safety = "^3.7.0"
+bandit = {extras = ["toml"], version = "^1.8.6"}
 
 [tool.poetry.scripts]
 consoul = "consoul.__main__:main"
@@ -131,6 +243,7 @@ consoul = "consoul.__main__:main"
 # Pytest configuration
 [tool.pytest.ini_options]
 minversion = "7.4"
+pythonpath = ["src"]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
@@ -181,6 +294,7 @@ directory = "htmlcov"
 target-version = "py310"
 line-length = 88
 indent-width = 4
+extend-exclude = [".claude"]  # Exclude .claude directory from linting
 
 [tool.ruff.lint]
 select = [
@@ -225,6 +339,9 @@ warn_unused_ignores = true
 warn_no_return = true
 follow_imports = "normal"
 ignore_missing_imports = false
+exclude = [
+    "^\\.claude/",  # Exclude .claude directory from type checking
+]
 
 [[tool.mypy.overrides]]
 module = [
@@ -233,8 +350,43 @@ module = [
     "langchain_openai.*",
     "langchain_anthropic.*",
     "langchain_google_genai.*",
+    "langchain_ollama.*",
+    "langchain_huggingface.*",
+    "pydantic.*",
+    "pydantic_settings.*",
+    "click.*",
+    "diskcache.*",
+    "grep_ast.*",
+    "pypdf.*",
+    "requests.*",
+    "transformers.*",
+    "torch.*",
+    "accelerate.*",
+    "bitsandbytes.*",
+    "llama_cpp.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "consoul.tui.*"
+disallow_untyped_decorators = false
+disallow_subclassing_any = false
+
+[[tool.mypy.overrides]]
+module = "consoul.tui.app"
+disable_error_code = ["func-returns-value"]
+
+[[tool.mypy.overrides]]
+module = "consoul.ai.tools.implementations.*"
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "consoul.__main__"
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "consoul.commands.*"
+disallow_untyped_decorators = false
 
 # Bandit security configuration
 [tool.bandit]

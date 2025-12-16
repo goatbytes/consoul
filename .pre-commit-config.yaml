@@ -3,14 +3,14 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
-        exclude: ^\.gira/
+        exclude: ^(\.gira/|\.claude/)
       - id: end-of-file-fixer
-        exclude: ^\.gira/
+        exclude: ^(\.gira/|\.claude/)
       - id: check-yaml
         args: ['--unsafe']  # Allow custom YAML tags in mkdocs.yml
       - id: check-toml
       - id: check-json
-        exclude: ^(\.vscode/|\.gira/)  # VS Code uses JSONC, .gira managed by gira tool
+        exclude: ^(\.vscode/|\.gira/|\.claude/)  # VS Code uses JSONC, .gira/.claude managed by tools
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ["--maxkb=1000"]
@@ -28,4 +28,11 @@ repos:
       - id: mypy
         additional_dependencies:
           - types-setuptools
+          - pydantic>=2.0
+          - pydantic-settings>=2.0
+          - types-pyyaml
+          - types-requests
+          - types-pyperclip
+          - langchain-core
+          - textual
         files: ^src/

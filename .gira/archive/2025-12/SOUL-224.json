@@ -1,0 +1,46 @@
+{
+  "created_at": "2025-12-02T16:29:43.734421",
+  "updated_at": "2025-12-03T23:08:50.358334Z",
+  "id": "SOUL-224",
+  "uuid": "42e5e274-bf61-4281-ba8e-e16f84ff9ac8",
+  "title": "Update CHANGELOG.md for v0.2.0 release",
+  "description": "**As a** user or contributor\n**I want** a comprehensive changelog for v0.2.0\n**So that** I understand what's new, changed, and fixed\n\n**Context:**\nCHANGELOG.md exists but needs updating for v0.2.0 public release. Should follow Keep a Changelog format and document all major features completed across the 7 epics.\n\nMajor accomplishments since 0.1.0:\n- 70+ tickets completed\n- Complete TUI implementation\n- CLI commands (ask, chat, history, config)\n- Multi-provider AI (OpenAI, Anthropic, Google, Ollama)\n- Tool calling system (bash, file operations, code search, image analysis)\n- Vision/image analysis support\n- Comprehensive documentation (70+ doc fixes this session)\n\n**Technical Notes:**\n- File: CHANGELOG.md\n- Format: Keep a Changelog (https://keepachangelog.com/)\n- Sections: Added, Changed, Deprecated, Removed, Fixed, Security\n- Reference completed tickets and epics\n- Include upgrade notes if breaking changes\n\n**Acceptance Criteria:**\n\n**Given** CHANGELOG.md\n**When** I read the v0.2.0 section\n**Then** all major features are documented with ticket references\n\n**Given** a user upgrading from 0.1.0\n**When** they read the changelog\n**Then** they understand what changed and any migration steps needed\n\n**Testing Considerations:**\n- Compare against `gira board` to ensure completeness\n- Check all epics (EPIC-001 through EPIC-009)\n- Verify ticket links work\n- Ensure format follows Keep a Changelog standard\n\n**Implementation Hints:**\n- Review all done tickets from past month\n- Group by epic for organization\n- Include CLI examples where relevant\n- Add links to documentation for new features",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "documentation",
+    "release"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-010",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-02T17:44:00.602014",
+      "updated_at": "2025-12-02T17:44:00.602015",
+      "id": "20251202174400-23d3c6c6",
+      "ticket_id": "SOUL-224",
+      "author": "jared@goatbytes.io",
+      "content": "Successfully created comprehensive CHANGELOG.md for v0.2.0 release.\n\nAdded detailed sections covering:\n- CLI commands (ask, chat, history, config)\n- Complete TUI with conversation management\n- Multi-provider AI support (4 providers)\n- Tool calling system (6+ tools)\n- Image analysis with security features\n- Token counting improvements\n- 70+ documentation fixes\n\nIncludes Changed, Fixed, Security, Performance, Developer Experience, and Upgrade Notes sections.\n\nTotal documentation: 144 lines added describing 70+ completed tickets across 7 epics.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:11.244087",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

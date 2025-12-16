@@ -1,0 +1,371 @@
+# File Editing Configuration Examples
+#
+# This file demonstrates various FileEditToolConfig configurations
+# for different use cases and environments.
+
+# ==============================================================================
+# DEVELOPMENT ENVIRONMENT (Permissive)
+# ==============================================================================
+# Use for local development where you trust the AI and want convenience
+
+development:
+  model:
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+
+  tools:
+    enabled: true
+    permission_policy: trusting  # Auto-approve CAUTION-level tools
+
+    file_edit:
+      # Allow all file types (empty list)
+      allowed_extensions: []
+
+      # Minimal path blocking (only critical system paths)
+      blocked_paths:
+        - "/etc"
+        - "/sys"
+        - "/proc"
+        - "~/.ssh"
+
+      # Generous size limits
+      max_payload_bytes: 2097152  # 2MB
+      max_edits: 100  # Many edits per operation
+
+      # Allow overwrites
+      allow_overwrite: true
+
+      # UTF-8 encoding
+      default_encoding: "utf-8"
+
+# ==============================================================================
+# PRODUCTION ENVIRONMENT (Restrictive)
+# ==============================================================================
+# Use for production systems where safety is critical
+
+production:
+  model:
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+
+  tools:
+    enabled: true
+    permission_policy: paranoid  # Approve EVERY operation
+
+    file_edit:
+      # Only allow documentation and text files
+      allowed_extensions:
+        - ".md"
+        - ".txt"
+        - ".rst"
+
+      # Strict path blocking
+      blocked_paths:
+        - "/etc"
+        - "/sys"
+        - "/proc"
+        - "/dev"
+        - "/var"
+        - "/usr"
+        - "~/.ssh"
+        - "~/.aws"
+        - "~/.gnupg"
+        - "/opt"
+        - "/srv"
+
+      # Conservative size limits
+      max_payload_bytes: 524288  # 512KB
+      max_edits: 25  # Limited edits per operation
+
+      # Prevent overwrites
+      allow_overwrite: false
+
+      default_encoding: "utf-8"
+
+# ==============================================================================
+# BALANCED ENVIRONMENT (Recommended Default)
+# ==============================================================================
+# Good balance between safety and convenience for general use
+
+balanced:
+  model:
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+
+  tools:
+    enabled: true
+    permission_policy: balanced  # Prompt for CAUTION+
+
+    file_edit:
+      # Common source code and documentation extensions
+      allowed_extensions:
+        - ".py"
+        - ".js"
+        - ".ts"
+        - ".jsx"
+        - ".tsx"
+        - ".java"
+        - ".go"
+        - ".rs"
+        - ".c"
+        - ".cpp"
+        - ".h"
+        - ".hpp"
+        - ".md"
+        - ".txt"
+        - ".json"
+        - ".yaml"
+        - ".yml"
+        - ".toml"
+        - ".ini"
+        - ".cfg"
+        - ""  # Extensionless (Dockerfile, Makefile)
+
+      # Standard blocked paths
+      blocked_paths:
+        - "/etc"
+        - "/sys"
+        - "/proc"
+        - "/dev"
+        - "~/.ssh"
+        - "~/.aws"
+        - "~/.gnupg"
+
+      # Moderate size limits
+      max_payload_bytes: 1048576  # 1MB
+      max_edits: 50
+
+      # Require explicit overwrite
+      allow_overwrite: false
+
+      default_encoding: "utf-8"
+
+# ==============================================================================
+# PYTHON-ONLY ENVIRONMENT
+# ==============================================================================
+# Restrict to Python files only for Python-specific projects
+
+python_only:
+  model:
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+
+  tools:
+    enabled: true
+    permission_policy: balanced
+
+    file_edit:
+      # Only Python source and config
+      allowed_extensions:
+        - ".py"
+        - ".pyi"  # Type stubs
+        - ".toml"  # pyproject.toml
+        - ".cfg"   # setup.cfg
+        - ".ini"   # tox.ini
+        - ".txt"   # requirements.txt
+        - ".md"    # Documentation
+
+      blocked_paths:
+        - "/etc"
+        - "/sys"
+        - "~/.ssh"
+        - "~/.pyenv"  # Prevent pyenv modification
+        - "~/.virtualenvs"  # Prevent venv modification
+
+      max_payload_bytes: 1048576
+      max_edits: 50
+      allow_overwrite: false
+      default_encoding: "utf-8"
+
+# ==============================================================================
+# WEB DEVELOPMENT ENVIRONMENT
+# ==============================================================================
+# Optimized for JavaScript/TypeScript web projects
+
+web_dev:
+  model:
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+
+  tools:
+    enabled: true
+    permission_policy: balanced
+
+    file_edit:
+      # Web-related file types
+      allowed_extensions:
+        - ".js"
+        - ".jsx"
+        - ".ts"
+        - ".tsx"
+        - ".html"
+        - ".css"
+        - ".scss"
+        - ".sass"
+        - ".json"
+        - ".yaml"
+        - ".yml"
+        - ".md"
+        - ""  # package.json, Dockerfile
+
+      blocked_paths:
+        - "/etc"
+        - "/sys"
+        - "~/.ssh"
+        - "node_modules"  # Never edit dependencies
+        - "dist"  # Never edit build output
+        - "build"
+        - ".next"
+
+      max_payload_bytes: 1048576
+      max_edits: 50
+      allow_overwrite: false
+      default_encoding: "utf-8"
+
+# ==============================================================================
+# DOCUMENTATION-ONLY ENVIRONMENT
+# ==============================================================================
+# Safe for documentation editing (minimal risk)
+
+docs_only:
+  model:
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+
+  tools:
+    enabled: true
+    permission_policy: trusting  # Auto-approve docs changes
+
+    file_edit:
+      # Only documentation formats
+      allowed_extensions:
+        - ".md"
+        - ".rst"
+        - ".txt"
+        - ".adoc"  # AsciiDoc
+
+      # Still block critical paths
+      blocked_paths:
+        - "/etc"
+        - "/sys"
+        - "~/.ssh"
+
+      # Generous limits for docs
+      max_payload_bytes: 2097152  # 2MB (large docs)
+      max_edits: 100
+
+      # Allow overwrites for docs
+      allow_overwrite: true
+
+      default_encoding: "utf-8"
+
+# ==============================================================================
+# TESTING ENVIRONMENT
+# ==============================================================================
+# For automated testing with unrestricted access (DANGEROUS)
+
+testing:
+  model:
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+
+  tools:
+    enabled: true
+    permission_policy: unrestricted  # ⚠️ DANGEROUS - Testing only
+
+    file_edit:
+      # All extensions allowed
+      allowed_extensions: []
+
+      # Minimal blocking (only absolute critical)
+      blocked_paths:
+        - "/etc/shadow"
+        - "/etc/passwd"
+
+      # Large limits for testing
+      max_payload_bytes: 10485760  # 10MB
+      max_edits: 1000
+
+      # Allow all overwrites
+      allow_overwrite: true
+
+      default_encoding: "utf-8"
+
+# ==============================================================================
+# CUSTOM PROJECT EXAMPLE
+# ==============================================================================
+# Template for project-specific configuration
+
+custom_project:
+  model:
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+
+  tools:
+    enabled: true
+    permission_policy: balanced
+
+    file_edit:
+      # Customize for your project
+      allowed_extensions:
+        - ".py"
+        - ".yaml"
+        # Add your extensions here
+
+      # Block project-specific paths
+      blocked_paths:
+        - "/etc"
+        - "/sys"
+        - "~/.ssh"
+        - "vendor"  # Third-party code
+        - "secrets"  # Secrets directory
+        # Add your blocked paths here
+
+      max_payload_bytes: 1048576
+      max_edits: 50
+      allow_overwrite: false
+      default_encoding: "utf-8"
+
+# ==============================================================================
+# USAGE INSTRUCTIONS
+# ==============================================================================
+#
+# To use these configurations:
+#
+# 1. Copy the appropriate section to your ~/.consoul/config.yaml
+#
+# 2. Customize paths and extensions for your project
+#
+# 3. Test with permission_policy: paranoid first
+#
+# 4. Gradually relax to balanced or trusting as you gain confidence
+#
+# 5. Monitor audit logs: ~/.consoul/tool_audit.jsonl
+#
+# 6. Never use unrestricted in production!
+#
+# Example ~/.consoul/config.yaml:
+#
+# profiles:
+#   default:
+#     model:
+#       provider: anthropic
+#       model: claude-3-5-sonnet-20241022
+#
+#     tools:
+#       enabled: true
+#       permission_policy: balanced
+#
+#       file_edit:
+#         allowed_extensions:
+#           - ".py"
+#           - ".md"
+#         blocked_paths:
+#           - "/etc"
+#           - "~/.ssh"
+#         max_payload_bytes: 1048576
+#         max_edits: 50
+#         allow_overwrite: false
+#         default_encoding: "utf-8"
+#
+# ==============================================================================

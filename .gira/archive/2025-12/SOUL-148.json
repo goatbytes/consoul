@@ -1,0 +1,32 @@
+{
+  "created_at": "2025-11-23T13:19:35.453972",
+  "updated_at": "2025-11-24T20:09:48.927449Z",
+  "id": "SOUL-148",
+  "uuid": "db47589e-c5ba-4ed0-85a8-328a1c4cef5a",
+  "title": "Add configuration options for reasoning/thinking display",
+  "description": "**As a** Consoul user\n**I want** configurable options for how reasoning/thinking is displayed\n**So that** I can control whether I see AI thought processes based on my preferences\n\n**Context:**\nUsers have different preferences for viewing AI reasoning:\n- Some want to see thinking always (learning, debugging)\n- Some never want to see it (distraction-free)\n- Some want it available but collapsed by default (balanced)\n- Some want auto-detection (show for reasoning models only)\n\nConfiguration should support:\n- Global defaults in ~/.config/consoul/config.yaml\n- Profile-specific overrides\n- Model-specific settings\n- Runtime toggle via TUI command\n\n**Technical Notes:**\n- Add to src/consoul/config/models.py (ConsoulConfig)\n- New field: show_thinking: Literal[\"always\", \"auto\", \"never\", \"collapsed\"]\n- Default: \"auto\" (show for known reasoning models, hide otherwise)\n- Profile system should allow override\n- Consider per-model configuration in future\n- TUI command: `/thinking [always|auto|never|collapsed]`\n\n**Acceptance Criteria:**\n\n**Given** I set show_thinking=\"always\" in config\n**When** I receive any AI response\n**Then** thinking section is displayed if extracted\n\n**Given** I set show_thinking=\"never\" in config\n**When** I receive a response with thinking\n**Then** thinking is extracted but not displayed\n\n**Given** I set show_thinking=\"auto\" in config\n**When** I use a reasoning model (qwq, deepseek-r1)\n**Then** thinking is displayed\n\n**Given** I set show_thinking=\"auto\" in config\n**When** I use a non-reasoning model (gpt-4o)\n**Then** thinking is not displayed even if present\n\n**Given** I set show_thinking=\"collapsed\" in config\n**When** thinking is present\n**Then** it's displayed but collapsed by default\n\n**Testing Considerations:**\n- Test each show_thinking value\n- Test config loading and validation\n- Test profile override\n- Test default value\n- Test Pydantic validation rejects invalid values\n- Test runtime toggle command (if implemented)\n\n**Implementation Hints:**\n```python\n# src/consoul/config/models.py\n\nfrom typing import Literal\n\nclass ConsoulConfig(BaseModel):\n    # ... existing fields ...\n    \n    show_thinking: Literal[\"always\", \"auto\", \"never\", \"collapsed\"] = \"auto\"\n    \"\"\"Control display of AI reasoning/thinking blocks.\n    \n    - always: Show thinking for all responses that have it\n    - auto: Show only for known reasoning models (qwq, deepseek-r1, etc.)\n    - never: Never show thinking (extract but don't display)\n    - collapsed: Show but collapsed by default\n    \"\"\"\n    \n    # Optional: model-specific thinking config\n    thinking_models: list[str] = [\n        \"qwq\",\n        \"deepseek-r1\", \n        \"phi4-reasoning\",\n        \"cogito\",\n    ]\n    \"\"\"Models known to produce reasoning/thinking output.\"\"\"\n\n# Example config.yaml\n```yaml\n# Thinking display settings\nshow_thinking: auto  # always, auto, never, collapsed\n\n# Profile with thinking always visible\nprofiles:\n  learning:\n    model: qwq:32b\n    show_thinking: always\n    temperature: 0.7\n  \n  production:\n    model: gpt-4o\n    show_thinking: never\n```\n```\n\nFiles to modify:\n- src/consoul/config/models.py\n- Sample config files/documentation\n\nDependencies: None (can be implemented before SOUL-145/146/147)",
+  "status": "done",
+  "type": "feature",
+  "priority": "low",
+  "labels": [
+    "config",
+    "ai",
+    "enhancement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:11.051269",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

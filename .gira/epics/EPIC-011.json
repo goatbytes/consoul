@@ -1,0 +1,23 @@
+{
+  "created_at": "2025-12-07T19:37:47.422089",
+  "updated_at": "2025-12-15T23:36:51.520836Z",
+  "id": "EPIC-011",
+  "title": "WebSocket/FastAPI Backend Support",
+  "description": "Enable Consoul SDK to power web backends with WebSocket streaming, async operations, and multi-user support. Extract and refactor core components for backend integration while maintaining CLI/TUI functionality.",
+  "status": "active",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2026-01-31",
+  "labels": [],
+  "tickets": [
+    "SOUL-236",
+    "SOUL-237",
+    "SOUL-238",
+    "SOUL-240",
+    "SOUL-241"
+  ],
+  "comments": [],
+  "comment_count": 0,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}

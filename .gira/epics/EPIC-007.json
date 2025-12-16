@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-11-15T00:44:57.596119",
+  "updated_at": "2025-11-24T04:03:30.656033Z",
+  "id": "EPIC-007",
+  "title": "Multimodal AI Capabilities (Vision & Image Analysis)",
+  "description": "Enable Consoul to analyze images using vision-capable LLM providers (Claude 3.5, GPT-4V, Gemini), allowing users to ask questions about screenshots, diagrams, UI mockups, code screenshots, and other visual content.\n\n## Vision\nTransform Consoul into a multimodal AI assistant that can understand both text and images, enabling richer interactions for debugging, design review, documentation, and code understanding.\n\n## Scope\n1. Core image analysis tool with security validation\n2. Provider-specific multimodal message formatting\n3. TUI integration for image references and display\n4. Configuration system for image analysis settings\n5. Permission and approval workflows\n6. Documentation and examples\n\n## Success Criteria\n- Users can analyze images with natural language queries\n- Works seamlessly across Claude, OpenAI, Google providers\n- Images validated for security (path traversal, file types, size limits)\n- Clear permission/approval workflow for privacy\n- Rich TUI integration with image previews (where supported)\n- Comprehensive documentation and usage examples\n\n## Target Providers\n- Anthropic Claude 3+ (Opus, Sonnet, Haiku, 3.5 Sonnet)\n- OpenAI GPT-4V (gpt-4o, gpt-4o-mini, gpt-4-vision-preview)\n- Google Gemini (gemini-2.0-flash, gemini-1.5-pro, gemini-pro-vision)\n- Ollama local vision models (llava, bakllava)\n\n## Use Cases\n- Code screenshot analysis (\"What's wrong with this error?\")\n- UI/UX design review (\"Is this interface accessible?\")\n- Diagram explanation (\"Explain this architecture diagram\")\n- Debug assistance (\"Why is my terminal showing this?\")\n- Documentation generation (\"Generate alt text for this image\")\n\n## Technical Foundation\n- LangChain multimodal message support\n- Base64 image encoding\n- Provider-specific content block formatting\n- File validation and security controls\n- Permission system integration\n\n## Dependencies\n- EPIC-002 (Core AI & Configuration System) - Completed\n- EPIC-004 (Tool Calling System) - Completed",
+  "status": "completed",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2026-01-31",
+  "labels": [],
+  "tickets": [
+    "SOUL-112",
+    "SOUL-113",
+    "SOUL-114",
+    "SOUL-115",
+    "SOUL-116",
+    "SOUL-117",
+    "SOUL-118",
+    "SOUL-119",
+    "SOUL-137"
+  ],
+  "comments": [],
+  "comment_count": 0,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}

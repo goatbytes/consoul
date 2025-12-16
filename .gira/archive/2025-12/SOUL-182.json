@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-11-26T14:57:10.399350",
+  "updated_at": "2025-12-06T07:54:58.902425Z",
+  "id": "SOUL-182",
+  "uuid": "15d63197-1e99-415b-94b9-cc5310c3ffca",
+  "title": "Mobile responsiveness review and optimization",
+  "description": "Review and optimize documentation for mobile devices (375px, 768px, 1024px viewports). Test navigation tabs collapse, card grid stacking, screenshot sizing, hero section responsiveness, table scrolling. Fix any overflow issues. Ensure touch-friendly interactions. Reference .local/copilot-cli for mobile patterns. Test on iOS Safari, Android Chrome. Story Points: 3. Dependencies: SOUL-174, SOUL-176 (Homepage and CSS must exist first).",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-009",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-06T00:45:29.725650",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "created_at": "2025-11-09T19:30:05.990892",
+  "updated_at": "2025-11-15T07:24:21.191268Z",
+  "id": "EPIC-003",
+  "title": "Consoul Terminal User Interface (TUI)",
+  "description": "Build a beautiful, keyboard-driven Terminal User Interface (TUI) for Consoul using Textual. The TUI provides an interactive chat interface with streaming AI responses, conversation history, markdown rendering, and profile/model switching. This epic implements the primary user interface for Consoul while maintaining clean separation from core library functionality to support integration with other projects (like Gira).\n\n## Background\n\nConsoul is designed as both a standalone CLI/TUI application and a reusable library for AI integration. The TUI must:\n- Provide excellent UX for streaming AI conversations\n- Support all AI providers (OpenAI, Anthropic, Google, Ollama)\n- Render markdown with syntax highlighting\n- Enable quick keyboard navigation (vim-inspired)\n- Work as a standalone module that doesn't couple to core library\n\n## Research\n\nExtensive research conducted (see TUI_RESEARCH.md) analyzing:\n- **Gira TUI**: Reactive state management, modal system, widget architecture, error handling, GC optimization\n- **Postings TUI**: Tabbed content, lazy loading, command palette, jump mode, clean screen-based architecture\n- **Textual Framework**: Best practices for app structure, CSS styling, message passing, performance\n\n## Technical Architecture\n\n**Directory Structure:**\n```\nconsoul/tui/\n├── app.py              # Main ConsoulApp class\n├── cli.py              # TUI CLI entry point\n├── config.py           # TUI-specific configuration\n├── messages.py         # Custom message types (StreamToken, etc.)\n├── css/                # Textual CSS stylesheets and themes\n├── widgets/            # TUI widgets\n│   ├── chat_view.py\n│   ├── streaming_response.py\n│   ├── message_bubble.py\n│   ├── input_area.py\n│   ├── conversation_list.py\n│   └── modals/\n└── utils/\n    └── error_handling.py\n```\n\n**Key Features:**\n1. Real-time streaming AI response display\n2. Conversation history sidebar with search\n3. Markdown rendering with code syntax highlighting\n4. Profile and model switching via modals\n5. Keyboard-first navigation (vim-style bindings)\n6. Theme system (monokai, dracula, nord, gruvbox)\n7. Export/import conversations\n8. Full-text search integration (FTS5)\n\n## Architecture Principles\n\n1. **Library-First Design**: TUI is completely separate from core consoul.ai and consoul.config modules\n2. **Streaming-Centric**: Optimized for real-time token-by-token AI response display\n3. **Reactive State**: Use Textual's reactive attributes for state management\n4. **Message-Based**: Custom messages (StreamToken, StreamComplete) for event-driven updates\n5. **Performance**: GC management, lazy loading, debounced updates\n6. **Testable**: Screen-based architecture with smoke tests\n\n## Dependencies\n\n**Technical Prerequisites:**\n- Textual framework (^6.5.0) - already in dependencies\n- Rich for markdown rendering - already in dependencies\n- Core modules complete: EPIC-001 (✓), EPIC-002 (✓)\n- Conversation database (SQLite with FTS5) - implemented\n- AI streaming support - implemented\n- Profile system - implemented\n\n## Success Metrics\n\n- ✅ Standalone TUI application launches in <500ms\n- ✅ Can be imported as library in Gira without TUI dependencies\n- ✅ Streams AI responses smoothly without UI freezes\n- ✅ Markdown renders correctly (code blocks, tables, lists)\n- ✅ Keyboard navigation feels natural and responsive\n- ✅ Works with all 4 AI providers (OpenAI, Anthropic, Google, Ollama)\n- ✅ Test coverage >70% for TUI module\n- ✅ Supports theming with 4+ built-in themes\n\n## Implementation Phases\n\n### Phase 1: Foundation (Tickets 32-35)\n- Setup TUI directory structure\n- Base app class with bindings\n- TUI configuration model\n- CSS theme system\n\n### Phase 2: Core Widgets (Tickets 36-40)\n- ChatView for message display\n- StreamingResponse widget\n- InputArea with send functionality\n- ConversationList sidebar\n- Message bubbles with markdown\n\n### Phase 3: Integration (Tickets 41-44)\n- Connect to AI providers\n- Database integration\n- Conversation switching\n- Profile/model selection\n\n### Phase 4: Advanced Features (Tickets 45-49)\n- Search functionality\n- Export/import UI\n- Settings screen\n- Help modal\n- Theme switching\n\n### Phase 5: Polish (Tickets 50-53)\n- Error handling\n- Performance optimization\n- TUI tests\n- Documentation\n\n## References\n\n- TUI_RESEARCH.md - Comprehensive research document\n- Gira TUI: ~/Development/github/goatbytes/gira/src/gira/tui/\n- Postings TUI: ~/Development/github/darrenburns/posting/src/posting/\n- Textual docs: https://textual.textualize.io/",
+  "status": "active",
+  "owner": "jared@goatbytes.io",
+  "labels": [],
+  "tickets": [
+    "SOUL-32",
+    "SOUL-33",
+    "SOUL-34",
+    "SOUL-35",
+    "SOUL-36",
+    "SOUL-37",
+    "SOUL-38",
+    "SOUL-39",
+    "SOUL-40",
+    "SOUL-41",
+    "SOUL-42",
+    "SOUL-43",
+    "SOUL-44",
+    "SOUL-45",
+    "SOUL-46",
+    "SOUL-47",
+    "SOUL-48",
+    "SOUL-49",
+    "SOUL-50",
+    "SOUL-52",
+    "SOUL-56",
+    "SOUL-143"
+  ],
+  "comments": [
+    {
+      "created_at": "2025-11-09T19:37:25.970333",
+      "updated_at": "2025-11-09T19:37:25.970335",
+      "id": "20251109193725-0904ff26",
+      "epic_id": "EPIC-003",
+      "author": "jared@goatbytes.io",
+      "content": "## Codex Technical Review Completed ✅\n\nComprehensive technical review conducted with the following outcome:\n\n**Approval Status:** ✅ Approved with minor changes (all addressed)\n\n### Key Review Findings\n\n**Strengths:**\n- Library-first separation is architecturally sound\n- Widget hierarchy and message design well thought out\n- Lessons from Gira/Postings effectively applied\n- Phased roadmap is logical and executable\n\n**Concerns Addressed:**\n1. **Streaming Performance** → Prototype strategy defined with 3 approaches (Markdown/RichLog/Hybrid)\n2. **GC Management** → Streaming-aware policy specified with configurable modes\n3. **Conversation List Scale** → Virtualization design for 1000+ entries with FTS5 search\n4. **Testing** → Expanded to 4 concrete test suites with coverage targets\n5. **Export/Import UI** → Modal-based integration points defined\n6. **Multi-line Input** → Confirmed as MVP feature using TextArea\n\n### Technical Decisions Finalized\n\n1. **Streaming Renderer:** Buffer 200 chars, debounce 120-150ms, fallback to RichLog if needed\n2. **GC Policy:** Streaming-aware mode - disable during streaming, gen-0 after completion, periodic idle GC\n3. **Conversation List:** DataTable with virtual scrolling, search-first UX, lazy load 50 initially\n4. **Testing:** 80% widget coverage, streaming regression tests, smoke tests, optional visual tests\n5. **Export/Import:** Reuse existing CLI formatters, modal UI with format/scope selection\n6. **Multi-line Input:** TextArea with shift+enter (Phase 2 MVP feature)\n7. **Theme System:** Hybrid TCSS + Python for runtime switching\n\n### Updated Documentation\n\nTUI_RESEARCH.md enhanced with 6 new sections (458 lines added):\n- Streaming Renderer Strategy with 3 prototypes\n- GC Management Policy with concrete code examples\n- Conversation List Virtualization architecture\n- Testing Strategy (4 suites with examples)\n- Export/Import UI Integration details\n- Multi-Line Input implementation\n\nAll recommendations from review have been incorporated. Ready to proceed with ticket breakdown and Phase 1 implementation.\n\n**Next Step:** Create Phase 1 tickets (SOUL-32 through SOUL-35)",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "comment_count": 1,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}

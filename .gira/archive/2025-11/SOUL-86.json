@@ -1,0 +1,62 @@
+{
+  "created_at": "2025-11-13T08:41:39.238381",
+  "updated_at": "2025-11-14T07:47:56.792892Z",
+  "id": "SOUL-86",
+  "uuid": "4e312de5-9971-4292-b5b9-8ba89c5985d4",
+  "title": "Update tool calling documentation for read_file tool",
+  "description": "**As a** Consoul user and developer\n**I want** comprehensive documentation for the read_file tool\n**So that** I understand how to use it and configure it properly\n\n**Context:**\nThe read_file tool needs documentation in docs/tools.md similar to the bash_execute documentation. Users need to understand:\n- What the tool does and when to use it\n- Available parameters and their effects\n- Security restrictions and blocked paths\n- Configuration options\n- Common use cases and examples\n- Troubleshooting\n\n**Technical Notes:**\n- Update: docs/tools.md\n- Add new section after bash_execute (around line 93)\n- Follow same structure as bash_execute documentation\n- Include configuration examples in YAML\n- Document PDF support separately\n- Reference security model and blocked paths\n\n**Documentation Sections to Add:**\n\n**1. read_file Tool Overview:**\n- Description of capabilities (text, PDF, line ranges)\n- Risk level: SAFE (no approval needed)\n- Supported file types\n\n**2. Parameters:**\n- file_path: Path to file (required)\n- offset: Starting line number (optional, 1-indexed)\n- limit: Number of lines to read (optional)\n- start_page: PDF starting page (optional, 1-indexed)\n- end_page: PDF ending page (optional, inclusive)\n\n**3. Example Usage:**\n```python\n# Read entire file\nresult = read_file(file_path=\"src/main.py\")\n\n# Read specific line range\nresult = read_file(file_path=\"README.md\", offset=10, limit=20)\n\n# Read PDF pages\nresult = read_file(file_path=\"docs/design.pdf\", start_page=5, end_page=7)\n```\n\n**4. Security Features:**\n- Blocked paths: /etc/shadow, /proc, /dev, /sys\n- Directory traversal prevention\n- Binary file detection\n- Extension filtering (configurable)\n\n**5. Configuration:**\n```yaml\ntools:\n  enabled: true\n  read:\n    max_lines_default: 2000\n    max_line_length: 2000\n    max_output_chars: 40000\n    enable_pdf: true\n    pdf_max_pages: 50\n    blocked_paths:\n      - \"/etc/shadow\"\n      - \"/proc\"\n      - \"/dev\"\n      - \"/sys\"\n```\n\n**6. Common Use Cases:**\n- Reading source code for analysis\n- Accessing documentation files\n- Reading configuration files\n- Extracting PDF documentation\n- Reviewing log files with line ranges\n\n**7. Troubleshooting:**\n- File not found errors\n- Permission denied\n- Binary file errors\n- Truncation messages\n- PDF reading errors\n- Empty file handling\n\n**Acceptance Criteria:**\n\n**Given** a user reads the documentation\n**When** they want to use read_file\n**Then** they can find all necessary information\n\n**Given** a developer configures the tool\n**When** they reference the docs\n**Then** all configuration options are documented with examples\n\n**Given** an error occurs\n**When** consulting troubleshooting section\n**Then** they find guidance on resolving the issue\n\n**Testing Considerations:**\n- Review documentation for completeness\n- Verify all examples are accurate\n- Check YAML syntax is valid\n- Ensure troubleshooting covers common issues\n- Have non-expert review for clarity\n\n**Implementation Hints:**\n- Mirror bash_execute documentation structure\n- Include both TUI and SDK usage examples\n- Add to table of contents\n- Cross-reference with configuration guide\n- Include security warnings prominently\n- Use code blocks with syntax highlighting\n- Add visual separators between sections",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "documentation",
+    "tools"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-005",
+  "blocked_by": [
+    "SOUL-81",
+    "SOUL-83"
+  ],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-13T08:50:32.085415",
+      "updated_at": "2025-11-13T08:50:32.085416",
+      "id": "20251113085032-bb718811",
+      "ticket_id": "SOUL-86",
+      "author": "jared@goatbytes.io",
+      "content": "DOCUMENTATION DEPENDENCIES: This ticket documents start_page/end_page parameters which only exist after SOUL-81 (PDF support) is complete. It also documents the registered tool behavior which requires SOUL-83 (registration). Focus on docs/tools.md following bash_execute structure. Any SDK-specific examples should reference SOUL-83's SDK documentation. New sections to add: 1) read_file overview, 2) Parameters table, 3) Usage examples, 4) Security model, 5) Configuration, 6) Troubleshooting.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-11-13T13:16:50.146683",
+      "updated_at": "2025-11-13T13:16:50.146684",
+      "id": "20251113131650-1b16aaa6",
+      "ticket_id": "SOUL-86",
+      "author": "jared@goatbytes.io",
+      "content": "\u2705 SOUL-86 Implementation Complete\n\n## Summary\nSuccessfully added comprehensive documentation for the read_file tool in docs/tools.md, following the same structure and style as the existing bash_execute documentation.\n\n## Documentation Added\n\n### Location\n**File**: docs/tools.md\n**Lines**: 94-206 (113 new lines)\n**Position**: Immediately after bash_execute section (line 93)\n\n### Sections Implemented\n\n**1. Tool Overview** (lines 94-106)\n- Description of capabilities\n- Risk level: SAFE classification\n- Supported formats: text files and PDFs\n- Key features: line numbers, line ranges, page ranges, encoding fallback\n\n**2. Example Usage** (lines 108-118)\nThree core usage patterns:\n```python\n# Read entire file\nresult = read_file(file_path=\"src/main.py\")\n\n# Read specific line range (1-indexed)\nresult = read_file(file_path=\"README.md\", offset=10, limit=20)\n\n# Read PDF page range (1-indexed, inclusive)\nresult = read_file(file_path=\"docs/design.pdf\", start_page=5, end_page=7)\n```\n\n**3. Security Features** (lines 120-125)\n- Blocked paths (system directories)\n- Directory traversal prevention\n- Binary file detection\n- Extension validation\n- Configurable security model\n\n**4. Configuration** (lines 127-154)\nComplete YAML configuration block with:\n- max_lines_default: 2000\n- max_line_length: 2000\n- max_output_chars: 40000\n- enable_pdf: true\n- pdf_max_pages: 50\n- allowed_extensions: [.py, .js, .md, .txt, .json, .yaml, .yml, .toml, .csv, .pdf]\n- blocked_paths: [/etc/shadow, /etc/passwd, /proc, /dev, /sys]\n\n**5. Common Use Cases** (lines 156-162)\n- Reading source code for analysis\n- Accessing documentation files\n- Reading configuration files\n- Extracting PDF documentation\n- Reviewing log files\n- Analyzing data files\n\n**6. Troubleshooting Table** (lines 164-176)\nComprehensive error reference with 9 common scenarios:\n- File not found \u2192 Check path and working directory\n- Permission denied \u2192 Check file permissions\n- Unsupported binary file \u2192 Only text/PDF supported\n- Extension not allowed \u2192 Add to allowed_extensions\n- Path not allowed \u2192 Remove from blocked_paths (if safe)\n- PDF reading disabled \u2192 Enable in configuration\n- Output truncated \u2192 Adjust limits or use offset/limit\n- Line truncated \u2192 Increase max_line_length\n- PDF no extractable text \u2192 Scanned/image PDF detected\n\n**7. PDF Support Section** (lines 178-206)\nDedicated PDF documentation:\n- Installation instructions (pip install consoul[pdf])\n- Feature list (page markers, page ranges, limits, error handling)\n- Three complete PDF usage examples\n- Page marker format documentation: \"=== Page N ===\"\n\n## Documentation Quality Standards\n\n**Structure Consistency**:\n\u2705 Mirrors bash_execute documentation exactly\n\u2705 Same section order and formatting\n\u2705 Consistent heading hierarchy\n\u2705 Matching code block style\n\n**Content Completeness**:\n\u2705 All parameters documented\n\u2705 All config options explained\n\u2705 All error messages covered\n\u2705 Real-world examples provided\n\n**Technical Accuracy**:\n\u2705 YAML syntax validated with yamllint\n\u2705 Python examples match actual API\n\u2705 Config values match ReadToolConfig defaults\n\u2705 Security features match implementation\n\n**User Experience**:\n\u2705 Clear, concise explanations\n\u2705 Logical information flow\n\u2705 Easy-to-scan table format for troubleshooting\n\u2705 Copy-paste ready code examples\n\n## Acceptance Criteria Verification\n\n\u2705 **Given** a user reads the documentation\n**When** they want to use read_file\n**Then** they can find all necessary information\n\u2192 Complete tool overview, examples, config, and troubleshooting provided\n\n\u2705 **Given** a developer configures the tool\n**When** they reference the docs\n**Then** all configuration options are documented with examples\n\u2192 Full YAML configuration block with inline comments explaining each option\n\n\u2705 **Given** an error occurs\n**When** consulting troubleshooting section\n**Then** they find guidance on resolving the issue\n\u2192 9 common errors documented with clear causes and solutions\n\n\u2705 **Additional**: PDF support properly documented\n\u2192 Dedicated section with installation, features, and examples\n\n## Testing & Validation\n\n**YAML Syntax**: \u2705 Validated with Python yaml.safe_load()\n**Markdown Format**: \u2705 Consistent with existing documentation\n**Code Examples**: \u2705 Match actual implementation API\n**Link References**: \u2705 No broken references\n**Section Numbering**: \u2705 Maintains document structure\n\n## Documentation Metrics\n\n**Lines Added**: 113\n**Sections**: 7 main sections\n**Code Examples**: 9 (3 basic + 3 PDF + 3 troubleshooting)\n**Configuration Options**: 10 documented\n**Error Scenarios**: 9 covered\n**Use Cases**: 6 listed\n\n## Integration\n\n**Table of Contents**: No update needed (tools listed under \"Available Tools\" section)\n**Cross-References**: Compatible with existing security model documentation\n**Style Guide**: Matches existing documentation conventions\n**Terminology**: Uses consistent risk level and security terminology\n\n## Files Modified\n\n- `docs/tools.md` (+113 lines)\n  - Added read_file section after bash_execute\n  - Lines 94-206: Complete tool documentation\n\n## Commit\n\n**SHA**: de0b879\n**Message**: docs(SOUL-86): add comprehensive read_file tool documentation\n**Status**: Merged to develop\n\n## Impact Assessment\n\n**Positive**:\n- Users have complete reference for read_file tool\n- Configuration options clearly documented\n- Troubleshooting guidance reduces support burden\n- PDF support properly explained with installation steps\n- Consistent documentation style across all tools\n\n**No Breaking Changes**: Documentation only, no code modifications\n\n## Next Steps\n\nSOUL-86 is complete. Users can now:\n- Understand when and how to use read_file\n- Configure the tool for their needs\n- Troubleshoot common errors\n- Enable PDF support with clear instructions\n- Reference security features and limitations\n\nCloses SOUL-86",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 2,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:33.181642",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

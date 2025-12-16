@@ -1,0 +1,33 @@
+{
+  "created_at": "2025-11-23T18:18:34.113677",
+  "updated_at": "2025-11-24T20:09:48.928396Z",
+  "id": "SOUL-149",
+  "uuid": "2a73c6a5-22ad-4004-9f31-9ae21f2a89a9",
+  "title": "Add flexible tool specification to SDK",
+  "description": "**As a** Consoul SDK user\n**I want** to easily specify which tools are added to the chat\n**So that** I can customize the AI's capabilities for my specific use case and reduce unnecessary tool overhead\n\n**Context:**\nCurrently, the SDK's tool specification is binary (`tools=True` or `tools=False`). When `tools=True`, ALL tools are registered (bash, grep, code_search, file operations, etc.). There's no way for SDK users to:\n1. Specify a subset of tools (e.g., only safe read-only tools)\n2. Pass custom LangChain tools\n3. Filter tools by risk level or category\n\nThe SDK has a `discover_tools` parameter (src/consoul/sdk.py:114) that exists but is never used. The `ToolRegistry.register()` method (src/consoul/ai/tools/registry.py) is flexible and public, but this flexibility isn't exposed through the SDK API.\n\n**Available Tools:**\nThe SDK currently registers these tools in `_setup_tools()` (src/consoul/sdk.py:239-305):\n- bash_execute (CAUTION)\n- grep_search (SAFE)\n- code_search (SAFE)\n- find_references (SAFE)\n- create_file (CAUTION)\n- edit_file_lines (CAUTION)\n- edit_file_search_replace (CAUTION)\n- append_to_file (CAUTION)\n- delete_file (DANGEROUS)\n- read_url (implicit)\n- web_search (implicit)\n\n**Technical Notes:**\n- src/consoul/sdk.py:114 - `discover_tools` parameter exists but unused\n- src/consoul/sdk.py:239-305 - `_setup_tools()` hardcodes all tool registration\n- src/consoul/ai/tools/registry.py - `ToolRegistry.register()` is public and flexible\n- src/consoul/ai/tools/__init__.py - All tools exported in `__all__`\n- src/consoul/ai/tools/base.py - `RiskLevel` enum (SAFE, CAUTION, DANGEROUS)\n\n**Acceptance Criteria:**\n\n**Given** I want only safe read-only tools\n**When** I initialize `Consoul(tools=[\"grep\", \"code_search\", \"find_references\"])`\n**Then** only those three tools are registered and available to the AI\n\n**Given** I have a custom LangChain tool\n**When** I initialize `Consoul(tools=[my_custom_tool, \"bash\"])`\n**Then** both my custom tool and bash_execute are registered\n\n**Given** I want tools filtered by risk level\n**When** I initialize `Consoul(tools=\"safe\")`\n**Then** only tools with RiskLevel.SAFE are registered\n\n**Given** I want all tools (current behavior)\n**When** I initialize `Consoul(tools=True)`\n**Then** all built-in tools are registered (backward compatible)\n\n**Given** I want no tools\n**When** I initialize `Consoul(tools=False)` or `Consoul(tools=None)`\n**Then** no tools are registered (backward compatible)\n\n**Testing Considerations:**\n- Test backward compatibility (tools=True, tools=False)\n- Test list of tool names (string identifiers)\n- Test list of custom BaseTool instances\n- Test mixed list (custom tools + names)\n- Test risk level filtering (\"safe\", \"caution\", \"dangerous\")\n- Test invalid tool names (clear error message)\n- Test empty list (no tools)\n- Verify tool binding works correctly\n- Unit tests with mocked ToolRegistry\n\n**Implementation Hints:**\n1. Change `tools` parameter type from `bool` to `bool | str | list[str | BaseTool] | None`\n2. Map tool names to tool instances:\n   - \"bash\" \u2192 bash_execute\n   - \"grep\" \u2192 grep_search\n   - \"code_search\" \u2192 code_search\n   - \"file_edit\" \u2192 [create_file, edit_file_lines, edit_file_search_replace]\n   - etc.\n3. Support risk level filtering:\n   - \"safe\" \u2192 only RiskLevel.SAFE tools\n   - \"caution\" \u2192 SAFE + CAUTION tools\n   - \"dangerous\" \u2192 all tools\n4. Maintain backward compatibility:\n   - `True` \u2192 register all tools (current behavior)\n   - `False` \u2192 register no tools (current behavior)\n5. Create a tool mapping dictionary in SDK or tools module\n6. Update `_setup_tools()` to handle all cases\n7. Consider implementing `discover_tools` parameter (auto-discover from project)\n8. Add validation for tool names with helpful error messages\n9. Document in docstring with examples\n\n**Example Usage:**\n```python\nfrom consoul.sdk import Consoul\nfrom langchain_core.tools import tool\n\n# Option 1: Specify tool names\nchat = Consoul(tools=[\"bash\", \"grep\", \"code_search\"])\n\n# Option 2: Custom tools + built-in\n@tool\ndef my_tool(query: str) -> str:\n    return \"result\"\n\nchat = Consoul(tools=[my_tool, \"bash\"])\n\n# Option 3: Risk level filtering\nchat = Consoul(tools=\"safe\")  # Only read-only tools\n\n# Option 4: All tools (backward compatible)\nchat = Consoul(tools=True)\n\n# Option 5: No tools (backward compatible)\nchat = Consoul(tools=False)\n```",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "sdk",
+    "enhancement",
+    "tools",
+    "ux-improvement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:09.556407",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

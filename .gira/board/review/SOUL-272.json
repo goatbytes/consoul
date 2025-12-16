@@ -1,0 +1,42 @@
+{
+  "created_at": "2025-12-11T17:08:21.051812",
+  "updated_at": "2025-12-16T06:40:46.134620Z",
+  "id": "SOUL-272",
+  "uuid": "ba58ba2f-871e-4bb2-af85-5c0bdd2739a8",
+  "title": "Fix IndexError in docs generator for empty command names",
+  "description": "**As a** Consoul developer or user\n**I want** documentation generation to handle all valid command names\n**So that** the docs don't crash when processing commands with unusual names\n\n**Context:**\nThere is a bug in `src/consoul/utils/docs_generator.py:78` in the `parse_command_schema()` function that causes an IndexError when processing subcommand names that are empty strings or contain only whitespace.\n\nThe bug occurs when extracting the simple command name from a full command path:\n\n```python\n# Line 78 - BUG: No guard against empty split result\nsubcmd_info = {\n    \"name\": subcmd[\"name\"].split()[-1],  # Just the command name\n    \"description\": subcmd.get(\"description\", \"\"),\n    ...\n}\n```\n\n**How it fails:**\n- `\"\".split()` returns `[]` (empty list)\n- `[][-1]` raises `IndexError: list index out of range`\n- Same issue with `\"   \".split()` (whitespace-only strings)\n\n**Impact:**\n- Documentation generation crashes if any command has an empty or whitespace-only name\n- Prevents running `consoul describe` successfully\n- Blocks automated docs generation workflows\n- Could happen with programmatically generated commands or malformed CLI definitions\n- Affects the `parse_command_schema()` function used for generating command documentation\n\n**Technical Notes:**\n- File: `src/consoul/utils/docs_generator.py:78`\n- Function: `parse_command_schema(schema: dict[str, Any])`\n- The issue occurs in the nested `extract_command()` function\n- No validation exists for command names before calling `.split()[-1]`\n- Similar pattern exists in other parts of the codebase (already found and fixed in other files)\n- No test coverage exists for `docs_generator.py` module\n- The function runs when executing `consoul describe` command\n\n**Root Cause:**\nThe code assumes `subcmd[\"name\"]` is always a non-empty string with at least one word. While this is usually true for valid Click commands, edge cases exist:\n- Programmatically generated commands\n- Commands with validation bugs\n- Malformed command definitions during development\n- Test fixtures with minimal/invalid data\n\n**Acceptance Criteria:**\n\n**Given** a subcommand with name = \"\" (empty string)\n**When** parse_command_schema processes the command structure\n**Then** it handles the empty name gracefully without raising IndexError\n\n**Given** a subcommand with name = \"   \" (whitespace only)\n**When** the documentation generator parses it\n**Then** it returns an appropriate default or empty string without crashing\n\n**Given** a normal subcommand with name = \"consoul chat\"\n**When** extracting the simple command name\n**Then** it correctly returns \"chat\" as before\n\n**Given** a subcommand with name = \"single\" (no spaces)\n**When** extracting the simple command name\n**Then** it correctly returns \"single\"\n\n**Testing Considerations:**\n- Add unit tests for `parse_command_schema()` with edge case command names\n- Test empty string names: `\"\"`\n- Test whitespace-only names: `\"   \"`, `\"\\t\"`, `\"\\n\"`\n- Test single-word names: `\"chat\"`\n- Test multi-word names: `\"consoul chat\"`, `\"a b c\"`\n- Test malformed schemas with missing keys\n- Add test fixtures for command schemas\n- Verify the function is used in `consoul describe` command path\n\n**Implementation Hints:**\n1. Add guard before accessing `[-1]`:\n   ```python\n   parts = subcmd[\"name\"].split()\n   name = parts[-1] if parts else subcmd[\"name\"]  # Fallback to original\n   ```\n   \n2. Alternative: Use `.rsplit()` with maxsplit for better handling:\n   ```python\n   name = subcmd[\"name\"].rsplit(maxsplit=1)[-1] if subcmd[\"name\"].strip() else \"\"\n   ```\n\n3. Or use a helper function:\n   ```python\n   def get_simple_command_name(full_name: str) -> str:\n       \"\"\"Extract simple command name from full path.\"\"\"\n       parts = full_name.split()\n       return parts[-1] if parts else full_name.strip()\n   ```\n\n4. Add validation at the function entry to log warnings for suspicious command names\n\n5. Consider adding a fallback to `subcmd.get(\"name\", \"unknown\")` if name key is missing entirely\n\n**Related Code:**\nSimilar pattern was used elsewhere but has been identified as problematic. This should be the last occurrence of the `.split()[-1]` pattern without guards.",
+  "status": "review",
+  "type": "bug",
+  "priority": "medium",
+  "labels": [
+    "cli",
+    "bug",
+    "docs-generation",
+    "edge-case"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-15T22:40:44.148737",
+      "updated_at": "2025-12-15T22:40:44.148738",
+      "id": "20251215224044-f563b848",
+      "ticket_id": "SOUL-272",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed IndexError in parse_command_schema() by adding defensive guard for empty/whitespace command names.\n\nImplementation:\n- Added safe split with fallback: parts[-1] if parts else subcmd['name']\n- Handles empty strings, whitespace-only, and all valid command names\n- Preserves existing behavior for normal command paths\n\nTest Coverage:\n- Created 9 comprehensive unit tests in tests/unit/utils/test_docs_generator.py\n- All tests pass successfully\n- Coverage includes:\n  * Empty string names\n  * Whitespace-only names (space, tab, newline)\n  * Single-word names\n  * Multi-word command paths\n  * Nested command groups\n  * Metadata preservation\n\nVerified that the fix prevents IndexError while maintaining backward compatibility.\nCommit: 2522ab4",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

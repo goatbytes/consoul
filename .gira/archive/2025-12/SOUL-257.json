@@ -1,0 +1,34 @@
+{
+  "created_at": "2025-12-10T08:12:59.436412",
+  "updated_at": "2025-12-15T21:34:03.457939Z",
+  "id": "SOUL-257",
+  "uuid": "6a2f8966-9e95-468c-82b9-dc5cc55634b5",
+  "title": "Create FastAPI proof-of-concept WebSocket server",
+  "description": "**As a** Consoul developer\n**I want** FastAPI proof-of-concept using SDK services\n**So that** we validate SDK works independently without TUI/CLI and demonstrate integration patterns\n\n**Context:**\nThis is a validation ticket to prove that the service layer (SOUL-245, 246, 247) successfully decouples business logic from UI. A working FastAPI WebSocket server proves:\n- SDK can be used without TUI/CLI code\n- Service layer provides clean integration points\n- Streaming works over WebSocket\n- Tool execution works with custom approval\n- Multi-user scenarios are possible\n\nThis also serves as a reference implementation for EPIC-011 (WebSocket/FastAPI Backend Support).\n\n**Technical Notes:**\n- Create: examples/fastapi_server.py\n- Create: examples/README.md (usage documentation)\n- Use: FastAPI, WebSocket, uvicorn\n- Use: ConversationService for chat\n- Use: ToolService for tool execution\n- Implement: WebSocket-based approval provider\n- Dependencies: SOUL-245 (ConversationService must exist - COMPLETE)\n- Optional: SOUL-246 if testing tools\n- Reference: SOUL-234 (Use async_stream_events() for WebSocket token streaming)\n- Reference: SOUL-235 (Use configurable approval_provider pattern for WebSocket approval)\n- Pattern: Implement WebSocketApprovalProvider similar to CliApprovalProvider\n\n**Acceptance Criteria:**\n\n**Given** Service layer exists (SOUL-245)\n**When** I run FastAPI server\n**Then** WebSocket chat endpoint works without TUI/CLI\n\n**Given** WebSocket connection established\n**When** Client sends message\n**Then** AI response streams token-by-token via async_stream_events()\n\n**Given** Tool execution needed\n**When** AI requests tool use\n**Then** Approval request sent via WebSocket using custom approval provider\n\n**Given** Multiple concurrent users\n**When** Multiple WebSocket connections exist\n**Then** Each has independent conversation state\n\n**Testing Scope:**\n- Manual testing with WebSocket client\n- Test message send/receive\n- Test streaming responses using async_stream_events()\n- Test tool approval flow with WebSocketApprovalProvider\n- Test error handling\n- Document setup and usage\n\n**Implementation Hints:**\n- Simple FastAPI app with /chat WebSocket endpoint\n- Use ConversationService.from_config() per connection\n- Use async_stream_events() from SOUL-234 for streaming\n- Stream events as JSON: {type: 'token'|'tool_call'|'done', data: {...}}\n- Implement WebSocketApprovalProvider(ApprovalProvider) for tool approval\n- Send approval requests as messages: {type: approval_request, ...}\n- Wait for client response: {type: approval_response, approved: true/false}\n- Handle client disconnect gracefully\n- Add uvicorn run instructions to README\n- Keep code simple (<200 lines) to demonstrate ease of use\n- Document in examples/README.md with curl/wscat examples",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "sdk",
+    "validation",
+    "enhancement",
+    "documentation"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-012",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 70,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-16T03:35:58.548245+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

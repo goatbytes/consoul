@@ -3,13 +3,35 @@
 Brings the power of modern AI assistants directly to your terminal with a rich,
 interactive TUI. Built on Textual's reactive framework and LangChain's provider
 abstraction.
+
+Quick Start:
+    >>> from consoul import Consoul
+    >>> console = Consoul()
+    >>> console.chat("Hello!")
+    'Hi! How can I help you?'
 """
 
-__version__ = "0.1.0"
+# Apply macOS PyTorch fixes BEFORE any other imports
+# This prevents segfaults when using HuggingFace models locally
+import platform as _platform
+
+if _platform.system() == "Darwin":
+    from consoul.ai.macos_fixes import apply_macos_pytorch_fixes as _apply_fixes
+
+    _apply_fixes()
+    del _apply_fixes
+del _platform
+
+__version__ = "0.2.2"
 __author__ = "GoatBytes.IO"
 __license__ = "Apache-2.0"
 
+# High-level SDK (imported after __version__ to satisfy E402)
+from consoul.sdk import Consoul, ConsoulResponse  # noqa: E402
+
 __all__ = [
+    "Consoul",
+    "ConsoulResponse",
     "__author__",
     "__license__",
     "__version__",

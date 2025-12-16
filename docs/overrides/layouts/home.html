@@ -1,0 +1,664 @@
+{% extends "main.html" %}
+
+<!-- Render hero under tabs -->
+{% block tabs %}
+  {{ super() }}
+
+  <!-- Additional styles for landing page -->
+<style>
+
+/* Apply box shadow on smaller screens that don't display tabs */
+@media only screen and (max-width: 1220px) {
+  .md-header {
+    box-shadow: 0 0 .2rem rgba(0,0,0,.1),0 .2rem .4rem rgba(0,0,0,.2);
+    transition: color 250ms,background-color 250ms,box-shadow 250ms;
+  }
+}
+
+/* Hide main content for now */
+.md-content {
+  display: none;
+}
+
+/* Hide table of contents */
+@media screen and (min-width: 60em) {
+  .md-sidebar--secondary {
+    display: none;
+  }
+}
+
+/* Hide navigation */
+@media screen and (min-width: 76.25em) {
+  .md-sidebar--primary {
+    display: none;
+  }
+}
+
+/* Fix footer text color in light mode */
+.md-footer {
+  background-color: var(--md-footer-bg-color);
+}
+.md-footer__inner {
+  color: var(--md-footer-fg-color);
+}
+.md-footer__link,
+.md-footer a {
+  color: var(--md-footer-fg-color);
+}
+
+/* Get started button */
+.md-typeset .md-button--primary {
+    color: var(--md-primary-fg-color);
+    background-color: var(--md-primary-bg-color);
+    border-color: var(--md-primary-bg-color);
+}
+.md-typeset .md-button--primary:hover {
+  color: var(--md-primary-bg-color);
+  background-color: var(--md-primary-fg-color);
+  border-color: var(--md-primary-bg-color);
+}
+
+.tx-hero {
+  max-width: 700px;
+  display: flex;
+  padding: .4rem;
+  margin: 0 auto;
+  text-align: center;
+}
+.tx-hero h1 {
+  font-weight: 700;
+  font-size: 38px;
+  line-height: 46px;
+  color: rgb(38, 38, 38);
+}
+[data-md-color-scheme="slate"] .tx-hero h1 {
+  color: rgb(255, 255, 255);
+}
+.tx-hero p {
+  color: rgb(92, 92, 92);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 32px;
+}
+[data-md-color-scheme="slate"] .tx-hero p {
+  color: rgb(189, 189, 189);
+}
+.tx-hero__image {
+  max-width: 1000px;
+  min-width: 600px;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  padding-bottom: 2rem;
+  display: flex;
+  align-items: stretch;
+}
+
+.tx-hero__image img {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+
+/* Secondary content styles */
+.secondary-section {
+  background: rgb(245, 245, 245) none repeat scroll 0% 0%;
+  border-top: 1px solid rgb(222, 222, 222);
+  border-bottom: 1px solid rgb(222, 222, 222)
+}
+[data-md-color-scheme="slate"] .secondary-section {
+  background: rgb(28, 29, 33);
+  border-top: 1px solid rgb(50, 51, 56);
+  border-bottom: 1px solid rgb(50, 51, 56);
+}
+@media screen and (max-width: 1012px) {
+  .secondary-section {
+    display: block;
+  }
+}
+
+.secondary-section .g {
+  position: relative;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0px 40px;
+  max-width: 1280px;
+}
+
+.secondary-section .g .section {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 30px;
+  letter-spacing: normal;
+  padding: 88px 0px 116px;
+}
+
+.secondary-section .g .section.follow {
+  padding-top: 0px;
+}
+
+
+.secondary-section .g .section .component-wrapper {
+  display: flex;
+  -moz-box-align: center;
+  align-items: center;
+}
+
+@media screen and (max-width: 1012px) {
+  .secondary-section .g .section .component-wrapper {
+    display: block;
+  }
+}
+
+.secondary-section .g .section .component-wrapper h3 {
+  color: rgb(38, 38, 38);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 46px;
+  letter-spacing: normal;
+  margin-bottom: 12px;
+}
+[data-md-color-scheme="slate"] .secondary-section .g .section .component-wrapper h3 {
+  color: rgb(255, 255, 255);
+}
+
+.secondary-section .g .section .component-wrapper h4 {
+  color: rgb(38, 38, 38);
+}
+[data-md-color-scheme="slate"] .secondary-section .g .section .component-wrapper h4 {
+  color: rgb(255, 255, 255);
+}
+
+.secondary-section .g .section .component-wrapper p {
+  color: rgb(92, 92, 92);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 30px;
+  letter-spacing: normal;
+  margin-bottom: 16px;
+}
+[data-md-color-scheme="slate"] .secondary-section .g .section .component-wrapper p {
+  color: rgb(189, 189, 189);
+}
+
+.secondary-section .g .section .component-wrapper .image-wrapper {
+  margin-bottom: 12px;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-top: 48px;
+  border: 1px solid rgb(222, 222, 222);
+  box-shadow: rgba(202, 202, 202, 0.15) 0px 0px 0px 6px;
+  max-width: 600px;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  display: flex;
+  align-items: stretch;
+}
+
+.image-wrapper img {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.secondary-section .g .section .component-wrapper .first-column {
+  padding-right: 100px;
+  flex: 0 1 auto;
+  height: auto;
+  width: 50%;
+}
+
+@media screen and (max-width: 1012px) {
+  .secondary-section .g .section .component-wrapper .first-column {
+    padding-right: 0px;
+    width: 100%;
+    margin-bottom: 32px;
+  }
+}
+
+.secondary-section .g .section .component-wrapper .second-column {
+  flex: 0 1 auto;
+  height: auto;
+  width: 50%;
+}
+@media screen and (max-width: 1012px) {
+  .secondary-section .g .section .component-wrapper .second-column {
+    width: 100%;
+    margin-bottom: 32px;
+  }
+}
+
+.secondary-section .g .section .component-wrapper .responsive-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 2rem;
+}
+@media screen and (min-width: 64rem) {
+  .secondary-section .g .section .component-wrapper .responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.secondary-section .g .section .component-wrapper .responsive-grid a.card-wrapper {
+  text-decoration: none;
+  transition: none;
+  background: none;
+  padding: 0;
+}
+
+.secondary-section .g .section .component-wrapper .responsive-grid .card {
+  position: relative;
+  background-color:  #fff none repeat scroll 0% 0%;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: row;
+  -moz-box-align: center;
+  align-items: center;
+  height: 100%;
+  -moz-box-pack: start;
+  justify-content: flex-start;
+  box-shadow: rgba(0, 0, 0, 0.09) 0.3125rem 0.3125rem 0px -0.0625rem, rgba(0, 0, 0, 0.15) 0px 0.25rem 0.5rem 0px;
+  transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) 0s;
+}
+[data-md-color-scheme="slate"] .secondary-section .g .section .component-wrapper .responsive-grid .card {
+  background-color: rgb(36, 37, 42);
+  box-shadow: rgba(0, 0, 0, 0.3) 0.3125rem 0.3125rem 0px -0.0625rem, rgba(0, 0, 0, 0.4) 0px 0.25rem 0.5rem 0px;
+}
+.secondary-section .g .section .component-wrapper .responsive-grid .card:hover {
+  box-shadow: rgba(0, 0, 0, 0.2) 0.3125rem 0.3125rem 0px -0.0625rem, rgba(0, 0, 0, 0.26) 0px 0.25rem 0.5rem 0px;
+}
+[data-md-color-scheme="slate"] .secondary-section .g .section .component-wrapper .responsive-grid .card:hover {
+  box-shadow: rgba(0, 0, 0, 0.4) 0.3125rem 0.3125rem 0px -0.0625rem, rgba(0, 0, 0, 0.5) 0px 0.25rem 0.5rem 0px;
+}
+
+@media screen and (min-width: 75rem) {
+  .secondary-section .g .section .component-wrapper .responsive-grid .card {
+    padding: 2rem 2.5rem;
+  }
+}
+@media screen and (min-width: 36rem) {
+  .secondary-section .g .section .component-wrapper .responsive-grid .card {
+    padding: 1rem 1.5rem;
+  }
+}
+
+.secondary-section .g .section .component-wrapper .responsive-grid .card .logo {
+  margin-right: 0.75rem;
+  width: 1.2rem;
+  min-width: 1.2rem;
+}
+[data-md-color-scheme="slate"] .secondary-section .g .section .component-wrapper .responsive-grid .card .logo svg {
+  fill: rgb(255, 255, 255);
+}
+
+.secondary-section .g .section .component-wrapper .responsive-grid .card .card-content {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  width: 100%;
+}
+
+.secondary-section .g .section .component-wrapper .responsive-grid .card .card-content h5 {
+  color: rgb(61, 61, 61);
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+[data-md-color-scheme="slate"] .secondary-section .g .section .component-wrapper .responsive-grid .card .card-content h5 {
+  color: rgb(255, 255, 255);
+}
+
+.secondary-section .g .section .component-wrapper .responsive-grid .card .card-content p {
+  margin-top: 0.25em;
+  margin-bottom: 0;
+  color: rgb(92, 92, 92);
+  font-size: 0.65rem;
+  font-weight: 300;
+  line-height: normal;
+}
+[data-md-color-scheme="slate"] .secondary-section .g .section .component-wrapper .responsive-grid .card .card-content p {
+  color: rgb(189, 189, 189);
+}
+
+.secondary-section .g .section .component-wrapper .responsive-grid .card .card-content code {
+  background: rgba(0, 0, 0, 0.05) none repeat scroll 0% 0%;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+
+.component-wrapper span.em {
+  color: rgb(61, 61, 61);
+}
+
+.component-wrapper a {
+  transition: color 125ms;
+  color: rgb(61, 61, 61);
+  background: rgba(0, 0, 0, 0.05) none repeat scroll 0% 0%;
+  padding: 2px 6px;
+  margin: 0px 1px;
+  border-radius: 4px;
+  display: inline;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.component-wrapper a:hover {
+  color: var(--md-typeset-a-color);
+  background: var(--md-accent-fg-color--transparent);
+}
+
+</style>
+
+  <!-- Hero for landing page -->
+  <div class="md-container tx-hero">
+    <div class="md-grid md-typeset">
+      <div class="md-main__inner">
+        <div>
+          <h1>AI-Powered Terminal Assistant</h1>
+          <p><span class="em">Beautiful TUI</span> · <span class="em">Powerful CLI</span> · <span class="em">Flexible SDK</span></p>
+          <p>Bring modern AI assistance directly to your terminal. No context switching. No browser tabs.</p>
+          <a
+            href="{{ 'installation/' | url }}"
+            title="Get Started"
+            class="md-button md-button--primary"
+          >
+            Get started
+            <svg width="11" height="10" viewBox="0 0 11 10" fill="none" style="margin-left:2px"><path d="M1 5.16772H9.5M9.5 5.16772L6.5 1.66772M9.5 5.16772L6.5 8.66772" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="md-container">
+    <div class="tx-hero__image">
+      <a href="{{ 'assets/screenshots/consoul-themes.gif' | url }}" data-gallery="hero">
+        <img
+          src="{{ 'assets/screenshots/consoul-themes.gif' | url }}"
+          alt="Consoul TUI Themes"
+          draggable="false"
+        >
+      </a>
+    </div>
+  </div>
+
+  <div class="md-container secondary-section">
+    <div class="g">
+      <!-- TUI Section -->
+      <div class="section">
+        <div class="component-wrapper">
+          <div class="first-column">
+            <h3>Get started with Consoul TUI</h3>
+            <p>
+              Run a <span class="em">single command</span> to launch an interactive terminal interface.
+              Chat with AI models, switch between providers, and manage your conversation history—all
+              without leaving your terminal.
+            </p>
+            <p>
+              Full mouse support, split-pane rendering, and customizable themes make the experience feel
+              native. Explore the <a href="{{ 'user-guide/tui/' | url }}">rich interface</a>,
+              <a href="{{ 'user-guide/tui/features/' | url }}">powerful features</a>, and
+              <a href="{{ 'user-guide/tui/keyboard-shortcuts/' | url }}">keyboard shortcuts</a> powered by
+              <a href="https://textual.textualize.io" target="_blank">Textual</a>.
+            </p>
+          </div>
+          <div class="second-column">
+            <div class="image-wrapper">
+              <a href="{{ 'assets/screenshots/consoul-screenshot-conversation.png' | url }}" data-gallery="tui">
+                <img
+                  src="{{ 'assets/screenshots/consoul-screenshot-conversation.png' | url }}"
+                  alt="Consoul TUI"
+                  draggable="false"
+                >
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="component-wrapper" style="display: block;">
+          <h4>Explore features</h4>
+
+          <div class="responsive-grid">
+            <a class="card-wrapper" href="{{ 'user-guide/tui/interface/' | url }}">
+              <div class="card">
+                <div class="logo">
+                  <span class="twemoji">
+                    {% include ".icons/octicons/terminal-24.svg" %}
+                  </span>
+                </div>
+                <div class="card-content">
+                  <h5>Interactive Interface</h5>
+                  <p>
+                    Rich terminal UI with mouse support, keyboard shortcuts, and multi-model conversations.
+                  </p>
+                </div>
+              </div>
+            </a>
+
+            <a class="card-wrapper" href="{{ 'user-guide/tui/themes/' | url }}">
+              <div class="card">
+                <div class="logo">
+                  <span class="twemoji">
+                    {% include ".icons/octicons/paintbrush-24.svg" %}
+                  </span>
+                </div>
+                <div class="card-content">
+                  <h5>Beautiful Themes</h5>
+                  <p>
+                    Light and dark themes with syntax highlighting and markdown rendering.
+                  </p>
+                </div>
+              </div>
+            </a>
+
+            <a class="card-wrapper" href="{{ 'user-guide/configuration/' | url }}">
+              <div class="card">
+                <div class="logo">
+                  <span class="twemoji">
+                    {% include ".icons/octicons/cpu-24.svg" %}
+                  </span>
+                </div>
+                <div class="card-content">
+                  <h5>Multi-Model Support</h5>
+                  <p>
+                    Compare responses from Claude, GPT-4, Gemini, and other providers side-by-side.
+                  </p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLI Section -->
+      <div class="section follow">
+        <div class="component-wrapper">
+          <div class="first-column">
+            <h3>Powerful CLI for Quick Tasks</h3>
+            <p>
+              Fast command-line tools for quick questions and <a href="{{ 'user-guide/cli-chat/' | url }}">scriptable
+              workflows</a>. Get instant AI responses, attach files, and pipe AI assistance into your scripts and
+              automations.
+            </p>
+            <p>
+              Run batch queries from other commands, attach files, and get plain text or JSON output. Perfect for
+              scripting workflows, DevOps pipelines, code reviews, and automating repetitive tasks with shell integration.
+            </p>
+          </div>
+          <div class="second-column">
+            <div class="termy">
+              <div class="highlight">
+                <pre><code class="language-console">$ consoul chat
+╭───────────────────────────────────────────────
+│ Profile: default
+│ Model: claude-3-5-sonnet-20241022
+╰───────────────────────────────────────────────
+
+# ʏᴏᴜ: Explain Python decorators
+# ᴀssɪssᴛᴀɴᴛ: Decorators wrap functions to modify
+# their behavior. They use @syntax and are powerful
+# for logging, caching, and authentication.
+
+# ʏᴏᴜ: /tokens
+╭─────────── Token Usage ──────────
+│ Messages: 1
+│ Tokens: 87 / 200,000 (0.04%)
+╰──────────────────────────────────
+
+# ʏᴏᴜ: exit
+Goodbye!
+</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="component-wrapper" style="display: block;">
+          <h4>Explore features</h4>
+
+          <div class="responsive-grid">
+            <a class="card-wrapper" href="{{ 'user-guide/cli-chat/' | url }}">
+              <div class="card">
+                <div class="logo">
+                  <span class="twemoji">
+                    {% include ".icons/octicons/command-palette-24.svg" %}
+                  </span>
+                </div>
+                <div class="card-content">
+                  <h5>Shell Integration</h5>
+                  <p>
+                    Pipe commands, attach files, and seamlessly mix AI with your workflow.
+                  </p>
+                </div>
+              </div>
+            </a>
+
+            <a class="card-wrapper" href="{{ 'user-guide/cli-chat/' | url }}">
+              <div class="card">
+                <div class="logo">
+                  <span class="twemoji">
+                    {% include ".icons/octicons/database-24.svg" %}
+                  </span>
+                </div>
+                <div class="card-content">
+                  <h5>Session Management</h5>
+                  <p>
+                    Save conversation context across sessions. Resume and manage chat history.
+                  </p>
+                </div>
+              </div>
+            </a>
+
+            <a class="card-wrapper" href="{{ 'user-guide/usage/' | url }}">
+              <div class="card">
+                <div class="logo">
+                  <span class="twemoji">
+                    {% include ".icons/octicons/code-24.svg" %}
+                  </span>
+                </div>
+                <div class="card-content">
+                  <h5>Scriptable</h5>
+                  <p>
+                    Automate AI tasks with simple CLI commands. Get structured JSON output for parsing.
+                  </p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- SDK Section -->
+      <div class="section follow">
+        <div class="component-wrapper">
+          <div class="first-column">
+            <h3>Flexible SDK for Integration</h3>
+            <p>
+              Embed AI capabilities in your Python applications with <a href="{{ 'api/' | url }}">full type safety</a>
+              and async support. Build conversational interfaces, integrate with existing systems, and create
+              automated workflows.
+            </p>
+            <p>
+              The SDK provides programmatic access to all Consoul features: multi-model support, session management,
+              and image analysis. Perfect for building AI-powered applications and extending workflows.
+            </p>
+          </div>
+          <div class="second-column">
+            <div class="image-wrapper">
+              <img
+                src="{{ 'assets/screenshots/sdk-example-code.png' | url }}"
+                alt="Consoul SDK"
+                draggable="false"
+              >
+            </div>
+          </div>
+        </div>
+        <div class="component-wrapper" style="display: block;">
+          <h4>Explore features</h4>
+
+          <div class="responsive-grid">
+            <a class="card-wrapper" href="{{ 'api/' | url }}">
+              <div class="card">
+                <div class="logo">
+                  <span class="twemoji">
+                    {% include ".icons/octicons/shield-check-24.svg" %}
+                  </span>
+                </div>
+                <div class="card-content">
+                  <h5>Type Safety</h5>
+                  <p>
+                    Full type hints and auto-completion for a developer-friendly experience.
+                  </p>
+                </div>
+              </div>
+            </a>
+
+            <a class="card-wrapper" href="{{ 'api/tutorial/' | url }}">
+              <div class="card">
+                <div class="logo">
+                  <span class="twemoji">
+                    {% include ".icons/octicons/sync-24.svg" %}
+                  </span>
+                </div>
+                <div class="card-content">
+                  <h5>Async Support</h5>
+                  <p>
+                    Built on asyncio for efficient concurrent operations and streaming responses.
+                  </p>
+                </div>
+              </div>
+            </a>
+
+            <a class="card-wrapper" href="{{ 'api/tools/' | url }}">
+              <div class="card">
+                <div class="logo">
+                  <span class="twemoji">
+                    {% include ".icons/octicons/tools-24.svg" %}
+                  </span>
+                </div>
+                <div class="card-content">
+                  <h5>Custom Tools</h5>
+                  <p>
+                    Create and register your own AI tools. Extend functionality to fit your use cases.
+                  </p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+<!-- Content -->
+{% block content %}{% endblock %}
+
+<!-- Application footer -->
+{% block footer %}
+  {{ super() }}
+{% endblock %}

@@ -1,3 +1,8 @@
+---
+title: Getting Started
+description: Comprehensive guide to Consoul usage. Learn about providers (OpenAI, Anthropic, Google, Ollama), modes (TUI, CLI, pipeline), configuration, and best practices for terminal AI assistance.
+---
+
 # Getting Started
 
 Welcome to Consoul! This guide will help you get the most out of your AI-powered terminal assistant.
@@ -41,10 +46,11 @@ You can provide context to Consoul in several ways:
 The Terminal UI provides a rich, interactive experience:
 
 ```bash
-consoul
+consoul tui
 ```
 
 **Features:**
+
 - Live streaming responses
 - Syntax highlighting
 - Conversation history
@@ -56,10 +62,11 @@ consoul
 Quick one-off queries:
 
 ```bash
-consoul chat "Your question here"
+consoul ask "Your question here"
 ```
 
 **Use cases:**
+
 - Quick questions
 - Scripting and automation
 - Pipeline integration
@@ -69,7 +76,7 @@ consoul chat "Your question here"
 Integrate with Unix pipelines:
 
 ```bash
-command | consoul chat --stdin "Analyze this output"
+cat README.md | consoul ask --stdin "summarize"
 ```
 
 ## Working with Files
@@ -170,10 +177,10 @@ consoul chat \
 
 ```bash
 # Vague
-consoul chat "Fix my code"
+consoul ask "Fix my code"
 
 # Specific
-consoul chat --file broken.py "This function raises a KeyError on line 42. How do I fix it?"
+consoul ask --file broken.py "This function raises a KeyError on line 42. How do I fix it?"
 ```
 
 ### 3. Use System Prompts
@@ -195,10 +202,10 @@ consoul chat --system "You are a patient teacher explaining to a beginner" \
 Don't expect perfection on the first try:
 
 ```bash
-consoul chat "Write a merge sort function"
+consoul ask "Write a merge sort function"
 # Review the output, then:
-consoul chat "Add type hints and docstrings"
-consoul chat "Add error handling for edge cases"
+consoul ask "Add type hints and docstrings"
+consoul ask "Add error handling for edge cases"
 ```
 
 ## Common Workflows
@@ -207,50 +214,50 @@ consoul chat "Add error handling for edge cases"
 
 ```bash
 # Review staged changes
-git diff --staged | consoul chat --stdin "Review these changes"
+git diff --staged | consoul ask --stdin "Review these changes"
 
 # Review specific file
-consoul chat --file src/main.py "Code review with focus on performance"
+consoul ask --file src/main.py "Code review with focus on performance"
 ```
 
 ### Debugging
 
 ```bash
 # Debug test failures
-pytest 2>&1 | consoul chat --stdin "Why are these tests failing?"
+pytest 2>&1 | consoul ask --stdin "Why are these tests failing?"
 
 # Explain errors
-python app.py 2>&1 | consoul chat --stdin "What's causing this error?"
+python app.py 2>&1 | consoul ask --stdin "What's causing this error?"
 ```
 
 ### Documentation
 
 ```bash
 # Generate docstrings
-consoul chat --file api.py "Add Google-style docstrings"
+consoul ask --file api.py "Add Google-style docstrings"
 
 # Write README
-consoul chat --glob "*.py" "Write a README.md for this project"
+consoul ask --glob "*.py" "Write a README.md for this project"
 ```
 
 ### Learning
 
 ```bash
 # Understand code
-consoul chat --file complex.py "Explain this code step by step"
+consoul ask --file complex.py "Explain this code step by step"
 
 # Learn concepts
-consoul chat "Explain async/await in Python with examples"
+consoul ask "Explain async/await in Python with examples"
 ```
 
 ### Refactoring
 
 ```bash
 # Improve code
-consoul chat --file legacy.py "Refactor this code for better readability"
+consoul ask --file legacy.py "Refactor this code for better readability"
 
 # Extract functions
-consoul chat --file monolith.py "Identify functions that should be extracted"
+consoul ask --file monolith.py "Identify functions that should be extracted"
 ```
 
 ## Advanced Features
@@ -261,10 +268,10 @@ Control creativity vs. determinism:
 
 ```bash
 # Deterministic (code generation)
-consoul chat --temperature 0.2 "Write a binary search function"
+consoul --temperature 0.2 ask "Write a binary search function"
 
 # Creative (brainstorming)
-consoul chat --temperature 0.9 "Suggest project names for an AI terminal assistant"
+consoul --temperature 0.9 ask "Suggest project names for an AI terminal assistant"
 ```
 
 ### Token Limits
@@ -273,10 +280,10 @@ Control response length:
 
 ```bash
 # Brief response
-consoul chat --max-tokens 200 "Summarize Python decorators"
+consoul --max-tokens 200 ask "Summarize Python decorators"
 
 # Detailed response
-consoul chat --max-tokens 2000 "Explain Python decorators with examples"
+consoul --max-tokens 2000 ask "Explain Python decorators with examples"
 ```
 
 ### Conversation History
@@ -301,7 +308,7 @@ consoul history export <id> --format markdown > conversation.md
 echo $ANTHROPIC_API_KEY
 
 # Set temporarily
-ANTHROPIC_API_KEY=your-key consoul chat "test"
+ANTHROPIC_API_KEY=your-key consoul ask "test"
 
 # Set permanently
 echo 'export ANTHROPIC_API_KEY="your-key"' >> ~/.zshrc

@@ -1,0 +1,42 @@
+{
+  "created_at": "2025-11-26T14:57:12.301363",
+  "updated_at": "2025-12-06T16:58:17.546169Z",
+  "id": "SOUL-183",
+  "uuid": "81e9264f-8f71-46fb-8a83-50c79d2a60f0",
+  "title": "Improve search configuration and metadata",
+  "description": "Configure MkDocs search plugin for better discoverability. Add page-specific keywords, optimize heading structure for search indexing, configure search.suggest and search.highlight (already enabled). Review search separator config (mkdocs.yml:79). Add meta tags to key pages. Test search accuracy for common queries (TUI, CLI, SDK, features). Reference .local/mkdocs-material search configuration. Story Points: 2. Dependencies: SOUL-175 (Navigation affects search structure).",
+  "status": "done",
+  "type": "task",
+  "priority": "low",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-009",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-06T08:57:44.241507",
+      "updated_at": "2025-12-06T08:57:44.241508",
+      "id": "20251206085744-4e9c1cf6",
+      "ticket_id": "SOUL-183",
+      "author": "jared@goatbytes.io",
+      "content": "Completed search configuration improvements:\n\n\u2705 Added inline documentation to mkdocs.yml explaining search separator regex\n\u2705 Added YAML frontmatter metadata to 9 key documentation pages:\n   - TUI overview and features\n   - CLI reference and chat mode\n   - SDK overview and tools guide\n   - Quick start and getting started\n\u2705 Configured search boost values (SDK: 1.15, Quickstart: 1.2, TUI/CLI: 1.1)\n\u2705 Tested search queries - all common terms return relevant results:\n   - TUI: 107 matches\n   - CLI: 75 matches\n   - SDK: 42 matches\n   - tools: 318 matches\n   - chat: 158 matches\n\nSearch separator correctly tokenizes technical terms (TUI, CLI, SDK) and handles camelCase.\nAll 1,305 docs indexed successfully in 603KB search index.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-16T03:35:59.785300+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

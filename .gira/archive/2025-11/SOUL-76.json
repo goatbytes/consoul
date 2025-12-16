@@ -1,0 +1,26 @@
+{
+  "created_at": "2025-11-12T16:05:16.580568",
+  "updated_at": "2025-11-13T00:46:54.525780Z",
+  "id": "SOUL-76",
+  "uuid": "aecf0828-ed96-4346-b295-dbea17b2cd59",
+  "title": "test ticket",
+  "description": "",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-12T16:46:57.232157",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

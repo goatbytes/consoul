@@ -1,0 +1,24 @@
+{
+  "created_at": "2025-11-13T14:29:40.675623",
+  "updated_at": "2025-11-15T07:23:45.147445Z",
+  "id": "EPIC-006",
+  "title": "Advanced Code Search Tools",
+  "description": "Implement intelligent code search capabilities for Consoul inspired by Aider's RepoMap and other AI coding assistants.\n\n## Vision\nTransform Consoul from basic bash execution to a true coding assistant with semantic code understanding, enabling users to:\n- Search code by structure and semantics, not just text\n- Navigate codebases intelligently\n- Find symbol definitions and references\n- Understand code relationships\n\n## Approach\nThree-tier implementation:\n1. Fast text search (ripgrep-based) - Quick wins\n2. AST-based code search (Aider's RepoMap approach) - Core functionality  \n3. Optional LSP integration (Serena-style) - Advanced features\n\n## Success Criteria\n- Code search tools integrated into SDK\n- Performance comparable to Aider\n- Works with 20+ major languages\n- Zero-config for basic usage\n- Documented and tested\n\n## Dependencies\n- grep-ast library\n- tree-sitter parsers\n- ripgrep (optional, with fallback)\n\n## Reference\nBased on research from SOUL-91 comparing:\n- Aider (RepoMap with tree-sitter)\n- Serena (LSP-based)\n- cursor-agent (hybrid approach)\n- OpenCode (LSP integration)\n- wcgw (file-based)\n\n## Timeline\nEstimate: 3-4 weeks for full implementation\n- Week 1: Text search + infrastructure\n- Week 2: AST parsing + RepoMap\n- Week 3: Symbol search + references  \n- Week 4: Testing + documentation",
+  "status": "completed",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2025-12-13",
+  "labels": [],
+  "tickets": [
+    "SOUL-93",
+    "SOUL-94",
+    "SOUL-95",
+    "SOUL-96",
+    "SOUL-97",
+    "SOUL-98"
+  ],
+  "comments": [],
+  "comment_count": 0,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}

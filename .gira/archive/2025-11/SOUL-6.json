@@ -1,0 +1,42 @@
+{
+  "created_at": "2025-11-08T14:19:44.810685",
+  "updated_at": "2025-11-09T00:02:44.895212Z",
+  "id": "SOUL-6",
+  "uuid": "463cfd3b-9a41-4789-931f-595e988003b0",
+  "title": "Setup mypy for static type checking",
+  "description": "Configure mypy for static type checking with strict mode. Create mypy.ini with appropriate settings for gradual typing, excluding third-party packages as needed. Ensure all code uses type hints.",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-001",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-08T14:45:32.814677",
+      "updated_at": "2025-11-08T14:45:32.814679",
+      "id": "20251108144532-f599a7c3",
+      "ticket_id": "SOUL-6",
+      "author": "jared@goatbytes.io",
+      "content": "Setup mypy for static type checking:\n\n**Configuration (pyproject.toml):**\n- Python version: 3.10\n- Strict mode enabled\n- Comprehensive type checking rules:\n  - warn_return_any: true\n  - warn_unused_configs: true\n  - disallow_untyped_defs: true\n  - disallow_any_generics: true\n  - check_untyped_defs: true\n  - no_implicit_reexport: true\n  - warn_redundant_casts: true\n  - warn_unused_ignores: true\n  - warn_no_return: true\n  - follow_imports: normal\n\n**Module Overrides:**\n- Configured ignore_missing_imports for external libraries:\n  - textual.*\n  - langchain.*\n  - langchain_openai.*\n  - langchain_anthropic.*\n  - langchain_google_genai.*\n\n**PEP 561 Compliance:**\n- Added py.typed marker file for type hint distribution\n- Enables IDE and type checker support for consumers\n\n**Verification:**\n- mypy src/: Success - no issues found (6 source files)\n- mypy tests/: Success - no issues found (5 source files)\n- All existing code already has proper type hints\n- Ready for strict type checking in development",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:35.119319",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

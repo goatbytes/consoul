@@ -1,0 +1,32 @@
+{
+  "created_at": "2025-12-08T17:21:19.389096",
+  "updated_at": "2025-12-15T17:02:35.357014Z",
+  "id": "SOUL-242",
+  "uuid": "ccd0a28e-2552-4cc1-9c53-08fc16bf6b50",
+  "title": "Release v0.3.0 with inline command execution and improvements",
+  "description": "**As a** Consoul maintainer\n**I want** to release version 0.3.0 to PyPI with all recent improvements\n**So that** users can access new features like inline shell command execution and security fixes\n\n**Context:**\nSince v0.2.0, we've completed significant feature work and critical fixes:\n- SOUL-196: Inline shell command execution (major new feature)\n- SOUL-233: OpenAI stream_options fix\n- SOUL-231: ChatLlamaCpp context size extraction\n- SOUL-228: Security vulnerability fixes (torch 2.9.1, urllib3 2.6.0)\n- SOUL-186: Anthropic prompt caching cost tracking\n- SOUL-183: Search configuration improvements\n- SOUL-192: InitializationErrorScreen for failure handling\n- Plus documentation, PDF support, and TUI improvements\n\nThe inline command execution feature (SOUL-196) is a significant enhancement that warrants a minor version bump to 0.3.0.\n\n**Technical Notes:**\n- Current version: 0.2.2 (in pyproject.toml lines 7 and 124)\n- Last release tag: v0.2.0\n- Target version: 0.3.0\n- Release requires updating version in both [project] and [tool.poetry] sections\n- Build system: Poetry\n- Distribution: PyPI (https://pypi.org/project/consoul/)\n- Docs: https://consoul.goatbytes.io\n\n**Acceptance Criteria:**\n\n**Given** all tests pass and code is ready for release\n**When** I update version to 0.3.0 in pyproject.toml\n**Then** both [project] version (line 7) and [tool.poetry] version (line 124) are updated\n\n**Given** version is updated\n**When** I generate the changelog\n**Then** CHANGELOG.md includes all features, fixes, and improvements since v0.2.0\n\n**Given** changelog is complete\n**When** I build and publish to PyPI\n**Then** package is available at https://pypi.org/project/consoul/ with version 0.3.0\n\n**Given** package is published\n**When** I create a git tag\n**Then** tag v0.3.0 exists and is pushed to remote\n\n**Given** release is complete\n**When** users run pip install --upgrade consoul\n**Then** they receive version 0.3.0 with all new features\n\n**Testing Considerations:**\n- Run full test suite: poetry run pytest\n- Verify pre-commit hooks pass\n- Test package build locally: poetry build\n- Test installation from built package: pip install dist/consoul-0.3.0-py3-none-any.whl\n- Manual smoke test of TUI and inline command execution\n- Verify documentation is up to date\n\n**Implementation Steps:**\n\n1. Update Version (pyproject.toml lines 7 and 124: 0.2.2 \u2192 0.3.0)\n2. Generate CHANGELOG.md with all improvements since v0.2.0\n3. Run tests and quality checks (pytest, ruff, mypy, pre-commit)\n4. Build package (poetry build)\n5. Test installation locally\n6. Publish to PyPI (poetry publish)\n7. Create and push git tag v0.3.0\n8. Create GitHub release with changelog\n9. Update documentation\n10. Verify installation works\n\n**Dependencies:**\n- All current tickets in progress should be complete\n- All tests passing\n- PyPI credentials configured\n\n**Estimated Time:** 2-3 hours",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "release",
+    "deployment",
+    "documentation"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-16T03:35:58.319939+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

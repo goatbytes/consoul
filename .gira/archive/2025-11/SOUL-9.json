@@ -1,0 +1,42 @@
+{
+  "created_at": "2025-11-08T14:19:50.261218",
+  "updated_at": "2025-11-09T00:02:44.894987Z",
+  "id": "SOUL-9",
+  "uuid": "d4740d2d-9492-42b2-9de3-2b8f9a68599a",
+  "title": "Setup MkDocs documentation",
+  "description": "Configure MkDocs for documentation.",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-001",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-08T15:26:01.275115",
+      "updated_at": "2025-11-08T15:26:01.275116",
+      "id": "20251108152601-0e40b8d7",
+      "ticket_id": "SOUL-9",
+      "author": "jared@goatbytes.io",
+      "content": "Setup MkDocs documentation:\n\n**MkDocs Configuration (mkdocs.yml):**\n- Material theme with light/dark mode toggle\n- Inter font for text/headings, JetBrains Mono for code\n- Navigation features: tabs, instant loading, search\n- Plugins: search, mkdocstrings (API docs), custom CSS\n- Markdown extensions: admonitions, code highlighting, emoji, etc.\n- Page tree: Home, User Guide, Development, API Reference\n\n**Documentation Pages Created:**\n- index.md: Project overview, features, quick start\n- installation.md: Install methods (PyPI, source, pipx), API key setup\n- quickstart.md: First conversation, usage examples, tips & tricks\n- user-guide/getting-started.md: Core concepts, usage modes, best practices\n- user-guide/configuration.md: Config file, providers, env vars, profiles\n- user-guide/usage.md: Common patterns, workflows, shell integration\n- api/index.md: API reference with code examples\n- development.md: Already exists from SOUL-13\n- assets/css/consoul.css: Custom styling with brand colors\n\n**Updated Files:**\n- pyproject.toml: Replaced Sphinx with MkDocs dependencies\n- Makefile: Added docs and docs-serve targets\n\n**Documentation ready for:**\n`make docs` - Build static site\n`make docs-serve` - Local preview at http://127.0.0.1:8000",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-11-14T23:28:29.861922",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

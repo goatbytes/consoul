@@ -1,0 +1,47 @@
+{
+  "created_at": "2025-12-02T18:08:07.756498",
+  "updated_at": "2025-12-03T23:08:50.355028Z",
+  "id": "SOUL-218",
+  "uuid": "4ac7b24e-95e7-42d5-936c-5f307207095e",
+  "title": "Fix ChatSession CLI integration tests",
+  "description": "**As a** Consoul developer\n**I want** ChatSession CLI tests to pass\n**So that** we can ensure command-line chat functionality works correctly\n\n**Context:**\n5 tests in tests/cli/test_chat_session.py are failing due to initialization and streaming issues. Tests are encountering AssertionError, ValueError, and TypeError exceptions.\n\n**Technical Notes:**\n- tests/cli/test_chat_session.py - CLI chat session tests\n- src/consoul/cli/ - CLI implementation\n- Errors: AssertionError, ValueError, TypeError\n\n**Acceptance Criteria:**\n\n**Given** a ChatSession is initialized\n**When** configuration is checked\n**Then** all required components should be properly set up\n\n**Given** a message is sent with streaming enabled\n**When** the AI responds\n**Then** tokens should stream correctly\n\n**Failing Tests:**\n- test_chat_session_initialization\n- test_chat_session_send_streaming\n- test_chat_session_get_stats\n- test_chat_session_markdown_rendering_streaming\n- test_chat_session_plain_text_streaming\n\n**Testing Considerations:**\n- Mock AI provider calls\n- Verify streaming token delivery\n- Test both markdown and plain text rendering\n\n**Implementation Hints:**\n- Check ChatSession __init__ parameters\n- Verify streaming callback setup\n- Ensure stats tracking is initialized",
+  "status": "done",
+  "type": "bug",
+  "priority": "medium",
+  "labels": [
+    "testing",
+    "bug",
+    "cli"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "parent_id": "SOUL-214",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-02T18:16:05.711409",
+      "updated_at": "2025-12-02T18:16:05.711410",
+      "id": "20251202181605-498cb439",
+      "ticket_id": "SOUL-218",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed all 5 failing tests in tests/cli/test_chat_session.py:\n\n**Root Causes:**\n1. test_chat_session_initialization: System prompt now includes environment context (OS, git info) prepended to profile prompt\n2. test_chat_session_send_streaming, test_chat_session_markdown_rendering_streaming, test_chat_session_plain_text_streaming: stream_response() returns tuple (response_text, ai_message) but mocks were configured to return single string\n3. test_chat_session_get_stats: Mock history.messages was not iterable, causing TypeError when filtering by message type\n\n**Fixes Applied:**\n1. Updated test_chat_session_initialization to verify system prompt ends with profile prompt instead of exact match\n2. Updated streaming tests to mock stream_response() returning tuple (response_text, AIMessage) \n3. Updated test_chat_session_get_stats to provide iterable mock messages list with proper type attributes\n\n**Verification:**\nAll 5 tests now pass successfully:\n- test_chat_session_initialization \u2713\n- test_chat_session_send_streaming \u2713\n- test_chat_session_get_stats \u2713\n- test_chat_session_markdown_rendering_streaming \u2713\n- test_chat_session_plain_text_streaming \u2713",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:10.330690",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

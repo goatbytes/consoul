@@ -1,0 +1,47 @@
+{
+  "created_at": "2025-11-23T19:51:26.230535",
+  "updated_at": "2025-11-24T20:09:48.925938Z",
+  "id": "SOUL-158",
+  "uuid": "953b861f-6d4b-4c0e-803d-c9cd370f96c7",
+  "title": "Create Tool Manager screen for runtime tool control",
+  "description": "**As a** Consoul TUI user\n**I want** an interactive Tool Manager screen\n**So that** I can view, enable, and disable tools without restarting\n\n**Context:**\nUsers need visibility into available tools and runtime control over which are enabled. A dedicated Tool Manager screen provides:\n- List of all registered tools with descriptions\n- Enable/disable toggles\n- Risk level indicators (color-coded)\n- Quick filters (All, None, Safe Only)\n- Session-based changes (optional: persist to config)\n\nReference: Similar to package manager UIs, VS Code extension manager, tmux key bindings viewer.\n\n**Technical Notes:**\n- Create new Textual Screen: src/consoul/tui/screens/tool_manager.py\n- Bind to Ctrl+T keybinding in main app\n- Use DataTable widget to display tools\n- Columns: Enabled (checkbox), Name, Risk Level, Description\n- Add Footer with action hints\n- Query tool_registry.list_tools() for current state\n- Update registry when user toggles\n- Rebind tools to model after changes (self.chat_model.bind_tools())\n- Consider using ListView or OptionList for simpler UI\n\nColor coding (risk levels):\n- SAFE: green\n- CAUTION: yellow\n- DANGEROUS: red\n- BLOCKED: gray/strikethrough\n\n**Acceptance Criteria:**\n\n**Given** I press Ctrl+T in TUI\n**When** Tool Manager screen opens\n**Then** I see a list of all registered tools with enable/disable state\n\n**Given** I'm in Tool Manager\n**When** I press Space on a tool\n**Then** the tool toggles between enabled/disabled\n\n**Given** I'm in Tool Manager\n**When** I press 'S' (Safe Only filter)\n**Then** all non-SAFE tools are disabled\n\n**Given** I'm in Tool Manager\n**When** I press 'A' (All filter)\n**Then** all tools are enabled\n\n**Given** I'm in Tool Manager\n**When** I press Enter (Apply)\n**Then** changes are applied and tools are rebound to model\n\n**Given** I'm in Tool Manager\n**When** I press Esc or Q\n**Then** screen closes without applying changes (cancel)\n\n**Testing Considerations:**\n- Test keyboard navigation (Up/Down/Space/Enter/Esc)\n- Test quick filters (All/None/Safe)\n- Test tool rebinding after changes\n- Verify risk level colors\n- Test with 0 tools, few tools, all tools\n- Ensure smooth UX (responsive, clear feedback)\n\n**Implementation Hints:**\n1. Create ToolManagerScreen(Screen):\n   ```python\n   class ToolManagerScreen(Screen):\n       BINDINGS = [\n           (\"escape,q\", \"cancel\", \"Cancel\"),\n           (\"enter\", \"apply\", \"Apply\"),\n           (\"space\", \"toggle\", \"Toggle\"),\n           (\"a\", \"all\", \"Enable All\"),\n           (\"n\", \"none\", \"Disable All\"),\n           (\"s\", \"safe\", \"Safe Only\"),\n       ]\n       \n       def compose(self) -> ComposeResult:\n           yield Header()\n           yield DataTable(id=\"tool-list\")\n           yield Footer()\n       \n       def on_mount(self):\n           table = self.query_one(DataTable)\n           table.add_columns(\"\", \"Tool\", \"Risk\", \"Description\")\n           for meta in self.app.tool_registry.list_tools():\n               self._add_tool_row(meta)\n       \n       def action_toggle(self):\n           # Toggle selected tool\n           ...\n       \n       def action_apply(self):\n           # Update registry and rebind to model\n           ...\n   ```\n2. Add keybinding to main app\n3. Implement state management (track changes before apply)\n4. Add option to persist changes to config (future enhancement)\n5. Show warning if disabling currently-used tools\n\n**Dependencies:**\n- SOUL-154 (Use allowed_tools for registration)\n- SOUL-157 (Tool status indicator for launching)",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "tools",
+    "ux-improvement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-24T11:59:09.004013",
+      "updated_at": "2025-11-24T11:59:09.004014",
+      "id": "20251124115909-771bf4d5",
+      "ticket_id": "SOUL-158",
+      "author": "jared@goatbytes.io",
+      "content": "Completed Tool Manager screen implementation. Features:\n- Ctrl+T keybinding opens modal with DataTable of all tools\n- Enable/disable tools via Space/T toggle\n- Quick filters: A (all), N (none), S (safe only)\n- Risk level color coding (safe=green, caution=yellow, dangerous=red)\n- Apply changes triggers immediate tool rebinding and system prompt update\n- Cancel discards changes (Esc/Q)\n- Tool count display shows enabled/total\n- Keyboard navigation (\u2191\u2193 to navigate, Space/T to toggle)\n\nImplementation in src/consoul/tui/widgets/tool_manager_screen.py with full Textual integration.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 8,
+  "order": 5,
+  "custom_fields": {},
+  "epic": "EPIC-008",
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:10.806505",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

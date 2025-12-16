@@ -1,0 +1,33 @@
+{
+  "created_at": "2025-11-15T00:46:30.842692",
+  "updated_at": "2025-11-20T07:07:31.098406Z",
+  "id": "SOUL-115",
+  "uuid": "4f530e43-a0ad-41d7-bbe9-24073e985dd2",
+  "title": "Integrate analyze_images tool with ToolRegistry",
+  "description": "**As a** Consoul user\n**I want** the analyze_images tool automatically available when using vision-capable models\n**So that** I can seamlessly analyze images during AI conversations\n\n**Context:**\nFollowing the established tool registration pattern (read_file, edit_file, etc.), the analyze_images tool must be registered with the ToolRegistry with proper configuration, risk level, and conditional enablement.\n\nThe tool should only be registered when:\n1. ImageAnalysisToolConfig.enabled = True\n2. The active model supports vision (Claude 3+, GPT-4V, Gemini)\n\n**Technical Notes:**\n- src/consoul/ai/tools/registry.py - Add registration in _register_default_tools()\n- src/consoul/ai/tools/implementations/__init__.py - Export analyze_images\n- Risk Level: CAUTION (reads user files, sends to external API)\n- Tags: [\"multimodal\", \"vision\", \"filesystem\", \"external_api\"]\n- Inject ImageAnalysisToolConfig via set_analyze_images_config()\n- Check model capabilities before registration\n- Follow pattern from read_file registration (lines 250-260)\n\n**Acceptance Criteria:**\n\n**Given** ImageAnalysisToolConfig.enabled = True and model supports vision\n**When** ToolRegistry initializes\n**Then** analyze_images tool is registered with CAUTION risk level\n\n**Given** ImageAnalysisToolConfig.enabled = False\n**When** ToolRegistry initializes\n**Then** analyze_images tool is NOT registered\n\n**Given** model is gpt-3.5-turbo (no vision support)\n**When** tools are registered\n**Then** analyze_images is excluded with warning log\n\n**Given** analyze_images is registered\n**When** I call registry.get_tool(\"analyze_images\")\n**Then** I receive the AnalyzeImagesTool with proper schema\n\n**Given** the tool is executed\n**When** audit logging is enabled\n**Then** image analysis events are logged with file paths\n\n**Testing Considerations:**\n- Test registration with enabled/disabled config\n- Test vision capability detection\n- Mock analyze_images tool for registry tests\n- Test tool schema extraction\n- Verify approval workflow integration\n- Test audit logging captures image paths\n\n**Implementation Hints:**\n```python\n# In registry.py _register_default_tools()\n\nfrom consoul.ai.tools.implementations.analyze_images import (\n    analyze_images,\n    set_analyze_images_config,\n)\n\n# Only register if enabled and model supports vision\nif (\n    self.config.image_analysis.enabled \n    and self._model_supports_vision()\n):\n    # Inject config\n    set_analyze_images_config(self.config.image_analysis)\n    \n    # Register tool\n    self.register(\n        tool=analyze_images,\n        risk_level=RiskLevel.CAUTION,\n        tags=[\"multimodal\", \"vision\", \"filesystem\", \"external_api\"],\n        enabled=True,\n    )\nelse:\n    logger.debug(\n        \"Image analysis tool disabled: \"\n        f\"enabled={self.config.image_analysis.enabled}, \"\n        f\"vision_support={self._model_supports_vision()}\"\n    )\n\ndef _model_supports_vision(self) -> bool:\n    \"\"\"Check if current model supports vision/multimodal input.\"\"\"\n    # Implementation to detect vision capability\n    vision_models = [\n        \"claude-3\", \"claude-3.5\", \n        \"gpt-4-vision\", \"gpt-4o\", \n        \"gemini-pro-vision\", \"gemini-2.0\"\n    ]\n    model_name = getattr(self.config, \"model\", \"\").lower()\n    return any(vm in model_name for vm in vision_models)\n```\n\nFiles to modify:\n- src/consoul/ai/tools/registry.py\n- src/consoul/ai/tools/implementations/__init__.py\n- tests/ai/tools/test_registry.py\n\nDependencies: SOUL-112, SOUL-113, SOUL-114",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "ai",
+    "tools",
+    "enhancement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-007",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:09.747864",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

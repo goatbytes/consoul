@@ -6,7 +6,9 @@
       "title",
       "status",
       "assignee",
-      "priority"
+      "priority",
+      "epic",
+      "created"
     ],
     "column_order": [
       "id",
@@ -14,7 +16,17 @@
       "title",
       "status",
       "assignee",
-      "priority"
+      "priority",
+      "epic",
+      "sprint",
+      "story_points",
+      "labels",
+      "due_date",
+      "version",
+      "comments",
+      "created",
+      "updated",
+      "reporter"
     ],
     "column_widths": {
       "id": 12,
@@ -26,8 +38,8 @@
     }
   },
   "epic_view": {
-    "sort_column": null,
-    "sort_reverse": false,
+    "sort_column": 2,
+    "sort_reverse": true,
     "filters": {
       "status": [],
       "owner": null
@@ -41,7 +53,7 @@
     }
   },
   "click_behavior": "double_click",
-  "theme": "gira-dark",
+  "theme": "gira-minimal",
   "sidebar_width": 15,
   "auto_refresh": true,
   "refresh_interval": 5,
@@ -54,7 +66,7 @@
   "collapse_empty_versions": false,
   "max_search_results": 25,
   "use_compact_create_modal": true,
-  "markdown_renderer": "auto",
+  "markdown_renderer": "rich",
   "markdown_size_threshold": 5000,
   "enable_mouse_drag": true,
   "force_keyboard_mode": false,

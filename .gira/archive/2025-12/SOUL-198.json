@@ -1,0 +1,47 @@
+{
+  "created_at": "2025-11-29T16:38:28.286347",
+  "updated_at": "2025-12-02T22:51:40.175504Z",
+  "id": "SOUL-198",
+  "uuid": "988f7891-ba5c-44e3-bc2a-e5869b937212",
+  "title": "Update loading screen background to use theme surface color",
+  "description": "**As a** Consoul user\n**I want** the loading screen background to match my current theme's surface color\n**So that** the loading screen feels integrated with the app theme and provides a smoother visual transition\n\n**Context:**\nThe loading screen currently uses a hardcoded background color (`$background` from line 127 in loading.py), which defaults to the theme's background color. However, for a more polished appearance, the loading screen should use the theme's surface color (`$surface`) to match the elevated panels and containers used throughout the TUI.\n\nCurrent theme surface colors:\n- **consoul-dark**: `#3D3D3D` (Binary Slate)\n- **consoul-light**: `#F8F9FA` (Very light gray)\n\nThis change will:\n- Make loading screen visually consistent with main UI panels\n- Provide smoother transition from loading to main screen\n- Respect user's theme choice from the start\n- Match the \"elevated surface\" design pattern used in modals and panels\n\n**Current State:**\n- LoadingScreen CSS uses: `background: $background;` (line 127)\n- Hardcoded colors in progress bar: `#0085CC` (primary), `#44385E` (secondary)\n- Animation colors are hardcoded in BinaryCanvas color maps (lines 54-60)\n- No theme awareness during loading screen initialization\n\n**Technical Notes:**\n- src/consoul/tui/loading.py:127 - LoadingScreen DEFAULT_CSS background\n- src/consoul/tui/loading.py:238-240 - Hardcoded progress bar colors\n- src/consoul/tui/themes.py:23,47 - Theme surface color definitions\n- LoadingScreen is a Widget, not a Screen, so it inherits theme variables\n- ConsoulLoadingScreen is the Screen wrapper (lines 247-284)\n- Theme is applied in _post_initialization_setup() but loading shows before that\n- Need to ensure theme colors are available during loading screen mount\n\n**Acceptance Criteria:**\n\n**Given** I launch Consoul with consoul-dark theme\n**When** the loading screen appears\n**Then** the background uses `$surface` (#3D3D3D) instead of `$background` (#2A2A2A)\n\n**Given** I launch Consoul with consoul-light theme\n**When** the loading screen appears\n**Then** the background uses `$surface` (#F8F9FA) instead of `$background` (#FFFFFF)\n\n**Given** the loading screen is displayed\n**When** it transitions to the main UI\n**Then** the transition feels seamless due to matching surface colors\n\n**Testing Considerations:**\n- Test with consoul-dark theme (default)\n- Test with consoul-light theme\n- Test with custom user themes (if any)\n- Verify progress bar colors still have good contrast\n- Ensure binary animation remains visible against surface color\n- Test transition from loading to main screen (visual smoothness)\n- Verify no color flash or jarring changes\n\n**Implementation Hints:**\n\n1. Change LoadingScreen background in DEFAULT_CSS:\n```python\nDEFAULT_CSS = \"\"\"\nLoadingScreen {\n    width: 100%;\n    height: 100%;\n    background: $surface;  # Changed from $background\n    layers: bg overlay;\n}\n```\n\n2. Consider updating progress bar to use theme variables:\n```python\n# Instead of hardcoded colors:\ntext.append(char, style=Style(color=\"#0085CC\", dim=False))\ntext.append(char, style=Style(color=\"#44385E\", dim=True))\n\n# Use theme variables (if accessible):\ntext.append(char, style=Style(color=\"$primary\", dim=False))\ntext.append(char, style=Style(color=\"$secondary\", dim=True))\n```\n\n3. Ensure theme is registered BEFORE loading screen shows:\n   - Current: theme applied in _post_initialization_setup() (AFTER loading)\n   - Need: theme registered in on_mount() BEFORE push_screen()\n   - Or: Apply theme CSS variables to loading screen manually\n\n4. Optional enhancement: Make BinaryCanvas respect theme colors\n   - Currently uses hardcoded color_scheme=\"blue\"\n   - Could derive colors from theme variables for consistency\n\n**Dependencies:**\n- SOUL-187, SOUL-189, SOUL-190, SOUL-191 (Loading screen implementation - DONE)\n- No blocking dependencies\n\n**Design Considerations:**\n- Surface color provides visual elevation and depth\n- Matches modal backgrounds and panel containers\n- Creates cohesive design language from startup\n- Small change with significant polish impact\n\n**Alternative Approaches:**\n1. Use `$surface` (recommended) - matches panels\n2. Use `$panel` (alternative) - also elevated surfaces\n3. Create custom `$loading-background` variable - more flexible but adds complexity",
+  "status": "done",
+  "type": "task",
+  "priority": "low",
+  "labels": [
+    "tui",
+    "ui",
+    "theme",
+    "ux-improvement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-11-29T16:40:25.117209",
+      "updated_at": "2025-11-29T16:40:25.117210",
+      "id": "20251129164025-d83ef1a1",
+      "ticket_id": "SOUL-198",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation completed. Changed LoadingScreen background from $background to $surface.\n\nChanges:\n- src/consoul/tui/loading.py:127 - Updated DEFAULT_CSS background property\n\nResult:\n- consoul-dark theme: Loading screen now uses #3D3D3D (Binary Slate) instead of #2A2A2A\n- consoul-light theme: Loading screen now uses #F8F9FA (light gray) instead of #FFFFFF\n- Loading screen visually matches elevated panels and modals\n- Smoother transition from loading to main UI\n\nThis single-line CSS change provides better visual consistency and polish. The loading screen now respects the theme's surface color design pattern used throughout the TUI.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-03T15:09:13.147412",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}
