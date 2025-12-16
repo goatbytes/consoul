@@ -8,17 +8,7 @@
   "owner": "jared@goatbytes.io",
   "target_date": "2026-01-31",
   "labels": [],
-  "tickets": [
-    "SOUL-245",
-    "SOUL-246",
-    "SOUL-247",
-    "SOUL-249",
-    "SOUL-265",
-    "SOUL-267",
-    "SOUL-268",
-    "SOUL-269",
-    "SOUL-270"
-  ],
+  "tickets": [],
   "comments": [],
   "comment_count": 0,
   "attachments": [],

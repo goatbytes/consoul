@@ -1,0 +1,34 @@
+{
+  "created_at": "2025-12-15T09:39:46.261615",
+  "updated_at": "2025-12-16T03:28:04.484450Z",
+  "id": "SOUL-277",
+  "uuid": "52b52c68-4753-4752-979e-7bd7c69db68a",
+  "title": "Add async streaming WebSocket examples to SDK documentation",
+  "description": "**As a** SDK consumer\n**I want** WebSocket examples using async_stream_events() and custom approval providers\n**So that** I can implement real-time streaming backends quickly\n\n**Context:**\nSOUL-234 created async_stream_events() for WebSocket/SSE backends, and SOUL-235 made approval providers configurable. Developers need concrete examples showing how to combine these for production WebSocket servers.\n\n**Technical Notes:**\n- Create: examples/sdk/websocket_streaming.py\n- Update: docs/sdk/examples/README.md\n- Reference: SOUL-234 (async_stream_events implementation)\n- Reference: SOUL-235 (configurable approval provider)\n- Reference: examples/sdk/backend_approval_example.py\n- Pattern: FastAPI WebSocket endpoint streaming tokens via async_stream_events()\n- Pattern: WebSocketApprovalProvider sending approval requests to connected clients\n\n**Acceptance Criteria:**\n\n**Given** Developer needs WebSocket streaming example\n**When** Reading examples/sdk/websocket_streaming.py\n**Then** Can implement working WebSocket chat endpoint in <20 minutes\n\n**Given** WebSocket client connects\n**When** Message sent to server\n**Then** Tokens stream via async_stream_events() as JSON messages\n\n**Given** Tool execution needed\n**When** AI requests tool approval\n**Then** Approval request sent to client via WebSocket\n\n**Testing Considerations:**\n- Manual testing with wscat or WebSocket client\n- Test token-by-token streaming\n- Test tool approval flow over WebSocket\n- Test error handling (disconnect, timeout)\n- Document setup and usage in README\n\n**Implementation Hints:**\n- FastAPI app with /ws endpoint\n- Use async for message in websocket.receive_iter()\n- async for event in async_stream_events(model, messages)\n- Send events as JSON: {type: 'token', content: '...'}\n- WebSocketApprovalProvider sends: {type: 'approval_request', ...}\n- Wait for client response: {type: 'approval_response', approved: true}\n- Handle disconnect during streaming gracefully\n- Include HTML client example for testing",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "sdk",
+    "documentation",
+    "examples",
+    "async"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-012",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 75,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-16T03:35:58.365659+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "created_at": "2025-11-29T16:35:40.245296",
+  "updated_at": "2025-12-09T00:38:10.268441Z",
+  "id": "SOUL-196",
+  "uuid": "a93fb300-9756-4afd-b066-6b75f0a0fa44",
+  "title": "Add inline shell command execution with !-prefix syntax",
+  "description": "**As a** Consoul user\n**I want** to execute shell commands inline using !-prefix syntax\n**So that** I can run commands and include their output in conversation context without using tool calls\n\n**Context:**\nClaude Code supports inline command execution with `!` prefix - commands run before the prompt is sent, and output is automatically included in context. This provides a faster, more interactive workflow than tool calling for quick commands like checking file contents or git status.\n\nCurrent Consoul workflow for checking file:\n1. User: \"What's in hello.txt?\"\n2. AI calls bash_execute tool\n3. User approves tool\n4. Output shown\n\nDesired workflow with !-prefix:\n1. User: !`cat hello.txt`\n2. Command executes immediately, output shown\n3. User: \"Can you change the greeting?\"\n4. AI receives: \"--- user executed `cat hello.txt` ---\\n{output}\\n--- end of output ---\"\n\n**Use Cases:**\n- Quick file inspection: !`cat config.yaml`\n- Git status checking: !`git status`\n- Directory listing: !`ls -la`\n- Command output as context for AI\n- Faster iteration without tool approval overhead\n\n**Technical Notes:**\n- Current input handling: src/consoul/tui/screens/chat.py (TextArea widget)\n- Pattern detection: Check for !`command` or !command syntax\n- Execution: Use subprocess.run() or existing bash_execute internals\n- Output display: Create ConsoleBubble widget in message area\n- Context injection: Add output to next user message sent to AI\n- Safety: Only execute if user confirms (first time) or enable \"always allow\" setting\n- Reference: Claude Code's ! prefix behavior\n\n**Acceptance Criteria:**\n\n**Given** I enter !`ls` in the chat input\n**When** I press Enter\n**Then** command executes, output displays in chat as ConsoleBubble, and input clears\n\n**Given** command output is displayed\n**When** I type my next message\n**Then** command output is automatically included in context sent to AI with format:\n```\n--- user executed `{command}` ---\n{stdout/stderr}\n--- end of output ---\n\n{user's actual message}\n```\n\n**Given** I enter !`invalid_command`\n**When** command fails\n**Then** error output shown in red ConsoleBubble with exit code\n\n**Given** I enter !`cat large_file.txt`\n**When** output exceeds 1000 lines\n**Then** output is truncated with \"[... truncated, showing first/last N lines ...]\"\n\n**Given** first use of ! prefix\n**When** I execute command\n**Then** shows confirmation dialog: \"Execute command: {command}? [\u2713] Always allow [x] Just once [ ] Cancel\"\n\n**Testing Considerations:**\n- Test various shell commands (ls, cat, git, etc.)\n- Test command failures (non-zero exit codes)\n- Test output truncation for large outputs\n- Test special characters in commands\n- Test with and without backticks: !ls vs !`ls`\n- Test output formatting (ANSI colors, newlines)\n- Verify context injection in next AI message\n- Test confirmation dialog UX\n\n**Implementation Hints:**\n- Input parsing: Detect pattern `^!\\`?(.+)\\`?$` in on_submit handler\n- Execute: Use existing bash_execute logic or subprocess\n  ```python\n  result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)\n  ```\n- Display: Create ConsoleBubble widget (similar to ToolCallBubble)\n  - Show command, stdout, stderr, exit code\n  - Syntax highlighting for output\n  - Collapsible for long output\n- Store output in temporary buffer\n- Context injection: Prepend to next user message before sending to AI\n- Settings: Add `allow_inline_commands` and `auto_approve_commands` to config\n- Keybinding: Optional Ctrl+! to insert !` prefix\n- Safety: Whitelist approach OR confirmation dialog\n- Reference TUI widgets: src/consoul/tui/widgets/bubbles/",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "cli",
+    "enhancement",
+    "ux-improvement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-16T03:35:58.728772+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

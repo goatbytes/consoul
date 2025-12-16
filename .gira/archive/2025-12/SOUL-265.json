@@ -1,0 +1,49 @@
+{
+  "created_at": "2025-12-11T16:41:55.141820",
+  "updated_at": "2025-12-15T17:02:35.361072Z",
+  "id": "SOUL-265",
+  "uuid": "7284bbae-f09e-4653-99d8-b77c9dbd7eba",
+  "title": "Audit ConversationService integration and remove obsolete code",
+  "description": "**As a** Consoul developer\n**I want** to audit SOUL-263's ConversationService integration and remove any obsolete code\n**So that** we eliminate redundant business logic and validate the integration is complete\n\n**Context:**\nSOUL-263 successfully integrated ConversationService into TUI, but may have left some obsolete code paths or duplicate logic. Additionally, the integration added some complexity around tool call display that should be simplified. This ticket audits the integration and removes:\n- Obsolete streaming methods\n- Duplicate message handling logic\n- Unnecessary SDK imports\n- Dead code paths from pre-ConversationService era\n\n**Current State:**\n- app.py is 5,881 lines (increased from 5,541 during integration)\n- ConversationService handles streaming, tool execution, multimodal messages\n- Some old methods may still exist but unused\n- 56 SDK imports (many may be obsolete now)\n\n**Technical Notes:**\n- Review: src/consoul/tui/app.py - look for unused methods\n- Check: Direct model.astream() calls (should all use service now)\n- Check: Duplicate tool execution logic\n- Remove: Old _stream_ai_response() if still present\n- Remove: Any TUIToolApprover complexity that duplicates service functionality\n- Clean up: Unnecessary imports from consoul.ai.* and consoul.sdk.*\n- Document: What logic remains in TUI vs delegated to service\n\n**Acceptance Criteria:**\n\n**Given** ConversationService integration is complete\n**When** I audit app.py for obsolete code\n**Then** I identify and document all removable code sections\n\n**Given** Obsolete code is identified\n**When** I remove it safely\n**Then** All TUI features continue working without regression\n\n**Given** Old imports are unused\n**When** I remove unnecessary SDK imports\n**Then** Import count decreases from 56 to <30\n\n**Given** Code is cleaned up\n**When** I measure line count\n**Then** app.py is reduced by 200-500 lines\n\n**Testing Considerations:**\n- Full manual testing of TUI after cleanup\n- Verify message submission works\n- Verify tool execution works\n- Verify multimodal messages work\n- Verify cost tracking displays\n- Check for no import errors\n\n**Implementation Hints:**\n- Use grep to find unused methods: grep \"def _\" app.py\n- Check git history: what was removed in SOUL-263?\n- Remove debug logging added during integration\n- Simplify TUIToolApprover if possible\n- Look for commented-out code\n- Check for duplicate type imports",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "tui",
+    "refactor",
+    "cleanup",
+    "technical-debt"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-013",
+  "parent_id": "SOUL-249",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-11T17:28:47.074368",
+      "updated_at": "2025-12-11T17:28:47.074369",
+      "id": "20251211172847-fb82a0c5",
+      "ticket_id": "SOUL-265",
+      "author": "jared@goatbytes.io",
+      "content": "\u2705 **SOUL-265 Complete**\n\nSuccessfully removed 1,603 lines of obsolete code from TUI:\n\n**Cleanup Summary:**\n- Removed obsolete `_stream_ai_response` method (1,304 lines)  \n- Removed obsolete tool execution methods (221 lines)\n- Removed all debug logging (18 instances total)\n- Fixed mypy/ruff errors\n\n**Final Metrics:**\n- app.py: 5,881 \u2192 4,319 lines (1,562 lines removed)\n- message_bubble.py: 38 lines removed  \n- Total: 1,603 lines deleted\n- All pre-commit hooks passing \u2705\n\n**Commit:** 93b839dc3cbde11bbbd28f4c6f4a9e106975f328\n\n**Next Steps:**\n- SOUL-269: Create TUI data models  \n- SOUL-267/268: Blocked on SDK service creation\n- SOUL-270: Final verification (after all sub-tickets done)",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-16T03:35:58.592380+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}
