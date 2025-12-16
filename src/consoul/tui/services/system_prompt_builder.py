@@ -63,12 +63,18 @@ class SystemPromptBuilder:
             if hasattr(self.profile, "context")
             else True
         )
+        include_tools = (
+            self.profile.context.include_tools
+            if hasattr(self.profile, "context")
+            and hasattr(self.profile.context, "include_tools")
+            else True
+        )
 
-        # Use SDK builder with TUI defaults (auto-append enabled)
+        # Use SDK builder with profile-controlled tool appending
         return build_enhanced_system_prompt(
             base_prompt=self.profile.system_prompt,
-            tool_registry=self.tool_registry,
+            tool_registry=self.tool_registry if include_tools else None,
             include_env_context=include_system,
             include_git_context=include_git,
-            auto_append_tools=True,  # TUI wants auto-append
+            auto_append_tools=include_tools,
         )

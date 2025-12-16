@@ -471,6 +471,10 @@ class ContextConfig(BaseModel):
         default=True,
         description="Include git repository information in context",
     )
+    include_tools: bool = Field(
+        default=True,
+        description="Include tool documentation in system prompt",
+    )
     custom_context_files: list[Path] = Field(
         default_factory=list,
         description="Additional context files to include",
