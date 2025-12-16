@@ -149,14 +149,26 @@ class ModelService:
         from consoul.ai import get_chat_model
         from consoul.config.models import Provider
 
+        logger.debug(
+            f"switch_model called with model_id={model_id}, provider={provider}"
+        )
+        logger.debug(
+            f"Current config before switch: provider={self.config.current_provider}, model={self.config.current_model}"
+        )
+
         # Update config
         if provider:
             self.config.current_provider = Provider(provider)
         self.config.current_model = model_id
         self.current_model_id = model_id
 
+        logger.debug(
+            f"Config after update: provider={self.config.current_provider}, model={self.config.current_model}"
+        )
+
         # Reinitialize model
         model_config = self.config.get_current_model_config()
+        logger.debug(f"Model config: {model_config.model}")
         self._model = get_chat_model(model_config, config=self.config)
 
         # Re-bind tools if tool service exists

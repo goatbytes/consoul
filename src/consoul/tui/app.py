@@ -1741,11 +1741,20 @@ class ConsoulApp(App[None]):
         def on_model_selected(result: tuple[str, str] | None) -> None:
             if result and self.consoul_config:
                 provider, model_name = result
+                logger.debug(
+                    f"Model picker returned: provider={provider}, model={model_name}"
+                )
+                logger.debug(
+                    f"Current state: provider={self.consoul_config.current_provider.value}, model={self.current_model}"
+                )
                 if (
                     provider != self.consoul_config.current_provider.value
                     or model_name != self.current_model
                 ):
+                    logger.info(f"Switching to {provider}/{model_name}")
                     self._switch_provider_and_model(provider, model_name)
+                else:
+                    logger.debug("Model already selected, no switch needed")
 
         from consoul.tui.widgets import EnhancedModelPicker
 
