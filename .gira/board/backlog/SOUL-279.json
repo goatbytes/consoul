@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-15T16:46:40.028548",
+  "updated_at": "2025-12-15T16:46:40.028557",
+  "id": "SOUL-279",
+  "uuid": "aa4e5322-0b29-4de8-aeba-2cd3898ae6b7",
+  "title": "Refactor ConversationService to use async streaming",
+  "description": "**As a** Consoul developer\n**I want** ConversationService to use proper async streaming with model.astream()\n**So that** the service follows async best practices and tests pass correctly\n\n**Context:**\nEPIC-012 review identified that ConversationService._stream_response() uses a thread-based workaround with model.stream() instead of proper async streaming with model.astream(). This causes:\n- 23 test failures (tests correctly expect async streaming)\n- Code smell (sync API in async method)\n- Architectural inconsistency (async_stream_events() already exists and uses model.astream() correctly)\n\nThe codebase already has async_stream_events() in src/consoul/ai/async_streaming.py (SOUL-234) which demonstrates proper async streaming patterns.\n\n**Current Implementation:**\nsrc/consoul/sdk/services/conversation.py lines 561-580 uses:\n- threading.Thread with sync model.stream()\n- asyncio.Queue for bridging sync→async\n- Background thread pattern\n\n**Target Implementation:**\nUse model.astream() directly with async for loop, similar to async_stream_events()\n\n**Technical Notes:**\n- Reference: src/consoul/ai/async_streaming.py lines 65-157 (proper async pattern)\n- Current issue: src/consoul/sdk/services/conversation.py:564 uses model.stream()\n- Should use: async for chunk in model_to_use.astream(messages)\n- Keep tool call handling logic\n- Keep message reconstruction from chunks\n- Remove threading module import and thread-based producer\n- Remove asyncio.Queue workaround\n\n**Acceptance Criteria:**\n\n**Given** ConversationService sends a message\n**When** Streaming the response\n**Then** Uses model.astream() without threads\n\n**Given** All 23 failing tests\n**When** Service uses proper async streaming\n**Then** All tests pass (tests already correctly mock model.astream)\n\n**Given** Service streams response\n**When** Tool calls are detected\n**Then** Tool execution still works correctly with async pattern\n\n**Given** WebSocket/FastAPI integration\n**When** Using ConversationService\n**Then** Async streaming works without thread overhead\n\n**Testing Considerations:**\n- All 23 currently failing tests should pass after fix\n- Tests already correctly mock model.astream()\n- Verify tool call handling still works\n- Test with all providers (OpenAI, Anthropic, Google, Ollama)\n- Ensure FastAPI/WebSocket examples continue working\n- Test multimodal message handling (preserve model unwrapping logic)\n\n**Implementation Hints:**\n- Replace lines 556-604 (thread-based streaming) with async for loop\n- Pattern: async for chunk in model_to_use.astream(messages):\n- Keep collected_chunks for message reconstruction\n- Keep tool call detection and handling (lines 615-628)\n- Remove threading import\n- Remove asyncio.Queue usage for token passing\n- Yield Token objects directly in async for loop\n- Reference async_stream_events() for proper async pattern\n- Preserve multimodal handling (lines 547-553)\n- Keep exception handling but remove exception_queue",
+  "status": "backlog",
+  "type": "task",
+  "priority": "critical",
+  "labels": [
+    "sdk",
+    "async",
+    "refactor",
+    "technical-debt"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-012",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

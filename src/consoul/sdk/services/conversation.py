@@ -552,56 +552,18 @@ class ConversationService:
             # Unwrap RunnableBinding from bind_tools()
             model_to_use = self.model.bound
 
-        # Stream tokens from model in background thread
-        token_queue: asyncio.Queue[str | None] = asyncio.Queue()
-        exception_queue: asyncio.Queue[Exception | None] = asyncio.Queue()
+        # Stream tokens from model using async streaming
         collected_chunks: list[Any] = []
-        event_loop = asyncio.get_running_loop()
 
-        def _stream_producer() -> None:
-            """Background thread to stream tokens from model."""
-            try:
-                for chunk in model_to_use.stream(messages):
-                    collected_chunks.append(chunk)
-                    token = self._normalize_chunk_content(chunk.content)
-                    if token:
-                        asyncio.run_coroutine_threadsafe(
-                            token_queue.put(token), event_loop
-                        )
-            except Exception as e:
-                asyncio.run_coroutine_threadsafe(exception_queue.put(e), event_loop)
-            finally:
-                asyncio.run_coroutine_threadsafe(token_queue.put(None), event_loop)
+        # Use async streaming API (no threads/queues needed)
+        async for chunk in model_to_use.astream(messages):
+            collected_chunks.append(chunk)
 
-        # Start streaming in background
-        import threading
-
-        thread = threading.Thread(target=_stream_producer, daemon=True)
-        thread.start()
-
-        # Yield tokens to caller
-        while True:
-            try:
-                token_str = await asyncio.wait_for(token_queue.get(), timeout=0.1)
-                if token_str is None:
-                    break
-                yield Token(content=token_str, cost=None)
-            except asyncio.TimeoutError:
-                # Check for exceptions
-                try:
-                    exc = exception_queue.get_nowait()
-                    if exc:
-                        raise exc
-                except asyncio.QueueEmpty:
-                    pass
-
-        # Check for exceptions after streaming
-        try:
-            exc = await asyncio.wait_for(exception_queue.get(), timeout=0.1)
-            if exc:
-                raise exc
-        except asyncio.TimeoutError:
-            pass
+            # Stream content tokens
+            if chunk.content:
+                token = self._normalize_chunk_content(chunk.content)
+                if token:
+                    yield Token(content=token, cost=None)
 
         # Reconstruct final AIMessage with tool_calls and cost
         if collected_chunks:
@@ -624,8 +586,8 @@ class ConversationService:
                     await self.conversation._persist_message(result)
 
                 # Stream next iteration with tool results
-                async for token in self._stream_response(on_tool_request):
-                    yield token
+                async for result_token in self._stream_response(on_tool_request):
+                    yield result_token
 
     async def _get_trimmed_messages(self) -> list[Any]:
         """Get context-window-aware trimmed messages.
@@ -759,63 +721,86 @@ class ConversationService:
             if normalized:
                 content_parts.append(normalized)
 
-        # Reconstruct tool_calls from tool_call_chunks
+        # Reconstruct tool_calls from tool_call_chunks or tool_calls
+        tool_calls = []
         tool_calls_by_index: dict[int, dict[str, Any]] = {}
-        for chunk in chunks:
-            if not hasattr(chunk, "tool_call_chunks") or not chunk.tool_call_chunks:
-                continue
 
-            for tc in chunk.tool_call_chunks:
-                if not isinstance(tc, dict):
+        # First, check if any chunks have complete tool_calls (some providers do this)
+        for chunk in chunks:
+            if (
+                hasattr(chunk, "tool_calls")
+                and chunk.tool_calls
+                and isinstance(chunk.tool_calls, list)
+            ):
+                # Chunk has complete tool_calls - use them directly
+                tool_calls.extend(chunk.tool_calls)
+
+        # If no complete tool_calls, reconstruct from tool_call_chunks
+        if not tool_calls:
+            for chunk in chunks:
+                if not hasattr(chunk, "tool_call_chunks") or not chunk.tool_call_chunks:
                     continue
 
-                tc_index = tc.get("index", 0)
-                if tc_index not in tool_calls_by_index:
-                    tool_calls_by_index[tc_index] = {
-                        "name": "",
-                        "args": "",
-                        "id": None,
-                        "type": "tool_call",
-                    }
+                # Ensure tool_call_chunks is iterable (not a Mock or other non-iterable)
+                try:
+                    tool_call_chunks = list(chunk.tool_call_chunks)
+                except (TypeError, AttributeError):
+                    continue
 
-                if tc.get("name"):
-                    tool_calls_by_index[tc_index]["name"] = tc["name"]
-                if tc.get("id"):
-                    tool_calls_by_index[tc_index]["id"] = tc["id"]
-                if tc.get("args"):
-                    tool_calls_by_index[tc_index]["args"] += tc["args"]
+                for tc in tool_call_chunks:
+                    if not isinstance(tc, dict):
+                        continue
 
-        # Parse tool call args
-        tool_calls = []
-        for tc_data in tool_calls_by_index.values():
-            args_str = tc_data["args"]
-            try:
-                parsed_args = json.loads(args_str) if args_str else {}
-                tool_calls.append(
-                    {
-                        "name": tc_data["name"],
-                        "args": parsed_args,
-                        "id": tc_data["id"],
-                        "type": "tool_call",
-                    }
-                )
-            except json.JSONDecodeError as e:
-                logger.warning(
-                    f"Failed to parse tool call args: {args_str!r}, error: {e}"
-                )
-                tool_calls.append(
-                    {
-                        "name": tc_data["name"],
-                        "args": {},
-                        "id": tc_data["id"],
-                        "type": "tool_call",
-                    }
-                )
+                    tc_index = tc.get("index", 0)
+                    if tc_index not in tool_calls_by_index:
+                        tool_calls_by_index[tc_index] = {
+                            "name": "",
+                            "args": "",
+                            "id": None,
+                            "type": "tool_call",
+                        }
 
-        # Extract usage_metadata
+                    if tc.get("name"):
+                        tool_calls_by_index[tc_index]["name"] = tc["name"]
+                    if tc.get("id"):
+                        tool_calls_by_index[tc_index]["id"] = tc["id"]
+                    if tc.get("args"):
+                        tool_calls_by_index[tc_index]["args"] += tc["args"]
+
+            # Parse tool call args from chunks
+            for tc_data in tool_calls_by_index.values():
+                args_str = tc_data["args"]
+                try:
+                    parsed_args = json.loads(args_str) if args_str else {}
+                    tool_calls.append(
+                        {
+                            "name": tc_data["name"],
+                            "args": parsed_args,
+                            "id": tc_data["id"],
+                            "type": "tool_call",
+                        }
+                    )
+                except json.JSONDecodeError as e:
+                    logger.warning(
+                        f"Failed to parse tool call args: {args_str!r}, error: {e}"
+                    )
+                    tool_calls.append(
+                        {
+                            "name": tc_data["name"],
+                            "args": {},
+                            "id": tc_data["id"],
+                            "type": "tool_call",
+                        }
+                    )
+
+        # Extract usage_metadata (must be dict or None for Pydantic validation)
         usage_metadata = None
         for chunk in reversed(chunks[-5:]):
-            if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
+            if (
+                hasattr(chunk, "usage_metadata")
+                and chunk.usage_metadata
+                and isinstance(chunk.usage_metadata, dict)
+            ):
                 usage_metadata = chunk.usage_metadata
                 break
 
