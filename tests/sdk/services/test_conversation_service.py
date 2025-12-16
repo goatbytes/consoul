@@ -6,15 +6,14 @@ tool execution, and multimodal message handling without UI dependencies.
 
 from __future__ import annotations
 
-from pathlib import Path
+import asyncio
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from consoul.sdk.models import Token, ToolRequest
 from consoul.sdk.services.conversation import ConversationService
-
 
 # =============================================================================
 # Test Fixtures
@@ -114,17 +113,13 @@ class TestInitialization:
 
     def test_init_with_tools(self, mock_model, mock_conversation, mock_tool_registry):
         """Test initialization with tools."""
-        service = ConversationService(
-            mock_model, mock_conversation, mock_tool_registry
-        )
+        service = ConversationService(mock_model, mock_conversation, mock_tool_registry)
 
         assert service.tool_registry == mock_tool_registry
 
     def test_init_with_config(self, mock_model, mock_conversation, mock_config):
         """Test initialization with config."""
-        service = ConversationService(
-            mock_model, mock_conversation, config=mock_config
-        )
+        service = ConversationService(mock_model, mock_conversation, config=mock_config)
 
         assert service.config == mock_config
 
@@ -191,7 +186,7 @@ class TestFromConfig:
         mock_history_class.return_value = mock_history
         mock_build_prompt.return_value = "Enhanced prompt"
 
-        service = ConversationService.from_config(
+        ConversationService.from_config(
             config=mock_config,
             custom_system_prompt="My custom prompt",
         )
@@ -264,6 +259,7 @@ class TestSendMessageBasic:
     @pytest.mark.asyncio
     async def test_send_message_simple_text(self, service, mock_conversation):
         """Test sending simple text message."""
+
         # Mock streaming response
         async def mock_astream(messages):
             for chunk_content in ["Hello", " ", "world"]:
@@ -286,6 +282,7 @@ class TestSendMessageBasic:
     @pytest.mark.asyncio
     async def test_send_message_persistence(self, service, mock_conversation):
         """Test message is persisted to conversation history."""
+
         async def mock_astream(messages):
             chunk = Mock()
             chunk.content = "Response"
@@ -319,7 +316,9 @@ class TestSendMessageBasic:
         attachments = [Attachment(path=str(test_file), type="code")]
 
         tokens = []
-        async for token in service.send_message("Analyze this", attachments=attachments):
+        async for token in service.send_message(
+            "Analyze this", attachments=attachments
+        ):
             tokens.append(token)
 
         # Should have prepended file content
@@ -451,6 +450,7 @@ class TestStreamingResponse:
     @pytest.mark.asyncio
     async def test_streaming_yields_tokens(self, service):
         """Test streaming yields Token objects."""
+
         async def mock_astream(messages):
             for content in ["Hello", " ", "world", "!"]:
                 chunk = Mock()
@@ -471,6 +471,7 @@ class TestStreamingResponse:
     @pytest.mark.asyncio
     async def test_streaming_accumulates_response(self, service):
         """Test full response is accumulated."""
+
         async def mock_astream(messages):
             for content in ["Part", " ", "1", " ", "Part", " ", "2"]:
                 chunk = Mock()
@@ -490,6 +491,7 @@ class TestStreamingResponse:
     @pytest.mark.asyncio
     async def test_streaming_empty_chunks_handled(self, service):
         """Test empty chunks are handled gracefully."""
+
         async def mock_astream(messages):
             chunk1 = Mock()
             chunk1.content = ""
@@ -514,6 +516,7 @@ class TestStreamingResponse:
     @pytest.mark.asyncio
     async def test_streaming_with_cost_tracking(self, service):
         """Test cost is tracked during streaming."""
+
         async def mock_astream(messages):
             chunk = Mock()
             chunk.content = "Response"
@@ -544,6 +547,16 @@ class TestToolExecution:
     @pytest.mark.asyncio
     async def test_tool_call_detection(self, service_with_tools):
         """Test tool calls are detected in response."""
+        # Mock tool in registry
+        mock_tool = Mock()
+        mock_tool.name = "bash_execute"
+        mock_tool_meta = Mock()
+        mock_tool_meta.tool = mock_tool
+        mock_tool_meta.risk_level = Mock(value="safe")
+        service_with_tools.tool_registry.list_tools = Mock(
+            return_value=[mock_tool_meta]
+        )
+
         async def mock_astream(messages):
             # First chunk with tool call
             chunk = Mock()
@@ -574,7 +587,7 @@ class TestToolExecution:
 
         # Should have invoked callback
         assert len(tool_requests) == 1
-        assert tool_requests[0].tool_name == "bash_execute"
+        assert tool_requests[0].name == "bash_execute"
 
     @pytest.mark.asyncio
     async def test_tool_call_approved(self, service_with_tools):
@@ -582,27 +595,40 @@ class TestToolExecution:
         # Mock tool in registry
         mock_tool = Mock()
         mock_tool.name = "bash_execute"
+        mock_tool.invoke = Mock(return_value="file1.txt\nfile2.txt")
         mock_tool_meta = Mock()
         mock_tool_meta.tool = mock_tool
         mock_tool_meta.risk_level = Mock(value="safe")
-        service_with_tools.tool_registry.get_tool = Mock(return_value=mock_tool_meta)
-        service_with_tools.tool_registry.execute_tool = AsyncMock(
-            return_value="file1.txt\nfile2.txt"
+        service_with_tools.tool_registry.list_tools = Mock(
+            return_value=[mock_tool_meta]
         )
 
+        call_count = 0
+
         async def mock_astream(messages):
-            # Tool call chunk
-            chunk = Mock()
-            chunk.content = ""
-            chunk.tool_calls = [
-                {
-                    "name": "bash_execute",
-                    "args": {"command": "ls"},
-                    "id": "call_123",
-                }
-            ]
-            chunk.response_metadata = {}
-            yield chunk
+            nonlocal call_count
+            call_count += 1
+
+            if call_count == 1:
+                # First call: return tool call
+                chunk = Mock()
+                chunk.content = ""
+                chunk.tool_calls = [
+                    {
+                        "name": "bash_execute",
+                        "args": {"command": "ls"},
+                        "id": "call_123",
+                    }
+                ]
+                chunk.response_metadata = {}
+                yield chunk
+            else:
+                # Second call (after tool execution): return final text response
+                chunk = Mock()
+                chunk.content = "Here are the files: file1.txt file2.txt"
+                chunk.tool_calls = []
+                chunk.response_metadata = {}
+                yield chunk
 
         service_with_tools.model.astream = mock_astream
 
@@ -616,11 +642,12 @@ class TestToolExecution:
             tokens.append(token)
 
         # Should have executed tool
-        service_with_tools.tool_registry.execute_tool.assert_called_once()
+        mock_tool.invoke.assert_called_once_with({"command": "ls"})
 
     @pytest.mark.asyncio
     async def test_tool_call_rejected(self, service_with_tools):
         """Test rejected tool execution."""
+
         async def mock_astream(messages):
             chunk = Mock()
             chunk.content = ""
@@ -670,8 +697,7 @@ class TestHelperMethods:
         stats = service.get_stats()
 
         assert stats.message_count == 3
-        assert stats.token_count == 250
-        assert stats.model_name == "gpt-4o"
+        assert stats.total_tokens == 250
 
     def test_get_stats_empty_conversation(self, service, mock_conversation):
         """Test get_stats() with empty conversation."""
@@ -681,7 +707,7 @@ class TestHelperMethods:
         stats = service.get_stats()
 
         assert stats.message_count == 0
-        assert stats.token_count == 0
+        assert stats.total_tokens == 0
 
     def test_get_history(self, service, mock_conversation):
         """Test get_history() returns messages."""
@@ -725,6 +751,7 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_send_message_streaming_error(self, service):
         """Test error during streaming is handled."""
+
         async def mock_astream_error(messages):
             chunk = Mock()
             chunk.content = "Start"
@@ -776,12 +803,11 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_tool_callback_exception_handled(self, service_with_tools):
         """Test exception in tool callback is handled."""
+
         async def mock_astream(messages):
             chunk = Mock()
             chunk.content = ""
-            chunk.tool_calls = [
-                {"name": "test_tool", "args": {}, "id": "call_789"}
-            ]
+            chunk.tool_calls = [{"name": "test_tool", "args": {}, "id": "call_789"}]
             chunk.response_metadata = {}
             yield chunk
 
@@ -1007,3 +1033,661 @@ class TestIntegrationFlows:
 
         # Total tokens should accumulate
         assert total_tokens[0] == 150
+
+
+# =============================================================================
+# Test: Factory Method Edge Cases
+# =============================================================================
+
+
+class TestFactoryMethodEdgeCases:
+    """Test ConversationService.from_config() edge cases and variations."""
+
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    def test_from_config_with_tools_enabled(
+        self, mock_history_class, mock_get_chat_model, mock_config
+    ):
+        """Test from_config() with tools enabled."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history_class.return_value = mock_history
+
+        # Enable tools
+        mock_config.tools = Mock()
+        mock_config.tools.enabled = True
+        mock_config.tools.allowed_tools = None
+        mock_config.tools.risk_filter = None
+        mock_config.tools.bash = None
+        mock_config.tools.read = None
+        mock_config.tools.grep_search = None
+        mock_config.tools.code_search = None
+        mock_config.tools.find_references = None
+        mock_config.tools.web_search = None
+        mock_config.tools.wikipedia = None
+        mock_config.tools.read_url = None
+        mock_config.tools.file_edit = None
+        mock_config.tools.image_analysis = None
+
+        with patch("consoul.ai.tools.ToolRegistry") as mock_registry_class:
+            mock_registry = Mock()
+            mock_registry_class.return_value = mock_registry
+            mock_registry.list_tools = Mock(return_value=[])
+
+            with patch("consoul.ai.tools.catalog.TOOL_CATALOG", {}):
+                service = ConversationService.from_config(config=mock_config)
+
+            assert service.tool_registry is not None
+
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    def test_from_config_with_tools_disabled(
+        self, mock_history_class, mock_get_chat_model, mock_config
+    ):
+        """Test from_config() with tools disabled."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history_class.return_value = mock_history
+
+        # Disable tools
+        mock_config.tools = None
+
+        service = ConversationService.from_config(config=mock_config)
+
+        assert service.tool_registry is None
+
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    def test_from_config_without_system_prompt(
+        self, mock_history_class, mock_get_chat_model, mock_config
+    ):
+        """Test from_config() without system prompt."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history.add_system_message = Mock()
+        mock_history_class.return_value = mock_history
+
+        # No system prompt
+        active_profile = mock_config.get_active_profile()
+        active_profile.system_prompt = None
+
+        ConversationService.from_config(config=mock_config)
+
+        # Should not add system message if base_prompt is None
+        mock_history.add_system_message.assert_not_called()
+
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
+    def test_from_config_with_env_context(
+        self,
+        mock_build_prompt,
+        mock_history_class,
+        mock_get_chat_model,
+        mock_config,
+    ):
+        """Test from_config() includes environment context."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history_class.return_value = mock_history
+        mock_build_prompt.return_value = "Enhanced prompt"
+
+        ConversationService.from_config(
+            config=mock_config,
+            include_env_context=True,
+        )
+
+        mock_build_prompt.assert_called_once()
+        assert mock_build_prompt.call_args[1]["include_env_context"] is True
+
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
+    def test_from_config_with_git_context(
+        self,
+        mock_build_prompt,
+        mock_history_class,
+        mock_get_chat_model,
+        mock_config,
+    ):
+        """Test from_config() includes git context."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history_class.return_value = mock_history
+        mock_build_prompt.return_value = "Enhanced prompt"
+
+        ConversationService.from_config(
+            config=mock_config,
+            include_git_context=True,
+        )
+
+        mock_build_prompt.assert_called_once()
+        assert mock_build_prompt.call_args[1]["include_git_context"] is True
+
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
+    def test_from_config_auto_append_tools(
+        self,
+        mock_build_prompt,
+        mock_history_class,
+        mock_get_chat_model,
+        mock_config,
+    ):
+        """Test from_config() auto appends tools."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history_class.return_value = mock_history
+        mock_build_prompt.return_value = "Enhanced prompt"
+
+        ConversationService.from_config(
+            config=mock_config,
+            auto_append_tools=True,
+        )
+
+        mock_build_prompt.assert_called_once()
+        assert mock_build_prompt.call_args[1]["auto_append_tools"] is True
+
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    def test_from_config_with_persistence_config(
+        self, mock_history_class, mock_get_chat_model, mock_config
+    ):
+        """Test from_config() with persistence configuration."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history_class.return_value = mock_history
+
+        # Configure persistence
+        active_profile = mock_config.get_active_profile()
+        active_profile.conversation.persist = True
+        active_profile.conversation.db_path = "/tmp/test.db"
+
+        ConversationService.from_config(config=mock_config)
+
+        # Verify persistence settings were passed to ConversationHistory
+        mock_history_class.assert_called_once()
+        call_kwargs = mock_history_class.call_args[1]
+        assert call_kwargs["persist"] is True
+        assert call_kwargs["db_path"] == "/tmp/test.db"
+
+
+# =============================================================================
+# Test: Context Window Trimming
+# =============================================================================
+
+
+class TestContextWindowTrimming:
+    """Test context window trimming and token management."""
+
+    @pytest.mark.asyncio
+    async def test_get_trimmed_messages_without_config(
+        self, service, mock_conversation
+    ):
+        """Test _get_trimmed_messages() without config returns all messages."""
+        service.config = None
+        messages = [Mock(), Mock(), Mock()]
+        mock_conversation.messages = messages
+
+        result = await service._get_trimmed_messages()
+
+        assert result == messages
+
+    @pytest.mark.asyncio
+    async def test_get_trimmed_messages_with_multimodal(
+        self, service, mock_conversation, mock_config
+    ):
+        """Test _get_trimmed_messages() with multimodal content."""
+        service.config = mock_config
+
+        # Create messages with multimodal content
+        multimodal_msg = Mock()
+        multimodal_msg.content = [
+            {"type": "text", "text": "Hello"},
+            {"type": "image", "data": "base64data"},
+        ]
+
+        messages = [Mock(), multimodal_msg]
+        for msg in messages[:-1]:  # All except multimodal
+            msg.content = "Normal message"
+
+        mock_conversation.messages = messages
+        mock_conversation.max_tokens = 8000
+
+        # Setup model config
+        model_config = mock_config.get_current_model_config()
+        model_config.max_tokens = 2048
+
+        result = await service._get_trimmed_messages()
+
+        # Should return last 10 messages for multimodal (we have 2)
+        assert len(result) == 2
+
+    @pytest.mark.asyncio
+    async def test_get_trimmed_messages_normal_trimming(
+        self, service, mock_conversation, mock_config
+    ):
+        """Test _get_trimmed_messages() performs normal trimming."""
+        service.config = mock_config
+
+        # Create many messages
+        messages = [Mock() for _ in range(30)]
+        for msg in messages:
+            msg.content = "Test message"
+
+        mock_conversation.messages = messages
+        mock_conversation.max_tokens = 8000
+        mock_conversation.get_trimmed_messages = Mock(return_value=messages[-15:])
+
+        # Setup model config
+        model_config = mock_config.get_current_model_config()
+        model_config.max_tokens = 2048
+
+        await service._get_trimmed_messages()
+
+        # Should have called trimming
+        mock_conversation.get_trimmed_messages.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_trimmed_messages_timeout_fallback(
+        self, service, mock_conversation, mock_config
+    ):
+        """Test _get_trimmed_messages() timeout fallback."""
+        service.config = mock_config
+
+        messages = [Mock() for _ in range(25)]
+        for msg in messages:
+            msg.content = "Test"
+
+        mock_conversation.messages = messages
+        mock_conversation.max_tokens = 8000
+
+        # Setup model config
+        model_config = mock_config.get_current_model_config()
+        model_config.max_tokens = 2048
+
+        # Make get_trimmed_messages hang
+        async def slow_trim(*args):
+            import asyncio
+
+            await asyncio.sleep(20)
+            return messages
+
+        # Mock run_in_executor to timeout
+        with patch("asyncio.wait_for") as mock_wait:
+            mock_wait.side_effect = asyncio.TimeoutError()
+
+            result = await service._get_trimmed_messages()
+
+            # Should fall back to last 20 messages
+            assert len(result) == 20
+
+    @pytest.mark.asyncio
+    async def test_get_trimmed_messages_error_fallback(
+        self, service, mock_conversation, mock_config
+    ):
+        """Test _get_trimmed_messages() error fallback."""
+        service.config = mock_config
+
+        messages = [Mock() for _ in range(25)]
+        for msg in messages:
+            msg.content = "Test"
+
+        mock_conversation.messages = messages
+        mock_conversation.max_tokens = 8000
+
+        # Setup model config
+        model_config = mock_config.get_current_model_config()
+        model_config.max_tokens = 2048
+
+        # Make get_trimmed_messages raise error
+        with patch("asyncio.wait_for") as mock_wait:
+            mock_wait.side_effect = RuntimeError("Token counting failed")
+
+            result = await service._get_trimmed_messages()
+
+            # Should fall back to last 20 messages
+            assert len(result) == 20
+
+    @pytest.mark.asyncio
+    async def test_get_trimmed_messages_reserve_tokens_calculation(
+        self, service, mock_conversation, mock_config
+    ):
+        """Test _get_trimmed_messages() calculates reserve tokens correctly."""
+        service.config = mock_config
+
+        messages = [Mock() for _ in range(10)]
+        for msg in messages:
+            msg.content = "Test"
+
+        mock_conversation.messages = messages
+        mock_conversation.max_tokens = 8000
+        mock_conversation.get_trimmed_messages = Mock(return_value=messages)
+
+        # Set max_tokens in model config
+        model_config = mock_config.get_current_model_config()
+        model_config.max_tokens = 2048
+
+        await service._get_trimmed_messages()
+
+        # Should have called with calculated reserve tokens
+        mock_conversation.get_trimmed_messages.assert_called_once()
+        reserve = mock_conversation.get_trimmed_messages.call_args[0][0]
+        # Should be min(2048, 8000//2) = 2048
+        assert reserve == 2048
+
+
+# =============================================================================
+# Test: Cost Calculation
+# =============================================================================
+
+
+class TestCostCalculation:
+    """Test cost calculation functionality."""
+
+    def test_calculate_cost_with_config(self, service, mock_config):
+        """Test _calculate_cost() with config."""
+        service.config = mock_config
+
+        with patch("consoul.pricing.calculate_cost") as mock_calc:
+            mock_calc.return_value = {"total_cost": 0.05}
+
+            result = service._calculate_cost({"input_tokens": 100, "output_tokens": 50})
+
+            assert result["total_cost"] == 0.05
+            mock_calc.assert_called_once_with(
+                model_name="gpt-4o", input_tokens=100, output_tokens=50
+            )
+
+    def test_calculate_cost_without_config(self, service):
+        """Test _calculate_cost() without config."""
+        service.config = None
+
+        result = service._calculate_cost({"input_tokens": 100, "output_tokens": 50})
+
+        assert result == {"total_cost": 0.0}
+
+    def test_calculate_cost_missing_tokens(self, service, mock_config):
+        """Test _calculate_cost() with missing token counts."""
+        service.config = mock_config
+
+        with patch("consoul.pricing.calculate_cost") as mock_calc:
+            mock_calc.return_value = {"total_cost": 0.0}
+
+            service._calculate_cost({})
+
+            # Should default to 0 tokens
+            mock_calc.assert_called_once_with(
+                model_name="gpt-4o", input_tokens=0, output_tokens=0
+            )
+
+    def test_calculate_cost_none_metadata(self, service, mock_config):
+        """Test _calculate_cost() with None values in metadata."""
+        service.config = mock_config
+
+        with patch("consoul.pricing.calculate_cost") as mock_calc:
+            mock_calc.return_value = {"total_cost": 0.0}
+
+            service._calculate_cost(
+                {"input_tokens": None, "output_tokens": None}
+            )
+
+            # dict.get() returns None if value is None (not the default)
+            mock_calc.assert_called_once_with(
+                model_name="gpt-4o", input_tokens=None, output_tokens=None
+            )
+
+
+# =============================================================================
+# Test: Attachment Error Handling
+# =============================================================================
+
+
+class TestAttachmentErrorHandling:
+    """Test error handling for attachment loading and processing."""
+
+    @pytest.mark.asyncio
+    async def test_send_message_attachment_file_not_found(self, service, tmp_path):
+        """Test attachment with non-existent file path."""
+        from consoul.sdk.models import Attachment
+
+        async def mock_astream(messages):
+            chunk = Mock()
+            chunk.content = "OK"
+            chunk.response_metadata = {}
+            yield chunk
+
+        service.model.astream = mock_astream
+
+        # Non-existent file
+        attachments = [Attachment(path="/nonexistent/path/file.txt", type="code")]
+
+        async for _ in service.send_message("Test", attachments=attachments):
+            pass
+
+        # Should handle gracefully - message still sent
+        service.conversation.add_user_message_async.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_send_message_attachment_permission_error(self, service, tmp_path):
+        """Test attachment with unreadable file."""
+        from consoul.sdk.models import Attachment
+
+        async def mock_astream(messages):
+            chunk = Mock()
+            chunk.content = "OK"
+            chunk.response_metadata = {}
+            yield chunk
+
+        service.model.astream = mock_astream
+
+        # Create file and mock read to raise permission error
+        test_file = tmp_path / "restricted.txt"
+        test_file.write_text("content")
+
+        with patch("pathlib.Path.read_text") as mock_read:
+            mock_read.side_effect = PermissionError("Access denied")
+
+            attachments = [Attachment(path=str(test_file), type="code")]
+
+            async for _ in service.send_message("Test", attachments=attachments):
+                pass
+
+            # Should handle gracefully
+            service.conversation.add_user_message_async.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_send_message_attachment_encoding_error(self, service, tmp_path):
+        """Test attachment with invalid UTF-8 encoding."""
+        from consoul.sdk.models import Attachment
+
+        async def mock_astream(messages):
+            chunk = Mock()
+            chunk.content = "OK"
+            chunk.response_metadata = {}
+            yield chunk
+
+        service.model.astream = mock_astream
+
+        # Create binary file
+        binary_file = tmp_path / "binary.dat"
+        binary_file.write_bytes(b"\x80\x81\x82\x83")
+
+        attachments = [Attachment(path=str(binary_file), type="code")]
+
+        # Should handle encoding errors gracefully
+        async for _ in service.send_message("Test", attachments=attachments):
+            pass
+
+        service.conversation.add_user_message_async.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_create_multimodal_message_invalid_mime_type(self, service, tmp_path):
+        """Test _create_multimodal_message() with invalid MIME type."""
+        service.config = Mock()
+        service.config.current_model = "gpt-4o"
+
+        # Create text file (not an image)
+        text_file = tmp_path / "test.txt"
+        text_file.write_text("Not an image")
+
+        with pytest.raises(ValueError, match="Invalid MIME type"):
+            service._create_multimodal_message("Test", [text_file])
+
+    @pytest.mark.asyncio
+    async def test_create_multimodal_message_no_config(self, service, tmp_path):
+        """Test _create_multimodal_message() without config."""
+        service.config = None
+
+        image_file = tmp_path / "test.png"
+        image_file.write_bytes(b"fake image")
+
+        with pytest.raises(ValueError, match="Config not available"):
+            service._create_multimodal_message("Test", [image_file])
+
+    @pytest.mark.asyncio
+    async def test_send_message_multimodal_creation_error(self, service, tmp_path):
+        """Test multimodal message creation error fallback."""
+        service.config = Mock()
+        service.config.current_model = "gpt-4o"
+
+        async def mock_astream(messages):
+            chunk = Mock()
+            chunk.content = "OK"
+            chunk.response_metadata = {}
+            yield chunk
+
+        service.model.astream = mock_astream
+
+        from consoul.sdk.models import Attachment
+
+        # Create image that will fail to process
+        image_file = tmp_path / "test.png"
+        image_file.write_bytes(b"fake")
+
+        with patch.object(
+            service, "_create_multimodal_message", side_effect=RuntimeError("Failed")
+        ):
+            attachments = [Attachment(path=str(image_file), type="image")]
+
+            async for _ in service.send_message("Test", attachments=attachments):
+                pass
+
+            # Should fall back to text-only message
+            service.conversation.add_user_message_async.assert_called_once()
+
+
+# =============================================================================
+# Test: Helper Method Edge Cases
+# =============================================================================
+
+
+class TestHelperMethodEdgeCases:
+    """Test edge cases in helper methods."""
+
+    def test_has_multimodal_content_empty_messages(self, service):
+        """Test _has_multimodal_content() with empty message list."""
+        result = service._has_multimodal_content([])
+
+        assert result is False
+
+    def test_has_multimodal_content_string_content(self, service):
+        """Test _has_multimodal_content() with string content."""
+        msg = Mock()
+        msg.content = "Plain text message"
+
+        result = service._has_multimodal_content([msg])
+
+        assert result is False
+
+    def test_has_multimodal_content_text_blocks_only(self, service):
+        """Test _has_multimodal_content() with text blocks only."""
+        msg = Mock()
+        msg.content = [
+            {"type": "text", "text": "Hello"},
+            {"type": "text", "text": "World"},
+        ]
+
+        result = service._has_multimodal_content([msg])
+
+        assert result is False
+
+    def test_has_multimodal_content_with_image(self, service):
+        """Test _has_multimodal_content() with image block."""
+        msg = Mock()
+        msg.content = [
+            {"type": "text", "text": "Look at this"},
+            {"type": "image", "data": "base64data"},
+        ]
+
+        result = service._has_multimodal_content([msg])
+
+        assert result is True
+
+    def test_has_multimodal_content_with_image_url(self, service):
+        """Test _has_multimodal_content() with image_url block."""
+        msg = Mock()
+        msg.content = [
+            {"type": "text", "text": "Check this"},
+            {"type": "image_url", "url": "https://example.com/image.png"},
+        ]
+
+        result = service._has_multimodal_content([msg])
+
+        assert result is True
+
+    def test_normalize_chunk_content_with_none(self, service):
+        """Test _normalize_chunk_content() with None."""
+        result = service._normalize_chunk_content(None)
+
+        assert result == ""
+
+    def test_normalize_chunk_content_with_string(self, service):
+        """Test _normalize_chunk_content() with string."""
+        result = service._normalize_chunk_content("Hello world")
+
+        assert result == "Hello world"
+
+    def test_normalize_chunk_content_with_text_blocks(self, service):
+        """Test _normalize_chunk_content() with text blocks."""
+        content = [
+            {"type": "text", "text": "Hello"},
+            {"type": "text", "text": " world"},
+        ]
+
+        result = service._normalize_chunk_content(content)
+
+        assert result == "Hello world"
+
+    def test_normalize_chunk_content_with_mixed_blocks(self, service):
+        """Test _normalize_chunk_content() with mixed block types."""
+        content = [
+            {"type": "text", "text": "Before"},
+            {"type": "tool_use", "id": "123"},
+            {"type": "text", "text": "After"},
+        ]
+
+        result = service._normalize_chunk_content(content)
+
+        assert result == "BeforeAfter"
+
+    def test_normalize_chunk_content_with_string_list(self, service):
+        """Test _normalize_chunk_content() with list of strings."""
+        content = ["Hello", " ", "world"]
+
+        result = service._normalize_chunk_content(content)
+
+        assert result == "Hello world"
+
+    def test_normalize_chunk_content_with_other_type(self, service):
+        """Test _normalize_chunk_content() with other types."""
+        result = service._normalize_chunk_content(12345)
+
+        assert result == "12345"

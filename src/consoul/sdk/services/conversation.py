@@ -576,7 +576,7 @@ class ConversationService:
 
             # Handle tool calls if present
             if final_message.tool_calls and self.tool_registry:
-                tool_results = await self._execute_tool_calls(
+                tool_results, any_executed = await self._execute_tool_calls(
                     final_message.tool_calls, on_tool_request
                 )
                 # Add tool results to conversation with persistence
@@ -585,9 +585,12 @@ class ConversationService:
                     # Persist each tool result message
                     await self.conversation._persist_message(result)
 
-                # Stream next iteration with tool results
-                async for result_token in self._stream_response(on_tool_request):
-                    yield result_token
+                # Only continue if tools were actually executed
+                # (If all were rejected, don't recurse to avoid infinite loop)
+                if any_executed:
+                    # Stream next iteration with tool results
+                    async for result_token in self._stream_response(on_tool_request):
+                        yield result_token
 
     async def _get_trimmed_messages(self) -> list[Any]:
         """Get context-window-aware trimmed messages.
@@ -837,7 +840,7 @@ class ConversationService:
         self,
         tool_calls: list[dict[str, Any]],
         on_tool_request: ToolApprovalCallback | None = None,
-    ) -> list[Any]:
+    ) -> tuple[list[Any], bool]:
         """Execute tool calls with approval workflow.
 
         Handles tool approval, execution in thread pool, and result persistence.
@@ -848,16 +851,18 @@ class ConversationService:
             on_tool_request: Optional callback for tool execution approval
 
         Returns:
-            List of ToolMessage results
+            Tuple of (ToolMessage results, any_executed flag)
+            any_executed is False if all tools were rejected
         """
         from langchain_core.messages import ToolMessage
 
         from consoul.sdk.models import ToolRequest
 
         if not self.tool_registry:
-            return []
+            return [], False
 
         tool_messages = []
+        any_executed = False
 
         for tool_call in tool_calls:
             tool_name = tool_call.get("name", "")
@@ -922,12 +927,13 @@ class ConversationService:
                 tool_messages.append(
                     ToolMessage(content=str(result), tool_call_id=tool_id)
                 )
+                any_executed = True
             except Exception as e:
                 logger.error(f"Tool execution error: {e}", exc_info=True)
                 result = f"Tool execution failed: {e}"
                 tool_messages.append(ToolMessage(content=result, tool_call_id=tool_id))
 
-        return tool_messages
+        return tool_messages, any_executed
 
     def get_stats(self) -> ConversationStats:
         """Get conversation statistics.
