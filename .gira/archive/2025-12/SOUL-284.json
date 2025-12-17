@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-15T22:54:53.063465",
-  "updated_at": "2025-12-15T23:59:23.631016",
+  "updated_at": "2025-12-16T21:38:04.745444Z",
   "id": "SOUL-284",
   "uuid": "fb06be94-e3d5-45f3-8c3c-4fa1fa4c7909",
   "title": "Release Consoul v0.4.0 - SDK Decoupling & Thinking Mode",
@@ -9,6 +9,7 @@
   "type": "task",
   "priority": "high",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-010",
   "blocked_by": [],
@@ -32,5 +33,10 @@
   "attachment_count": 0,
   "comment_count": 1,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-16T21:38:17.264313+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

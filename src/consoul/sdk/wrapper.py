@@ -108,7 +108,7 @@ class Consoul:
     def __init__(
         self,
         model: str | None = None,
-        profile: str = "default",
+        profile: str | None = None,
         tools: bool | str | list[str | BaseTool] | None = True,
         temperature: float | None = None,
         system_prompt: str | None = None,
@@ -116,13 +116,25 @@ class Consoul:
         api_key: str | None = None,
         discover_tools: bool = False,
         approval_provider: ApprovalProvider | None = None,
+        db_path: Path | str | None = None,
+        summarize: bool = False,
+        summarize_threshold: int = 20,
+        keep_recent: int = 10,
+        summary_model: str | None = None,
+        **model_kwargs: Any,
     ):
         """Initialize Consoul SDK.
 
         Args:
             model: Model name (e.g., "gpt-4o", "claude-3-5-sonnet").
-                   Auto-detects provider. Defaults to profile's model.
-            profile: Profile name to use (default: "default")
+                   Auto-detects provider. If not specified, uses profile's model
+                   or falls back to config's current model.
+            profile: Profile name (e.g., "default", "creative", "code-review").
+                    If None (default), SDK operates in profile-free mode with
+                    explicit parameters. Profile-free mode is ideal for
+                    domain-specific applications (legal AI, medical chatbots, etc.)
+                    without TUI/CLI coupling. Use profile="default" for traditional
+                    coding assistant behavior.
             tools: Tool specification. Supports multiple formats:
                    - True: Enable all built-in tools (default)
                    - False/None: Disable all tools (chat-only mode)
@@ -150,15 +162,54 @@ class Consoul:
                               If None, defaults to CliApprovalProvider (terminal prompts).
                               Use this for web backends, WebSocket/SSE, or custom UX.
                               See examples/sdk/web_approval_provider.py for reference.
+            db_path: Path to conversation history database (default: ~/.consoul/history.db).
+                    Only used in profile-free mode.
+            summarize: Enable conversation summarization (default: False).
+                      Only used in profile-free mode.
+            summarize_threshold: Number of messages before summarization (default: 20).
+                               Only used in profile-free mode.
+            keep_recent: Number of recent messages to keep when summarizing (default: 10).
+                        Only used in profile-free mode.
+            summary_model: Model name for summarization (optional, use cheaper model).
+                          Only used in profile-free mode.
+            **model_kwargs: Provider-specific parameters passed to the LLM.
+                           These are validated and passed through to the model.
+
+                           OpenAI-specific:
+                           - service_tier: "auto"|"default"|"flex" (flex ~50% cheaper)
+                           - seed: int (deterministic sampling)
+                           - logit_bias: dict[str, float] (token likelihood)
+                           - response_format: dict (json_object, json_schema)
+                           - frequency_penalty: float (-2.0 to 2.0)
+                           - presence_penalty: float (-2.0 to 2.0)
+                           - top_p: float (0.0-1.0)
+
+                           Anthropic-specific:
+                           - thinking: dict (extended thinking config)
+                           - betas: list[str] (experimental features)
+                           - metadata: dict (run tracing)
+                           - top_p: float (0.0-1.0)
+                           - top_k: int (sampling parameter)
+
+                           Google-specific:
+                           - safety_settings: dict (content filtering)
+                           - generation_config: dict (response modalities)
+                           - candidate_count: int (completions to generate)
+                           - top_p: float (0.0-1.0)
+                           - top_k: int (sampling parameter)
 
         Raises:
             ValueError: If profile not found or invalid parameters
             MissingAPIKeyError: If no API key found for provider
 
         Examples:
-            Basic usage:
-                >>> console = Consoul()  # All tools enabled
-                >>> console = Consoul(model="gpt-4o", temperature=0.7)
+            Basic usage (profile-free):
+                >>> console = Consoul(model="gpt-4o")  # Minimal setup
+                >>> console = Consoul(model="gpt-4o", temperature=0.7, tools=False)
+
+            Using profiles (for coding assistant behavior):
+                >>> console = Consoul(profile="default")  # Coding assistant
+                >>> console = Consoul(profile="code-review", model="claude-sonnet-4")
 
             Tool specification:
                 >>> # Disable tools
@@ -209,6 +260,58 @@ class Consoul:
                 >>> console = Consoul(tools=True, approval_provider=provider)
                 >>> # Tool approvals now go through web API instead of terminal
 
+            Provider-specific parameters:
+                >>> # OpenAI with flex tier (50% cheaper, slower)
+                >>> console = Consoul(model="gpt-4o", service_tier="flex")
+
+                >>> # Anthropic with extended thinking
+                >>> console = Consoul(
+                ...     model="claude-sonnet-4",
+                ...     thinking={"type": "enabled", "budget_tokens": 10000}
+                ... )
+
+                >>> # OpenAI with JSON schema mode
+                >>> schema = {"type": "object", "properties": {"answer": {"type": "string"}}}
+                >>> console = Consoul(
+                ...     model="gpt-4o",
+                ...     response_format={"type": "json_schema", "json_schema": schema}
+                ... )
+
+                >>> # Google with safety settings
+                >>> console = Consoul(
+                ...     model="gemini-pro",
+                ...     safety_settings={"HARM_CATEGORY_HARASSMENT": "BLOCK_NONE"}
+                ... )
+
+            Profile-free SDK usage (domain-specific apps):
+                >>> # Legal AI (Richard project)
+                >>> console = Consoul(
+                ...     model="gpt-4o",
+                ...     temperature=0.7,
+                ...     system_prompt="You are a workers' compensation legal assistant...",
+                ...     persist=True,
+                ...     db_path="~/richard/history.db",
+                ...     tools=False,  # Chat-only mode
+                ...     service_tier="flex"  # Cost optimization
+                ... )
+
+                >>> # Medical chatbot with summarization
+                >>> console = Consoul(
+                ...     model="claude-sonnet-4",
+                ...     system_prompt="You are a medical assistant...",
+                ...     summarize=True,
+                ...     summarize_threshold=15,
+                ...     keep_recent=8,
+                ...     summary_model="gpt-4o-mini"  # Cheaper model for summaries
+                ... )
+
+                >>> # Customer support bot
+                >>> console = Consoul(
+                ...     model="gpt-4o",
+                ...     system_prompt="You are a customer support agent...",
+                ...     tools=["web_search", "read_url"],  # Only specific tools
+                ... )
+
         Available tool categories:
             search, file-edit, web, execute
 
@@ -241,54 +344,76 @@ class Consoul:
         # Load configuration
         self.config: ConsoulConfig = load_config()
 
-        # Get profile
-        if profile not in self.config.profiles:
-            from consoul.config.profiles import get_builtin_profiles
+        # Store conversation settings for profile-free mode
+        self._db_path = Path(db_path) if db_path else None
+        self._summarize = summarize
+        self._summarize_threshold = summarize_threshold
+        self._keep_recent = keep_recent
+        self._summary_model = summary_model
 
-            builtin = get_builtin_profiles()
-            if profile in builtin:
-                # Convert builtin profile dict to ProfileConfig
-                from consoul.config.models import ProfileConfig
+        # Get profile (optional)
+        if profile is not None:
+            # Profile-based mode
+            if profile not in self.config.profiles:
+                from consoul.config.profiles import get_builtin_profiles
 
-                profile_dict = builtin[profile]
-                self.profile = ProfileConfig(**profile_dict)
+                builtin = get_builtin_profiles()
+                if profile in builtin:
+                    # Convert builtin profile dict to ProfileConfig
+                    from consoul.config.models import ProfileConfig
+
+                    profile_dict = builtin[profile]
+                    self.profile = ProfileConfig(**profile_dict)
+                else:
+                    available = list(self.config.profiles.keys()) + list(builtin.keys())
+                    raise ValueError(
+                        f"Profile '{profile}' not found. "
+                        f"Available profiles: {', '.join(available)}"
+                    )
             else:
-                available = list(self.config.profiles.keys()) + list(builtin.keys())
-                raise ValueError(
-                    f"Profile '{profile}' not found. "
-                    f"Available profiles: {', '.join(available)}"
-                )
-        else:
-            self.profile = self.config.profiles[profile]
+                self.profile = self.config.profiles[profile]
 
-        # Override system prompt if specified
-        if system_prompt is not None:
-            self.profile.system_prompt = system_prompt
+            # Override system prompt if specified
+            if system_prompt is not None:
+                self.profile.system_prompt = system_prompt
+        else:
+            # Profile-free mode
+            self.profile = None  # type: ignore[assignment]
+
+        # Store explicit system prompt for profile-free mode
+        self._explicit_system_prompt = system_prompt
 
         # Initialize model
-        # Build kwargs for get_chat_model, including temperature if specified
+        # Build kwargs for get_chat_model, including temperature and provider-specific params
         from pydantic import SecretStr
 
         api_key_secret = SecretStr(api_key) if api_key else None
-        model_kwargs = {}
+        final_model_kwargs = {}
+
+        # Add temperature override if specified
         if temperature is not None:
-            model_kwargs["temperature"] = temperature
+            final_model_kwargs["temperature"] = temperature
+
+        # Merge provider-specific kwargs
+        final_model_kwargs.update(model_kwargs)
 
         if model:
-            # Use specific model
-            self.model = get_chat_model(
-                model, config=self.config, api_key=api_key_secret, **model_kwargs
-            )
+            # Use explicit model parameter
             self.model_name = model
+        elif self.profile is not None and self.profile.model:
+            # Use profile's model if available
+            self.model_name = self.profile.model.model
         else:
-            # Use config's current model
-            self.model = get_chat_model(
-                self.config.current_model,
-                config=self.config,
-                api_key=api_key_secret,
-                **model_kwargs,
-            )
+            # Fallback to config's current model
             self.model_name = self.config.current_model
+
+        # Initialize the model
+        self.model = get_chat_model(
+            self.model_name,
+            config=self.config,
+            api_key=api_key_secret,
+            **final_model_kwargs,
+        )
 
         # Store temperature override
         self.temperature = temperature
@@ -302,7 +427,11 @@ class Consoul:
         )
 
         # Add system prompt
-        if self.profile.system_prompt:
+        if system_prompt is not None:
+            # Explicit system_prompt overrides profile
+            self.history.add_system_message(system_prompt)
+        elif self.profile is not None and self.profile.system_prompt:
+            # Use profile's system prompt if available
             self.history.add_system_message(self.profile.system_prompt)
 
         # Initialize tools if requested
@@ -321,24 +450,40 @@ class Consoul:
         self._last_response: Any | None = None
 
     def _get_conversation_kwargs(self) -> dict[str, Any]:
-        """Get ConversationHistory kwargs from profile.
+        """Get ConversationHistory kwargs from profile or constructor params.
 
         Returns:
             Dictionary of kwargs for ConversationHistory
         """
-        conv = self.profile.conversation
-        kwargs: dict[str, Any] = {
-            "db_path": conv.db_path,
-            "summarize": conv.summarize,
-            "summarize_threshold": conv.summarize_threshold,
-            "keep_recent": conv.keep_recent,
-        }
+        if self.profile is not None:
+            # Profile-based mode: Use profile's conversation settings
+            conv = self.profile.conversation
+            kwargs: dict[str, Any] = {
+                "db_path": conv.db_path,
+                "summarize": conv.summarize,
+                "summarize_threshold": conv.summarize_threshold,
+                "keep_recent": conv.keep_recent,
+            }
 
-        # Handle summary_model
-        if conv.summary_model:
-            kwargs["summary_model"] = get_chat_model(
-                conv.summary_model, config=self.config
-            )
+            # Handle summary_model
+            if conv.summary_model:
+                kwargs["summary_model"] = get_chat_model(
+                    conv.summary_model, config=self.config
+                )
+        else:
+            # Profile-free mode: Use constructor params directly
+            kwargs = {
+                "db_path": self._db_path or (Path.home() / ".consoul" / "history.db"),
+                "summarize": self._summarize,
+                "summarize_threshold": self._summarize_threshold,
+                "keep_recent": self._keep_recent,
+            }
+
+            # Handle summary_model
+            if self._summary_model:
+                kwargs["summary_model"] = get_chat_model(
+                    self._summary_model, config=self.config
+                )
 
         return kwargs
 
@@ -669,8 +814,13 @@ class Consoul:
             >>> console.chat("Remember me?")  # AI doesn't remember
         """
         self.history.clear()
-        if self.profile.system_prompt:
+
+        # Re-add system prompt if it exists (from profile or constructor)
+        if self.profile is not None and self.profile.system_prompt:
             self.history.add_system_message(self.profile.system_prompt)
+        elif hasattr(self, "_explicit_system_prompt") and self._explicit_system_prompt:
+            # Profile-free mode with explicit system prompt
+            self.history.add_system_message(self._explicit_system_prompt)
 
     @property
     def settings(self) -> dict[str, Any]:
@@ -685,14 +835,18 @@ class Consoul:
         """
         return {
             "model": self.model_name,
-            "profile": self.profile.name,
+            "profile": self.profile.name if self.profile is not None else None,
             "tools_enabled": self.tools_enabled,
             "discover_tools": self.discover_tools,
             "persist": self.history.persist
             if hasattr(self.history, "persist")
             else True,
             "temperature": self.temperature,
-            "system_prompt": self.profile.system_prompt,
+            "system_prompt": (
+                self.profile.system_prompt
+                if self.profile is not None
+                else self._explicit_system_prompt
+            ),
             "conversation_length": len(self.history),
             "total_tokens": self.history.count_tokens(),
         }

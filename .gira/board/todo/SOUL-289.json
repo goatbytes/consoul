@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-16T13:55:02.197940",
+  "updated_at": "2025-12-16T21:56:41.072512Z",
+  "id": "SOUL-289",
+  "uuid": "f9707be5-7cea-4eb9-ae88-dd5437c312b2",
+  "title": "Decouple ProfileConfig from SDK core layer",
+  "description": "**As a** Consoul architect\n**I want** profiles to be a TUI/CLI convenience feature, not a core SDK requirement\n**So that** Consoul can serve as a general-purpose LLM SDK for any domain\n\n**Context:**\nProfileConfig (src/consoul/config/models.py:1379-1427) is currently embedded in the SDK core:\n- ConsoulConfig.profiles: dict[str, ProfileConfig] (line 1445)\n- ConsoulConfig.active_profile: str (line 1448)\n- SDK wrapper defaults to profile=\"default\" (src/consoul/sdk/wrapper.py:111)\n- ChatSession builds system prompt from profile (src/consoul/cli/chat_session.py:100-111)\n\nThis couples SDK to TUI/CLI workflow concepts. Profiles bundle:\n1. System prompt templates (workflow identity)\n2. Model configuration (which AI to use)\n3. Conversation settings (persistence, summarization)\n4. Context settings (env/git injection)\n\nIssues:\n- SDK users must understand profiles even for simple use cases\n- Profiles assume coding assistant domain\n- Breaks separation between SDK (library) and TUI (application)\n- Prevents Consoul from being a general-purpose LLM integration library\n\n**Desired State:**\n- SDK core: No profile dependency, explicit configuration\n- TUI/CLI layer: Optional profile system for workflow convenience\n- Config files: Profiles remain for user convenience\n- Backward compat: Existing profile-based usage still works\n\n**Technical Notes:**\n- src/consoul/config/models.py:1379-1427 - ProfileConfig definition\n- src/consoul/config/models.py:1445-1450 - Profile fields in ConsoulConfig\n- src/consoul/sdk/wrapper.py:111, 244-262 - Profile usage in SDK\n- src/consoul/cli/chat_session.py:100-111 - Profile usage in ChatSession\n- src/consoul/config/profiles.py:16-156 - Built-in coding profiles\n\n**Acceptance Criteria:**\n\n**Given** I am using Consoul SDK for a non-TUI application\n**When** I import and use Consoul\n**Then** I do not need to understand or configure profiles\n\n**Given** I am using Consoul TUI/CLI\n**When** I use profiles for workflow management\n**Then** Profile system continues to work as convenience layer\n\n**Given** existing code uses profiles\n**When** I upgrade to new version\n**Then** Backward compatibility is maintained (deprecation warnings OK)\n\n**Given** I am building a domain-specific agent\n**When** I configure Consoul\n**Then** I set model, system_prompt, and settings directly without profile abstraction\n\n**Testing Considerations:**\n- Test SDK usage without profiles (headless mode)\n- Test TUI/CLI with profiles (backward compat)\n- Test profile migration/deprecation path\n- Document migration guide for profile-dependent code\n- Validate all examples work without profiles\n\n**Implementation Hints:**\nWARNING: This is a breaking change requiring careful migration\n\nPhase 1 (Deprecation):\n- Make ProfileConfig optional in SDK\n- Add deprecation warnings for profile-dependent SDK usage\n- Update docs to show profile-free SDK examples\n- Keep TUI/CLI profile support unchanged\n\nPhase 2 (Extraction):\n- Move ProfileConfig to consoul.tui.config or consoul.cli.config\n- Create ProfileManager service for TUI/CLI only\n- Update ConsoulConfig to be profile-agnostic\n- SDK uses explicit model/config, TUI wraps with profiles\n\nPhase 3 (Cleanup):\n- Remove profile fields from core ConsoulConfig (major version bump)\n- Profiles become pure TUI/CLI feature\n- Document \"profiles as workflow templates\" pattern\n\nConsider: Should this wait for SOUL-285 (profile-optional constructor)?\nConsider: Epic for breaking refactor with migration guide?\n\n**Dependencies:**\n- Blocked by: SOUL-285 (profile-optional constructor) must ship first\n- Related: SOUL-287 (flexible prompt builder) for profile-free context\n- Breaking change: Requires major version bump (v1.0.0 or v2.0.0)",
+  "status": "todo",
+  "type": "task",
+  "priority": "low",
+  "labels": [
+    "refactor",
+    "sdk",
+    "config",
+    "breaking-change"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-015",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 13,
+  "order": 40,
+  "custom_fields": {}
+}

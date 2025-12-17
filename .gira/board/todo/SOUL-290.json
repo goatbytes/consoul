@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-16T13:55:46.299566",
+  "updated_at": "2025-12-16T21:56:41.072786Z",
+  "id": "SOUL-290",
+  "uuid": "868ca259-5faf-4769-a49c-35c712daebaf",
+  "title": "Design extensible context injection system for domain-specific agents",
+  "description": "**As a** developer building domain-specific AI agents (legal, medical, customer support)\n**I want** an extensible system for injecting custom context beyond files\n**So that** I can build agents with specialized domain knowledge\n\n**Context:**\nCurrent context system (src/consoul/config/models.py:453-508, ContextConfig) supports:\n- Boolean toggles: include_system_info, include_git_info, include_tools\n- File-based: custom_context_files (list of Path objects)\n\nLimitations for domain-specific agents:\n- File-based context is static (must write to disk first)\n- Boolean toggles are too coarse (all-or-nothing)\n- No support for dynamic context (database queries, APIs, runtime data)\n- No protocol for structured domain knowledge injection\n\n**Use Cases:**\n\nLegal AI (Richard project):\n- Inject relevant case law from database\n- Include client matter context\n- Add jurisdiction-specific rules\n- Runtime context based on query\n\nMedical Chatbot:\n- Patient history summary\n- Current medications and allergies\n- Relevant medical guidelines\n- HIPAA-compliant data injection\n\nCustomer Support:\n- Customer profile and history\n- Current ticket context\n- Product knowledge base\n- Company policies\n\n**Technical Notes:**\n- src/consoul/config/models.py:453-508 - ContextConfig\n- src/consoul/ai/environment.py - get_environment_context() for static env\n- src/consoul/ai/prompt_builder.py:92-168 - build_enhanced_system_prompt()\n- custom_context_files: list[Path] - Only file-based, no dynamic data\n\n**Acceptance Criteria:**\n\n**Given** I am building a legal AI agent\n**When** I define a custom context provider that queries case law\n**Then** Relevant cases are injected into the system prompt at runtime\n\n**Given** I am building a medical chatbot\n**When** I provide patient context via a callback or protocol\n**Then** Patient data is securely injected without file intermediaries\n\n**Given** I am using Consoul for customer support\n**When** I integrate with my CRM system\n**Then** Customer history flows into the AI context dynamically\n\n**Given** I am using standard Consoul CLI/TUI\n**When** I use default configuration\n**Then** Current file-based and environment context still works (backward compat)\n\n**Testing Considerations:**\n- Test custom context provider protocol/interface\n- Test dynamic context injection at runtime\n- Test backward compatibility with custom_context_files\n- Test security/sandboxing for user-provided context builders\n- Document context provider pattern with examples\n- Provide example implementations for common domains\n\n**Implementation Hints:**\nDesign Options:\n\nOption A: Callback-based\n```python\ndef legal_context_provider(query: str) -> str:\n    cases = search_case_law(query)\n    return format_cases_for_prompt(cases)\n\nsdk = Consoul(\n    model=\"gpt-4\",\n    context_provider=legal_context_provider\n)\n```\n\nOption B: Protocol-based (structural subtyping)\n```python\nfrom typing import Protocol\n\nclass ContextProvider(Protocol):\n    def get_context(self, query: str | None) -> str:\n        ...\n\nclass LegalContextProvider:\n    def get_context(self, query: str | None) -> str:\n        # Fetch relevant case law\n        return context_string\n\nsdk = Consoul(model=\"gpt-4\", context_provider=LegalContextProvider())\n```\n\nOption C: Plugin architecture\n```python\nfrom consoul.sdk.context import ContextPlugin\n\nclass LegalContextPlugin(ContextPlugin):\n    def build_context(self, conversation_state: ConversationState) -> dict[str, str]:\n        return {\n            \"case_law\": self.fetch_relevant_cases(),\n            \"jurisdiction\": self.get_jurisdiction_rules(),\n            \"client_context\": self.get_client_info()\n        }\n\nsdk = Consoul(model=\"gpt-4\", context_plugins=[LegalContextPlugin()])\n```\n\nRecommended: Option B (Protocol-based)\n- Pythonic (structural typing, no inheritance required)\n- Flexible (any class with get_context method works)\n- Type-safe (mypy validation)\n- Composable (multiple providers via list)\n\n**Implementation Plan:**\n1. Define ContextProvider protocol in consoul.sdk.protocols\n2. Update build_enhanced_system_prompt() to accept Optional[list[ContextProvider]]\n3. Call each provider.get_context() and inject results\n4. Maintain backward compat with custom_context_files\n5. Document pattern with examples/ directory:\n   - examples/domain/legal_ai_context.py\n   - examples/domain/medical_context.py\n   - examples/domain/crm_integration.py\n\n**Dependencies:**\n- Related to SOUL-285 (profile-optional constructor)\n- Related to SOUL-287 (flexible prompt builder)\n- Enables Richard legal AI project and other domain-specific agents",
+  "status": "todo",
+  "type": "feature",
+  "priority": "low",
+  "labels": [
+    "sdk",
+    "ai",
+    "architecture"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-015",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 50,
+  "custom_fields": {}
+}
