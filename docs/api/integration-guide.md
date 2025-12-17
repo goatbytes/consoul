@@ -214,6 +214,232 @@ researcher.chat("What are best practices for FastAPI?")
 writer.chat("Create a FastAPI endpoint for user auth")
 ```
 
+## Domain-Specific Context Customization
+
+### Overview
+
+Consoul's prompt builder supports fine-grained control over system context injection, enabling domain-specific applications beyond coding assistants. Perfect for legal AI, medical chatbots, customer support, and other specialized use cases.
+
+**Key Features:**
+- **Granular Environment Context**: Select specific environment info (OS, shell, directory, datetime, git)
+- **Custom Context Sections**: Inject domain-specific data (case law, patient records, product info)
+- **Profile-Free SDK Mode**: Clean prompts by default with opt-in context
+
+### Granular Environment Context
+
+Control exactly which environment information appears in system prompts:
+
+```python
+from consoul.ai.prompt_builder import build_enhanced_system_prompt
+
+# Minimal context - just timestamp (e.g., medical records)
+prompt = build_enhanced_system_prompt(
+    "You are a medical assistant.",
+    include_datetime_info=True,  # Only include timestamp
+    include_os_info=False,       # No OS details
+    include_git_info=False,      # No git context
+    auto_append_tools=False,     # Chat-only mode
+)
+```
+
+**Available Granular Flags:**
+- `include_os_info`: OS/platform information
+- `include_shell_info`: Shell type (zsh, bash, etc.)
+- `include_directory_info`: Current working directory
+- `include_datetime_info`: Current date/time with timezone
+- `include_git_info`: Git repository details
+
+**Default Behavior:** All flags default to `False` for clean, profile-free SDK usage.
+
+### Custom Context Sections
+
+Inject domain-specific context as structured sections:
+
+```python
+from consoul.ai.prompt_builder import build_enhanced_system_prompt
+
+# Legal AI with case law context
+prompt = build_enhanced_system_prompt(
+    "You are a workers' compensation legal assistant for California.",
+    context_sections={
+        "jurisdiction": "California workers' compensation law",
+        "case_law": "Recent precedents from 2024: Case A vs Company B...",
+        "client_background": "Construction industry, injured worker claims",
+    },
+    include_os_info=False,  # No environment noise
+    auto_append_tools=False,  # Chat-only mode
+)
+
+# Medical chatbot with patient context
+prompt = build_enhanced_system_prompt(
+    "You are a medical assistant providing patient care guidance.",
+    context_sections={
+        "patient_demographics": "Age: 45, Gender: M, Weight: 180lbs",
+        "medical_history": "Hypertension (2020), Type 2 Diabetes (2022)",
+        "current_medications": "Metformin 500mg BID, Lisinopril 10mg QD",
+    },
+    include_datetime_info=True,  # Timestamp for medical records
+    auto_append_tools=False,
+)
+
+# Customer support with product context
+prompt = build_enhanced_system_prompt(
+    "You are a customer support agent for TechCorp.",
+    context_sections={
+        "customer_tier": "Premium",
+        "product_line": "Enterprise Software Suite",
+        "common_issues": "License activation, SSO integration, API rate limits",
+    },
+    auto_append_tools=False,
+)
+```
+
+**Section Formatting:**
+- Dict keys become section headers (e.g., `patient_demographics` → `# Patient Demographics`)
+- Underscores are replaced with spaces and title-cased
+- Sections maintain insertion order (Python 3.7+)
+- Context ordering: Environment → Custom Sections → Base Prompt
+
+### Using with Consoul SDK
+
+Integrate custom prompts with the Consoul SDK:
+
+```python
+from consoul import Consoul
+from consoul.ai.prompt_builder import build_enhanced_system_prompt
+
+# Legal AI application
+legal_prompt = build_enhanced_system_prompt(
+    "You are a workers' compensation legal assistant.",
+    context_sections={
+        "jurisdiction": "California law",
+        "case_law_database": load_case_law(),  # Your data
+    },
+    auto_append_tools=False,
+)
+
+console = Consoul(
+    model="gpt-4o",
+    system_prompt=legal_prompt,
+    persist=True,
+    db_path="~/legal-ai/history.db",
+    tools=False,  # Chat-only mode
+)
+
+response = console.chat("Analyze this injury claim...")
+```
+
+### Backward Compatibility
+
+Legacy parameters are still supported for CLI/TUI usage:
+
+```python
+# Legacy: enables ALL system info (OS, shell, directory, datetime)
+prompt = build_enhanced_system_prompt(
+    "You are a coding assistant.",
+    include_env_context=True,  # All system context
+    include_git_context=True,  # Git repository info
+)
+
+# New approach: granular control
+prompt = build_enhanced_system_prompt(
+    "You are a coding assistant.",
+    include_os_info=True,
+    include_directory_info=True,
+    include_git_info=True,
+)
+```
+
+**Migration Guide:**
+- `include_env_context=True` → Use granular flags (`include_os_info`, `include_shell_info`, etc.)
+- `include_git_context=True` → Use `include_git_info=True`
+- Legacy parameters take precedence if provided
+
+### Real-World Use Cases
+
+#### Legal AI System
+
+```python
+from consoul import Consoul
+from consoul.ai.prompt_builder import build_enhanced_system_prompt
+
+def create_legal_assistant(jurisdiction: str, case_data: dict):
+    prompt = build_enhanced_system_prompt(
+        f"You are a legal assistant specializing in {jurisdiction} law.",
+        context_sections={
+            "jurisdiction": jurisdiction,
+            "case_law": case_data["precedents"],
+            "client_background": case_data["client_info"],
+            "relevant_statutes": case_data["statutes"],
+        },
+        include_datetime_info=True,  # Legal timestamp
+        auto_append_tools=False,
+    )
+
+    return Consoul(
+        model="gpt-4o",
+        system_prompt=prompt,
+        temperature=0.3,  # Precise legal analysis
+        persist=True,
+    )
+```
+
+#### Medical Chatbot
+
+```python
+def create_medical_assistant(patient_record: dict):
+    prompt = build_enhanced_system_prompt(
+        "You are a medical assistant providing care guidance.",
+        context_sections={
+            "patient_demographics": format_demographics(patient_record),
+            "medical_history": format_history(patient_record),
+            "current_medications": format_medications(patient_record),
+            "allergies": patient_record.get("allergies", "None"),
+        },
+        include_datetime_info=True,  # Critical for medical records
+        auto_append_tools=False,
+    )
+
+    return Consoul(
+        model="claude-3-5-sonnet-20241022",
+        system_prompt=prompt,
+        temperature=0.2,  # Careful medical responses
+        persist=True,
+    )
+```
+
+#### Customer Support Bot
+
+```python
+def create_support_agent(customer: dict, product: str):
+    prompt = build_enhanced_system_prompt(
+        f"You are a customer support agent for {product}.",
+        context_sections={
+            "customer_tier": customer["tier"],
+            "account_status": customer["status"],
+            "product_version": customer["product_version"],
+            "common_issues": load_known_issues(product),
+            "support_history": customer["recent_tickets"],
+        },
+        auto_append_tools=False,
+    )
+
+    return Consoul(
+        model="gpt-4o-mini",
+        system_prompt=prompt,
+        temperature=0.7,  # Friendly responses
+        persist=True,
+    )
+```
+
+### Best Practices
+
+1. **Minimize Context**: Only include relevant information to reduce token usage
+2. **Structure Data**: Use clear, consistent formatting in custom sections
+3. **Update Context**: Rebuild prompts when domain data changes
+4. **Test Thoroughly**: Verify context appears correctly in system prompts
+5. **Monitor Tokens**: Track token usage with custom context sections
+
 ## Configuration Management
 
 ### Environment Variables

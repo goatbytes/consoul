@@ -92,66 +92,100 @@ def build_system_prompt(
 def build_enhanced_system_prompt(
     base_prompt: str | None,
     tool_registry: ToolRegistry | None = None,
-    include_env_context: bool = True,
-    include_git_context: bool = True,
+    # Granular environment context controls
+    include_os_info: bool = False,
+    include_shell_info: bool = False,
+    include_directory_info: bool = False,
+    include_datetime_info: bool = False,
+    include_git_info: bool = False,
+    # Custom context sections
+    context_sections: dict[str, str] | None = None,
+    # Tool documentation control
     auto_append_tools: bool = True,
+    # DEPRECATED: Legacy parameters for backward compatibility
+    include_env_context: bool | None = None,
+    include_git_context: bool | None = None,
 ) -> str | None:
     """Build system prompt with full control over all injections.
 
-    One-stop function for comprehensive prompt building with control over
-    environment context, git info, and tool documentation. Perfect for SDK
-    users who want fine-grained control.
+    One-stop function for comprehensive prompt building with granular control over
+    environment context, git info, custom domain context, and tool documentation.
+    Perfect for SDK users building domain-specific applications.
 
     Args:
         base_prompt: Base system prompt template (may contain {AVAILABLE_TOOLS})
         tool_registry: Optional tool registry for tool documentation
-        include_env_context: Include OS/shell/working directory info (default: True)
-        include_git_context: Include git repository info (default: True)
+        include_os_info: Include OS/platform info (default: False)
+        include_shell_info: Include shell type (default: False)
+        include_directory_info: Include working directory (default: False)
+        include_datetime_info: Include current date/time (default: False)
+        include_git_info: Include git repository info (default: False)
+        context_sections: Custom domain-specific context sections as {key: content} dict
         auto_append_tools: Auto-append tool docs if no marker present (default: True)
+        include_env_context: DEPRECATED - Use granular flags instead.
+                            If True, enables all system info flags.
+                            If False, disables all system info flags.
+        include_git_context: DEPRECATED - Use include_git_info instead.
 
     Returns:
         Complete system prompt with requested injections, or None if no base prompt
 
-    Example - SDK user with full control:
-        >>> # Tools enabled but no docs, no env context
+    Example - Profile-free SDK with minimal context:
         >>> prompt = build_enhanced_system_prompt(
         ...     "You are an AI assistant.",
         ...     tool_registry=my_registry,
-        ...     include_env_context=False,
-        ...     include_git_context=False,
-        ...     auto_append_tools=False,
+        ...     auto_append_tools=False,  # No tool docs
         ... )
         >>> prompt == "You are an AI assistant."
         True
 
-    Example - CLI/TUI default behavior:
-        >>> # Everything enabled (current behavior)
+    Example - Legal AI with custom context:
         >>> prompt = build_enhanced_system_prompt(
-        ...     "You are an AI assistant.",
+        ...     "You are a legal assistant.",
+        ...     context_sections={
+        ...         "jurisdiction": "California workers' compensation law",
+        ...         "case_law": "Recent precedents from 2024..."
+        ...     },
+        ...     include_os_info=True,  # Just OS, no directory/git noise
+        ... )
+        >>> "jurisdiction" in prompt.lower()
+        True
+        >>> "Working Directory:" not in prompt
+        True
+
+    Example - CLI/TUI coding assistant (backward compatible):
+        >>> prompt = build_enhanced_system_prompt(
+        ...     "You are a coding assistant.",
         ...     tool_registry=my_registry,
+        ...     include_env_context=True,  # Legacy: enables all env flags
+        ...     include_git_context=True,  # Legacy: enables git
         ... )
         >>> "Working Directory:" in prompt
         True
         >>> "# Available Tools" in prompt
         True
 
-    Example - Custom tool doc placement:
-        >>> # Use marker for control
+    Example - Medical chatbot with patient context:
         >>> prompt = build_enhanced_system_prompt(
-        ...     "Assistant\\n\\n{AVAILABLE_TOOLS}\\n\\nContext:",
-        ...     tool_registry=my_registry,
-        ...     include_env_context=False,
+        ...     "You are a medical assistant.",
+        ...     context_sections={
+        ...         "patient_demographics": "Age: 45, Gender: M",
+        ...         "medical_history": "Hypertension, Type 2 Diabetes"
+        ...     },
+        ...     include_datetime_info=True,  # Include timestamp for medical records
         ... )
-        >>> "# Available Tools" in prompt
-        True
-        >>> "{AVAILABLE_TOOLS}" not in prompt
+        >>> "patient_demographics" in prompt.lower()
         True
     """
     if not base_prompt:
         return None
 
-    # Inject environment context if requested
-    if include_env_context or include_git_context:
+    # Collect all context sections in proper order
+    context_parts = []
+
+    # 1. Environment context (first)
+    if include_env_context is not None or include_git_context is not None:
+        # Legacy parameters for backward compatibility
         from consoul.ai.environment import get_environment_context
 
         env_context = get_environment_context(
@@ -159,8 +193,42 @@ def build_enhanced_system_prompt(
             include_git_info=include_git_context,
         )
         if env_context:
-            # Prepend environment context to system prompt
-            base_prompt = f"{env_context}\n\n{base_prompt}"
+            context_parts.append(env_context)
+    else:
+        # Use granular parameters (new approach)
+        if any(
+            [
+                include_os_info,
+                include_shell_info,
+                include_directory_info,
+                include_datetime_info,
+                include_git_info,
+            ]
+        ):
+            from consoul.ai.environment import get_environment_context
+
+            env_context = get_environment_context(
+                include_os=include_os_info,
+                include_shell=include_shell_info,
+                include_directory=include_directory_info,
+                include_datetime=include_datetime_info,
+                include_git=include_git_info,
+            )
+            if env_context:
+                context_parts.append(env_context)
+
+    # 2. Custom context sections (after environment)
+    if context_sections:
+        sections_text = "\n\n".join(
+            f"# {key.replace('_', ' ').title()}\n{value}"
+            for key, value in context_sections.items()
+        )
+        if sections_text:
+            context_parts.append(sections_text)
+
+    # 3. Prepend all context to base prompt
+    if context_parts:
+        base_prompt = "\n\n".join(context_parts) + f"\n\n{base_prompt}"
 
     # Build final prompt with tool documentation
     return build_system_prompt(
