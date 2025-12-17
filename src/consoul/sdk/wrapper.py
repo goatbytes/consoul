@@ -284,7 +284,7 @@ class Consoul:
                 ... )
 
             Profile-free SDK usage (domain-specific apps):
-                >>> # Legal AI (Richard project)
+                >>> # Legal AI (Richard project) - Clean prompt, no env noise
                 >>> console = Consoul(
                 ...     model="gpt-4o",
                 ...     temperature=0.7,
@@ -294,6 +294,8 @@ class Consoul:
                 ...     tools=False,  # Chat-only mode
                 ...     service_tier="flex"  # Cost optimization
                 ... )
+                >>> # Note: Profile-free mode has NO environment/git injection by default
+                >>> # For granular context control, use build_enhanced_system_prompt() directly
 
                 >>> # Medical chatbot with summarization
                 >>> console = Consoul(
