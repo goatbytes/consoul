@@ -93,7 +93,7 @@ def __getattr__(name: str) -> Any:
     Raises:
         AttributeError: If the attribute doesn't exist
     """
-    # Profile-related lazy imports (deprecated)
+    # Profile-related lazy imports (deprecated, moved to consoul.tui.profiles)
     if name == "ProfileConfig":
         from consoul.config.models import ProfileConfig as _ProfileConfig
 
@@ -103,7 +103,8 @@ def __getattr__(name: str) -> Any:
         "get_profile_description",
         "list_available_profiles",
     ):
-        from consoul.config import profiles as _profiles_module
+        # Import from new location (consoul.tui.profiles, not consoul.config.profiles)
+        from consoul.tui import profiles as _profiles_module
 
         return getattr(_profiles_module, name)
 
