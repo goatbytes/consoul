@@ -367,24 +367,38 @@ class Consoul:
                 stacklevel=2,
             )
 
-            if profile not in self.config.profiles:
-                from consoul.config.profiles import get_builtin_profiles
+            # Load TUI config to access profiles (lazy import to avoid circular dependency)
+            from consoul.config.loader import load_tui_config
+
+            tui_config = load_tui_config()
+
+            # Check if profile exists in TUI config or built-ins
+            if profile not in tui_config.profiles:
+                from consoul.tui.profiles import get_builtin_profiles
 
                 builtin = get_builtin_profiles()
                 if profile in builtin:
                     # Convert builtin profile dict to ProfileConfig
-                    from consoul.config.models import ProfileConfig
+                    from consoul.tui.profiles import ProfileConfig
 
                     profile_dict = builtin[profile]
                     self.profile = ProfileConfig(**profile_dict)
                 else:
-                    available = list(self.config.profiles.keys()) + list(builtin.keys())
+                    available = list(tui_config.profiles.keys()) + list(builtin.keys())
                     raise ValueError(
                         f"Profile '{profile}' not found. "
                         f"Available profiles: {', '.join(available)}"
                     )
             else:
-                self.profile = self.config.profiles[profile]
+                # Get profile from TUI config
+                profile_data = tui_config.profiles[profile]
+                # Convert dict to ProfileConfig if needed
+                if isinstance(profile_data, dict):
+                    from consoul.tui.profiles import ProfileConfig
+
+                    self.profile = ProfileConfig(**profile_data)
+                else:
+                    self.profile = profile_data
 
             # Override system prompt if specified
             if system_prompt is not None:
