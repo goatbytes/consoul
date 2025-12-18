@@ -178,9 +178,7 @@ class TestProfileOptional:
 
     @patch("consoul.sdk.wrapper.get_chat_model")
     @patch("consoul.sdk.wrapper.load_config")
-    def test_profile_free_default_db_path(
-        self, mock_load_config, mock_get_chat_model
-    ):
+    def test_profile_free_default_db_path(self, mock_load_config, mock_get_chat_model):
         """Test profile-free mode uses default db_path when not specified."""
         # Setup mocks
         mock_config = Mock()
@@ -267,7 +265,7 @@ class TestProfileOptional:
         mock_get_chat_model.return_value = mock_model
 
         # Test: Profile-free with provider kwargs
-        console = Consoul(
+        _console = Consoul(
             profile=None,
             model="gpt-4o",
             service_tier="flex",
@@ -280,6 +278,7 @@ class TestProfileOptional:
         call_kwargs = mock_get_chat_model.call_args_list[0].kwargs
         assert call_kwargs["service_tier"] == "flex"
         assert call_kwargs["temperature"] == 0.7
+        assert _console is not None  # Verify instantiation succeeded
 
     @patch("consoul.sdk.wrapper.get_chat_model")
     @patch("consoul.sdk.wrapper.load_config")
@@ -409,3 +408,135 @@ class TestProfileOptional:
             # Success - backward compatibility maintained
         except AttributeError as e:
             pytest.fail(f"clear() raised AttributeError with profile: {e}")
+
+
+class TestProfileDeprecation:
+    """Test deprecation warnings for profile parameter (SOUL-289)."""
+
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.load_config")
+    def test_profile_parameter_raises_deprecation_warning(
+        self, mock_load_config, mock_get_chat_model
+    ):
+        """Test that using profile parameter raises DeprecationWarning."""
+        # Setup mocks
+        mock_config = Mock()
+        mock_config.profiles = {
+            "default": Mock(
+                model=Mock(model="gpt-4o", temperature=0.7),
+                system_prompt="Test prompt",
+            )
+        }
+        mock_config.current_model = "gpt-4o"
+        mock_load_config.return_value = mock_config
+
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+
+        # Test: Using profile parameter should raise DeprecationWarning
+        with pytest.warns(DeprecationWarning, match="profile.*deprecated"):
+            Consoul(
+                profile="default",
+                tools=False,
+                persist=False,
+            )
+
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.load_config")
+    def test_deprecation_warning_message_content(
+        self, mock_load_config, mock_get_chat_model
+    ):
+        """Test that deprecation warning contains helpful migration info."""
+        # Setup mocks
+        mock_config = Mock()
+        mock_config.profiles = {
+            "default": Mock(
+                model=Mock(model="gpt-4o", temperature=0.7),
+                system_prompt="Test prompt",
+            )
+        }
+        mock_config.current_model = "gpt-4o"
+        mock_load_config.return_value = mock_config
+
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+
+        # Test: Warning should mention v1.0.0 removal and migration guide
+        with pytest.warns(DeprecationWarning) as warning_list:
+            Consoul(
+                profile="default",
+                tools=False,
+                persist=False,
+            )
+
+        # Verify warning content
+        warning_message = str(warning_list[0].message)
+        assert "v1.0.0" in warning_message
+        assert "TUI/CLI" in warning_message or "explicit parameters" in warning_message
+        assert (
+            "migration" in warning_message.lower()
+            or "deprecated" in warning_message.lower()
+        )
+
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.load_config")
+    def test_profile_free_mode_no_deprecation_warning(
+        self, mock_load_config, mock_get_chat_model
+    ):
+        """Test that profile-free mode does not raise deprecation warning."""
+        # Setup mocks
+        mock_config = Mock()
+        mock_config.current_model = "gpt-4o"
+        mock_load_config.return_value = mock_config
+
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+
+        # Test: Profile-free mode should NOT raise DeprecationWarning
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            try:
+                Consoul(
+                    model="gpt-4o",
+                    system_prompt="You are a helpful assistant",
+                    tools=False,
+                    persist=False,
+                )
+                # Success - no deprecation warning
+            except DeprecationWarning:
+                pytest.fail("Profile-free mode raised DeprecationWarning unexpectedly")
+
+    @patch("consoul.config.profiles.get_builtin_profiles")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.load_config")
+    def test_builtin_profile_also_raises_deprecation(
+        self, mock_load_config, mock_get_chat_model, mock_builtin_profiles
+    ):
+        """Test that builtin profiles also raise deprecation warnings."""
+        # Setup mocks
+        mock_config = Mock()
+        mock_config.profiles = {}  # No user profiles
+        mock_config.current_model = "gpt-4o"
+        mock_load_config.return_value = mock_config
+
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+
+        # Mock builtin profiles
+        mock_builtin_profiles.return_value = {
+            "default": {
+                "name": "default",
+                "description": "Default profile",
+                "system_prompt": "Test",
+            }
+        }
+
+        # Test: Even builtin profiles should raise deprecation
+        with pytest.warns(DeprecationWarning, match="profile.*deprecated"):
+            Consoul(
+                profile="default",
+                tools=False,
+                persist=False,
+            )

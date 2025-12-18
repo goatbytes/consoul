@@ -355,7 +355,18 @@ class Consoul:
 
         # Get profile (optional)
         if profile is not None:
-            # Profile-based mode
+            # Profile-based mode (DEPRECATED)
+            import warnings
+
+            warnings.warn(
+                "The 'profile' parameter in Consoul SDK is deprecated and will be removed in v1.0.0. "
+                "Profiles are a TUI/CLI convenience feature and should not be used in SDK/library code. "
+                "For domain-specific applications, use explicit parameters (model, system_prompt, temperature, etc.) "
+                "instead of profiles. See migration guide: https://docs.consoul.ai/migration/profiles",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
             if profile not in self.config.profiles:
                 from consoul.config.profiles import get_builtin_profiles
 
