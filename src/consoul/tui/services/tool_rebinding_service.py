@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from consoul.ai import ConversationHistory
     from consoul.ai.tools import ToolRegistry
     from consoul.config import ConsoulConfig
-    from consoul.config.models import ProfileConfig
+    from consoul.tui.profiles import ProfileConfig
 
 import logging
 

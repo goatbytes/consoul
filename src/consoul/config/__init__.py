@@ -34,14 +34,12 @@ from consoul.config.models import (
     ModelConfig,
     OllamaModelConfig,
     OpenAIModelConfig,
-    ProfileConfig,
     Provider,
 )
-from consoul.config.profiles import (
-    get_builtin_profiles,
-    get_profile_description,
-    list_available_profiles,
-)
+
+# Lazy imports for deprecated profile-related items to avoid triggering warnings on module import
+# ProfileConfig, get_builtin_profiles, get_profile_description, list_available_profiles
+# are available via __getattr__ below
 
 __all__ = [
     "AnthropicModelConfig",
@@ -55,17 +53,17 @@ __all__ = [
     "ModelConfig",
     "OllamaModelConfig",
     "OpenAIModelConfig",
-    "ProfileConfig",
+    "ProfileConfig",  # Deprecated, lazy-loaded via __getattr__
     "Provider",
     "create_default_config",
     "deep_merge",
     "find_config_files",
     "find_project_config",
     "get_api_key",
-    "get_builtin_profiles",
+    "get_builtin_profiles",  # Deprecated, lazy-loaded via __getattr__
     "get_ollama_api_base",
-    "get_profile_description",
-    "list_available_profiles",
+    "get_profile_description",  # Deprecated, lazy-loaded via __getattr__
+    "list_available_profiles",  # Deprecated, lazy-loaded via __getattr__
     "load_config",
     "load_env_config",
     "load_env_settings",
@@ -76,3 +74,29 @@ __all__ = [
     "save_config",
     "validate_api_key",
 ]
+
+
+def __getattr__(name: str):
+    """Provide lazy imports for deprecated profile-related items.
+
+    This allows the deprecation warnings to only be shown when these items
+    are actually used, not when the config module is imported.
+
+    Args:
+        name: Attribute name being accessed
+
+    Returns:
+        The requested attribute from the appropriate module
+
+    Raises:
+        AttributeError: If the attribute doesn't exist
+    """
+    # Profile-related lazy imports (deprecated)
+    if name == "ProfileConfig":
+        from consoul.config.models import ProfileConfig as _ProfileConfig
+        return _ProfileConfig
+    elif name in ("get_builtin_profiles", "get_profile_description", "list_available_profiles"):
+        from consoul.config import profiles as _profiles_module
+        return getattr(_profiles_module, name)
+
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

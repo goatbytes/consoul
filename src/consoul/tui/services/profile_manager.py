@@ -70,7 +70,7 @@ class ProfileManager:
         Returns:
             True if profile is built-in
         """
-        from consoul.config.profiles import get_builtin_profiles
+        from consoul.tui.profiles import get_builtin_profiles
 
         return profile_name in get_builtin_profiles()
 
