@@ -187,17 +187,15 @@ class Consoul:
                            - top_k: int (sampling parameter)
 
         Raises:
-            ValueError: If profile not found or invalid parameters
+            ValueError: If invalid parameters provided
             MissingAPIKeyError: If no API key found for provider
+            TypeError: If profile parameter is used (removed in v0.5.0)
 
         Examples:
-            Basic usage (profile-free):
+            Basic usage:
                 >>> console = Consoul(model="gpt-4o")  # Minimal setup
                 >>> console = Consoul(model="gpt-4o", temperature=0.7, tools=False)
-
-            Using profiles (for coding assistant behavior):
-                >>> console = Consoul(profile="default")  # Coding assistant
-                >>> console = Consoul(profile="code-review", model="claude-sonnet-4")
+                >>> console = Consoul()  # Uses config defaults
 
             Tool specification:
                 >>> # Disable tools

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-16T13:55:02.197940",
-  "updated_at": "2025-12-18T03:52:45.624848Z",
+  "updated_at": "2025-12-17T20:43:34.638418",
   "id": "SOUL-289",
   "uuid": "f9707be5-7cea-4eb9-ae88-dd5437c312b2",
   "title": "Decouple ProfileConfig from SDK core layer",
@@ -83,11 +83,37 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-17T20:11:03.566305",
+      "updated_at": "2025-12-17T20:11:03.566306",
+      "id": "20251217201103-bf09d45c",
+      "ticket_id": "SOUL-289",
+      "author": "jared@goatbytes.io",
+      "content": "🔧 Regression Fix: P0 CLI Crash + P2 ENV Overrides\n\n**Critical Issues Found During Review:**\n\nP0 (Blocker): CLI crashed before use\n- Root cause: `__main__.py` used `load_config()` (profile-free SDK loader)\n- Symptom: AttributeError on `config.profiles` and `config.active_profile`\n- Impact: `consoul --list-profiles` and all CLI commands failed\n\nP2 (High): SDK ENV overrides silently ignored\n- Root cause: ENV override logic only in `load_tui_config()`, not `load_config()`\n- Symptom: `CONSOUL_MODEL_*`, `CONSOUL_TEMPERATURE`, etc. had no effect\n- Impact: SDK users couldn't override model/conversation settings via ENV\n\n**Fixes Applied (Commit 6bb761a):**\n\n1. CLI Profile Fix:\n   - Changed `__main__.py` from `load_config()` to `load_tui_config()`\n   - CLI now gets ConsoulTuiConfig with profile support\n   - Fixed ProfileConfig.model_rebuild() runtime import issue\n\n2. SDK ENV Override Fix:\n   - Added ENV override processing in `load_config()` \n   - Maps `_model_overrides` to `current_provider`, `current_model`, `provider_configs`\n   - Maps `_conversation_overrides` (ignored, SDK doesn't have conversation config)\n\n**Validation:**\n- ✅ CLI `--list-profiles` works without crash\n- ✅ SDK ENV overrides applied (tested with CONSOUL_MODEL_PROVIDER/NAME/TEMPERATURE/MAX_TOKENS)\n- ✅ Full backward compatibility maintained\n\n**Files Modified:**\n- src/consoul/__main__.py (4 lines)\n- src/consoul/config/loader.py (37 lines)\n- src/consoul/tui/profiles.py (6 lines)\n\nBranch: feat/SOUL-289-phase2-profile-extraction\nCommit: 6bb761a\nStatus: ✅ Regressions fixed, ready for re-review",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-17T20:43:34.638297",
+      "updated_at": "2025-12-17T20:43:34.638298",
+      "id": "20251217204334-9a5c3e22",
+      "ticket_id": "SOUL-289",
+      "author": "jared@goatbytes.io",
+      "content": "🔧 P1 Backward Compatibility Fix\n\n**Issue Found:**\n- Backward-compat helpers in `consoul.config` crashed with ModuleNotFoundError\n- `__getattr__` was importing `consoul.config.profiles` (deleted in Phase 2)\n- Legacy code using `consoul.config.get_builtin_profiles()` etc. broke\n\n**Fix Applied (Commit 0066f2f):**\n- Updated lazy import path from `consoul.config.profiles` → `consoul.tui.profiles`\n- All backward-compat exports now work correctly:\n  - ✅ `get_builtin_profiles()`\n  - ✅ `get_profile_description()`\n  - ✅ `ProfileConfig`\n  - ✅ `list_available_profiles()` (signature changed in Phase 2)\n\n**Testing:**\n- ✅ Verified deprecated imports resolve from new location\n- ✅ No breaking changes for common use cases\n\n**Files Modified:**\n- src/consoul/config/__init__.py (3 lines)\n\nBranch: feat/SOUL-289-phase2-profile-extraction\nCommit: 0066f2f\nStatus: ✅ P1 regression fixed",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 5,
+  "comment_count": 7,
   "story_points": 13,
   "order": 40,
   "custom_fields": {}
