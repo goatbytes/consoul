@@ -6,9 +6,9 @@ covering appearance, performance tuning, and behavior settings.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from consoul.config.models import ConsoulCoreConfig  # noqa: TC001
 
@@ -139,30 +139,50 @@ class TuiConfig(BaseModel):
 
 
 class ConsoulTuiConfig(BaseModel):
-    """Complete TUI configuration combining core SDK config + TUI settings.
+    """Complete TUI configuration with profiles + core SDK settings + TUI settings.
 
-    This is the configuration model for TUI applications, composing:
-    - core: ConsoulCoreConfig (SDK settings)
-    - tui: TuiConfig (TUI-specific settings)
+    This is the configuration model for TUI applications, containing:
+    - profiles: dict[str, ProfileConfig] (TUI-specific profile management)
+    - active_profile: str (currently active profile name)
+    - core: ConsoulCoreConfig (profile-free SDK settings)
+    - tui: TuiConfig (TUI-specific appearance/behavior)
 
-    Use this instead of ConsoulCoreConfig when building TUI applications.
+    TUI applications use profiles for workflow management, while the SDK
+    operates profile-free with explicit parameters.
     """
 
+    # Profile fields (TUI-specific, not in ConsoulCoreConfig)
+    profiles: dict[str, Any] = Field(
+        description="Available configuration profiles (TUI feature)",
+    )
+    active_profile: str = Field(
+        default="default",
+        description="Currently active profile name",
+    )
+
+    # Core SDK config and TUI config
     core: ConsoulCoreConfig
     tui: TuiConfig = Field(default_factory=TuiConfig)
 
     model_config = {"extra": "forbid"}
 
-    # Convenience properties for accessing core fields
-    @property
-    def profiles(self):  # type: ignore[no-untyped-def]
-        """Access core.profiles."""
-        return self.core.profiles
+    @field_validator("active_profile")
+    @classmethod
+    def validate_active_profile(cls, v: str) -> str:
+        """Validate active profile name is not empty."""
+        if not v or not v.strip():
+            raise ValueError("Active profile name cannot be empty")
+        return v.strip().lower()
 
-    @property
-    def active_profile(self) -> str:
-        """Access core.active_profile."""
-        return self.core.active_profile
+    @model_validator(mode="after")
+    def validate_active_profile_exists(self) -> ConsoulTuiConfig:
+        """Validate that the active profile exists in profiles."""
+        if self.active_profile not in self.profiles:
+            raise ValueError(
+                f"Active profile '{self.active_profile}' not found in profiles. "
+                f"Available profiles: {', '.join(self.profiles.keys())}"
+            )
+        return self
 
     @property
     def current_provider(self):  # type: ignore[no-untyped-def]
@@ -200,8 +220,15 @@ class ConsoulTuiConfig(BaseModel):
         return self.core.tool_presets
 
     def get_active_profile(self):  # type: ignore[no-untyped-def]
-        """Delegate to core.get_active_profile()."""
-        return self.core.get_active_profile()
+        """Get the currently active profile configuration.
+
+        Returns:
+            The active ProfileConfig instance.
+
+        Raises:
+            KeyError: If the active profile doesn't exist.
+        """
+        return self.profiles[self.active_profile]
 
     def get_current_model_config(self):  # type: ignore[no-untyped-def]
         """Delegate to core.get_current_model_config()."""

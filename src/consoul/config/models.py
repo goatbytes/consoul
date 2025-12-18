@@ -1427,13 +1427,19 @@ class ProfileConfig(BaseModel):
 
 
 class ConsoulCoreConfig(BaseModel):
-    """Core SDK configuration for Consoul (no TUI dependencies).
+    """Core SDK configuration for Consoul (no TUI dependencies, no profiles).
 
-    This is the main SDK configuration model containing all core settings.
-    TUI applications should use ConsoulTuiConfig which composes this with TuiConfig.
+    This is the profile-free SDK configuration model containing core settings:
+    - Provider and model configuration
+    - Tool configuration
+    - API keys and provider configs
+    - Global settings
 
-    Profiles define HOW to use AI (prompts, settings).
-    Provider/model define WHICH AI to use (tracked separately).
+    TUI applications should use ConsoulTuiConfig which extends this with
+    profile support and TUI-specific settings.
+
+    For SDK usage, configure directly with explicit parameters (model, temperature, etc.)
+    instead of using profiles. Profiles are a TUI/CLI convenience feature.
     """
 
     model_config = ConfigDict(
@@ -1442,13 +1448,6 @@ class ConsoulCoreConfig(BaseModel):
         arbitrary_types_allowed=True,  # Allow EnvSettings type
     )
 
-    profiles: dict[str, ProfileConfig] = Field(
-        description="Available configuration profiles",
-    )
-    active_profile: str = Field(
-        default="default",
-        description="Currently active profile name",
-    )
     current_provider: Provider = Field(
         default=Provider.ANTHROPIC,
         description="Currently active AI provider",
@@ -1502,24 +1501,6 @@ class ConsoulCoreConfig(BaseModel):
         description="Global settings for extensibility",
     )
 
-    @field_validator("active_profile")
-    @classmethod
-    def validate_active_profile(cls, v: str) -> str:
-        """Validate active profile name is not empty."""
-        if not v or not v.strip():
-            raise ValueError("Active profile name cannot be empty")
-        return v.strip().lower()
-
-    @model_validator(mode="after")
-    def validate_active_profile_exists(self) -> ConsoulConfig:
-        """Validate that the active profile exists in profiles."""
-        if self.active_profile not in self.profiles:
-            raise ValueError(
-                f"Active profile '{self.active_profile}' not found in profiles. "
-                f"Available profiles: {', '.join(self.profiles.keys())}"
-            )
-        return self
-
     @model_serializer(mode="wrap")
     def serialize_model(self, serializer: Any) -> dict[str, Any]:
         """Custom serializer to exclude API keys from all serialization modes.
@@ -1531,17 +1512,6 @@ class ConsoulCoreConfig(BaseModel):
         # Remove api_keys from serialized output for security
         data.pop("api_keys", None)
         return data
-
-    def get_active_profile(self) -> ProfileConfig:
-        """Get the currently active profile configuration.
-
-        Returns:
-            The active ProfileConfig instance.
-
-        Raises:
-            KeyError: If the active profile doesn't exist.
-        """
-        return self.profiles[self.active_profile]
 
     def get_current_model_config(self) -> ModelConfig:
         """Build ModelConfig from current_provider and current_model.
@@ -1624,8 +1594,9 @@ class ConsoulCoreConfig(BaseModel):
 
 
 # Backward compatibility alias
-# NOTE: ConsoulConfig now refers to the core SDK config without TUI dependencies.
-# TUI applications should use ConsoulTuiConfig from consoul.tui.config instead.
+# NOTE: ConsoulConfig defaults to ConsoulCoreConfig for SDK usage.
+# TUI applications should explicitly use ConsoulTuiConfig from consoul.tui.config.
+# During the transition, type checkers see this as a union type.
 ConsoulConfig = ConsoulCoreConfig
 
 
