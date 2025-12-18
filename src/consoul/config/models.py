@@ -1627,3 +1627,40 @@ class ConsoulCoreConfig(BaseModel):
 # NOTE: ConsoulConfig now refers to the core SDK config without TUI dependencies.
 # TUI applications should use ConsoulTuiConfig from consoul.tui.config instead.
 ConsoulConfig = ConsoulCoreConfig
+
+
+def __getattr__(name: str) -> type:
+    """Backward compatibility for ProfileConfig import.
+
+    ProfileConfig has been moved to consoul.tui.profiles as it is a TUI/CLI
+    convenience feature, not a core SDK requirement.
+
+    This function intercepts imports and emits deprecation warnings to guide
+    users to the new import path.
+
+    Args:
+        name: Attribute name being accessed
+
+    Returns:
+        The requested attribute from the new location
+
+    Raises:
+        AttributeError: If the attribute doesn't exist in this module
+    """
+    if name == "ProfileConfig":
+        import warnings
+
+        from consoul.tui.profiles import ProfileConfig as _TuiProfileConfig
+
+        warnings.warn(
+            "Importing ProfileConfig from consoul.config.models is deprecated as of v0.5.0 "
+            "and will be removed in v1.0.0. ProfileConfig is a TUI/CLI convenience feature, "
+            "not a core SDK requirement. Import from consoul.tui.profiles instead:\n\n"
+            "  from consoul.tui.profiles import ProfileConfig\n\n"
+            "For SDK usage, use explicit parameters (model, system_prompt, temperature) "
+            "instead of profiles. See migration guide: https://docs.consoul.ai/migration/profiles",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return _TuiProfileConfig
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
