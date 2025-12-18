@@ -402,7 +402,7 @@ def cmd_tools(session: ChatSession, args: str) -> None:
         else:
             # Restore saved registry if available
             if hasattr(session, "_saved_tool_registry"):
-                saved_registry = getattr(session, "_saved_tool_registry")
+                saved_registry = session._saved_tool_registry
                 session.conversation_service.tool_registry = saved_registry
                 # Re-bind tools to model
                 session.conversation_service.model = saved_registry.bind_to_model(

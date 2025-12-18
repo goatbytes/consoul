@@ -278,3 +278,13 @@ __all__ = [
     "get_profile_description",
     "list_available_profiles",
 ]
+
+# Rebuild ProfileConfig with actual types now that they're available
+# Import the types at runtime to resolve forward references
+from consoul.config.models import (  # noqa: E402
+    ContextConfig,
+    ConversationConfig,
+    ModelConfigUnion,
+)
+
+ProfileConfig.model_rebuild()

@@ -350,6 +350,7 @@ def create_default_config() -> dict[str, Any]:
 
     # Add TUI-specific profile fields (lazy import to avoid circular dependency)
     from consoul.tui.profiles import get_builtin_profiles
+
     config["profiles"] = get_builtin_profiles()
     config["active_profile"] = "default"
 
@@ -373,8 +374,8 @@ def load_profile(profile_name: str, config: Any) -> Any:
         KeyError: If the profile doesn't exist.
         TypeError: If config is not a TUI config (no profiles field).
     """
-    # Lazy import to avoid circular dependency
-    from consoul.tui.profiles import ProfileConfig
+    # Lazy imports to avoid circular dependency
+    from consoul.tui.profiles import ProfileConfig, get_builtin_profiles
 
     # Check if config has profiles (TUI config only)
     if not hasattr(config, "profiles"):
@@ -383,9 +384,6 @@ def load_profile(profile_name: str, config: Any) -> Any:
             "SDK usage should use explicit parameters instead of profiles. "
             "Use load_tui_config() to load TUI configuration."
         )
-
-    # Lazy imports to avoid circular dependency
-    from consoul.tui.profiles import ProfileConfig, get_builtin_profiles
 
     # Check custom profiles first (they override built-in)
     if profile_name in config.profiles:
