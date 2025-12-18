@@ -5,8 +5,9 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from consoul.config.models import ConsoulConfig, OpenAIModelConfig, ProfileConfig
+from consoul.config.models import ConsoulConfig, OpenAIModelConfig
 from consoul.tui.config import TuiConfig
+from consoul.tui.profiles import ProfileConfig
 
 
 class TestTuiConfigDefaults:

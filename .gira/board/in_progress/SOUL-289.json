@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-16T13:55:02.197940",
-  "updated_at": "2025-12-17T16:22:32.255635",
+  "updated_at": "2025-12-17T17:09:24.750764",
   "id": "SOUL-289",
   "uuid": "f9707be5-7cea-4eb9-ae88-dd5437c312b2",
   "title": "Decouple ProfileConfig from SDK core layer",
@@ -31,11 +31,24 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-17T17:09:24.750654",
+      "updated_at": "2025-12-17T17:09:24.750655",
+      "id": "20251217170924-525b35a0",
+      "ticket_id": "SOUL-289",
+      "author": "jared@goatbytes.io",
+      "content": "Phase 2 WIP: Steps 1-3 Complete (30% done)\n\n## Completed Work\n\n### Step 1: TUI Profile Module & Backward Compatibility (7b0003d)\n- Created src/consoul/tui/profiles.py (279 lines)\n- Added backward compatibility re-exports with deprecation warnings\n- Testing: All 17 tests pass, no circular imports\n\n### Step 2: ProfileManager SDK Translation (e1eed05)\n- Added 4 SDK translation methods (+133 lines)\n- All methods validated and working\n\n### Step 3: ConsoulTuiConfig Separation (1ac5e95)\n- Removed profiles from ConsoulCoreConfig\n- Added profiles to ConsoulTuiConfig\n- Clear architectural separation\n\n## Current State\nBranch: feat/SOUL-289-phase2-profile-extraction\nLatest commit: 1ac5e95\nProgress: 3/10 Phase 2 steps (30%)\n\nKnown issues: 29 mypy errors in 6 files (expected, will fix in Steps 4-10)\n\n## Remaining Work (Steps 4-10)\nStep 4: Update config loader dual-path (2-3h)\nStep 5: Update SDK wrapper (1-2h)\nStep 6: Update CLI chat_session (1-2h)\nStep 7: Update TUI app (1-2h)\nStep 8: Fix imports across 17 files (1-2h)\nStep 9: Update tests (2-3h)\nStep 10: Integration testing (1-2h)\n\nEstimated remaining: 12-19 hours\n\nNext: Use parallel agents for Steps 4-10",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 1,
+  "comment_count": 2,
   "story_points": 13,
   "order": 40,
   "custom_fields": {}

@@ -205,7 +205,7 @@ class ProfileUIOrchestrator:
             except Exception as e:
                 ProfileUIOrchestrator._handle_profile_error(app, "create", e)
 
-        from consoul.config.profiles import get_builtin_profiles
+        from consoul.tui.profiles import get_builtin_profiles
         from consoul.tui.widgets import ProfileEditorModal
 
         builtin_names = set(get_builtin_profiles().keys())
@@ -279,7 +279,7 @@ class ProfileUIOrchestrator:
             except Exception as e:
                 ProfileUIOrchestrator._handle_profile_error(app, "update", e)
 
-        from consoul.config.profiles import get_builtin_profiles
+        from consoul.tui.profiles import get_builtin_profiles
         from consoul.tui.widgets import ProfileEditorModal
 
         builtin_names = set(get_builtin_profiles().keys())

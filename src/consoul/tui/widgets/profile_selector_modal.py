@@ -13,7 +13,7 @@ from textual.widgets import Button, DataTable, Input, Label
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
-    from consoul.config.models import ProfileConfig
+    from consoul.tui.profiles import ProfileConfig
 
 __all__ = ["ProfileSelectorModal"]
 

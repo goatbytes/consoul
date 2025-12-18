@@ -8,10 +8,10 @@ from pydantic import ValidationError
 from consoul.config.loader import load_config, load_profile
 from consoul.config.models import (
     AnthropicModelConfig,
-    ProfileConfig,
     Provider,
 )
-from consoul.config.profiles import (
+from consoul.tui.profiles import (
+    ProfileConfig,
     get_builtin_profiles,
     get_profile_description,
     list_available_profiles,

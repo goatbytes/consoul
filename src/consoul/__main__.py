@@ -17,7 +17,7 @@ except ImportError:
     sys.exit(1)
 
 from consoul.config.loader import load_config
-from consoul.config.profiles import get_builtin_profiles, get_profile_description
+from consoul.tui.profiles import get_builtin_profiles, get_profile_description
 
 
 def validate_temperature(

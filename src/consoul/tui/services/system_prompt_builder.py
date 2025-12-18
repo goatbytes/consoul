@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from consoul.ai.tools import ToolRegistry
-    from consoul.config.models import ProfileConfig
+    from consoul.tui.profiles import ProfileConfig
 
 import logging
 

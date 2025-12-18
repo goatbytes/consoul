@@ -19,7 +19,7 @@ from textual.widgets import (
     TextArea,
 )
 
-from consoul.config.models import ProfileConfig
+from consoul.tui.profiles import ProfileConfig
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
@@ -514,7 +514,7 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
 
         # Validate with Pydantic ProfileConfig
         try:
-            from consoul.config.models import ProfileConfig
+            from consoul.tui.profiles import ProfileConfig
 
             ProfileConfig(**profile_data)
             return True, ""
@@ -545,7 +545,7 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
 
         # Create ProfileConfig instance
         try:
-            from consoul.config.models import ProfileConfig
+            from consoul.tui.profiles import ProfileConfig
 
             profile = ProfileConfig(**profile_data)
 
