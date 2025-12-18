@@ -212,7 +212,9 @@ class TestInputAreaMessageSending:
             multiline = "Line 1\nLine 2\nLine 3"
             widget.text_area.text = multiline
             # Trigger the Submitted event
-            widget.on_sendable_text_area_submitted(widget.text_area.Submitted(multiline))
+            widget.on_sendable_text_area_submitted(
+                widget.text_area.Submitted(multiline)
+            )
             await pilot.pause()
 
             assert len(app.messages) == 1
@@ -336,7 +338,9 @@ class TestInputAreaEdgeCases:
             long_text = "Lorem ipsum " * 1000
             widget.text_area.text = long_text
             # Trigger the Submitted event
-            widget.on_sendable_text_area_submitted(widget.text_area.Submitted(long_text))
+            widget.on_sendable_text_area_submitted(
+                widget.text_area.Submitted(long_text)
+            )
             await pilot.pause()
 
             assert len(app.messages) == 1

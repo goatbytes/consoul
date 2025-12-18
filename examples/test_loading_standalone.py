@@ -14,13 +14,13 @@ from typing import ClassVar
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 # Import only the TUI modules we need
-from consoul.tui import animations, loading
-
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
 from textual.widgets import Button, Footer, Header, Label
+
+from consoul.tui import animations, loading
 
 
 class AnimationSelector(App):
@@ -96,7 +96,9 @@ class AnimationSelector(App):
         self.simulate_loading(loading_screen)
 
     @work
-    async def simulate_loading(self, loading_screen: loading.ConsoulLoadingScreen) -> None:
+    async def simulate_loading(
+        self, loading_screen: loading.ConsoulLoadingScreen
+    ) -> None:
         """Simulate loading with progress updates."""
         loading_steps = [
             ("Initializing Consoul...", 20),

@@ -145,7 +145,9 @@ class TestCorrectImportPath:
                 )
                 # Success - no deprecation warning
             except DeprecationWarning:
-                pytest.fail("tui.profiles import raised DeprecationWarning unexpectedly")
+                pytest.fail(
+                    "tui.profiles import raised DeprecationWarning unexpectedly"
+                )
 
     def test_tui_profiles_import_is_functional(self):
         """Test that tui.profiles imports work correctly."""
@@ -175,13 +177,13 @@ class TestReExportsWorkCorrectly:
         """Test that ProfileConfig from different imports is the same class."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
-            from consoul.config.models import ProfileConfig as PC1
-            from consoul.config.profiles import ProfileConfig as PC2
-            from consoul.tui.profiles import ProfileConfig as PC3
+            from consoul.config.models import ProfileConfig as ProfileConfig1
+            from consoul.config.profiles import ProfileConfig as ProfileConfig2
+            from consoul.tui.profiles import ProfileConfig as ProfileConfig3
 
         # All should be the same class (same identity)
-        assert PC1 is PC3
-        assert PC2 is PC3
+        assert ProfileConfig1 is ProfileConfig3
+        assert ProfileConfig2 is ProfileConfig3
 
     def test_builtin_profiles_from_different_imports_same_function(self):
         """Test that get_builtin_profiles from different imports is the same function."""
@@ -212,7 +214,9 @@ class TestMigrationGuidance:
         assert "tui.profiles" in warning_message
 
         # 3. Timeline for removal
-        assert "v1.0.0" in warning_message or "will be removed" in warning_message.lower()
+        assert (
+            "v1.0.0" in warning_message or "will be removed" in warning_message.lower()
+        )
 
     def test_config_profiles_warning_message_quality(self):
         """Test that config.profiles deprecation warning is helpful."""
@@ -299,14 +303,14 @@ class TestWarningOnlyOncePerModule:
         # This test verifies the warning is raised at least once
 
         with pytest.warns(DeprecationWarning):
-            from consoul.config.models import ProfileConfig  # noqa: F401
+            from consoul.config.models import ProfileConfig
 
         # Second import from same location may or may not warn
         # depending on Python's warning filter state
         # We just verify it doesn't crash
         with warnings.catch_warnings():
             warnings.simplefilter("always", DeprecationWarning)
-            from consoul.config.models import ProfileConfig  # noqa: F401, F811
+            from consoul.config.models import ProfileConfig  # noqa: F401
 
 
 class TestDeprecationWarningCategory:
@@ -320,7 +324,9 @@ class TestDeprecationWarningCategory:
 
             # Filter for deprecation warnings
             deprecation_warnings = [
-                warning for warning in w if issubclass(warning.category, DeprecationWarning)
+                warning
+                for warning in w
+                if issubclass(warning.category, DeprecationWarning)
             ]
 
             assert len(deprecation_warnings) > 0

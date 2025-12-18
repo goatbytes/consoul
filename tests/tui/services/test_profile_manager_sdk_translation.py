@@ -3,8 +3,6 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import pytest
-
 from consoul.config.models import OpenAIModelConfig
 from consoul.tui.config import ConsoulTuiConfig
 from consoul.tui.profiles import ProfileConfig
@@ -245,7 +243,7 @@ class TestBuildProfileSystemPrompt:
             active_profile="test-profile",
         )
 
-        result = ProfileManager.build_profile_system_prompt(profile, config)
+        ProfileManager.build_profile_system_prompt(profile, config)
 
         call_kwargs = mock_build_prompt.call_args.kwargs
         assert call_kwargs["include_os_info"] is True
@@ -272,7 +270,7 @@ class TestBuildProfileSystemPrompt:
             active_profile="test-profile",
         )
 
-        result = ProfileManager.build_profile_system_prompt(profile, config)
+        ProfileManager.build_profile_system_prompt(profile, config)
 
         call_kwargs = mock_build_prompt.call_args.kwargs
         assert call_kwargs["include_git_info"] is True
@@ -412,7 +410,9 @@ class TestGetConversationKwargs:
         assert isinstance(kwargs["summarize"], bool)
         assert isinstance(kwargs["summarize_threshold"], int)
         assert isinstance(kwargs["keep_recent"], int)
-        assert kwargs["summary_model"] is None or isinstance(kwargs["summary_model"], str)
+        assert kwargs["summary_model"] is None or isinstance(
+            kwargs["summary_model"], str
+        )
 
 
 class TestGetModelName:
@@ -491,7 +491,7 @@ class TestIntegration:
 
     def test_complete_sdk_translation_workflow(self):
         """Test complete workflow: profile -> SDK params -> SDK instantiation."""
-        from consoul.config.models import ConversationConfig, ContextConfig
+        from consoul.config.models import ContextConfig, ConversationConfig
 
         # Create a comprehensive profile
         profile = ProfileConfig(

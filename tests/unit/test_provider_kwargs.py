@@ -1,6 +1,5 @@
 """Tests for provider-specific kwargs in Consoul SDK (SOUL-288)."""
 
-import pytest
 from unittest.mock import Mock, patch
 
 from consoul.sdk.wrapper import Consoul
@@ -23,7 +22,7 @@ class TestProviderKwargs:
         mock_get_chat_model.return_value = mock_model
 
         # Test: Pass service_tier="flex"
-        console = Consoul(
+        Consoul(
             model="gpt-4o",
             service_tier="flex",
             tools=False,
@@ -52,7 +51,7 @@ class TestProviderKwargs:
 
         # Test: Pass thinking configuration
         thinking_config = {"type": "enabled", "budget_tokens": 10000}
-        console = Consoul(
+        Consoul(
             model="claude-sonnet-4",
             thinking=thinking_config,
             tools=False,
@@ -79,7 +78,7 @@ class TestProviderKwargs:
 
         # Test: Pass safety_settings
         safety_settings = {"HARM_CATEGORY_HARASSMENT": "BLOCK_NONE"}
-        console = Consoul(
+        Consoul(
             model="gemini-pro",
             safety_settings=safety_settings,
             tools=False,
@@ -107,7 +106,7 @@ class TestProviderKwargs:
         mock_get_chat_model.return_value = mock_model
 
         # Test: Pass both temperature and service_tier
-        console = Consoul(
+        Consoul(
             model="gpt-4o",
             temperature=0.9,
             service_tier="flex",
@@ -135,7 +134,7 @@ class TestProviderKwargs:
         mock_get_chat_model.return_value = mock_model
 
         # Test: Pass multiple OpenAI-specific params
-        console = Consoul(
+        Consoul(
             model="gpt-4o",
             service_tier="flex",
             seed=42,

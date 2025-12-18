@@ -85,7 +85,9 @@ class TestConversationHistoryBasics:
         history = ConversationHistory("gpt-4o", persist=False)
 
         assert history.model_name == "gpt-4o"
-        assert history.max_tokens == 96_000  # gpt-4o's limit (128k) * 0.75 safety margin
+        assert (
+            history.max_tokens == 96_000
+        )  # gpt-4o's limit (128k) * 0.75 safety margin
         assert len(history.messages) == 0
 
     def test_initialization_custom_token_limit(self):

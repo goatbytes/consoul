@@ -8,7 +8,6 @@ import pytest
 from textual.app import App, ComposeResult
 
 from consoul.tui.widgets.attachment_button import AttachmentButton
-from consoul.tui.widgets.file_attachment_modal import FileAttachmentModal
 
 # Mark all tests in this module as async
 pytestmark = pytest.mark.asyncio
@@ -84,7 +83,7 @@ class TestAttachmentButtonFileSelection:
 
         async with app.run_test() as pilot:
             await pilot.pause()
-            widget = app.query_one(AttachmentButton)
+            app.query_one(AttachmentButton)
 
             # Mock push_screen_wait to return file paths
             files = ["/path/to/file1.png", "/path/to/file2.py"]
@@ -107,7 +106,7 @@ class TestAttachmentButtonFileSelection:
 
         async with app.run_test() as pilot:
             await pilot.pause()
-            widget = app.query_one(AttachmentButton)
+            app.query_one(AttachmentButton)
 
             # Mock push_screen_wait to return empty list (cancelled)
             with patch.object(
@@ -128,7 +127,7 @@ class TestAttachmentButtonFileSelection:
 
         async with app.run_test() as pilot:
             await pilot.pause()
-            widget = app.query_one(AttachmentButton)
+            app.query_one(AttachmentButton)
 
             # Mock push_screen_wait to return single file
             with patch.object(
@@ -156,7 +155,7 @@ class TestAttachmentButtonFileSelection:
 
         async with app.run_test() as pilot:
             await pilot.pause()
-            widget = app.query_one(AttachmentButton)
+            app.query_one(AttachmentButton)
 
             # Mock push_screen_wait to return multiple files
             with patch.object(
@@ -183,7 +182,7 @@ class TestAttachmentButtonMessages:
 
         async with app.run_test() as pilot:
             await pilot.pause()
-            widget = app.query_one(AttachmentButton)
+            app.query_one(AttachmentButton)
 
             with patch.object(
                 app, "push_screen_wait", new_callable=AsyncMock
@@ -211,7 +210,7 @@ class TestAttachmentButtonEdgeCases:
 
         async with app.run_test() as pilot:
             await pilot.pause()
-            widget = app.query_one(AttachmentButton)
+            app.query_one(AttachmentButton)
 
             with patch.object(
                 app, "push_screen_wait", new_callable=AsyncMock
@@ -236,7 +235,7 @@ class TestAttachmentButtonEdgeCases:
 
         async with app.run_test() as pilot:
             await pilot.pause()
-            widget = app.query_one(AttachmentButton)
+            app.query_one(AttachmentButton)
 
             with patch.object(
                 app, "push_screen_wait", new_callable=AsyncMock

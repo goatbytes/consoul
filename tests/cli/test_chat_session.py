@@ -194,7 +194,15 @@ def test_chat_session_get_stats(
     user_msg3 = Mock()
     user_msg3.type = "human"
 
-    mock_history.messages = [system_msg1, system_msg2, user_msg1, ai_msg1, user_msg2, ai_msg2, user_msg3]
+    mock_history.messages = [
+        system_msg1,
+        system_msg2,
+        user_msg1,
+        ai_msg1,
+        user_msg2,
+        ai_msg2,
+        user_msg3,
+    ]
     mock_history.__len__ = Mock(return_value=7)
     mock_history.count_tokens = Mock(return_value=150)
     mock_history_class.return_value = mock_history

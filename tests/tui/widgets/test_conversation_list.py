@@ -509,7 +509,8 @@ class TestConversationDeletion:
 
             # Find the ConversationDeleted message
             deleted_messages = [
-                msg for msg in posted_messages
+                msg
+                for msg in posted_messages
                 if isinstance(msg, ConversationList.ConversationDeleted)
             ]
             assert len(deleted_messages) == 1

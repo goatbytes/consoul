@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 from textual.app import App, ComposeResult
-from textual.widgets import Label
 
 from consoul.tui.widgets.chat_view import ChatView
 from consoul.tui.widgets.message_bubble import MessageBubble
@@ -86,7 +85,9 @@ class TestChatViewMessageManagement:
 
             # Add some messages
             for i in range(3):
-                await chat_view.add_message(MessageBubble(f"Message {i}", role="assistant"))
+                await chat_view.add_message(
+                    MessageBubble(f"Message {i}", role="assistant")
+                )
                 await pilot.pause()
 
             assert chat_view.message_count == 3

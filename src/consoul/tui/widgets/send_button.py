@@ -46,9 +46,7 @@ class SendButton(Button):
 
     def __init__(self) -> None:
         """Initialize SendButton with send label."""
-        super().__init__(
-            "↑ Send", id="send-button", variant=self.DEFAULT_VARIANT
-        )
+        super().__init__("↑ Send", id="send-button", variant=self.DEFAULT_VARIANT)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press by posting MessageSubmit.
