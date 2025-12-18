@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from consoul.config import ConsoulConfig
+    from consoul.tui.config import ConsoulTuiConfig
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class ProfileUIOrchestrator:
 
     @staticmethod
     def switch_profile(
-        app: Any, config: ConsoulConfig | None, profile_name: str
+        app: Any, config: ConsoulTuiConfig | None, profile_name: str
     ) -> None:
         """Switch to a different profile WITHOUT changing model/provider.
 
@@ -166,7 +166,7 @@ class ProfileUIOrchestrator:
             ProfileUIOrchestrator._handle_profile_error(app, "switch", e)
 
     @staticmethod
-    def show_create_profile_modal(app: Any, config: ConsoulConfig | None) -> None:
+    def show_create_profile_modal(app: Any, config: ConsoulTuiConfig | None) -> None:
         """Show create profile modal and handle profile creation.
 
         Args:
@@ -219,7 +219,7 @@ class ProfileUIOrchestrator:
 
     @staticmethod
     def show_edit_profile_modal(
-        app: Any, config: ConsoulConfig | None, profile_name: str
+        app: Any, config: ConsoulTuiConfig | None, profile_name: str
     ) -> None:
         """Show edit profile modal and handle profile update.
 
@@ -293,7 +293,7 @@ class ProfileUIOrchestrator:
 
     @staticmethod
     def show_delete_profile_modal(
-        app: Any, config: ConsoulConfig | None, profile_name: str
+        app: Any, config: ConsoulTuiConfig | None, profile_name: str
     ) -> None:
         """Show delete profile confirmation modal and handle deletion.
 
@@ -373,7 +373,7 @@ class ProfileUIOrchestrator:
 
     @staticmethod
     def switch_provider_and_model(
-        app: Any, config: ConsoulConfig | None, provider: str, model_name: str
+        app: Any, config: ConsoulTuiConfig | None, provider: str, model_name: str
     ) -> None:
         """Switch to a different provider and model WITHOUT changing profile.
 

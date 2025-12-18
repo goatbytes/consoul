@@ -1870,7 +1870,7 @@ class ConsoulApp(App[None]):
 
         ProfileUIOrchestrator.switch_profile(
             self,
-            self.consoul_config.core if self.consoul_config else None,
+            self.consoul_config,
             profile_name,
         )
 
@@ -1890,9 +1890,7 @@ class ConsoulApp(App[None]):
         """Handle create new profile action from ProfileSelectorModal."""
         from consoul.tui.services import ProfileUIOrchestrator
 
-        ProfileUIOrchestrator.show_create_profile_modal(
-            self, self.consoul_config.core if self.consoul_config else None
-        )
+        ProfileUIOrchestrator.show_create_profile_modal(self, self.consoul_config)
 
     def _handle_edit_profile(self, profile_name: str) -> None:
         """Handle edit profile action from ProfileSelectorModal.
@@ -1904,7 +1902,7 @@ class ConsoulApp(App[None]):
 
         ProfileUIOrchestrator.show_edit_profile_modal(
             self,
-            self.consoul_config.core if self.consoul_config else None,
+            self.consoul_config,
             profile_name,
         )
 
@@ -1918,7 +1916,7 @@ class ConsoulApp(App[None]):
 
         ProfileUIOrchestrator.show_delete_profile_modal(
             self,
-            self.consoul_config.core if self.consoul_config else None,
+            self.consoul_config,
             profile_name,
         )
 
@@ -1936,7 +1934,7 @@ class ConsoulApp(App[None]):
 
         ProfileUIOrchestrator.switch_provider_and_model(
             self,
-            self.consoul_config.core if self.consoul_config else None,
+            self.consoul_config,
             provider,
             model_name,
         )

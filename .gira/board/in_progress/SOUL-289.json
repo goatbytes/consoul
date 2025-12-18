@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-16T13:55:02.197940",
-  "updated_at": "2025-12-17T17:09:24.750764",
+  "updated_at": "2025-12-17T19:28:11.963899",
   "id": "SOUL-289",
   "uuid": "f9707be5-7cea-4eb9-ae88-dd5437c312b2",
   "title": "Decouple ProfileConfig from SDK core layer",
@@ -44,11 +44,37 @@
       "is_ai_generated": false,
       "attachments": [],
       "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-17T18:16:01.825185",
+      "updated_at": "2025-12-17T18:16:01.825186",
+      "id": "20251217181601-7d7e9396",
+      "ticket_id": "SOUL-289",
+      "author": "jared@goatbytes.io",
+      "content": "y\nPhase 2 COMPLETE: Profile Extraction via Parallel Agents ✅\n\nAll 10 Phase 2 steps implemented successfully using 4 parallel agents.\n\n## Execution Summary\n\nAgent 1 (Steps 4-5): Config loader + SDK wrapper (commit 050fb0f) ✅\nAgent 2 (Steps 6-7): CLI + TUI updates (commit a0328d0) ✅  \nAgent 3 (Step 8): Import fixes across 17 files (commit 07d6936) ✅\nAgent 4 (Steps 9-10): Tests + validation ✅\nIntegration: Commit 8bea440 ✅\n\n## Architectural Achievement\n\n✅ SDK Core is Profile-Free (load_config → ConsoulCoreConfig)\n✅ TUI Layer Manages Profiles (load_tui_config → ConsoulTuiConfig)\n✅ Full Backward Compatibility (deprecation warnings guide migration)\n\n## Validation\n\nTests: 17/17 passing (profile-optional suite)\nRuff: All linting clean\nMypy: 31 type annotation errors (known, will fix in follow-up)\n\n## Files Modified\n\nSource: 16 files (config, SDK, CLI, TUI layers)\nTests: 3 files (updated mocks and imports)\n\n## Known Issues\n\n31 mypy type errors - ConsoulCoreConfig vs ConsoulTuiConfig type mismatches.\nFollow-up commit will add proper type annotations.\n\n## Next Steps\n\n1. Fix mypy type annotations\n2. Verify all acceptance criteria met\n3. Plan Phase 3 (major version bump, final cleanup)\n\nTotal commits: 8 (Phase 1: 1, Phase 2: 7)",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-17T19:28:11.963806",
+      "updated_at": "2025-12-17T19:28:11.963808",
+      "id": "20251217192811-de170936",
+      "ticket_id": "SOUL-289",
+      "author": "jared@goatbytes.io",
+      "content": "Phase 3 Complete: Profile Parameter Removal (v0.5.0 Breaking Change)\n\n**Implementation Summary:**\n\n✅ **Step 1-2: SDK Cleanup (100%)**\n- Removed `profile` parameter from `Consoul.__init__()`\n- Added TypeError validation for profile parameter\n- Removed ~75 lines of deprecated profile handling code\n- Deleted src/consoul/config/profiles.py\n- Removed __getattr__ backward compatibility from config/models.py\n\n✅ **Step 3-4: Test & Example Updates (100%)**\n- Deleted TestProfileDeprecation class (4 deprecated tests)\n- Deleted 3 profile-based tests from TestProfileOptional\n- Added breaking change test (TypeError verification)\n- Deleted examples/sdk/custom_profile.py\n- Updated examples/sdk/quick_start.py\n\n✅ **Step 5-6: Documentation Updates (100%)**\n- Updated docs/api/integration-guide.md for v0.5.0\n- Enhanced src/consoul/tui/profiles.py docstring (TUI/CLI-only)\n- Added comprehensive v0.5.0 section to CHANGELOG.md with migration guide\n\n✅ **Step 7: Validation (100%)**\n- All 11 profile-optional tests passing (100%)\n- SDK is fully profile-free\n- Profiles remain exclusively for TUI/CLI usage\n\n**Known Issues:**\n⚠️ 19 mypy type errors in TUI code (expected)\n- TUI services still using ConsoulCoreConfig instead of ConsoulTuiConfig\n- These are TUI-specific and don't affect SDK functionality\n- Follow-up work needed for TUI type cleanup\n\n**Achievement:**\n✅ SDK completely decoupled from profiles\n✅ Clean separation: SDK = library, TUI/CLI = application\n✅ Profile parameter removal complete (breaking change)\n✅ Full backward compatibility removal\n✅ Comprehensive documentation and migration guide\n\n**Branch:** feat/SOUL-289-phase2-profile-extraction\n**Commits:** Phase 3 implementation complete\n**Tests:** 11/11 passing",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
     }
   ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 2,
+  "comment_count": 4,
   "story_points": 13,
   "order": 40,
   "custom_fields": {}

@@ -9,6 +9,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2025-12-17
+
+**Breaking Change Release - Profile Parameter Removal (SOUL-289 Phase 3)**
+
+This release completes the SDK decoupling by removing the deprecated `profile` parameter from the Consoul SDK. Profiles remain available exclusively for TUI/CLI usage.
+
+### BREAKING CHANGES
+
+- ❌ **Removed `profile` parameter from `Consoul.__init__()`** (SOUL-289)
+  - SDK now requires explicit parameters: `model`, `temperature`, `system_prompt`, etc.
+  - Attempting to use `profile` parameter will raise `TypeError`
+  - Migration: Replace `Consoul(profile="default")` with explicit parameters
+  - See migration guide: `docs/api/integration-guide.md#migration-from-profiles`
+
+### Removed
+
+- 🗑️ **Deleted `src/consoul/config/profiles.py`** - Moved to `consoul.tui.profiles`
+- 🗑️ **Deleted `ProfileConfig` from `consoul.config.models`** - Now TUI/CLI-only
+- 🗑️ **Deleted backward compatibility `__getattr__`** - No more deprecation warnings
+- 🗑️ **Deleted deprecated tests** - Removed profile deprecation warning tests
+- 🗑️ **Deleted `examples/sdk/custom_profile.py`** - Deprecated example removed
+
+### Changed
+
+- 📝 **Updated `docs/api/integration-guide.md`** - Reflects v0.5.0 breaking changes
+- 📝 **Updated `examples/sdk/quick_start.py`** - Removed profile deprecation note
+- 📝 **Enhanced `src/consoul/tui/profiles.py` docstring** - Clarifies TUI/CLI-only usage
+- ✅ **Added breaking change test** - Verifies `TypeError` when using `profile` parameter
+
+### Migration Guide
+
+**Before (v0.4.x - deprecated):**
+```python
+console = Consoul(profile="default")
+console = Consoul(profile="creative", temperature=0.9)
+```
+
+**After (v0.5.0+):**
+```python
+# Explicit parameters (required)
+console = Consoul(
+    model="gpt-4o",
+    temperature=0.7,
+    system_prompt="You are a helpful assistant.",
+    tools=True,
+    persist=True,
+)
+```
+
+**TUI/CLI (still works):**
+```bash
+consoul  # Uses default profile
+consoul --profile creative
+```
+
+**Note:** For TUI/CLI applications, import `ProfileConfig` from `consoul.tui.profiles` instead of `consoul.config.models`.
+
+---
+
 ## [0.4.1] - 2025-12-16
 
 **Hotfix Release - Critical Bug Fix**

@@ -158,16 +158,25 @@ class ConversationService:
         model_config = config.get_current_model_config()
         model = get_chat_model(model_config, config=config)
 
-        # Get active profile conversation config
-        active_profile = config.profiles[config.active_profile]
-        conv_config = active_profile.conversation
+        # Get conversation config from profile (TUI) or use defaults (SDK)
+        # SDK uses ConsoulCoreConfig (no profiles), TUI uses ConsoulTuiConfig (has profiles)
+        persist = True  # Default for SDK
+        db_path = None  # Default for SDK
+
+        # Check if config has profiles (TUI mode)
+        if hasattr(config, "profiles") and hasattr(config, "active_profile"):
+            # TUI mode - get config from active profile
+            active_profile = config.profiles[config.active_profile]
+            conv_config = active_profile.conversation
+            persist = conv_config.persist
+            db_path = conv_config.db_path
 
         # Initialize conversation history
         conversation = ConversationHistory(
             model_name=config.current_model,
             model=model,
-            persist=conv_config.persist,
-            db_path=conv_config.db_path,
+            persist=persist,
+            db_path=db_path,
         )
 
         # Initialize tool registry if tools are enabled
@@ -242,7 +251,14 @@ class ConversationService:
                 model = model.bind_tools(enabled_tools)  # type: ignore[assignment]
 
         # Build and add system prompt if configured
-        base_prompt = custom_system_prompt or active_profile.system_prompt
+        # For SDK: custom_system_prompt or None (no profile)
+        # For TUI: custom_system_prompt or profile's system_prompt
+        profile_system_prompt = None
+        if hasattr(config, "profiles") and hasattr(config, "active_profile"):
+            active_profile = config.profiles[config.active_profile]
+            profile_system_prompt = active_profile.system_prompt
+
+        base_prompt = custom_system_prompt or profile_system_prompt
         if base_prompt:
             # Apply controlled injections to custom or profile prompt
             from consoul.ai.prompt_builder import build_enhanced_system_prompt

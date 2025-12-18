@@ -100,7 +100,7 @@ class Consoul:
 
         Introspection:
             >>> console.settings
-            {'model': 'claude-3-5-sonnet-20241022', 'profile': 'default', ...}
+            {'model': 'claude-3-5-sonnet-20241022', 'temperature': 0.7, ...}
             >>> console.last_cost
             {'input_tokens': 10, 'output_tokens': 15, 'total_cost': 0.00025}
     """
@@ -108,7 +108,6 @@ class Consoul:
     def __init__(
         self,
         model: str | None = None,
-        profile: str | None = None,
         tools: bool | str | list[str | BaseTool] | None = True,
         temperature: float | None = None,
         system_prompt: str | None = None,
@@ -127,14 +126,8 @@ class Consoul:
 
         Args:
             model: Model name (e.g., "gpt-4o", "claude-3-5-sonnet").
-                   Auto-detects provider. If not specified, uses profile's model
-                   or falls back to config's current model.
-            profile: Profile name (e.g., "default", "creative", "code-review").
-                    If None (default), SDK operates in profile-free mode with
-                    explicit parameters. Profile-free mode is ideal for
-                    domain-specific applications (legal AI, medical chatbots, etc.)
-                    without TUI/CLI coupling. Use profile="default" for traditional
-                    coding assistant behavior.
+                   Auto-detects provider. If not specified, falls back to
+                   config's current model.
             tools: Tool specification. Supports multiple formats:
                    - True: Enable all built-in tools (default)
                    - False/None: Disable all tools (chat-only mode)
@@ -163,15 +156,10 @@ class Consoul:
                               Use this for web backends, WebSocket/SSE, or custom UX.
                               See examples/sdk/web_approval_provider.py for reference.
             db_path: Path to conversation history database (default: ~/.consoul/history.db).
-                    Only used in profile-free mode.
             summarize: Enable conversation summarization (default: False).
-                      Only used in profile-free mode.
             summarize_threshold: Number of messages before summarization (default: 20).
-                               Only used in profile-free mode.
             keep_recent: Number of recent messages to keep when summarizing (default: 10).
-                        Only used in profile-free mode.
             summary_model: Model name for summarization (optional, use cheaper model).
-                          Only used in profile-free mode.
             **model_kwargs: Provider-specific parameters passed to the LLM.
                            These are validated and passed through to the model.
 
@@ -337,6 +325,16 @@ class Consoul:
 
             All discovered tools default to RiskLevel.CAUTION for safety.
         """
+        # Breaking change validation (v0.5.0): Reject profile parameter
+        if "profile" in model_kwargs:
+            raise TypeError(
+                "The 'profile' parameter has been removed in v0.5.0. "
+                "Profiles are now TUI/CLI-only. Use explicit parameters instead:\n\n"
+                "  Consoul(model='gpt-4o', temperature=0.7, system_prompt='...', tools=True)\n\n"
+                "For TUI/CLI usage, profiles still work via the command line.\n"
+                "See migration guide: docs/api/integration-guide.md#migration-from-profiles"
+            )
+
         # Validate temperature
         if temperature is not None and not 0.0 <= temperature <= 2.0:
             raise ValueError(
@@ -353,61 +351,7 @@ class Consoul:
         self._keep_recent = keep_recent
         self._summary_model = summary_model
 
-        # Get profile (optional)
-        if profile is not None:
-            # Profile-based mode (DEPRECATED)
-            import warnings
-
-            warnings.warn(
-                "The 'profile' parameter in Consoul SDK is deprecated and will be removed in v1.0.0. "
-                "Profiles are a TUI/CLI convenience feature and should not be used in SDK/library code. "
-                "For domain-specific applications, use explicit parameters (model, system_prompt, temperature, etc.) "
-                "instead of profiles. See migration guide: https://docs.consoul.ai/migration/profiles",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-            # Load TUI config to access profiles (lazy import to avoid circular dependency)
-            from consoul.config.loader import load_tui_config
-
-            tui_config = load_tui_config()
-
-            # Check if profile exists in TUI config or built-ins
-            if profile not in tui_config.profiles:
-                from consoul.tui.profiles import get_builtin_profiles
-
-                builtin = get_builtin_profiles()
-                if profile in builtin:
-                    # Convert builtin profile dict to ProfileConfig
-                    from consoul.tui.profiles import ProfileConfig
-
-                    profile_dict = builtin[profile]
-                    self.profile = ProfileConfig(**profile_dict)
-                else:
-                    available = list(tui_config.profiles.keys()) + list(builtin.keys())
-                    raise ValueError(
-                        f"Profile '{profile}' not found. "
-                        f"Available profiles: {', '.join(available)}"
-                    )
-            else:
-                # Get profile from TUI config
-                profile_data = tui_config.profiles[profile]
-                # Convert dict to ProfileConfig if needed
-                if isinstance(profile_data, dict):
-                    from consoul.tui.profiles import ProfileConfig
-
-                    self.profile = ProfileConfig(**profile_data)
-                else:
-                    self.profile = profile_data
-
-            # Override system prompt if specified
-            if system_prompt is not None:
-                self.profile.system_prompt = system_prompt
-        else:
-            # Profile-free mode
-            self.profile = None  # type: ignore[assignment]
-
-        # Store explicit system prompt for profile-free mode
+        # Store explicit system prompt
         self._explicit_system_prompt = system_prompt
 
         # Initialize model
@@ -424,14 +368,10 @@ class Consoul:
         # Merge provider-specific kwargs
         final_model_kwargs.update(model_kwargs)
 
+        # Use explicit model parameter or fallback to config's current model
         if model:
-            # Use explicit model parameter
             self.model_name = model
-        elif self.profile is not None and self.profile.model:
-            # Use profile's model if available
-            self.model_name = self.profile.model.model
         else:
-            # Fallback to config's current model
             self.model_name = self.config.current_model
 
         # Initialize the model
@@ -453,13 +393,9 @@ class Consoul:
             **self._get_conversation_kwargs(),
         )
 
-        # Add system prompt
+        # Add system prompt if provided
         if system_prompt is not None:
-            # Explicit system_prompt overrides profile
             self.history.add_system_message(system_prompt)
-        elif self.profile is not None and self.profile.system_prompt:
-            # Use profile's system prompt if available
-            self.history.add_system_message(self.profile.system_prompt)
 
         # Initialize tools if requested
         self.tools_spec = tools
@@ -477,40 +413,23 @@ class Consoul:
         self._last_response: Any | None = None
 
     def _get_conversation_kwargs(self) -> dict[str, Any]:
-        """Get ConversationHistory kwargs from profile or constructor params.
+        """Get ConversationHistory kwargs from constructor params.
 
         Returns:
             Dictionary of kwargs for ConversationHistory
         """
-        if self.profile is not None:
-            # Profile-based mode: Use profile's conversation settings
-            conv = self.profile.conversation
-            kwargs: dict[str, Any] = {
-                "db_path": conv.db_path,
-                "summarize": conv.summarize,
-                "summarize_threshold": conv.summarize_threshold,
-                "keep_recent": conv.keep_recent,
-            }
+        kwargs: dict[str, Any] = {
+            "db_path": self._db_path or (Path.home() / ".consoul" / "history.db"),
+            "summarize": self._summarize,
+            "summarize_threshold": self._summarize_threshold,
+            "keep_recent": self._keep_recent,
+        }
 
-            # Handle summary_model
-            if conv.summary_model:
-                kwargs["summary_model"] = get_chat_model(
-                    conv.summary_model, config=self.config
-                )
-        else:
-            # Profile-free mode: Use constructor params directly
-            kwargs = {
-                "db_path": self._db_path or (Path.home() / ".consoul" / "history.db"),
-                "summarize": self._summarize,
-                "summarize_threshold": self._summarize_threshold,
-                "keep_recent": self._keep_recent,
-            }
-
-            # Handle summary_model
-            if self._summary_model:
-                kwargs["summary_model"] = get_chat_model(
-                    self._summary_model, config=self.config
-                )
+        # Handle summary_model
+        if self._summary_model:
+            kwargs["summary_model"] = get_chat_model(
+                self._summary_model, config=self.config
+            )
 
         return kwargs
 
@@ -842,11 +761,8 @@ class Consoul:
         """
         self.history.clear()
 
-        # Re-add system prompt if it exists (from profile or constructor)
-        if self.profile is not None and self.profile.system_prompt:
-            self.history.add_system_message(self.profile.system_prompt)
-        elif hasattr(self, "_explicit_system_prompt") and self._explicit_system_prompt:
-            # Profile-free mode with explicit system prompt
+        # Re-add system prompt if it was provided to constructor
+        if hasattr(self, "_explicit_system_prompt") and self._explicit_system_prompt:
             self.history.add_system_message(self._explicit_system_prompt)
 
     @property
@@ -858,22 +774,17 @@ class Consoul:
 
         Examples:
             >>> console.settings
-            {'model': 'claude-3-5-sonnet-20241022', 'profile': 'default', ...}
+            {'model': 'claude-3-5-sonnet-20241022', 'temperature': 0.7, ...}
         """
         return {
             "model": self.model_name,
-            "profile": self.profile.name if self.profile is not None else None,
             "tools_enabled": self.tools_enabled,
             "discover_tools": self.discover_tools,
             "persist": self.history.persist
             if hasattr(self.history, "persist")
             else True,
             "temperature": self.temperature,
-            "system_prompt": (
-                self.profile.system_prompt
-                if self.profile is not None
-                else self._explicit_system_prompt
-            ),
+            "system_prompt": self._explicit_system_prompt,
             "conversation_length": len(self.history),
             "total_tokens": self.history.count_tokens(),
         }

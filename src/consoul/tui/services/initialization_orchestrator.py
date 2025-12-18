@@ -172,7 +172,7 @@ class InitializationOrchestrator:
         Args:
             config: Consoul configuration
         """
-        self.app.active_profile = config.get_active_profile()  # type: ignore[no-untyped-call]
+        self.app.active_profile = config.get_active_profile()
         assert self.app.active_profile is not None, (
             "Active profile should be available from config"
         )
