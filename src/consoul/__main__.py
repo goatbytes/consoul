@@ -16,7 +16,7 @@ except ImportError:
     )
     sys.exit(1)
 
-from consoul.config.loader import load_config
+from consoul.config.loader import load_tui_config
 from consoul.tui.profiles import get_builtin_profiles, get_profile_description
 
 
@@ -145,8 +145,8 @@ def cli(
                 provider_config_overrides
             )
 
-    # Load configuration with CLI overrides applied
-    config = load_config(profile_name=profile, cli_overrides=cli_overrides)
+    # Load TUI configuration with CLI overrides applied (CLI needs profiles)
+    config = load_tui_config(profile_name=profile, cli_overrides=cli_overrides)
 
     # Handle --list-profiles
     if list_profiles:
@@ -2197,7 +2197,7 @@ def list_presets(ctx: click.Context) -> None:
     from consoul.ai.tools.presets import list_available_presets
     from consoul.config import load_config
 
-    # Load config to get custom presets
+    # Load config to get custom presets (SDK config is sufficient for presets)
     config = load_config()
 
     # Get all presets (built-in + custom)

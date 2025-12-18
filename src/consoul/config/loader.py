@@ -468,23 +468,60 @@ def load_config(
     )
     env_config = load_env_config(env_settings)
 
-    # 5. Merge in precedence order (no profile-specific logic)
+    # 5. Apply model and conversation overrides from env vars directly to core config
+    # (These were previously only applied in TUI via profiles)
+    env_core_overrides: dict[str, Any] = {}
+
+    if "_model_overrides" in env_config:
+        model_overrides = env_config.pop("_model_overrides")
+        # Apply provider and model to top-level fields
+        if "provider" in model_overrides:
+            env_core_overrides["current_provider"] = model_overrides["provider"]
+        if "model" in model_overrides:
+            env_core_overrides["current_model"] = model_overrides["model"]
+        # Apply temperature/max_tokens to provider_configs
+        provider_config_overrides: dict[str, Any] = {}
+        if "temperature" in model_overrides:
+            provider_config_overrides["default_temperature"] = model_overrides[
+                "temperature"
+            ]
+        if "max_tokens" in model_overrides:
+            provider_config_overrides["default_max_tokens"] = model_overrides[
+                "max_tokens"
+            ]
+        if provider_config_overrides:
+            # Determine which provider to apply overrides to
+            provider = model_overrides.get("provider") or env_core_overrides.get(
+                "current_provider"
+            )
+            if provider:
+                env_core_overrides.setdefault("provider_configs", {})[provider] = (
+                    provider_config_overrides
+                )
+
+    if "_conversation_overrides" in env_config:
+        # Conversation overrides (history_file, etc.) - not applicable to SDK core
+        # These were profile-specific settings, SDK doesn't have conversation config
+        env_config.pop("_conversation_overrides")
+
+    # 6. Merge in precedence order (env_core_overrides applied after env_config)
     merged = merge_configs(
         default_config,
         global_config,
         project_config,
         env_config,
+        env_core_overrides,
         cli_overrides or {},
     )
 
-    # 6. Remove profile-related fields (SDK is profile-free)
+    # 7. Remove profile-related fields (SDK is profile-free)
     merged.pop("profiles", None)
     merged.pop("active_profile", None)
 
-    # 7. Remove tui section if present (SDK doesn't use TUI settings)
+    # 8. Remove tui section if present (SDK doesn't use TUI settings)
     merged.pop("tui", None)
 
-    # 8. Validate with Pydantic and attach env_settings (already loaded)
+    # 9. Validate with Pydantic and attach env_settings (already loaded)
     config = ConsoulConfig(**merged)
     config.env_settings = env_settings
 

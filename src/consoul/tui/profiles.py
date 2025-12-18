@@ -304,5 +304,12 @@ __all__ = [
 ]
 
 # Rebuild ProfileConfig with actual types now that they're available
-# The types are imported in the TYPE_CHECKING block and model_rebuild() uses forward refs
+# Import at runtime to resolve forward references
+# These MUST be runtime imports for model_rebuild() to work, not TYPE_CHECKING
+from consoul.config.models import (  # noqa: E402, TC001
+    ContextConfig,
+    ConversationConfig,
+    ModelConfigUnion,
+)
+
 ProfileConfig.model_rebuild()
