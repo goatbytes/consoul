@@ -17,7 +17,6 @@ from consoul.config.env import load_env_settings
 from consoul.config.models import (
     ConsoulConfig,
     ConsoulCoreConfig,
-    ProfileConfig,
     Provider,
 )
 from consoul.config.profiles import get_builtin_profiles
@@ -299,20 +298,18 @@ def select_intelligent_default_model() -> tuple[Provider, str]:
     return (Provider.ANTHROPIC, "claude-3-5-sonnet-20241022")
 
 
-def create_default_config() -> dict[str, Any]:
-    """Create default configuration with all built-in profiles.
+def create_sdk_default_config() -> dict[str, Any]:
+    """Create default configuration for SDK (profile-free).
 
     Intelligently selects the default model based on available API keys and services.
 
     Returns:
-        Default configuration dictionary with all built-in profiles.
+        Default configuration dictionary for ConsoulCoreConfig (no profiles).
     """
     # Select intelligent default based on what's available
     default_provider, default_model = select_intelligent_default_model()
 
     return {
-        "profiles": get_builtin_profiles(),
-        "active_profile": "default",
         "current_provider": default_provider.value,
         "current_model": default_model,
         "provider_configs": {
@@ -341,22 +338,59 @@ def create_default_config() -> dict[str, Any]:
     }
 
 
-def load_profile(profile_name: str, config: ConsoulConfig) -> ProfileConfig:
+def create_default_config() -> dict[str, Any]:
+    """Create default configuration with all built-in profiles (for TUI).
+
+    Intelligently selects the default model based on available API keys and services.
+
+    Returns:
+        Default configuration dictionary with all built-in profiles.
+    """
+    # Start with SDK defaults
+    config = create_sdk_default_config()
+
+    # Add TUI-specific profile fields
+    config["profiles"] = get_builtin_profiles()
+    config["active_profile"] = "default"
+
+    return config
+
+
+def load_profile(profile_name: str, config: Any) -> Any:
     """Load a profile by name from custom or built-in profiles.
+
+    This function works with ConsoulTuiConfig only. SDK usage should use
+    explicit parameters instead of profiles.
 
     Args:
         profile_name: Name of the profile to load.
-        config: ConsoulConfig instance to check for custom profiles.
+        config: ConsoulTuiConfig instance to check for custom profiles.
 
     Returns:
         ProfileConfig instance.
 
     Raises:
         KeyError: If the profile doesn't exist.
+        TypeError: If config is not a TUI config (no profiles field).
     """
+    # Lazy import to avoid circular dependency
+    from consoul.tui.profiles import ProfileConfig
+
+    # Check if config has profiles (TUI config only)
+    if not hasattr(config, "profiles"):
+        raise TypeError(
+            "load_profile() requires ConsoulTuiConfig (with profiles field). "
+            "SDK usage should use explicit parameters instead of profiles. "
+            "Use load_tui_config() to load TUI configuration."
+        )
+
     # Check custom profiles first (they override built-in)
     if profile_name in config.profiles:
-        return config.profiles[profile_name]
+        profile_data = config.profiles[profile_name]
+        # Convert dict to ProfileConfig if needed
+        if isinstance(profile_data, dict):
+            return ProfileConfig(**profile_data)
+        return profile_data
 
     # Fall back to built-in profiles
     builtin = get_builtin_profiles()
@@ -377,10 +411,16 @@ def load_config(
     cli_overrides: dict[str, Any] | None = None,
     profile_name: str | None = None,
 ) -> ConsoulConfig:
-    """Load and merge configuration from all sources.
+    """Load and merge configuration from all sources (profile-free for SDK).
+
+    This function loads configuration for SDK usage without profile dependencies.
+    Returns ConsoulCoreConfig with explicit parameters only.
+
+    TUI applications should use load_tui_config() to get ConsoulTuiConfig with
+    profile support.
 
     Precedence order (lowest to highest):
-    1. Defaults (built-in profiles + default settings)
+    1. Defaults (profile-free SDK defaults)
     2. Global config (~/.consoul/config.yaml)
     3. Project config (.consoul/config.yaml)
     4. Environment variables (CONSOUL_*)
@@ -392,18 +432,17 @@ def load_config(
         project_config_path: Optional path to project config file.
             If None, searches upward from cwd.
         cli_overrides: Optional dictionary of CLI argument overrides.
-        profile_name: Optional profile name to set as active.
-            If provided, sets active_profile after loading.
+        profile_name: Ignored (deprecated). Use load_tui_config() for profile support.
 
     Returns:
-        Validated ConsoulConfig instance.
+        Validated ConsoulCoreConfig instance (profile-free).
 
     Raises:
         yaml.YAMLError: If config file has invalid YAML syntax.
         ValidationError: If merged config doesn't match schema.
     """
-    # 1. Start with defaults
-    default_config = create_default_config()
+    # 1. Start with SDK defaults (profile-free)
+    default_config = create_sdk_default_config()
 
     # 2. Find config files if not provided
     if global_config_path is None or project_config_path is None:
@@ -428,52 +467,23 @@ def load_config(
     )
     env_config = load_env_config(env_settings)
 
-    # 5. Determine active profile from precedence chain
-    active = (
-        profile_name  # CLI has highest precedence
-        or env_config.get("active_profile")
-        or project_config.get("active_profile")
-        or global_config.get("active_profile")
-        or default_config.get("active_profile", "default")
-    )
-
-    # 6. Apply model and conversation overrides from env vars to the active profile
-    env_overrides: dict[str, Any] = {}
-    profile_overrides: dict[str, Any] = {}
-
-    if "_model_overrides" in env_config:
-        model_overrides = env_config.pop("_model_overrides")
-        profile_overrides["model"] = model_overrides
-
-    if "_conversation_overrides" in env_config:
-        conversation_overrides = env_config.pop("_conversation_overrides")
-        profile_overrides["conversation"] = conversation_overrides
-
-    if profile_overrides:
-        env_overrides = {"profiles": {active: profile_overrides}}
-        if "active_profile" not in env_config:
-            env_overrides["active_profile"] = active
-
-    # 7. Merge in precedence order
+    # 5. Merge in precedence order (no profile-specific logic)
     merged = merge_configs(
         default_config,
         global_config,
         project_config,
         env_config,
-        env_overrides,
         cli_overrides or {},
     )
 
-    # 8. Set active profile if specified via CLI (highest precedence)
-    if profile_name is not None:
-        merged["active_profile"] = profile_name
+    # 6. Remove profile-related fields (SDK is profile-free)
+    merged.pop("profiles", None)
+    merged.pop("active_profile", None)
 
-    # 9. Remove tui section if present (for backward compatibility)
-    # ConsoulCoreConfig doesn't have a tui field, so we discard it
-    # TUI applications should use load_tui_config() instead
+    # 7. Remove tui section if present (SDK doesn't use TUI settings)
     merged.pop("tui", None)
 
-    # 10. Validate with Pydantic and attach env_settings (already loaded)
+    # 8. Validate with Pydantic and attach env_settings (already loaded)
     config = ConsoulConfig(**merged)
     config.env_settings = env_settings
 
