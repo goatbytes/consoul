@@ -8,8 +8,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from consoul.tui.profiles import ProfileConfig
     from consoul.tui.config import ConsoulTuiConfig
+    from consoul.tui.profiles import ProfileConfig
 
 import logging
 
