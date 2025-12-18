@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-16T13:55:02.197940",
-  "updated_at": "2025-12-18T00:12:39.863701Z",
+  "updated_at": "2025-12-17T16:22:32.255635",
   "id": "SOUL-289",
   "uuid": "f9707be5-7cea-4eb9-ae88-dd5437c312b2",
   "title": "Decouple ProfileConfig from SDK core layer",
@@ -18,10 +18,24 @@
   "epic_id": "EPIC-015",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-12-17T16:22:32.255438",
+      "updated_at": "2025-12-17T16:22:32.255439",
+      "id": "20251217162232-e50cb252",
+      "ticket_id": "SOUL-289",
+      "author": "jared@goatbytes.io",
+      "content": "Phase 1 Complete: Deprecation & Soft Migration\n\n✅ Implemented deprecation warnings in SDK wrapper (src/consoul/sdk/wrapper.py:361-368)\n✅ Created comprehensive migration guide (docs/api/integration-guide.md:482-669)\n✅ Updated SDK examples to show profile-free patterns\n   - examples/sdk/custom_profile.py: Deprecated vs recommended comparison\n   - examples/sdk/quick_start.py: Profile-free quick start\n   - examples/sdk/domain_specific.py: NEW - Legal, medical, support examples\n✅ Added 4 deprecation warning tests (tests/unit/test_profile_optional.py:414-540)\n\nAll tests passing (4/4 deprecation tests + 13/13 profile-optional tests)\n\nCommit: 5ad4427",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 13,
   "order": 40,
   "custom_fields": {}
