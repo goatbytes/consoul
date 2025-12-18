@@ -1,8 +1,32 @@
-"""TUI-specific profile configuration.
+"""TUI/CLI-only profile configuration (v0.5.0+).
+
+⚠️ **TUI/CLI ONLY**: Profiles are exclusively for TUI and CLI usage.
+The SDK no longer accepts a `profile` parameter. Use explicit parameters instead.
 
 This module contains ProfileConfig and builtin profiles, extracted from SDK core
 to decouple profiles from the SDK layer. Profiles are a TUI/CLI convenience feature
 for workflow management, not a core SDK requirement.
+
+**SDK Usage (v0.5.0+)**:
+```python
+from consoul import Consoul
+
+# ❌ REMOVED: Consoul(profile="default")
+# ✅ USE THIS: Explicit parameters
+console = Consoul(
+    model="gpt-4o",
+    temperature=0.7,
+    system_prompt="You are a helpful assistant.",
+    tools=True,
+    persist=True,
+)
+```
+
+**TUI/CLI Usage** (profiles still work):
+```bash
+consoul  # Uses default profile
+consoul --profile creative
+```
 
 Moved from: consoul.config.models.ProfileConfig
 Moved from: consoul.config.profiles.get_builtin_profiles()
@@ -280,11 +304,5 @@ __all__ = [
 ]
 
 # Rebuild ProfileConfig with actual types now that they're available
-# Import the types at runtime to resolve forward references
-from consoul.config.models import (  # noqa: E402
-    ContextConfig,
-    ConversationConfig,
-    ModelConfigUnion,
-)
-
+# The types are imported in the TYPE_CHECKING block and model_rebuild() uses forward refs
 ProfileConfig.model_rebuild()

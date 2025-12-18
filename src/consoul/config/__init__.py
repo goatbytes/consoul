@@ -3,6 +3,8 @@
 This module provides Pydantic models and utilities for managing Consoul configuration.
 """
 
+from typing import Any
+
 from consoul.config.env import (
     EnvSettings,
     get_api_key,
@@ -76,7 +78,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Provide lazy imports for deprecated profile-related items.
 
     This allows the deprecation warnings to only be shown when these items
@@ -94,9 +96,15 @@ def __getattr__(name: str):
     # Profile-related lazy imports (deprecated)
     if name == "ProfileConfig":
         from consoul.config.models import ProfileConfig as _ProfileConfig
+
         return _ProfileConfig
-    elif name in ("get_builtin_profiles", "get_profile_description", "list_available_profiles"):
+    elif name in (
+        "get_builtin_profiles",
+        "get_profile_description",
+        "list_available_profiles",
+    ):
         from consoul.config import profiles as _profiles_module
+
         return getattr(_profiles_module, name)
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

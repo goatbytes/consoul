@@ -479,19 +479,19 @@ console = Consoul(
 )
 ```
 
-## Migration from Profiles (SDK v1.0.0+)
+## Migration from Profiles (SDK v0.5.0+)
 
-### Profile Deprecation Notice
+### Profile Removal Notice
 
-⚠️ **DEPRECATION**: The `profile` parameter in Consoul SDK is deprecated as of v0.5.0 and will be removed in v1.0.0.
+⚠️ **BREAKING CHANGE**: The `profile` parameter has been removed from Consoul SDK in v0.5.0.
 
 **Why?** Profiles couple SDK to TUI/CLI workflow concepts (coding assistant behavior, environment context injection). This prevents Consoul from being a general-purpose LLM SDK for domain-specific applications (legal AI, medical chatbots, customer support, etc.).
 
-**What's changing:**
-- ✅ **SDK**: Profile-free by default (explicit parameters only)
+**What changed:**
+- ✅ **SDK**: Profile-free (explicit parameters only) - `profile` parameter removed
 - ✅ **TUI/CLI**: Profiles continue working as a convenience feature
 - ✅ **Config files**: Can still define profiles for TUI/CLI usage
-- ⚠️ **Deprecated**: Using `profile` parameter in SDK code
+- ❌ **Removed**: `profile` parameter no longer accepted in SDK `Consoul()` constructor
 
 ### Migration Path
 
@@ -565,8 +565,8 @@ profiles:
 #### SDK Translation
 
 ```python
-# Old (deprecated)
-console = Consoul(profile="production")
+# Old (removed in v0.5.0)
+# console = Consoul(profile="production")  # ❌ TypeError
 
 # New (explicit)
 console = Consoul(
@@ -640,18 +640,17 @@ See [Domain-Specific Context Customization](#domain-specific-context-customizati
 
 ### Timeline
 
-- **v0.5.0** (Current): Profile parameter deprecated with warnings
-- **v0.9.0**: Migration guide and documentation updates
-- **v1.0.0**: Profile parameter removed from SDK (breaking change)
+- **v0.4.0**: Profile parameter deprecated with warnings (SOUL-289 Phase 1)
+- **v0.5.0** (Current): Profile parameter removed from SDK (SOUL-289 Phase 3, breaking change)
 
 ### Migration Checklist
 
-- [ ] Identify all uses of `profile` parameter in SDK code
+- [ ] Identify all uses of `profile` parameter in SDK code (will raise `TypeError` in v0.5.0)
 - [ ] Translate profile configurations to explicit parameters
-- [ ] Test with deprecation warnings enabled
+- [ ] Update imports: `ProfileConfig` is now in `consoul.tui.profiles` (TUI/CLI only)
 - [ ] Update documentation and examples
 - [ ] Consider domain-specific prompt customization (if applicable)
-- [ ] Remove `profile` parameter usage before v1.0.0
+- [ ] Test with v0.5.0 to ensure no `TypeError` exceptions
 
 ### Getting Help
 

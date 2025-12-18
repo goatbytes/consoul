@@ -36,6 +36,7 @@ print(f"Model: {response.model}")
 print(f"\nSettings: {console.settings}")
 print(f"Last cost: {console.last_cost}")
 
-# Note: The 'profile' parameter is deprecated as of v0.5.0
-# OLD (deprecated): Consoul(profile="default", model="gpt-4o")
-# NEW (recommended): Consoul(model="gpt-4o", system_prompt="...", temperature=0.7)
+# Note: The 'profile' parameter was removed in v0.5.0
+# Profiles are now TUI/CLI-only feature. SDK uses explicit parameters.
+# For TUI profiles: Use consoul.tui.profiles.ProfileConfig
+# For SDK usage: Use explicit model, system_prompt, temperature (shown above)

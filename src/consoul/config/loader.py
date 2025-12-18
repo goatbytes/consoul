@@ -579,11 +579,13 @@ def load_tui_config(
     if profile_name is not None:
         merged["active_profile"] = profile_name
 
-    # 9. Extract tui section BEFORE creating core config
+    # 9. Extract tui section and profile fields BEFORE creating core config
     # This preserves user's TUI settings from config files
     tui_dict = merged.pop("tui", {})
+    profiles = merged.pop("profiles", {})
+    active_profile = merged.pop("active_profile", "default")
 
-    # 10. Validate core config with Pydantic (without tui field)
+    # 10. Validate core config with Pydantic (without tui and profile fields)
     core_config = ConsoulCoreConfig(**merged)
     core_config.env_settings = env_settings
 
@@ -591,7 +593,12 @@ def load_tui_config(
     tui_config = TuiConfig(**tui_dict) if tui_dict else TuiConfig()
 
     # 12. Combine into ConsoulTuiConfig
-    return ConsoulTuiConfig(core=core_config, tui=tui_config)
+    return ConsoulTuiConfig(
+        profiles=profiles,
+        active_profile=active_profile,
+        core=core_config,
+        tui=tui_config,
+    )
 
 
 def save_config(

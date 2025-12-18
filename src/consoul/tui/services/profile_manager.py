@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from consoul.config import ConsoulConfig
+    from consoul.tui.config import ConsoulTuiConfig
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class ProfileManager:
         return save_path
 
     @staticmethod
-    def save_profile_config(config: ConsoulConfig) -> None:
+    def save_profile_config(config: ConsoulTuiConfig) -> None:
         """Save profile configuration to disk.
 
         Args:
@@ -146,7 +146,7 @@ class ProfileManager:
         return (True, None)
 
     @staticmethod
-    def create_profile(config: ConsoulConfig, profile: Any) -> None:
+    def create_profile(config: ConsoulTuiConfig, profile: Any) -> None:
         """Create new profile and save to disk.
 
         Args:
@@ -166,7 +166,7 @@ class ProfileManager:
 
     @staticmethod
     def update_profile(
-        config: ConsoulConfig, old_name: str, updated_profile: Any
+        config: ConsoulTuiConfig, old_name: str, updated_profile: Any
     ) -> bool:
         """Update existing profile and save to disk.
 
@@ -198,7 +198,7 @@ class ProfileManager:
         return name_changed
 
     @staticmethod
-    def delete_profile(config: ConsoulConfig, profile_name: str) -> None:
+    def delete_profile(config: ConsoulTuiConfig, profile_name: str) -> None:
         """Delete profile and save to disk.
 
         Args:
@@ -217,7 +217,7 @@ class ProfileManager:
         logger.info(f"Deleted profile: {profile_name}")
 
     @staticmethod
-    def switch_active_profile(config: ConsoulConfig, profile_name: str) -> Any:
+    def switch_active_profile(config: ConsoulTuiConfig, profile_name: str) -> Any:
         """Switch active profile and save to disk.
 
         Args:
@@ -247,7 +247,7 @@ class ProfileManager:
     # enabling profile-free SDK usage while maintaining TUI profile support
 
     @staticmethod
-    def profile_to_sdk_params(profile: Any, config: ConsoulConfig) -> dict[str, Any]:
+    def profile_to_sdk_params(profile: Any, config: ConsoulTuiConfig) -> dict[str, Any]:
         """Convert ProfileConfig to explicit SDK parameters.
 
         This method extracts all relevant settings from a profile and returns
@@ -255,7 +255,7 @@ class ProfileManager:
 
         Args:
             profile: ProfileConfig instance to convert
-            config: ConsoulConfig for context (provider settings, etc.)
+            config: ConsoulTuiConfig for context (provider settings, etc.)
 
         Returns:
             Dictionary of SDK parameters (model, temperature, system_prompt, etc.)
@@ -296,14 +296,14 @@ class ProfileManager:
         return params
 
     @staticmethod
-    def build_profile_system_prompt(profile: Any, config: ConsoulConfig) -> str:
+    def build_profile_system_prompt(profile: Any, config: ConsoulTuiConfig) -> str:
         """Build complete system prompt from profile with environment context.
 
         Delegates to SDK's build_enhanced_system_prompt() for consistency.
 
         Args:
             profile: ProfileConfig with system_prompt and context settings
-            config: ConsoulConfig for additional context
+            config: ConsoulTuiConfig for additional context
 
         Returns:
             Complete system prompt with environment context and tool documentation
@@ -355,12 +355,12 @@ class ProfileManager:
         }
 
     @staticmethod
-    def get_model_name(profile: Any, config: ConsoulConfig) -> str:
+    def get_model_name(profile: Any, config: ConsoulTuiConfig) -> str:
         """Get model name from profile or fallback to config default.
 
         Args:
             profile: ProfileConfig with optional model configuration
-            config: ConsoulConfig with current_model fallback
+            config: ConsoulTuiConfig with current_model fallback
 
         Returns:
             Model name string

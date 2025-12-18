@@ -23,9 +23,8 @@ class TestProfileOptional:
         mock_model = Mock()
         mock_get_chat_model.return_value = mock_model
 
-        # Test: Instantiate without profile (explicitly set profile=None)
+        # Test: Instantiate without profile (explicit parameters only)
         console = Consoul(
-            profile=None,
             model="gpt-4o",
             system_prompt="You are a legal assistant",
             tools=False,
@@ -33,7 +32,6 @@ class TestProfileOptional:
         )
 
         # Verify
-        assert console.profile is None
         assert console.model_name == "gpt-4o"
         mock_get_chat_model.assert_called()
 
@@ -54,7 +52,6 @@ class TestProfileOptional:
         # Test: Provide conversation settings
         custom_db_path = Path("/tmp/test.db")
         console = Consoul(
-            profile=None,
             model="claude-sonnet-4",
             system_prompt="You are a medical assistant",
             db_path=custom_db_path,
@@ -95,7 +92,6 @@ class TestProfileOptional:
 
         # Test: Provide summary model
         console = Consoul(
-            profile=None,
             model="gpt-4o",
             summary_model="gpt-4o-mini",
             tools=False,
@@ -106,83 +102,6 @@ class TestProfileOptional:
         conv_kwargs = console._get_conversation_kwargs()
         assert "summary_model" in conv_kwargs
         assert conv_kwargs["summary_model"] == mock_summary_model
-
-    @patch("consoul.sdk.wrapper.get_chat_model")
-    @patch("consoul.config.load_config")  # Patch SDK config load
-    @patch("consoul.config.loader.load_tui_config")  # Patch TUI config load
-    def test_backward_compat_with_profile(
-        self, mock_load_tui_config, mock_load_config, mock_get_chat_model
-    ):
-        """Test backward compatibility with existing profile usage."""
-        # Setup mocks
-        mock_sdk_config = Mock()
-        mock_sdk_config.current_model = "gpt-4o"
-        mock_load_config.return_value = mock_sdk_config
-
-        mock_tui_config = Mock()
-        mock_profile = Mock()
-        mock_profile.system_prompt = "Default system prompt"
-        mock_profile.conversation = Mock()
-        mock_profile.conversation.db_path = Path.home() / ".consoul" / "history.db"
-        mock_profile.conversation.summarize = False
-        mock_profile.conversation.summarize_threshold = 20
-        mock_profile.conversation.keep_recent = 10
-        mock_profile.conversation.summary_model = None
-        mock_profile.model = None
-
-        mock_tui_config.profiles = {"default": mock_profile}
-        mock_tui_config.current_model = "gpt-4o"
-        mock_load_tui_config.return_value = mock_tui_config
-
-        mock_model = Mock()
-        mock_get_chat_model.return_value = mock_model
-
-        # Test: Use profile (backward compatibility)
-        console = Consoul(
-            profile="default",
-            tools=False,
-            persist=False,
-        )
-
-        # Verify profile is used
-        assert console.profile == mock_profile
-        # Model comes from config, just verify it's set
-        assert console.model_name is not None
-
-    @patch("consoul.sdk.wrapper.get_chat_model")
-    @patch("consoul.config.loader.load_tui_config")  # Patch from loader module
-    def test_direct_param_overrides_profile(
-        self, mock_load_tui_config, mock_get_chat_model
-    ):
-        """Test that direct parameters override profile settings."""
-        # Setup mocks
-        mock_config = Mock()
-        mock_profile = Mock()
-        mock_profile.system_prompt = "Default system prompt"
-        mock_profile.conversation = Mock()
-        mock_profile.conversation.db_path = Path.home() / ".consoul" / "history.db"
-        mock_profile.conversation.summarize = False
-        mock_profile.model = None
-
-        mock_config.profiles = {"default": mock_profile}
-        mock_config.current_model = "gpt-4o"
-        mock_load_tui_config.return_value = mock_config
-
-        mock_model = Mock()
-        mock_get_chat_model.return_value = mock_model
-
-        # Test: Override profile with direct params
-        console = Consoul(
-            profile="default",
-            temperature=0.9,
-            system_prompt="Custom system prompt",
-            tools=False,
-            persist=False,
-        )
-
-        # Verify overrides
-        assert console.temperature == 0.9
-        assert console.profile.system_prompt == "Custom system prompt"
 
     @patch("consoul.sdk.wrapper.get_chat_model")
     @patch("consoul.sdk.wrapper.load_config")
@@ -198,7 +117,6 @@ class TestProfileOptional:
 
         # Test: No db_path specified
         console = Consoul(
-            profile=None,
             model="gpt-4o",
             tools=False,
             persist=False,
@@ -225,7 +143,6 @@ class TestProfileOptional:
 
         # Test: Explicit system prompt
         console = Consoul(
-            profile=None,
             model="gpt-4o",
             system_prompt="Custom prompt",
             tools=False,
@@ -250,7 +167,6 @@ class TestProfileOptional:
 
         # Test: No model, no profile
         console = Consoul(
-            profile=None,
             tools=False,
             persist=False,
         )
@@ -274,7 +190,6 @@ class TestProfileOptional:
 
         # Test: Profile-free with provider kwargs
         _console = Consoul(
-            profile=None,
             model="gpt-4o",
             service_tier="flex",
             temperature=0.7,
@@ -304,7 +219,6 @@ class TestProfileOptional:
 
         # Test: Profile-free with system prompt
         console = Consoul(
-            profile=None,
             model="gpt-4o",
             system_prompt="You are a legal assistant",
             tools=False,
@@ -334,7 +248,6 @@ class TestProfileOptional:
 
         # Test: Profile-free mode
         console = Consoul(
-            profile=None,
             model="gpt-4o",
             system_prompt="You are a legal assistant",
             temperature=0.7,
@@ -347,9 +260,9 @@ class TestProfileOptional:
 
         # Verify settings
         assert settings["model"] == "gpt-4o"
-        assert settings["profile"] is None  # No profile in profile-free mode
         assert settings["system_prompt"] == "You are a legal assistant"
         assert settings["temperature"] == 0.7
+        # Note: "profile" key no longer exists in settings (removed in v0.5.0)
 
     @patch("consoul.sdk.wrapper.get_chat_model")
     @patch("consoul.sdk.wrapper.load_config")
@@ -367,7 +280,6 @@ class TestProfileOptional:
 
         # Test: Profile-free without system prompt
         console = Consoul(
-            profile=None,
             model="gpt-4o",
             tools=False,
             persist=False,
@@ -379,119 +291,11 @@ class TestProfileOptional:
         # Verify no errors
 
     @patch("consoul.sdk.wrapper.get_chat_model")
-    @patch("consoul.config.loader.load_tui_config")  # Patch from loader module
-    def test_profile_mode_clear_still_works(
-        self, mock_load_tui_config, mock_get_chat_model
-    ):
-        """Test that clear() still works correctly with profiles (backward compat)."""
-        # Setup mocks
-        mock_config = Mock()
-        mock_profile = Mock()
-        mock_profile.system_prompt = "Default system prompt"
-        mock_profile.conversation = Mock()
-        mock_profile.conversation.db_path = Path.home() / ".consoul" / "history.db"
-        mock_profile.conversation.summarize = False
-        mock_profile.conversation.summarize_threshold = 20
-        mock_profile.conversation.keep_recent = 10
-        mock_profile.conversation.summary_model = None
-        mock_profile.model = None
-
-        mock_config.profiles = {"default": mock_profile}
-        mock_config.current_model = "gpt-4o"
-        mock_load_tui_config.return_value = mock_config
-
-        mock_model = Mock()
-        mock_get_chat_model.return_value = mock_model
-
-        # Test: Profile mode
-        console = Consoul(
-            profile="default",
-            tools=False,
-            persist=False,
-        )
-
-        # Call clear - should not raise AttributeError
-        try:
-            console.clear()
-            # Success - backward compatibility maintained
-        except AttributeError as e:
-            pytest.fail(f"clear() raised AttributeError with profile: {e}")
-
-
-class TestProfileDeprecation:
-    """Test deprecation warnings for profile parameter (SOUL-289)."""
-
-    @patch("consoul.sdk.wrapper.get_chat_model")
-    @patch("consoul.config.loader.load_tui_config")  # Patch from loader module
-    def test_profile_parameter_raises_deprecation_warning(
-        self, mock_load_tui_config, mock_get_chat_model
-    ):
-        """Test that using profile parameter raises DeprecationWarning."""
-        # Setup mocks
-        mock_config = Mock()
-        mock_config.profiles = {
-            "default": Mock(
-                model=Mock(model="gpt-4o", temperature=0.7),
-                system_prompt="Test prompt",
-            )
-        }
-        mock_config.current_model = "gpt-4o"
-        mock_load_tui_config.return_value = mock_config
-
-        mock_model = Mock()
-        mock_get_chat_model.return_value = mock_model
-
-        # Test: Using profile parameter should raise DeprecationWarning
-        with pytest.warns(DeprecationWarning, match="profile.*deprecated"):
-            Consoul(
-                profile="default",
-                tools=False,
-                persist=False,
-            )
-
-    @patch("consoul.sdk.wrapper.get_chat_model")
-    @patch("consoul.config.loader.load_tui_config")  # Patch from loader module
-    def test_deprecation_warning_message_content(
-        self, mock_load_tui_config, mock_get_chat_model
-    ):
-        """Test that deprecation warning contains helpful migration info."""
-        # Setup mocks
-        mock_config = Mock()
-        mock_config.profiles = {
-            "default": Mock(
-                model=Mock(model="gpt-4o", temperature=0.7),
-                system_prompt="Test prompt",
-            )
-        }
-        mock_config.current_model = "gpt-4o"
-        mock_load_tui_config.return_value = mock_config
-
-        mock_model = Mock()
-        mock_get_chat_model.return_value = mock_model
-
-        # Test: Warning should mention v1.0.0 removal and migration guide
-        with pytest.warns(DeprecationWarning) as warning_list:
-            Consoul(
-                profile="default",
-                tools=False,
-                persist=False,
-            )
-
-        # Verify warning content
-        warning_message = str(warning_list[0].message)
-        assert "v1.0.0" in warning_message
-        assert "TUI/CLI" in warning_message or "explicit parameters" in warning_message
-        assert (
-            "migration" in warning_message.lower()
-            or "deprecated" in warning_message.lower()
-        )
-
-    @patch("consoul.sdk.wrapper.get_chat_model")
     @patch("consoul.sdk.wrapper.load_config")
-    def test_profile_free_mode_no_deprecation_warning(
+    def test_profile_parameter_removed_raises_type_error(
         self, mock_load_config, mock_get_chat_model
     ):
-        """Test that profile-free mode does not raise deprecation warning."""
+        """Test that using profile parameter raises TypeError (v0.5.0 breaking change)."""
         # Setup mocks
         mock_config = Mock()
         mock_config.current_model = "gpt-4o"
@@ -500,49 +304,8 @@ class TestProfileDeprecation:
         mock_model = Mock()
         mock_get_chat_model.return_value = mock_model
 
-        # Test: Profile-free mode should NOT raise DeprecationWarning
-        import warnings
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", DeprecationWarning)
-            try:
-                Consoul(
-                    model="gpt-4o",
-                    system_prompt="You are a helpful assistant",
-                    tools=False,
-                    persist=False,
-                )
-                # Success - no deprecation warning
-            except DeprecationWarning:
-                pytest.fail("Profile-free mode raised DeprecationWarning unexpectedly")
-
-    @patch("consoul.tui.profiles.get_builtin_profiles")  # Changed import path
-    @patch("consoul.sdk.wrapper.get_chat_model")
-    @patch("consoul.config.loader.load_tui_config")  # Patch from loader module
-    def test_builtin_profile_also_raises_deprecation(
-        self, mock_load_tui_config, mock_get_chat_model, mock_builtin_profiles
-    ):
-        """Test that builtin profiles also raise deprecation warnings."""
-        # Setup mocks
-        mock_config = Mock()
-        mock_config.profiles = {}  # No user profiles
-        mock_config.current_model = "gpt-4o"
-        mock_load_tui_config.return_value = mock_config
-
-        mock_model = Mock()
-        mock_get_chat_model.return_value = mock_model
-
-        # Mock builtin profiles
-        mock_builtin_profiles.return_value = {
-            "default": {
-                "name": "default",
-                "description": "Default profile",
-                "system_prompt": "Test",
-            }
-        }
-
-        # Test: Even builtin profiles should raise deprecation
-        with pytest.warns(DeprecationWarning, match="profile.*deprecated"):
+        # Test: profile parameter should raise TypeError
+        with pytest.raises(TypeError, match="profile"):
             Consoul(
                 profile="default",
                 tools=False,

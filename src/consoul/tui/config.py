@@ -219,7 +219,7 @@ class ConsoulTuiConfig(BaseModel):
         """Access core.tool_presets."""
         return self.core.tool_presets
 
-    def get_active_profile(self):  # type: ignore[no-untyped-def]
+    def get_active_profile(self) -> Any:
         """Get the currently active profile configuration.
 
         Returns:
