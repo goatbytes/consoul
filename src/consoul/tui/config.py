@@ -6,11 +6,14 @@ covering appearance, performance tuning, and behavior settings.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from consoul.config.models import ConsoulCoreConfig  # noqa: TC001
+
+if TYPE_CHECKING:
+    from consoul.tui.profiles import ProfileConfig
 
 __all__ = ["ConsoulTuiConfig", "TuiConfig"]
 
@@ -152,7 +155,7 @@ class ConsoulTuiConfig(BaseModel):
     """
 
     # Profile fields (TUI-specific, not in ConsoulCoreConfig)
-    profiles: dict[str, Any] = Field(
+    profiles: dict[str, ProfileConfig] = Field(
         description="Available configuration profiles (TUI feature)",
     )
     active_profile: str = Field(
@@ -219,7 +222,7 @@ class ConsoulTuiConfig(BaseModel):
         """Access core.tool_presets."""
         return self.core.tool_presets
 
-    def get_active_profile(self) -> Any:
+    def get_active_profile(self) -> ProfileConfig:
         """Get the currently active profile configuration.
 
         Returns:
