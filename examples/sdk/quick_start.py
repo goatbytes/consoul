@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Quick Start Consoul SDK Example - Customization in ~15 lines.
+"""Quick Start Consoul SDK Example - Profile-free customization in ~15 lines.
 
-Shows how to customize the SDK for common use cases.
+Shows how to customize the SDK for common use cases using explicit parameters.
 
 Usage:
     export ANTHROPIC_API_KEY=your-key-here
@@ -13,12 +13,13 @@ Requirements:
 
 from consoul import Consoul
 
-# Customize as needed
+# Customize with explicit parameters (RECOMMENDED)
 console = Consoul(
     model="gpt-4o",  # Auto-detect provider
-    profile="default",  # Use built-in profile
-    tools=True,  # Enable bash execution with approval
     temperature=0.7,
+    system_prompt="You are a helpful coding assistant.",
+    tools=True,  # Enable all built-in tools with approval
+    persist=True,  # Save conversation history
 )
 
 # Stateful conversation - history is maintained
@@ -34,3 +35,7 @@ print(f"Model: {response.model}")
 # Introspection
 print(f"\nSettings: {console.settings}")
 print(f"Last cost: {console.last_cost}")
+
+# Note: The 'profile' parameter is deprecated as of v0.5.0
+# OLD (deprecated): Consoul(profile="default", model="gpt-4o")
+# NEW (recommended): Consoul(model="gpt-4o", system_prompt="...", temperature=0.7)

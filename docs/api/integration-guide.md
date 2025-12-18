@@ -479,9 +479,194 @@ console = Consoul(
 )
 ```
 
-### Profile-Based Configuration
+## Migration from Profiles (SDK v1.0.0+)
 
-Create `~/.config/consoul/config.yaml`:
+### Profile Deprecation Notice
+
+⚠️ **DEPRECATION**: The `profile` parameter in Consoul SDK is deprecated as of v0.5.0 and will be removed in v1.0.0.
+
+**Why?** Profiles couple SDK to TUI/CLI workflow concepts (coding assistant behavior, environment context injection). This prevents Consoul from being a general-purpose LLM SDK for domain-specific applications (legal AI, medical chatbots, customer support, etc.).
+
+**What's changing:**
+- ✅ **SDK**: Profile-free by default (explicit parameters only)
+- ✅ **TUI/CLI**: Profiles continue working as a convenience feature
+- ✅ **Config files**: Can still define profiles for TUI/CLI usage
+- ⚠️ **Deprecated**: Using `profile` parameter in SDK code
+
+### Migration Path
+
+#### Before (Profile-Based SDK) ❌
+
+```python
+from consoul import Consoul
+
+# Old approach: relies on profile configuration
+console = Consoul(profile="default")
+console = Consoul(profile="creative", temperature=0.8)
+```
+
+**Problems:**
+- Implicit configuration from profile files
+- Assumes coding assistant domain (env/git context injection)
+- Requires understanding profile system
+- Couples library to application layer
+
+#### After (Profile-Free SDK) ✅
+
+```python
+from consoul import Consoul
+
+# New approach: explicit parameters
+console = Consoul(
+    model="claude-sonnet-4",
+    temperature=0.7,
+    system_prompt="You are a helpful assistant.",
+    tools=True,
+    persist=True,
+)
+
+# Domain-specific example (legal AI)
+console = Consoul(
+    model="gpt-4o",
+    temperature=0.3,
+    system_prompt="You are a workers' compensation legal assistant...",
+    tools=False,  # Chat-only
+    persist=True,
+    db_path="~/legal-ai/history.db",
+)
+```
+
+**Benefits:**
+- Explicit, self-documenting code
+- No hidden configuration
+- Works for any domain (legal, medical, support, etc.)
+- Clean separation: SDK = library, TUI/CLI = application
+
+### Migrating Profile Configurations
+
+If you have existing profiles in `~/.config/consoul/config.yaml`, translate them to explicit SDK parameters:
+
+#### Profile Definition
+
+```yaml
+# config.yaml
+profiles:
+  production:
+    model:
+      provider: anthropic
+      model: claude-3-5-sonnet-20241022
+      temperature: 0.3
+    system_prompt: "You are a production assistant."
+    conversation:
+      persist: true
+      summarize: false
+```
+
+#### SDK Translation
+
+```python
+# Old (deprecated)
+console = Consoul(profile="production")
+
+# New (explicit)
+console = Consoul(
+    model="claude-3-5-sonnet-20241022",  # From profile.model
+    temperature=0.3,                      # From profile.model.temperature
+    system_prompt="You are a production assistant.",  # From profile.system_prompt
+    persist=True,                         # From profile.conversation.persist
+    summarize=False,                      # From profile.conversation.summarize
+)
+```
+
+### Profile Mapping Reference
+
+| Profile Field | SDK Parameter | Example |
+|--------------|---------------|---------|
+| `profile.model.model` | `model` | `"gpt-4o"` |
+| `profile.model.temperature` | `temperature` | `0.7` |
+| `profile.system_prompt` | `system_prompt` | `"You are..."` |
+| `profile.conversation.persist` | `persist` | `True` |
+| `profile.conversation.summarize` | `summarize` | `False` |
+| `profile.conversation.summarize_threshold` | `summarize_threshold` | `20` |
+| `profile.conversation.keep_recent` | `keep_recent` | `10` |
+| `profile.conversation.summary_model` | `summary_model` | `"gpt-4o-mini"` |
+| `profile.conversation.db_path` | `db_path` | `"~/history.db"` |
+
+### Using Profiles in TUI/CLI (Still Supported)
+
+Profiles **continue to work** in TUI/CLI as a convenience feature:
+
+```bash
+# TUI application - profiles still work
+consoul  # Uses default profile
+
+# CLI mode - profiles still work
+consoul chat --profile creative
+
+# Config management
+consoul config profiles list
+consoul config profiles set creative
+```
+
+**Key point:** Profiles are a **TUI/CLI feature**, not an SDK feature. If you're building a library or domain-specific application, use explicit SDK parameters instead.
+
+### Custom System Prompts
+
+For advanced prompt building with domain-specific context:
+
+```python
+from consoul import Consoul
+from consoul.ai.prompt_builder import build_enhanced_system_prompt
+
+# Build custom prompt with domain context
+legal_prompt = build_enhanced_system_prompt(
+    "You are a workers' compensation legal assistant.",
+    context_sections={
+        "jurisdiction": "California law",
+        "case_law": load_case_law_database(),
+    },
+    include_os_info=False,  # No environment noise
+    auto_append_tools=False,
+)
+
+console = Consoul(
+    model="gpt-4o",
+    system_prompt=legal_prompt,
+    tools=False,
+)
+```
+
+See [Domain-Specific Context Customization](#domain-specific-context-customization) for details.
+
+### Timeline
+
+- **v0.5.0** (Current): Profile parameter deprecated with warnings
+- **v0.9.0**: Migration guide and documentation updates
+- **v1.0.0**: Profile parameter removed from SDK (breaking change)
+
+### Migration Checklist
+
+- [ ] Identify all uses of `profile` parameter in SDK code
+- [ ] Translate profile configurations to explicit parameters
+- [ ] Test with deprecation warnings enabled
+- [ ] Update documentation and examples
+- [ ] Consider domain-specific prompt customization (if applicable)
+- [ ] Remove `profile` parameter usage before v1.0.0
+
+### Getting Help
+
+Questions about migration?
+- **[GitHub Discussions](https://github.com/goatbytes/consoul/discussions)** - Migration help
+- **[Migration Guide](https://docs.consoul.ai/migration/profiles)** - Detailed guide
+- **[Examples](https://github.com/goatbytes/consoul/tree/main/examples/sdk)** - Profile-free examples
+
+---
+
+### Profile-Based Configuration (TUI/CLI Only)
+
+**Note:** The following section applies to TUI/CLI usage only. SDK users should use explicit parameters instead.
+
+Create `~/.config/consoul/config.yaml` for TUI/CLI:
 
 ```yaml
 profiles:
