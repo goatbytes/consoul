@@ -21,8 +21,8 @@ from consoul.sdk.services.conversation import ConversationService
 
 if TYPE_CHECKING:
     from consoul.cli.approval import CliToolApprovalProvider
-    from consoul.config import ConsoulConfig
     from consoul.formatters.base import ExportFormatter
+    from consoul.tui.config import ConsoulTuiConfig
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +38,8 @@ class ChatSession:
     - Optional persistence to SQLite
 
     Example:
-        >>> from consoul.config import ConsoulConfig
-        >>> config = ConsoulConfig.load()
+        >>> from consoul.config.loader import load_tui_config
+        >>> config = load_tui_config()
         >>> with ChatSession(config) as session:
         ...     response = session.send("Hello!")
         ...     print(response)
@@ -47,15 +47,15 @@ class ChatSession:
 
     def __init__(
         self,
-        config: ConsoulConfig,
+        config: ConsoulTuiConfig,
         approval_provider: CliToolApprovalProvider | None = None,
         system_prompt_override: str | None = None,
         resume_session_id: str | None = None,
     ) -> None:
-        """Initialize chat session from Consoul configuration.
+        """Initialize chat session from Consoul TUI configuration.
 
         Args:
-            config: ConsoulConfig instance with model, provider, and settings
+            config: ConsoulTuiConfig instance with model, provider, and profile settings
             approval_provider: Optional approval provider for tool calls.
                 If not provided, creates a default CliToolApprovalProvider.
             system_prompt_override: Optional system prompt to prepend to profile's base prompt
@@ -110,22 +110,22 @@ class ChatSession:
             self.conversation_service.conversation.add_system_message(system_prompt)
             logger.debug(f"Added system prompt: {system_prompt[:50]}...")
 
-    def _build_system_prompt(self, profile: Any, config: ConsoulConfig) -> str:
+    def _build_system_prompt(self, profile: Any, config: ConsoulTuiConfig) -> str:
         """Build complete system prompt with environment context and tool documentation.
 
-        Delegates to SDK's build_enhanced_system_prompt() for consistency.
+        Delegates to ProfileManager.build_profile_system_prompt() for consistency.
 
         Args:
             profile: Active profile configuration
-            config: Complete Consoul configuration
+            config: Complete Consoul TUI configuration
 
         Returns:
             Complete system prompt with environment context and tool documentation
         """
-        from consoul.ai.prompt_builder import build_enhanced_system_prompt
+        from consoul.tui.services.profile_manager import ProfileManager
 
-        # Start with base system prompt from profile
-        base_prompt = profile.system_prompt or ""
+        # Build base prompt using ProfileManager
+        base_prompt = ProfileManager.build_profile_system_prompt(profile, config)
 
         # Prepend system prompt override if provided
         if self.system_prompt_override:
@@ -137,24 +137,7 @@ class ChatSession:
                 f"Prepended system prompt override ({len(self.system_prompt_override)} chars)"
             )
 
-        # Get context settings from profile
-        include_system = (
-            profile.context.include_system_info if hasattr(profile, "context") else True
-        )
-        include_git = (
-            profile.context.include_git_info if hasattr(profile, "context") else True
-        )
-
-        # Use SDK builder with CLI defaults (auto-append enabled)
-        system_prompt = build_enhanced_system_prompt(
-            base_prompt=base_prompt,
-            tool_registry=self.conversation_service.tool_registry,
-            include_env_context=include_system,
-            include_git_context=include_git,
-            auto_append_tools=True,  # CLI wants auto-append
-        )
-
-        return system_prompt or base_prompt
+        return base_prompt
 
     def send(
         self,

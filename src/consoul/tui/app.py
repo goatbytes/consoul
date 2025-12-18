@@ -30,10 +30,10 @@ if TYPE_CHECKING:
     from consoul.ai.title_generator import TitleGenerator
     from consoul.ai.tools import ToolRegistry
     from consoul.ai.tools.parser import ParsedToolCall
-    from consoul.config.models import ProfileConfig
     from consoul.sdk.models import Attachment, ToolRequest
     from consoul.sdk.services import ConversationService, ModelService
     from consoul.tui.config import ConsoulTuiConfig
+    from consoul.tui.profiles import ProfileConfig
     from consoul.tui.widgets import (
         ContextualTopBar,
         InputArea,
@@ -1805,7 +1805,7 @@ class ConsoulApp(App[None]):
             elif action == "delete" and profile_name:
                 self._handle_delete_profile(profile_name)
 
-        from consoul.config.profiles import get_builtin_profiles
+        from consoul.tui.profiles import get_builtin_profiles
         from consoul.tui.widgets import ProfileSelectorModal
 
         builtin_names = set(get_builtin_profiles().keys())
