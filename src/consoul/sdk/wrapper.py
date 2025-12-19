@@ -115,6 +115,7 @@ class Consoul:
         api_key: str | None = None,
         discover_tools: bool = False,
         approval_provider: ApprovalProvider | None = None,
+        context_providers: list[Any] | None = None,
         db_path: Path | str | None = None,
         summarize: bool = False,
         summarize_threshold: int = 20,
@@ -155,6 +156,10 @@ class Consoul:
                               If None, defaults to CliApprovalProvider (terminal prompts).
                               Use this for web backends, WebSocket/SSE, or custom UX.
                               See examples/sdk/web_approval_provider.py for reference.
+            context_providers: List of context providers implementing ContextProvider protocol.
+                              Each provider's get_context() is called before building system prompts,
+                              injecting dynamic context from databases, APIs, or runtime sources.
+                              See examples/sdk/context_providers/ for domain-specific examples.
             db_path: Path to conversation history database (default: ~/.consoul/history.db).
             summarize: Enable conversation summarization (default: False).
             summarize_threshold: Number of messages before summarization (default: 20).
@@ -245,6 +250,27 @@ class Consoul:
                 ... )
                 >>> console = Consoul(tools=True, approval_provider=provider)
                 >>> # Tool approvals now go through web API instead of terminal
+
+            Context providers (domain-specific AI):
+                >>> # Legal AI with case law context
+                >>> from examples.sdk.context_providers.legal_context_provider import LegalContextProvider
+                >>> provider = LegalContextProvider("California", case_database)
+                >>> console = Consoul(
+                ...     model="gpt-4o",
+                ...     system_prompt="You are a legal assistant...",
+                ...     context_providers=[provider],
+                ...     tools=False
+                ... )
+
+                >>> # Multiple context providers composition
+                >>> console = Consoul(
+                ...     model="gpt-4o",
+                ...     context_providers=[
+                ...         KnowledgeBaseProvider(kb_id="medical"),
+                ...         PatientContextProvider(patient_id="12345"),
+                ...         ComplianceProvider(regulations=["HIPAA"])
+                ...     ]
+                ... )
 
             Provider-specific parameters:
                 >>> # OpenAI with flex tier (50% cheaper, slower)
@@ -349,6 +375,9 @@ class Consoul:
         self._keep_recent = keep_recent
         self._summary_model = summary_model
 
+        # Store context providers
+        self._context_providers = context_providers or []
+
         # Store explicit system prompt
         self._explicit_system_prompt = system_prompt
 
@@ -391,11 +420,10 @@ class Consoul:
             **self._get_conversation_kwargs(),
         )
 
-        # Add system prompt if provided
-        if system_prompt is not None:
-            self.history.add_system_message(system_prompt)
+        # Store explicit system prompt for dynamic context injection
+        self._explicit_system_prompt = system_prompt
 
-        # Initialize tools if requested
+        # Initialize tools if requested (must be before system prompt for dynamic providers)
         self.tools_spec = tools
         self.discover_tools = discover_tools
         self.approval_provider = approval_provider
@@ -405,6 +433,19 @@ class Consoul:
         self.registry: ToolRegistry | None = None
         if (tools is not False and tools is not None) or discover_tools:
             self._setup_tools()
+
+        # Add initial system prompt (after tools setup so registry is available)
+        if system_prompt is not None:
+            if self._context_providers:
+                # With providers: build with empty query for initialization
+                initial_prompt = self._build_dynamic_system_prompt(
+                    query=None, conversation_id=None
+                )
+                if initial_prompt:
+                    self.history.add_system_message(initial_prompt)
+            else:
+                # Without providers: add static prompt
+                self.history.add_system_message(system_prompt)
 
         # Track last request for introspection
         self._last_request: dict[str, Any] | None = None
@@ -599,6 +640,56 @@ class Consoul:
         """
         self._last_response = response
 
+    def _build_dynamic_system_prompt(
+        self, query: str | None = None, conversation_id: str | None = None
+    ) -> str | None:
+        """Build system prompt with dynamic context from providers.
+
+        Called per-message to inject fresh, query-aware context.
+        Uses build_enhanced_system_prompt to include tool/env/git context.
+
+        Args:
+            query: Current user query (for query-aware context)
+            conversation_id: Conversation ID (for stateful context)
+
+        Returns:
+            Enhanced system prompt with dynamic context, or None if no prompt
+        """
+        if self._explicit_system_prompt is None:
+            return None
+
+        # Collect context from providers
+        context_sections: dict[str, str] = {}
+        if self._context_providers:
+            for provider in self._context_providers:
+                try:
+                    # Pass query and conversation_id for dynamic context
+                    provider_context = provider.get_context(
+                        query=query, conversation_id=conversation_id
+                    )
+                    context_sections.update(provider_context)
+                except Exception as e:
+                    # Log but don't fail - partial context is acceptable
+                    import logging
+
+                    logging.warning(
+                        f"Context provider {provider.__class__.__name__} failed: {e}"
+                    )
+
+        # Use build_enhanced_system_prompt to include tool docs
+        # Note: env/git context defaults to False for privacy
+        # Use custom context providers if you need environment data
+        from consoul.ai.prompt_builder import build_enhanced_system_prompt
+
+        return build_enhanced_system_prompt(
+            base_prompt=self._explicit_system_prompt,
+            tool_registry=self.registry if self.tools_enabled else None,
+            include_env_context=False,  # No env leakage by default
+            include_git_context=False,  # No git info leakage by default
+            auto_append_tools=True,
+            context_sections=context_sections if context_sections else None,
+        )
+
     def chat(self, message: str) -> str:
         """Send a message and get a response.
 
@@ -618,6 +709,15 @@ class Consoul:
             '6'
         """
         self._track_request(message)
+
+        # Update system prompt with dynamic context from providers
+        if self._context_providers:
+            conversation_id = getattr(self.history, "conversation_id", None)
+            enhanced_prompt = self._build_dynamic_system_prompt(
+                query=message, conversation_id=conversation_id
+            )
+            if enhanced_prompt:
+                self.history.add_system_message(enhanced_prompt)
 
         # Add user message (synchronous version for SDK)
         self.history.add_user_message(message)

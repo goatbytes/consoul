@@ -530,15 +530,20 @@ class ConversationHistory:
         """
         system_message = SystemMessage(content=content)
 
+        # Check if we're replacing an existing system message
+        is_replacement = self.messages and isinstance(self.messages[0], SystemMessage)
+
         # Replace existing system message if present
-        if self.messages and isinstance(self.messages[0], SystemMessage):
+        if is_replacement:
             self.messages[0] = system_message
         else:
             # Insert at beginning
             self.messages.insert(0, system_message)
 
-        # Persist if enabled (blocking for sync SDK)
-        self._persist_message_sync(system_message)
+        # Only persist on first add, not on replacements
+        # (Replacements are for dynamic context updates and shouldn't duplicate in DB)
+        if not is_replacement:
+            self._persist_message_sync(system_message)
 
     def store_system_prompt_metadata(
         self, profile_name: str | None = None, tool_count: int | None = None

@@ -2,8 +2,8 @@
 """Domain-Specific SDK Usage - Profile-Free Examples
 
 Demonstrates how to use Consoul SDK for non-coding domains using
-explicit parameters instead of profiles. Perfect for legal AI, medical
-chatbots, customer support, and other specialized applications.
+explicit parameters instead of profiles. Shows both static and dynamic
+context injection approaches.
 
 Usage:
     export ANTHROPIC_API_KEY=your-key-here
@@ -13,12 +13,33 @@ Requirements:
     pip install consoul
 
 See Also:
+    - examples/sdk/context_providers/: Dynamic context provider examples
     - docs/api/integration-guide.md#domain-specific-context-customization
+    - docs/guides/context-providers.md: ContextProvider protocol guide
     - docs/api/integration-guide.md#migration-from-profiles
 """
 
 from consoul import Consoul
 from consoul.ai.prompt_builder import build_enhanced_system_prompt
+
+# Import context providers for dynamic context examples
+try:
+    from examples.sdk.context_providers.crm_context_provider import (
+        CRMContextProvider,
+        MockCRMSystem,
+    )
+    from examples.sdk.context_providers.legal_context_provider import (
+        LegalContextProvider,
+        MockCaseLawDatabase,
+    )
+    from examples.sdk.context_providers.medical_context_provider import (
+        MedicalContextProvider,
+        MockEHRSystem,
+    )
+
+    CONTEXT_PROVIDERS_AVAILABLE = True
+except ImportError:
+    CONTEXT_PROVIDERS_AVAILABLE = False
 
 
 def legal_ai_example():
@@ -188,6 +209,108 @@ def research_assistant_example():
     print()
 
 
+def dynamic_context_example():
+    """Demonstrate dynamic context injection with ContextProvider protocol."""
+    if not CONTEXT_PROVIDERS_AVAILABLE:
+        print("=" * 70)
+        print("DYNAMIC CONTEXT PROVIDERS (Skipped - imports not available)")
+        print("=" * 70)
+        print("Run from project root: python examples/sdk/domain_specific.py")
+        print()
+        return
+
+    print("=" * 70)
+    print("DYNAMIC CONTEXT INJECTION - ContextProvider Protocol")
+    print("=" * 70)
+    print()
+    print("This example demonstrates query-aware dynamic context injection")
+    print("using the ContextProvider protocol. Compare with static examples above.")
+    print()
+
+    # Legal AI with dynamic case law retrieval
+    print("Example 1: Legal AI with Dynamic Case Law")
+    print("-" * 70)
+
+    case_db = MockCaseLawDatabase()
+    legal_provider = LegalContextProvider("California", case_db)
+
+    legal_ai = Consoul(
+        model="gpt-4o",
+        temperature=0.3,
+        system_prompt=(
+            "You are a workers' compensation legal assistant. "
+            "Cite relevant case law when applicable."
+        ),
+        context_providers=[legal_provider],  # Dynamic context!
+        tools=False,
+    )
+
+    query = "What protections exist for construction workers?"
+    print(f"Query: {query}")
+    response = legal_ai.chat(query)
+    print(f"Response: {response[:200]}...")  # Truncated for display
+    print()
+
+    # Medical chatbot with patient context
+    print("Example 2: Medical AI with Patient Context")
+    print("-" * 70)
+
+    ehr = MockEHRSystem()
+    medical_provider = MedicalContextProvider("P12345", ehr)
+
+    medical_ai = Consoul(
+        model="claude-sonnet-4",
+        temperature=0.4,
+        system_prompt=(
+            "You are a medical assistant. Provide personalized guidance "
+            "based on patient context."
+        ),
+        context_providers=[medical_provider],  # Patient-aware!
+        tools=False,
+    )
+
+    query = "Should I be concerned about dizziness?"
+    print(f"Query: {query}")
+    response = medical_ai.chat(query)
+    print(f"Response: {response[:200]}...")
+    print()
+
+    # Customer support with CRM context
+    print("Example 3: Support Bot with CRM Integration")
+    print("-" * 70)
+
+    crm = MockCRMSystem()
+    crm_provider = CRMContextProvider("CUST-9876", crm)
+
+    support_bot = Consoul(
+        model="gpt-4o",
+        temperature=0.5,
+        system_prompt="You are a helpful customer support agent.",
+        context_providers=[crm_provider],  # Customer-aware!
+        tools=False,
+    )
+
+    query = "We're having database connection issues."
+    print(f"Query: {query}")
+    response = support_bot.chat(query)
+    print(f"Response: {response[:200]}...")
+    print()
+
+    print("=" * 70)
+    print("CONTEXT PROVIDER BENEFITS:")
+    print("=" * 70)
+    print("""
+✓ Query-aware context (different context per question)
+✓ Database/API integration (real-time data)
+✓ Stateful context tracking (conversation history)
+✓ Clean separation of concerns (data vs prompt)
+✓ Composable (multiple providers)
+✓ Reusable across applications
+
+See examples/sdk/context_providers/ for full implementations.
+""")
+
+
 def main():
     """Run all domain-specific examples."""
     print("\n" + "=" * 70)
@@ -196,27 +319,52 @@ def main():
     print("=" * 70)
     print()
 
-    # Run examples (comment out as needed)
+    print("PART 1: STATIC CONTEXT EXAMPLES")
+    print("=" * 70)
+    print("Using build_enhanced_system_prompt() with context_sections")
+    print()
+
+    # Run static examples (comment out as needed)
     legal_ai_example()
     medical_chatbot_example()
     customer_support_example()
     research_assistant_example()
 
+    print("\nPART 2: DYNAMIC CONTEXT EXAMPLES")
+    print("=" * 70)
+    print("Using ContextProvider protocol for runtime data injection")
+    print()
+
+    # Run dynamic example
+    dynamic_context_example()
+
     print("=" * 70)
     print("KEY TAKEAWAYS")
     print("=" * 70)
     print("""
+STATIC CONTEXT (build_enhanced_system_prompt):
+✓ Simple and straightforward
+✓ Good for known, unchanging context
+✓ No external dependencies
+
+DYNAMIC CONTEXT (ContextProvider protocol):
+✓ Query-aware context injection
+✓ Real-time database/API queries
+✓ Stateful conversation tracking
+✓ Composable and reusable
+
+COMMON TO BOTH APPROACHES:
 ✓ No profiles needed - explicit parameters only
-✓ Domain-specific system prompts replace coding defaults
-✓ Custom context sections for specialized knowledge
-✓ Granular control over environment context
-✓ Selective tool usage (or none for chat-only)
-✓ Separate databases per application/domain
-✓ Cost optimization (service_tier, summary_model)
+✓ Domain-specific system prompts
+✓ Granular control over context
+✓ Selective tool usage
+✓ Separate databases per domain
+✓ Cost optimization options
 
 For more details:
+- examples/sdk/context_providers/README.md
+- docs/guides/context-providers.md
 - docs/api/integration-guide.md#domain-specific-context-customization
-- docs/api/integration-guide.md#migration-from-profiles
 """)
 
 

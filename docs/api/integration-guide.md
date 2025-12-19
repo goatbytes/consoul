@@ -300,6 +300,59 @@ prompt = build_enhanced_system_prompt(
 - Sections maintain insertion order (Python 3.7+)
 - Context ordering: Environment → Custom Sections → Base Prompt
 
+### Dynamic Context Injection with ContextProvider
+
+For **runtime data** from databases, APIs, or other dynamic sources, use the **ContextProvider protocol** instead of static `context_sections`:
+
+```python
+from consoul import Consoul
+
+class LegalContextProvider:
+    """Query case law database based on user questions."""
+
+    def __init__(self, jurisdiction, case_db):
+        self.jurisdiction = jurisdiction
+        self.db = case_db
+
+    def get_context(self, query=None, conversation_id=None):
+        # Search cases relevant to this specific query
+        cases = self.db.search(query, self.jurisdiction)
+        return {
+            "jurisdiction": f"{self.jurisdiction} law",
+            "relevant_cases": self._format_cases(cases),
+        }
+
+# Dynamic context that changes per query
+provider = LegalContextProvider("California", case_database)
+console = Consoul(
+    model="gpt-4o",
+    system_prompt="You are a legal assistant...",
+    context_providers=[provider],  # Dynamic context!
+)
+
+# Each query gets fresh, relevant context
+response = console.chat("What are construction injury rules?")
+```
+
+**When to Use ContextProvider:**
+- ✅ Context comes from **databases or APIs**
+- ✅ **Query-aware** context (different per question)
+- ✅ **Stateful** tracking across conversations
+- ✅ **Composable** multiple data sources
+- ✅ **Real-time** data requirements
+
+**When to Use Static context_sections:**
+- ❌ Context is **fixed** and doesn't change
+- ❌ Small amounts of **file-based** data
+- ❌ No external dependencies
+
+**Complete Examples:**
+- Legal AI: `examples/sdk/context_providers/legal_context_provider.py`
+- Medical Chatbot: `examples/sdk/context_providers/medical_context_provider.py`
+- Customer Support: `examples/sdk/context_providers/crm_context_provider.py`
+
+**Full Documentation**: See [Context Providers Guide](../guides/context-providers.md) for complete protocol reference, best practices, and advanced usage patterns.
+
 ### Using with Consoul SDK
 
 Integrate custom prompts with the Consoul SDK:

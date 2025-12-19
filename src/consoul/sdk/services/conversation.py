@@ -85,6 +85,12 @@ class ConversationService:
         conversation: ConversationHistory,
         tool_registry: ToolRegistry | None = None,
         config: ConsoulConfig | None = None,
+        context_providers: list[Any] | None = None,
+        base_prompt: str | None = None,
+        include_tool_docs: bool = True,
+        include_env_context: bool = True,
+        include_git_context: bool = True,
+        auto_append_tools: bool = True,
     ) -> None:
         """Initialize conversation service.
 
@@ -93,11 +99,23 @@ class ConversationService:
             conversation: Conversation history manager
             tool_registry: Optional tool registry for function calling
             config: Optional Consoul configuration (uses default if None)
+            context_providers: Optional list of context providers for dynamic context
+            base_prompt: Base system prompt (before context injection)
+            include_tool_docs: Include tool documentation in system prompt
+            include_env_context: Include OS/shell/directory info
+            include_git_context: Include git repository info
+            auto_append_tools: Auto-append tool docs if no marker present
         """
         self.model = model
         self.conversation = conversation
         self.tool_registry = tool_registry
         self.config = config
+        self.context_providers = context_providers or []
+        self.base_prompt = base_prompt
+        self.include_tool_docs = include_tool_docs
+        self.include_env_context = include_env_context
+        self.include_git_context = include_git_context
+        self.auto_append_tools = auto_append_tools
         self.executor = ThreadPoolExecutor(max_workers=1)
 
     @classmethod
@@ -110,6 +128,7 @@ class ConversationService:
         include_git_context: bool = True,
         auto_append_tools: bool = True,
         approval_provider: Any | None = None,
+        context_providers: list[Any] | None = None,
     ) -> ConversationService:
         """Create ConversationService from configuration.
 
@@ -125,6 +144,7 @@ class ConversationService:
             include_git_context: Include git repository info (default: True)
             auto_append_tools: Auto-append tool docs if no marker present (default: True)
             approval_provider: Optional approval provider for tool execution
+            context_providers: List of ContextProvider implementations for dynamic context injection
 
         Returns:
             Initialized ConversationService ready for use
@@ -259,7 +279,10 @@ class ConversationService:
             profile_system_prompt = active_profile.system_prompt
 
         base_prompt = custom_system_prompt or profile_system_prompt
-        if base_prompt:
+
+        # For static prompts (no context providers), build once at initialization
+        # For dynamic prompts (with providers), build on first message
+        if base_prompt and not context_providers:
             # Apply controlled injections to custom or profile prompt
             from consoul.ai.prompt_builder import build_enhanced_system_prompt
 
@@ -282,7 +305,65 @@ class ConversationService:
             conversation=conversation,
             tool_registry=tool_registry,
             config=config,
+            context_providers=context_providers,
+            base_prompt=base_prompt,
+            include_tool_docs=include_tool_docs,
+            include_env_context=include_env_context,
+            include_git_context=include_git_context,
+            auto_append_tools=auto_append_tools,
         )
+
+    def _build_dynamic_system_prompt(
+        self, query: str | None = None, conversation_id: str | None = None
+    ) -> str | None:
+        """Build system prompt with dynamic context from providers.
+
+        Called per-message to inject fresh, query-aware context.
+
+        Args:
+            query: Current user query (for query-aware context)
+            conversation_id: Conversation ID (for stateful context)
+
+        Returns:
+            Enhanced system prompt with dynamic context, or None if no prompt
+        """
+        if not self.base_prompt:
+            return None
+
+        # Collect context from providers
+        dynamic_context: dict[str, str] = {}
+        if self.context_providers:
+            for provider in self.context_providers:
+                try:
+                    # Pass query and conversation_id for dynamic context
+                    provider_context = provider.get_context(
+                        query=query, conversation_id=conversation_id
+                    )
+                    dynamic_context.update(provider_context)
+                except Exception as e:
+                    # Log but don't fail - partial context is acceptable
+                    import logging
+
+                    logging.warning(
+                        f"Context provider {provider.__class__.__name__} failed: {e}"
+                    )
+
+        # Build enhanced system prompt with provider context
+        from consoul.ai.prompt_builder import build_enhanced_system_prompt
+
+        # Only pass tool_registry if user wants tool docs
+        registry_for_prompt = self.tool_registry if self.include_tool_docs else None
+
+        system_prompt = build_enhanced_system_prompt(
+            base_prompt=self.base_prompt,
+            tool_registry=registry_for_prompt,
+            include_env_context=self.include_env_context,
+            include_git_context=self.include_git_context,
+            auto_append_tools=self.auto_append_tools,
+            context_sections=dynamic_context if dynamic_context else None,
+        )
+
+        return system_prompt
 
     async def send_message(
         self,
@@ -340,6 +421,15 @@ class ConversationService:
             ... ):
             ...     print(token, end="")
         """
+        # Update system prompt with dynamic context from providers
+        if self.context_providers:
+            conversation_id = getattr(self.conversation, "conversation_id", None)
+            enhanced_prompt = self._build_dynamic_system_prompt(
+                query=content, conversation_id=conversation_id
+            )
+            if enhanced_prompt:
+                self.conversation.add_system_message(enhanced_prompt)
+
         # Prepare user message with attachments
         message_content = self._prepare_user_message(content, attachments)
 
