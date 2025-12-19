@@ -214,6 +214,198 @@ researcher.chat("What are best practices for FastAPI?")
 writer.chat("Create a FastAPI endpoint for user auth")
 ```
 
+## Service Layer Quick Start
+
+For advanced integrations, use Consoul's service layer directly instead of the high-level wrapper. This provides fine-grained control over conversations, model management, and tool execution.
+
+### ConversationService - Async Streaming
+
+The async conversation service provides token-by-token streaming for web backends:
+
+```python
+import asyncio
+from consoul.sdk.services import ConversationService
+
+async def main():
+    # Create service from config
+    service = ConversationService.from_config(
+        model="gpt-4o",
+        system_prompt="You are a helpful assistant.",
+        tools_enabled=True,
+    )
+
+    # Stream response token-by-token
+    async for token in service.send_message("List Python files"):
+        print(token.content, end="", flush=True)
+
+    # Get conversation stats
+    stats = service.get_stats()
+    print(f"\n\nTokens: {stats['total_tokens']}")
+    print(f"Cost: ${stats['total_cost']:.4f}")
+
+asyncio.run(main())
+```
+
+**Key Features:**
+- Async/await streaming API
+- Automatic conversation history management
+- Built-in cost tracking
+- Tool execution support
+
+See full example: `examples/fastapi_websocket_server.py`
+
+### Custom Tool Approval Provider
+
+Implement the `ToolExecutionCallback` protocol for custom approval logic:
+
+```python
+from consoul.sdk.models import ToolRequest
+
+class AutoApprovalProvider:
+    """Auto-approve safe tools, prompt for dangerous ones."""
+
+    async def __call__(self, request: ToolRequest) -> bool:
+        """Return True to approve, False to deny."""
+        # Auto-approve read-only tools
+        safe_tools = {"grep", "code_search", "read"}
+        if request.name in safe_tools:
+            return True
+
+        # Prompt for write operations
+        print(f"\nTool Request: {request.name}")
+        print(f"Arguments: {request.arguments}")
+        response = input("Approve? [y/N]: ")
+        return response.lower() == "y"
+
+# Use with ConversationService
+service = ConversationService.from_config(
+    model="gpt-4o",
+    tools_enabled=True,
+)
+
+approval_provider = AutoApprovalProvider()
+async for token in service.send_message(
+    "Create a new file",
+    on_tool_request=approval_provider
+):
+    print(token.content, end="")
+```
+
+**Use Cases:**
+- WebSocket-based approval (send request to client, wait for response)
+- Auto-approval based on tool risk level
+- Audit logging for compliance
+- Rate limiting tool execution
+
+Full WebSocket example: `examples/fastapi_websocket_server.py` (lines 83-145)
+
+### FastAPI WebSocket Integration
+
+Complete working example of Consoul in a FastAPI WebSocket server:
+
+```python
+from fastapi import FastAPI, WebSocket
+from consoul.sdk.services import ConversationService
+
+app = FastAPI()
+
+@app.websocket("/ws/chat")
+async def websocket_chat(websocket: WebSocket):
+    await websocket.accept()
+
+    # Create conversation service per connection
+    service = ConversationService.from_config(
+        model="gpt-4o",
+        system_prompt="You are a helpful assistant.",
+        tools_enabled=False,  # Or implement WebSocket approval
+    )
+
+    try:
+        while True:
+            # Receive message from client
+            data = await websocket.receive_json()
+            user_message = data["content"]
+
+            # Stream AI response token-by-token
+            async for token in service.send_message(user_message):
+                await websocket.send_json({
+                    "type": "token",
+                    "content": token.content
+                })
+
+            # Send completion marker
+            await websocket.send_json({"type": "done"})
+
+    except Exception as e:
+        await websocket.send_json({
+            "type": "error",
+            "message": str(e)
+        })
+        await websocket.close()
+
+# Run with: uvicorn main:app --reload
+```
+
+**Architecture Benefits:**
+- Per-connection isolated conversations
+- Real-time token streaming
+- Standard WebSocket protocol
+- Concurrent client support
+
+**Full implementation with tool approval:** `examples/fastapi_websocket_server.py`
+
+**Test client:** `examples/fastapi_websocket_client.py`
+
+### ModelService - Dynamic Model Switching
+
+Manage models and switch between providers at runtime:
+
+```python
+from consoul.sdk.services import ModelService
+
+# Create model service
+model_service = ModelService.from_config(model="gpt-4o")
+
+# List available models
+print("OpenAI models:", model_service.list_openai_models())
+print("Anthropic models:", model_service.list_anthropic_models())
+
+# Check Ollama/MLX availability
+if ollama_models := model_service.list_ollama_models():
+    print(f"Local Ollama models: {len(ollama_models)} found")
+
+# Switch model at runtime
+model_service.switch_model("claude-sonnet-4", provider="anthropic")
+print(f"Now using: {model_service.get_model()}")
+
+# Check model capabilities
+if model_service.supports_vision():
+    print("Vision support: ✅")
+if model_service.supports_tools():
+    print("Tool calling: ✅")
+```
+
+**Advanced Usage:**
+
+```python
+# Discover MLX models on Apple Silicon
+mlx_models = model_service.list_mlx_models()
+if mlx_models:
+    # Switch to local MLX model
+    model_service.switch_model(mlx_models[0].id, provider="mlx")
+    print(f"Using local MLX model: {mlx_models[0].name}")
+
+# Get model pricing
+pricing = model_service.get_model_pricing("gpt-4o")
+print(f"Input: ${pricing['input_cost_per_1k']}/1K tokens")
+print(f"Output: ${pricing['output_cost_per_1k']}/1K tokens")
+```
+
+**Examples:**
+- Model registry: `examples/sdk/model_registry_example.py`
+- Ollama discovery: `examples/sdk/ollama_discovery_example.py`
+- MLX discovery: `examples/sdk/mlx_discovery_example.py`
+
 ## Domain-Specific Context Customization
 
 ### Overview
