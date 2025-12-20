@@ -12,6 +12,14 @@ Provider-Specific Token Counting:
     - Google (gemini-*): Uses LangChain's get_num_tokens_from_messages
     - Others: Uses character-based approximation (4 chars ≈ 1 token)
 
+Token Limit Resolution (Multi-Tier Fallback Chain):
+    1. Model registry (curated models with full pricing/metadata)
+    2. Hardcoded MODEL_TOKEN_LIMITS dictionary (fast offline lookup)
+    3. Ollama API query (for local Ollama models)
+    4. LiteLLM registry (community-maintained, auto-updates from GitHub)
+    5. Pattern-based intelligent defaults (version-based heuristics)
+    6. Conservative 4K default
+
 Token Limits (as of 2025-11-12):
     - OpenAI GPT-5/4.1: 400K/1M tokens
     - OpenAI GPT-4o: 128K tokens
@@ -272,15 +280,17 @@ def _get_llamacpp_context_length(model_path: str) -> int | None:
 def get_model_token_limit(model_name: str) -> int:
     """Get the maximum context window size (in tokens) for a model.
 
-    Returns the known token limit for the model, or a conservative default
-    if the model is not recognized. Uses case-insensitive matching with
-    separator normalization for robustness.
+    Returns the known token limit for the model using a multi-tier fallback chain:
+    1. Model registry (curated models with pricing/metadata)
+    2. Hardcoded MODEL_TOKEN_LIMITS dictionary
+    3. Ollama API query (for Ollama models)
+    4. LiteLLM registry (community-maintained, auto-updating)
+    5. Pattern-based intelligent defaults (for new model versions)
+    6. Conservative 4K default
 
     For Ollama models, attempts to query the Ollama API for the actual
-    context length before falling back to hardcoded values.
-
-    For LlamaCpp models (GGUF files), checks the cache for previously saved
-    context sizes from model initialization.
+    context length. For LlamaCpp models (GGUF files), checks the cache for
+    previously saved context sizes from model initialization.
 
     Args:
         model_name: Model identifier (e.g., "gpt-4o", "claude-3-5-sonnet", "qwen3:30b")
@@ -305,16 +315,27 @@ def get_model_token_limit(model_name: str) -> int:
     key = (model_name or "").strip().lower()
     key_normalized = key.replace(":", "-").replace("/", "-").replace("_", "-")
 
-    # Try exact match (with normalized key) - FAST, no API call
+    # 1. Try model registry first (curated models with full metadata)
+    try:
+        from consoul.registry.registry import get_context_window
+
+        registry_context = get_context_window(model_name)
+        if registry_context:
+            return registry_context
+    except Exception:
+        # Registry import failure - continue to other methods
+        pass
+
+    # 2. Try exact match (with normalized key) - FAST, no API call
     if key_normalized in MODEL_TOKEN_LIMITS:
         return MODEL_TOKEN_LIMITS[key_normalized]
 
-    # Try prefix match (e.g., "gpt-4o-2024-08-06" → "gpt-4o", "granite4:3b" → "granite4") - FAST
+    # 3. Try prefix match (e.g., "gpt-4o-2024-08-06" → "gpt-4o", "granite4:3b" → "granite4") - FAST
     for known_model, limit in MODEL_TOKEN_LIMITS.items():
         if key_normalized.startswith(known_model):
             return limit
 
-    # Fallback: For Ollama models with tags (contain ":"), try API query
+    # 4. Fallback: For Ollama models with tags (contain ":"), try API query
     # This gives us the actual configured context for unmapped models
     if ":" in key:
         ollama_context = _get_ollama_context_length(model_name)
@@ -336,7 +357,18 @@ def get_model_token_limit(model_name: str) -> int:
         if llamacpp_context:
             return llamacpp_context
 
-    # Use pattern-based intelligent defaults before falling back to conservative limit
+    # 5. Try LiteLLM registry (community-maintained, auto-updates)
+    try:
+        from consoul.ai.litellm_registry import get_litellm_context_window
+
+        litellm_context = get_litellm_context_window(model_name)
+        if litellm_context:
+            return litellm_context
+    except Exception:
+        # LiteLLM registry unavailable - continue to pattern matching
+        pass
+
+    # 6. Use pattern-based intelligent defaults before falling back to conservative limit
     # This handles new model releases without requiring code updates
     import logging
     import re

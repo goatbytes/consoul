@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "ModelRegistry",
     "get_all_providers",
+    "get_context_window",
     "get_model",
     "get_pricing",
     "list_models",
@@ -279,6 +280,27 @@ def get_all_providers() -> list[str]:
         anthropic, google, openai
     """
     return _registry.get_all_providers()
+
+
+def get_context_window(model_id: str) -> int | None:
+    """Get context window size for a model from registry.
+
+    Args:
+        model_id: Model identifier or alias
+
+    Returns:
+        Context window in tokens, or None if model not found
+
+    Example:
+        >>> window = get_context_window("gpt-4o")
+        >>> if window:
+        ...     print(f"Context: {window:,} tokens")
+        Context: 128,000 tokens
+    """
+    model = _registry.get(model_id)
+    if model:
+        return model.metadata.context_window
+    return None
 
 
 # Auto-load models on import

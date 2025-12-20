@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -470,3 +470,108 @@ class TestLlamaCppContextCaching:
         # Verify the extracted value was cached
         retrieved = _get_llamacpp_context_length(model_path)
         assert retrieved == 16384
+
+
+class TestTokenLimitFallbackChain:
+    """Tests for multi-tier token limit resolution fallback chain."""
+
+    @patch("consoul.registry.registry.get_context_window")
+    def test_fallback_chain_uses_registry_first(self, mock_registry):
+        """Test that registry is checked first in fallback chain."""
+        # Mock registry returning a context window
+        mock_registry.return_value = 999_999
+
+        limit = get_model_token_limit("test-model")
+
+        # Should use registry value
+        assert limit == 999_999
+        mock_registry.assert_called_once_with("test-model")
+
+    @patch("consoul.registry.registry.get_context_window")
+    def test_fallback_chain_uses_hardcoded_when_registry_empty(self, mock_registry):
+        """Test fallback to hardcoded limits when registry returns None."""
+        mock_registry.return_value = None
+
+        # Test with hardcoded model
+        limit = get_model_token_limit("gpt-4o")
+
+        # Should use hardcoded value
+        assert limit == 128_000
+
+    @patch("consoul.ai.litellm_registry.get_litellm_context_window")
+    @patch("consoul.registry.registry.get_context_window")
+    def test_fallback_chain_uses_litellm_when_others_fail(
+        self, mock_registry, mock_litellm
+    ):
+        """Test fallback to LiteLLM when registry and hardcoded both miss."""
+        mock_registry.return_value = None
+        mock_litellm.return_value = 150_000
+
+        # Use a model not in hardcoded list
+        limit = get_model_token_limit("new-model-2025")
+
+        # Should use LiteLLM value
+        assert limit == 150_000
+        mock_litellm.assert_called_once_with("new-model-2025")
+
+    @patch("consoul.ai.litellm_registry.get_litellm_context_window")
+    @patch("consoul.registry.registry.get_context_window")
+    def test_fallback_chain_uses_pattern_matching_as_last_resort(
+        self, mock_registry, mock_litellm
+    ):
+        """Test pattern-based defaults when all lookups fail."""
+        mock_registry.return_value = None
+        mock_litellm.return_value = None
+
+        # Test with new Claude model not in registry/hardcoded/LiteLLM
+        limit = get_model_token_limit("claude-4-9-sonnet-20260101")
+
+        # Should use pattern-based default for Claude 4.x
+        assert limit == 200_000
+
+    @patch("consoul.ai.litellm_registry.get_litellm_context_window")
+    @patch("consoul.registry.registry.get_context_window")
+    def test_fallback_chain_returns_default_when_all_fail(
+        self, mock_registry, mock_litellm
+    ):
+        """Test conservative 4K default when all fallbacks fail."""
+        mock_registry.return_value = None
+        mock_litellm.return_value = None
+
+        # Use completely unknown model
+        limit = get_model_token_limit("totally-unknown-model-xyz")
+
+        # Should use conservative default
+        assert limit == 4_096
+
+    @patch("consoul.registry.registry.get_context_window")
+    def test_fallback_chain_handles_registry_import_error(self, mock_registry):
+        """Test graceful handling of registry import errors."""
+        mock_registry.side_effect = ImportError("Registry module not available")
+
+        # Should fall back to hardcoded limits
+        limit = get_model_token_limit("gpt-4o")
+        assert limit == 128_000
+
+    @patch("consoul.ai.litellm_registry.get_litellm_context_window")
+    @patch("consoul.registry.registry.get_context_window")
+    def test_fallback_chain_handles_litellm_import_error(
+        self, mock_registry, mock_litellm
+    ):
+        """Test graceful handling of LiteLLM import errors."""
+        mock_registry.return_value = None
+        mock_litellm.side_effect = ImportError("LiteLLM module not available")
+
+        # Should fall back to pattern matching
+        limit = get_model_token_limit("claude-5-0-sonnet")
+        assert limit == 200_000  # Pattern-based default for Claude 5.x
+
+    def test_registry_models_use_registry_context_window(self):
+        """Test that models in registry use their context_window field."""
+        # Models registered in src/consoul/registry/models/*.py
+        # should be found by registry lookup
+        limit = get_model_token_limit("claude-sonnet-4-5-20250929")
+        assert limit == 200_000  # From registry
+
+        limit = get_model_token_limit("gpt-4o")
+        assert limit == 128_000  # From registry
