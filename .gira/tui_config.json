@@ -1,4 +1,57 @@
 {
+  "tickets_view": {
+    "visible_columns": [
+      "id",
+      "type",
+      "title",
+      "status",
+      "assignee",
+      "priority",
+      "epic"
+    ],
+    "column_order": [
+      "id",
+      "type",
+      "title",
+      "status",
+      "assignee",
+      "priority",
+      "epic",
+      "sprint",
+      "story_points",
+      "labels",
+      "due_date",
+      "version",
+      "comments",
+      "created",
+      "updated",
+      "reporter"
+    ],
+    "column_widths": {
+      "id": 12,
+      "type": 12,
+      "title": 50,
+      "status": 15,
+      "assignee": 20,
+      "priority": 12
+    }
+  },
+  "epic_view": {
+    "sort_column": null,
+    "sort_reverse": false,
+    "filters": {
+      "status": [],
+      "owner": null
+    }
+  },
+  "sprint_view": {
+    "filters": {
+      "status": [],
+      "start_after": null,
+      "start_before": null
+    }
+  },
+  "click_behavior": "double_click",
   "theme": "gruvbox-dark",
   "sidebar_width": 15,
   "auto_refresh": true,
