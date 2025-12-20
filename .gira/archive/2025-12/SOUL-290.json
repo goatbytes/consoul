@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-16T13:55:46.299566",
-  "updated_at": "2025-12-19T01:08:41.633248Z",
+  "updated_at": "2025-12-19T22:52:32.748394Z",
   "id": "SOUL-290",
   "uuid": "868ca259-5faf-4769-a49c-35c712daebaf",
   "title": "Design extensible context injection system for domain-specific agents",
@@ -13,6 +13,7 @@
     "ai",
     "architecture"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-015",
   "blocked_by": [],
@@ -23,5 +24,10 @@
   "comment_count": 0,
   "story_points": 8,
   "order": 50,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-19T22:52:42.989621+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

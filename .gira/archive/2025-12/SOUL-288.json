@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-16T13:54:20.565429",
-  "updated_at": "2025-12-16T16:14:11.493629",
+  "updated_at": "2025-12-19T22:52:32.751012Z",
   "id": "SOUL-288",
   "uuid": "51497ba7-77fe-4996-9f3f-9c85faaa787c",
   "title": "Support provider-specific LLM parameters in Consoul SDK",
@@ -13,6 +13,7 @@
     "ai",
     "providers"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-015",
   "blocked_by": [],
@@ -24,7 +25,7 @@
       "id": "20251216161411-14bad773",
       "ticket_id": "SOUL-288",
       "author": "jared@goatbytes.io",
-      "content": "## Implementation Complete\n\nSuccessfully implemented provider-specific parameter support via **model_kwargs in Consoul SDK.\n\n### Changes Made\n\n1. **Consoul.__init__() signature updated** (wrapper.py:108-120)\n   - Added `**model_kwargs: Any` parameter\n   - Merged with temperature override\n   - Passed through to get_chat_model()\n\n2. **Documentation updated** (wrapper.py:154-179)\n   - Documented all provider-specific parameters\n   - Added examples for OpenAI (service_tier), Anthropic (thinking), Google (safety_settings)\n   - Clear parameter descriptions for each provider\n\n3. **Tests added** (tests/unit/test_provider_kwargs.py)\n   - 5 comprehensive test cases covering:\n     - OpenAI service_tier parameter\n     - Anthropic thinking parameter\n     - Google safety_settings parameter\n     - Temperature override with provider kwargs\n     - Multiple provider kwargs together\n   - All tests passing ✅\n\n### Usage Examples\n\n```python\n# OpenAI flex tier (50% cheaper)\nconsole = Consoul(model=\"gpt-4o\", service_tier=\"flex\")\n\n# Anthropic extended thinking\nconsole = Consoul(\n    model=\"claude-sonnet-4\",\n    thinking={\"type\": \"enabled\", \"budget_tokens\": 10000}\n)\n\n# Google safety settings\nconsole = Consoul(\n    model=\"gemini-pro\",\n    safety_settings={\"HARM_CATEGORY_HARASSMENT\": \"BLOCK_NONE\"}\n)\n\n# Multiple parameters\nconsole = Consoul(\n    model=\"gpt-4o\",\n    service_tier=\"flex\",\n    seed=42,\n    top_p=0.95,\n    temperature=0.7\n)\n```\n\n### Technical Notes\n\n- No validation layer added (delegated to get_chat_model() as recommended)\n- Backward compatible - existing code works unchanged\n- Provider params passed directly through to LangChain models\n- Temperature override still supported and merged correctly\n\n### Test Results\n- 5/5 provider kwargs tests passing\n- 16/16 SDK model tests passing (backward compatibility verified)\n- No breaking changes introduced",
+      "content": "## Implementation Complete\n\nSuccessfully implemented provider-specific parameter support via **model_kwargs in Consoul SDK.\n\n### Changes Made\n\n1. **Consoul.__init__() signature updated** (wrapper.py:108-120)\n   - Added `**model_kwargs: Any` parameter\n   - Merged with temperature override\n   - Passed through to get_chat_model()\n\n2. **Documentation updated** (wrapper.py:154-179)\n   - Documented all provider-specific parameters\n   - Added examples for OpenAI (service_tier), Anthropic (thinking), Google (safety_settings)\n   - Clear parameter descriptions for each provider\n\n3. **Tests added** (tests/unit/test_provider_kwargs.py)\n   - 5 comprehensive test cases covering:\n     - OpenAI service_tier parameter\n     - Anthropic thinking parameter\n     - Google safety_settings parameter\n     - Temperature override with provider kwargs\n     - Multiple provider kwargs together\n   - All tests passing \u2705\n\n### Usage Examples\n\n```python\n# OpenAI flex tier (50% cheaper)\nconsole = Consoul(model=\"gpt-4o\", service_tier=\"flex\")\n\n# Anthropic extended thinking\nconsole = Consoul(\n    model=\"claude-sonnet-4\",\n    thinking={\"type\": \"enabled\", \"budget_tokens\": 10000}\n)\n\n# Google safety settings\nconsole = Consoul(\n    model=\"gemini-pro\",\n    safety_settings={\"HARM_CATEGORY_HARASSMENT\": \"BLOCK_NONE\"}\n)\n\n# Multiple parameters\nconsole = Consoul(\n    model=\"gpt-4o\",\n    service_tier=\"flex\",\n    seed=42,\n    top_p=0.95,\n    temperature=0.7\n)\n```\n\n### Technical Notes\n\n- No validation layer added (delegated to get_chat_model() as recommended)\n- Backward compatible - existing code works unchanged\n- Provider params passed directly through to LangChain models\n- Temperature override still supported and merged correctly\n\n### Test Results\n- 5/5 provider kwargs tests passing\n- 16/16 SDK model tests passing (backward compatibility verified)\n- No breaking changes introduced",
       "edited": false,
       "edit_count": 0,
       "is_ai_generated": false,
@@ -37,5 +38,10 @@
   "comment_count": 1,
   "story_points": 3,
   "order": 10,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-19T22:52:43.095416+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }
