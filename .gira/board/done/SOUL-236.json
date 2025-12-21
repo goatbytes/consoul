@@ -1,0 +1,55 @@
+{
+  "created_at": "2025-12-07T19:38:56.516648",
+  "updated_at": "2025-12-20T22:52:26.547427",
+  "id": "SOUL-236",
+  "uuid": "d3a5934f-5cc4-49d6-9eba-fda5e95fa9a6",
+  "title": "Add session-scoped Consoul factory for multi-user backends",
+  "description": "**As a** backend developer building multi-user applications\n**I want** a factory function to create isolated Consoul instances per session\n**So that** user conversations don't interfere with each other\n\n**Context:**\nConsoul class maintains mutable state (self.history, self._last_request, self._last_response). In multi-user backends, this causes data leakage between concurrent requests. \n\nWeb backends need per-session isolation with:\n- Separate conversation history per user/session\n- No persistence to local files (persist=False)\n- Isolated tool registries\n- Session-specific cost tracking\n\nCurrent workaround requires manually managing Consoul lifecycle, which is error-prone.\n\n**Technical Notes:**\n- Current state: src/consoul/sdk.py:276-299 (self.history, self._last_request)\n- Issue: Shared instance = data leakage in concurrent requests\n- Create: create_session() factory function\n- Pattern: Returns isolated Consoul with persist=False\n- Config: Accept session_id, user_id for tracking\n- Memory: Consider session cleanup/TTL for long-running servers\n\n**Acceptance Criteria:**\n\n**Given** I have a FastAPI endpoint handling multiple users\n**When** I call create_session(session_id=\"abc123\", model=\"gpt-4o\")\n**Then** returns isolated Consoul instance with unique conversation history\n\n**Given** two concurrent sessions are created\n**When** each session receives messages\n**Then** histories remain completely separate with no cross-contamination\n\n**Given** a session is created\n**When** messages are processed\n**Then** conversation is never persisted to disk (persist=False enforced)\n\n**Given** I create a session with custom config\n**When** I pass model, temperature, tools parameters\n**Then** session uses those settings independently\n\n**Testing Considerations:**\n- Test concurrent session isolation (threading/asyncio)\n- Test memory separation between sessions\n- Verify no disk persistence\n- Test session cleanup patterns\n- Mock multiple concurrent requests\n- Verify tool registries are isolated\n\n**Implementation Hints:**\n- Create factory: def create_session(session_id: str, **kwargs) -> Consoul\n- Force persist=False in factory\n- Add session_id to metadata for tracking\n- Document recommended patterns:\n  - FastAPI: dependency injection per request\n  - WebSocket: one instance per connection\n  - HTTP: new instance per request\n- Add examples/backend/fastapi_sessions.py example\n- Consider: async def create_async_session() for async contexts\n- Reference: ChatGPT conversation about session management (lines 2217-2255)",
+  "status": "done",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "sdk",
+    "backend",
+    "refactor"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-011",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-20T01:13:10.721496",
+      "updated_at": "2025-12-20T01:13:10.721497",
+      "id": "20251220011310-30c476a9",
+      "ticket_id": "SOUL-236",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation completed:\n\n✅ Created create_session() factory function in src/consoul/sdk/wrapper.py:1039-1241\n  - Accepts session_id and all Consoul constructor parameters\n  - Forces persist=False for session isolation (no disk writes)\n  - Creates session-specific temporary database paths\n  - Comprehensive docstring with FastAPI/WebSocket usage examples\n  - Supports all features: tools, approval providers, context providers, summarization\n\n✅ Updated SDK exports in src/consoul/sdk/__init__.py and src/consoul/__init__.py\n  - create_session now accessible from 'from consoul import create_session'\n  - Added to __all__ lists for proper API surface\n\n✅ Created comprehensive example in examples/backend/fastapi_sessions.py\n  - HTTP POST /chat endpoint (stateless pattern)\n  - WebSocket /ws/chat/{session_id} endpoint (stateful pattern)  \n  - Session management with TTL (1 hour)\n  - Periodic cleanup task for expired sessions\n  - WebSocket approval provider integration\n  - Complete production-ready patterns\n\n✅ Created test suite in tests/sdk/test_session_factory.py with 20 tests\n  - All tests passing ✓\n  - Tests for parameter acceptance (model, temperature, tools, approval_provider, etc.)\n  - Session isolation tests (separate history, cost tracking, tool registries)\n  - Concurrent session tests (threading + asyncio)\n  - No-persistence verification\n  - Session cleanup patterns\n  - WebSocket pattern isolation\n\nReady for use in multi-user backends. Session-scoped Consoul instances ensure complete isolation between concurrent users with zero data leakage risk.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-20T22:52:26.547337",
+      "updated_at": "2025-12-20T22:52:26.547338",
+      "id": "20251220225226-186a1bdc",
+      "ticket_id": "SOUL-236",
+      "author": "jared@goatbytes.io",
+      "content": "CRITICAL FIX Applied (P1 issue):\n\n**Problem:** create_session() defaulted to tools=True without approval_provider, causing backends to block on CLI approval prompts. Any tool call would hang HTTP/WebSocket requests waiting for stdin input.\n\n**Solution:**\n✅ Changed default: tools=False (chat-only, backend-safe)\n✅ Updated docstring with 'Backend-Safe Defaults' section explaining:\n  - tools=False prevents blocking on CLI prompts\n  - persist=False forced internally for isolation\n  - REQUIRED: Pass approval_provider when enabling tools in backends\n\n✅ Updated examples/backend/fastapi_sessions.py:\n  - Added enable_tools parameter to get_or_create_session()\n  - Raises ValueError if enable_tools=True without approval_provider\n  - HTTP endpoint: Uses default (chat-only, no tools)\n  - WebSocket endpoint: Explicitly enables tools WITH WebSocketApprovalProvider\n  - Clear comments warning about blocking behavior\n\n✅ Updated tests to verify new default (tools disabled)\n\nAll 20 tests passing. Backend sessions now safe by default - will not block on tool approvals unless explicitly configured with non-interactive approval provider.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 2,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

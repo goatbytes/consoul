@@ -27,7 +27,7 @@ __author__ = "GoatBytes.IO"
 __license__ = "Apache-2.0"
 
 # High-level SDK (imported after __version__ to satisfy E402)
-from consoul.sdk import Consoul, ConsoulResponse  # noqa: E402
+from consoul.sdk import Consoul, ConsoulResponse, create_session  # noqa: E402
 
 __all__ = [
     "Consoul",
@@ -35,4 +35,5 @@ __all__ = [
     "__author__",
     "__license__",
     "__version__",
+    "create_session",
 ]

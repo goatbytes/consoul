@@ -1034,3 +1034,225 @@ class Consoul:
             "model": self.model_name,
             "source": "approximation",  # Indicates fallback was used
         }
+
+
+def create_session(
+    session_id: str,
+    model: str | None = None,
+    tools: bool | str | list[str | BaseTool] | None = False,
+    temperature: float | None = None,
+    system_prompt: str | None = None,
+    api_key: str | None = None,
+    discover_tools: bool = False,
+    approval_provider: ApprovalProvider | None = None,
+    context_providers: list[Any] | None = None,
+    summarize: bool = False,
+    summarize_threshold: int = 20,
+    keep_recent: int = 10,
+    summary_model: str | None = None,
+    **model_kwargs: Any,
+) -> Consoul:
+    """Create an isolated Consoul instance for multi-user backend sessions.
+
+    Factory function that creates session-scoped Consoul instances with guaranteed
+    isolation between concurrent users. Automatically configures persistence settings
+    to prevent cross-session data leakage and disk writes in multi-user environments.
+
+    This function is essential for web backends (FastAPI, Flask, WebSocket) where
+    multiple users interact concurrently. Each session gets:
+    - Isolated conversation history (no cross-contamination)
+    - No disk persistence (memory-only, ephemeral)
+    - Independent tool registries
+    - Separate cost tracking
+
+    Backend-Safe Defaults:
+        - tools=False: Disables tool execution by default to prevent blocking on
+          CLI approval prompts. For tool support in backends, explicitly pass
+          tools with a non-interactive approval_provider (e.g., WebSocketApprovalProvider).
+        - persist=False: Forced internally, no disk writes (critical for isolation).
+
+    Args:
+        session_id: Unique identifier for this session (e.g., user ID, UUID, connection ID)
+        model: Model name (e.g., "gpt-4o", "claude-3-5-sonnet"). Falls back to config default.
+        tools: Tool specification. Default: False (chat-only, no tools).
+               For tool support, pass tools=True or specific tools AND provide
+               a non-interactive approval_provider to avoid blocking on prompts.
+               Examples: tools=["search", "web"], tools="safe"
+        temperature: Model temperature (0.0-2.0)
+        system_prompt: System prompt for this session
+        api_key: Override API key (falls back to environment)
+        discover_tools: Auto-discover tools from .consoul/tools/
+        approval_provider: Custom approval provider for tool execution.
+                          REQUIRED for tools in backends (e.g., WebSocketApprovalProvider).
+                          If None with tools enabled, falls back to CliApprovalProvider
+                          which will BLOCK on stdin prompts (unsuitable for web backends).
+        context_providers: List of ContextProvider instances for dynamic context
+        summarize: Enable conversation summarization (default: False)
+        summarize_threshold: Number of messages before summarization (default: 20)
+        keep_recent: Number of recent messages to keep when summarizing (default: 10)
+        summary_model: Model name for summarization (optional, use cheaper model)
+        **model_kwargs: Provider-specific parameters (service_tier, thinking, etc.)
+
+    Returns:
+        Isolated Consoul instance configured for session-scoped use
+
+    Examples:
+        Chat-only session (no tools, default):
+            >>> from consoul.sdk import create_session
+            >>> console = create_session(session_id="user123", model="gpt-4o")
+            >>> response = console.chat("Hello!")
+            >>> # Safe for backends - no blocking on tool approvals
+
+        FastAPI HTTP endpoint with tools (requires approval provider):
+            >>> from fastapi import FastAPI
+            >>> from consoul.sdk import create_session
+            >>>
+            >>> app = FastAPI()
+            >>>
+            >>> @app.post("/chat")
+            >>> async def chat(request: ChatRequest):
+            ...     # IMPORTANT: Pass approval_provider with tools to avoid blocking
+            ...     console = create_session(
+            ...         session_id=request.session_id,
+            ...         model="gpt-4o",
+            ...         tools=["search", "web"],  # Enable tools
+            ...         approval_provider=MyWebApprovalProvider(),  # Non-blocking approval
+            ...         temperature=0.7
+            ...     )
+            ...     response = console.chat(request.message)
+            ...     return {"response": response, "session_id": request.session_id}
+
+        WebSocket pattern (one instance per connection):
+            >>> from fastapi import WebSocket
+            >>> from consoul.sdk import create_session
+            >>> from examples.sdk.web_approval_provider import WebSocketApprovalProvider
+            >>>
+            >>> @app.websocket("/ws/chat")
+            >>> async def websocket_chat(websocket: WebSocket):
+            ...     await websocket.accept()
+            ...
+            ...     # Create approval provider for WebSocket
+            ...     approval_provider = WebSocketApprovalProvider(websocket)
+            ...
+            ...     # Create session for this connection
+            ...     console = create_session(
+            ...         session_id=str(websocket.client),
+            ...         model="claude-sonnet-4",
+            ...         tools=True,
+            ...         approval_provider=approval_provider
+            ...     )
+            ...
+            ...     # Process messages for this connection
+            ...     while True:
+            ...         data = await websocket.receive_json()
+            ...         response = console.chat(data["message"])
+            ...         await websocket.send_json({"response": response})
+
+        Session management with cleanup:
+            >>> import time
+            >>> from consoul.sdk import create_session
+            >>>
+            >>> # Session storage with TTL tracking
+            >>> sessions: dict[str, tuple[Consoul, float]] = {}
+            >>> SESSION_TTL = 3600  # 1 hour
+            >>>
+            >>> def get_or_create_session(session_id: str) -> Consoul:
+            ...     '''Get existing session or create new one.'''
+            ...     now = time.time()
+            ...
+            ...     # Check if session exists and not expired
+            ...     if session_id in sessions:
+            ...         console, created_at = sessions[session_id]
+            ...         if now - created_at < SESSION_TTL:
+            ...             return console
+            ...         # Expired - cleanup
+            ...         del sessions[session_id]
+            ...
+            ...     # Create new session
+            ...     console = create_session(
+            ...         session_id=session_id,
+            ...         model="gpt-4o",
+            ...         tools="safe"
+            ...     )
+            ...     sessions[session_id] = (console, now)
+            ...     return console
+            >>>
+            >>> # Periodic cleanup of expired sessions
+            >>> def cleanup_expired_sessions():
+            ...     now = time.time()
+            ...     expired = [
+            ...         sid for sid, (_, created_at) in sessions.items()
+            ...         if now - created_at >= SESSION_TTL
+            ...     ]
+            ...     for sid in expired:
+            ...         del sessions[sid]
+
+        Concurrent session isolation (testing):
+            >>> import asyncio
+            >>> from consoul.sdk import create_session
+            >>>
+            >>> async def test_isolation():
+            ...     # Create two concurrent sessions
+            ...     session_a = create_session(session_id="user_a", model="gpt-4o")
+            ...     session_b = create_session(session_id="user_b", model="gpt-4o")
+            ...
+            ...     # Send different messages concurrently
+            ...     async def chat_a():
+            ...         return session_a.chat("My name is Alice")
+            ...
+            ...     async def chat_b():
+            ...         return session_b.chat("My name is Bob")
+            ...
+            ...     # Run concurrently
+            ...     response_a, response_b = await asyncio.gather(chat_a(), chat_b())
+            ...
+            ...     # Verify isolation - histories are separate
+            ...     assert "Alice" not in session_b.history.get_all_messages_as_dicts()
+            ...     assert "Bob" not in session_a.history.get_all_messages_as_dicts()
+
+    Notes:
+        - Session instances are ephemeral (no disk persistence)
+        - Recommended for stateless HTTP requests and WebSocket connections
+        - For long-running servers, implement session cleanup/TTL to prevent memory leaks
+        - Consider using Redis or similar for session storage in production
+        - Tool registries are isolated per session (safe for concurrent execution)
+
+    See Also:
+        - examples/backend/fastapi_sessions.py: Complete FastAPI integration example
+        - examples/sdk/web_approval_provider.py: WebSocket tool approval pattern
+        - docs/backend/architecture.md: Backend integration patterns
+
+    Security:
+        - Each session_id should be cryptographically secure (UUID, JWT subject)
+        - Never expose session_id to other users
+        - Implement rate limiting per session_id to prevent abuse
+        - Use approval_provider for tool execution in untrusted environments
+    """
+    from pathlib import Path
+    from tempfile import gettempdir
+    from uuid import uuid4
+
+    # Create session-specific temporary database path to ensure isolation
+    # Use temp directory to prevent disk persistence across restarts
+    temp_dir = Path(gettempdir()) / "consoul_sessions"
+    temp_dir.mkdir(exist_ok=True)
+    session_db_path = temp_dir / f"session_{session_id}_{uuid4().hex}.db"
+
+    # Create Consoul instance with session-scoped configuration
+    return Consoul(
+        model=model,
+        tools=tools,
+        temperature=temperature,
+        system_prompt=system_prompt,
+        persist=False,  # Force no persistence (critical for session isolation)
+        api_key=api_key,
+        discover_tools=discover_tools,
+        approval_provider=approval_provider,
+        context_providers=context_providers,
+        db_path=session_db_path,  # Session-specific DB (won't persist due to persist=False)
+        summarize=summarize,
+        summarize_threshold=summarize_threshold,
+        keep_recent=keep_recent,
+        summary_model=summary_model,
+        **model_kwargs,
+    )

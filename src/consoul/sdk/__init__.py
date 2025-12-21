@@ -28,12 +28,13 @@ from consoul.sdk.models import (
 )
 from consoul.sdk.protocols import ToolExecutionCallback
 from consoul.sdk.services.conversation import ConversationService
-from consoul.sdk.wrapper import Consoul, ConsoulResponse
+from consoul.sdk.wrapper import Consoul, ConsoulResponse, create_session
 
 __all__ = [
     # High-level SDK (simple 5-line API)
     "Consoul",
     "ConsoulResponse",
+    "create_session",
     # Service layer (advanced usage)
     "Attachment",
     "ConversationService",
