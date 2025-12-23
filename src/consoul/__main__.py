@@ -601,9 +601,7 @@ def chat(
             hasattr(active_profile, "conversation")
             and active_profile.conversation.persist
         ):
-            stats_text += (
-                f"\n\n[dim]Session saved (ID: {session.history.session_id})[/dim]"
-            )
+            stats_text += f"\n\n[dim]Session saved (ID: {session.conversation_service.conversation.session_id})[/dim]"
 
         console.print(
             Panel(

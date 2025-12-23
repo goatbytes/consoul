@@ -124,8 +124,13 @@ class ChatSession:
         """
         from consoul.tui.services.profile_manager import ProfileManager
 
+        # Get tool registry from conversation service
+        tool_registry = self.conversation_service.tool_registry
+
         # Build base prompt using ProfileManager
-        base_prompt = ProfileManager.build_profile_system_prompt(profile, config)
+        base_prompt = ProfileManager.build_profile_system_prompt(
+            profile, config, tool_registry=tool_registry
+        )
 
         # Prepend system prompt override if provided
         if self.system_prompt_override:

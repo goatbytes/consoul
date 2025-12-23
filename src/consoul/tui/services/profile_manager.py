@@ -296,7 +296,9 @@ class ProfileManager:
         return params
 
     @staticmethod
-    def build_profile_system_prompt(profile: Any, config: ConsoulTuiConfig) -> str:
+    def build_profile_system_prompt(
+        profile: Any, config: ConsoulTuiConfig, tool_registry: Any | None = None
+    ) -> str:
         """Build complete system prompt from profile with environment context.
 
         Delegates to SDK's build_enhanced_system_prompt() for consistency.
@@ -304,6 +306,7 @@ class ProfileManager:
         Args:
             profile: ProfileConfig with system_prompt and context settings
             config: ConsoulTuiConfig for additional context
+            tool_registry: Optional ToolRegistry for tool documentation
 
         Returns:
             Complete system prompt with environment context and tool documentation
@@ -319,6 +322,7 @@ class ProfileManager:
         # as they need to be read and injected as context_sections
         prompt = build_enhanced_system_prompt(
             base_prompt=profile.system_prompt or "",
+            tool_registry=tool_registry,
             include_os_info=profile.context.include_system_info,
             include_shell_info=profile.context.include_system_info,
             include_directory_info=profile.context.include_system_info,

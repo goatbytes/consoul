@@ -2039,48 +2039,11 @@ def supports_tool_calling(model: BaseChatModel) -> bool:
     except ImportError:
         pass  # llama-cpp-python not installed, skip this check
 
-    # Ollama models: be conservative - only bind tools for known-good models
-    # Many Ollama models don't support tools and will fail at runtime with:
-    # "ResponseError: model does not support tools (status code: 400)"
-    try:
-        from langchain_ollama import ChatOllama
-
-        if isinstance(model, ChatOllama):
-            # Get model name from the ChatOllama instance
-            model_name = getattr(model, "model", "").lower()
-
-            # Known Ollama models that support tools (verified working)
-            tool_capable_models = [
-                "llama3",  # llama3.1, llama3.2, etc.
-                "llama3.1",
-                "llama3.2",
-                "llama3.3",
-                "mistral",
-                "mixtral",
-                "qwen",
-                "qwen2",
-                "command-r",
-                "firefunction",
-            ]
-
-            # Check if model name contains any of the known tool-capable models
-            has_tool_support = any(
-                capable in model_name for capable in tool_capable_models
-            )
-
-            if not has_tool_support:
-                # Unknown Ollama model - assume no tool support to avoid runtime errors
-                import logging
-
-                logger = logging.getLogger(__name__)
-                logger.info(
-                    f"Ollama model '{model_name}' is not in the known tool-capable list. "
-                    "Skipping tool binding to avoid runtime errors. "
-                    "If this model supports tools, please update the tool_capable_models list."
-                )
-                return False
-    except ImportError:
-        pass  # langchain-ollama not installed, skip this check
+    # Ollama models: Try optimistically and let the recovery layer handle failures
+    # The streaming_orchestrator will automatically retry without tools if the model
+    # rejects tool calls at runtime with "does not support tools (400)" error.
+    # This avoids hardcoding model capabilities and allows new tool-capable models
+    # to work automatically without code changes.
 
     # Check if model has bind_tools method
     if not hasattr(model, "bind_tools"):
