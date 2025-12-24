@@ -1,0 +1,29 @@
+{
+  "created_at": "2025-12-23T12:08:30.454455",
+  "updated_at": "2025-12-23T23:09:24.700125Z",
+  "id": "SOUL-292",
+  "uuid": "5a9204a1-8937-463a-978b-f65076cbccb8",
+  "title": "Add tool filtering and sandboxing system",
+  "description": "**As a** backend developer building multi-tenant AI applications\n**I want** fine-grained tool filtering and sandboxing per session\n**So that** I can safely deploy Consoul in legal/enterprise environments without security risks\n\n**Context:**\nLegal industry deployments require strict tool control - attorneys cannot execute arbitrary bash commands or access filesystem on shared servers. Current ToolService (src/consoul/sdk/services/tool.py) supports enabled/disabled lists globally but lacks per-session filtering.\n\nMulti-tenant requirements:\n- Disable dangerous tools (bash, file operations) for some users\n- Allow research tools (web_search) for all users\n- Audit trail for compliance (who executed what tool)\n- Prevent directory traversal attacks\n\n**Technical Notes:**\n- src/consoul/sdk/services/tool.py - Extend ToolService\n- src/consoul/sdk/services/conversation.py - Pass tool filter to ConversationService\n- Create ToolFilter class with allow/deny lists\n- Support tool filtering by:\n  - Risk level (SAFE, CAUTION, DANGEROUS)\n  - Tool category (filesystem, network, code)\n  - Explicit allow/deny lists\n- Hook into tool execution for audit logging\n\n**Acceptance Criteria:**\n\n**Given** I create a session with tool_filter={\"deny\": [\"bash_execute\", \"file_edit\"]}\n**When** AI attempts to call bash_execute\n**Then** tool call is blocked and AI receives error message\n\n**Given** I filter tools by risk_level=\"SAFE\"\n**When** AI requests tool execution\n**Then** only SAFE tools (analyze_text, calculate) are available\n\n**Given** tool execution occurs\n**When** using audit_callback parameter\n**Then** callback receives (session_id, tool_name, args, result, timestamp)\n\n**Given** legal industry deployment\n**When** configuring for document analysis only\n**Then** can disable all filesystem/bash tools while keeping web_search\n\n**Testing Considerations:**\n- Unit test ToolFilter allow/deny logic\n- Test risk level filtering\n- Test audit callback invocation\n- Integration test with ConversationService\n- Verify blocked tools return clear error messages\n\n**Implementation Hints:**\n- Create ToolFilter dataclass with allow/deny/risk_level fields\n- Add ToolService.apply_filter(filter: ToolFilter) method\n- Modify ConversationService to accept tool_filter parameter\n- Create audit hook: on_tool_execute(ToolExecutionEvent)\n- Update create_session() to support tool_filter parameter\n- Document security best practices in docstrings\n- Reference: SOUL-236 (session factory) for integration pattern",
+  "status": "todo",
+  "type": "story",
+  "priority": "critical",
+  "labels": [
+    "sdk",
+    "security",
+    "tools",
+    "production"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-016",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {}
+}

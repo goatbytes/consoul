@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-23T17:48:54.500336",
+  "updated_at": "2025-12-24T02:13:45.450838Z",
+  "id": "SOUL-303",
+  "uuid": "dafad264-0bdf-428a-b864-cd325fe50247",
+  "title": "Release v0.4.2 to PyPI with documentation and GitHub updates",
+  "description": "**As a** project maintainer\n**I want** to release v0.4.2 to PyPI with updated documentation\n**So that** users can install the latest version with SOUL-291 fixes and improvements\n\n**Context:**\nPublish new version with recent improvements:\n- SOUL-291: CLI tool support fixes (tool filtering, system prompts, session handling)\n- Prepare clean baseline before starting EPIC-016/017/018 work\n\n**Prerequisites:**\n- ✅ All tests passing\n- ✅ CHANGELOG.md updated\n- ✅ Version bumped in pyproject.toml\n- ✅ Clean git status (all changes committed)\n\n**Release Checklist:**\n\n**1. Version & Changelog (Pre-release)**\n```bash\n# Update version in pyproject.toml (both locations)\n# [project] version = \"0.4.2\"\n# [tool.poetry] version = \"0.4.2\"\n\n# Update CHANGELOG.md with release notes\n# - Document SOUL-291 fixes\n# - Add release date\n\n# Commit version bump\ngit add pyproject.toml CHANGELOG.md\ngit commit -m \"chore: bump version to 0.4.2\"\ngit tag v0.4.2\n```\n\n**2. Build & Test (Local verification)**\n```bash\n# Clean build\nrm -rf dist/\npoetry build\n\n# Verify build artifacts\nls -lh dist/\n# Should see:\n# - consoul-0.4.2.tar.gz\n# - consoul-0.4.2-py3-none-any.whl\n\n# Optional: Test with TestPyPI first\npoetry publish -r testpypi\npip install --index-url https://test.pypi.org/simple/ consoul\n```\n\n**3. Publish to PyPI**\n```bash\n# Publish to production PyPI\npoetry publish\n\n# Verify on PyPI\n# Visit: https://pypi.org/project/consoul/\n```\n\n**4. Push to GitHub**\n```bash\n# Push branch and tag\ngit push origin develop\ngit push origin v0.4.2\n\n# Verify tag appears on GitHub\n# https://github.com/goatbytes/consoul/tags\n```\n\n**5. Create GitHub Release**\n```bash\n# Using gh CLI\ngh release create v0.4.2 \\\n  --title \"v0.4.2 - CLI Tool Support Fixes\" \\\n  --notes \"See CHANGELOG.md for details\" \\\n  dist/consoul-0.4.2.tar.gz \\\n  dist/consoul-0.4.2-py3-none-any.whl\n\n# Or manually via GitHub UI:\n# https://github.com/goatbytes/consoul/releases/new\n# - Tag: v0.4.2\n# - Title: v0.4.2 - CLI Tool Support Fixes\n# - Attach: dist artifacts\n# - Description: Copy from CHANGELOG.md\n```\n\n**6. Update Documentation (gh-pages)**\n```bash\n# Build documentation\nmkdocs build\n\n# Deploy to gh-pages\nmkdocs gh-deploy\n\n# Verify live docs\n# Visit: https://goatbytes.github.io/consoul/\n\n# Alternatively, use GitHub Actions (if configured)\n# Push will trigger automatic deployment\n```\n\n**7. Verify Installation**\n```bash\n# Test fresh install\npip install --upgrade consoul\n\n# Verify version\nconsoul --version  # Should show 0.4.2\n\n# Test basic functionality\nconsoul chat  # Quick smoke test\n```\n\n**8. Update README badges (if needed)**\n- PyPI version badge\n- Documentation link\n- Release date\n\n**Acceptance Criteria:**\n\n**Given** version bumped to 0.4.2\n**When** I publish to PyPI\n**Then** package appears at https://pypi.org/project/consoul/0.4.2/\n\n**Given** GitHub release created\n**When** I visit releases page\n**Then** v0.4.2 tag with artifacts is visible\n\n**Given** documentation deployed\n**When** I visit https://goatbytes.github.io/consoul/\n**Then** latest docs are live\n\n**Given** fresh install\n**When** pip install consoul\n**Then** version 0.4.2 installs successfully\n\n**Post-Release:**\n- Announce on relevant channels (if applicable)\n- Close this ticket\n- Start work on EPIC-016 (Production SDK Hardening)\n\n**Reference Documentation:**\n- PUBLISHING.md (project root)\n- CHANGELOG.md (for release notes)\n- mkdocs.yml (documentation config)\n\n**Troubleshooting:**\n- Auth failed: poetry config pypi-token.pypi YOUR_TOKEN\n- Version exists: Bump version number\n- Build errors: rm -rf dist/ && poetry build\n- Docs not updating: Clear browser cache, check gh-pages branch",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "release",
+    "pypi",
+    "documentation",
+    "deployment"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

@@ -1,0 +1,35 @@
+{
+  "created_at": "2025-12-23T12:11:18.417513",
+  "updated_at": "2025-12-23T23:09:24.697061Z",
+  "id": "SOUL-297",
+  "uuid": "1852be34-45ba-45b0-a375-9bb06a11a3fa",
+  "title": "Add HTTP chat endpoint with session management",
+  "description": "**As a** frontend developer\n**I want** POST /chat endpoint with automatic session management\n**So that** I can integrate Consoul into web applications\n\n**Context:**\nLegal industry first deployment needs simple HTTP endpoint for document analysis. Current example (fastapi_sessions.py) shows pattern but needs productionization. Endpoint should:\n- Accept chat requests with session_id\n- Manage session lifecycle automatically\n- Support Redis or in-memory storage\n- Return structured responses\n\nPattern: Similar to OpenAI chat completions API for familiarity.\n\n**Technical Notes:**\n- Create: src/consoul/server/endpoints/chat.py\n- Create: src/consoul/server/models.py (Pydantic models)\n- Create: src/consoul/server/sessions.py (SessionStore)\n- Dependencies: redis (optional)\n- Integration: create_server() mounts POST /chat\n- Use: create_session() from SOUL-236\n\nRequest/Response models:\n- ChatRequest: session_id, message, model?, temperature?\n- ChatResponse: content, tokens, model, usage, session_id\n- ErrorResponse: error, message, details\n\nSessionStore implementations:\n- MemorySessionStore (development)\n- RedisSessionStore (production)\n\n**Acceptance Criteria:**\n\n**Given** server is running\n**When** I POST /chat with {\"session_id\": \"abc\", \"message\": \"Hello\"}\n**Then** returns ChatResponse with AI reply\n\n**Given** session exists in store\n**When** I send second message with same session_id\n**Then** conversation history is maintained\n\n**Given** session TTL expires\n**When** cleanup runs\n**Then** expired sessions are removed from store\n\n**Given** Redis is unavailable\n**When** using RedisSessionStore\n**Then** falls back to MemorySessionStore with warning log\n\n**Given** invalid request\n**When** POST /chat with missing fields\n**Then** returns 422 with Pydantic validation errors\n\n**Testing Considerations:**\n- Test session creation and retrieval\n- Test conversation continuity across requests\n- Test session TTL and cleanup\n- Test Redis connection failures\n- Test concurrent requests to same session\n- Mock create_session() in unit tests\n- Integration test with TestClient\n\n**Implementation Hints:**\n- SessionStore protocol with get/set/delete/cleanup methods\n- MemorySessionStore: Dict[str, tuple[Consoul, float]] with TTL\n- RedisSessionStore: Store session state in Redis with expiry\n- Endpoint: @router.post(\"/chat\", response_model=ChatResponse)\n- Use FastAPI dependency injection for SessionStore\n- Background task for session cleanup (periodic)\n- Add session count to /health endpoint\n- Document usage in examples/server/http_chat.py\n- Error handling: Wrap SDK exceptions in HTTPException\n- Reference: SOUL-236 for create_session() integration\n- Reference: SOUL-296 for factory integration",
+  "status": "todo",
+  "type": "story",
+  "priority": "high",
+  "labels": [
+    "server",
+    "api",
+    "http",
+    "sessions"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-017",
+  "blocked_by": [
+    "SOUL-292",
+    "SOUL-296"
+  ],
+  "blocks": [
+    "SOUL-298",
+    "SOUL-300"
+  ],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

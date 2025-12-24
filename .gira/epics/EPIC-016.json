@@ -1,0 +1,22 @@
+{
+  "created_at": "2025-12-23T12:07:55.889336",
+  "updated_at": "2025-12-23T12:07:55.889337",
+  "id": "EPIC-016",
+  "title": "Production SDK Hardening",
+  "description": "Make Consoul SDK production-ready for legal industry and multi-tenant deployments. Add tool sandboxing, document processing, security middleware, and audit logging for compliance-sensitive environments like legal tech.",
+  "status": "draft",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2026-02-28",
+  "labels": [],
+  "tickets": [
+    "SOUL-292",
+    "SOUL-293",
+    "SOUL-294",
+    "SOUL-295"
+  ],
+  "comments": [],
+  "comment_count": 0,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}

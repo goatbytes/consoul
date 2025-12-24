@@ -1,0 +1,21 @@
+{
+  "created_at": "2025-12-23T12:12:42.602536",
+  "updated_at": "2025-12-23T12:12:42.602537",
+  "id": "EPIC-018",
+  "title": "Legal Industry Deployment Template",
+  "description": "Production-ready deployment template for legal tech applications. Includes document analysis workflows, compliance-ready configuration, security hardening, and cloud deployment guides for law firms and legal professionals.",
+  "status": "draft",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2026-04-30",
+  "labels": [],
+  "tickets": [
+    "SOUL-300",
+    "SOUL-301",
+    "SOUL-302"
+  ],
+  "comments": [],
+  "comment_count": 0,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}

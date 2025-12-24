@@ -1,0 +1,29 @@
+{
+  "created_at": "2025-12-23T12:08:57.055684",
+  "updated_at": "2025-12-23T23:09:24.693769Z",
+  "id": "SOUL-293",
+  "uuid": "7183883a-c1b1-404d-a19a-2ef1a7830f17",
+  "title": "Add document processing tools for legal industry",
+  "description": "**As a** legal tech developer\n**I want** PDF and DOCX document processing tools\n**So that** attorneys can analyze case files, depositions, and legal documents with AI\n\n**Context:**\nLegal industry primary use case: analyzing legal documents (pleadings, depositions, medical records, contracts). Current tool catalog lacks document processing. Need memory-only processing (no disk writes) for security/compliance.\n\nDocument types in legal practice:\n- PDF: Court filings, scanned documents, medical records\n- DOCX: Motions, briefs, correspondence\n- Text extraction for AI analysis\n- Metadata preservation (page numbers for citations)\n\n**Technical Notes:**\n- Create: src/consoul/ai/tools/implementations/document_processing.py\n- Dependencies: PyPDF2 or pdfplumber for PDF, python-docx for DOCX\n- Add to: src/consoul/ai/tools/catalog.py TOOL_CATALOG\n- Risk level: SAFE (read-only operations)\n- Memory-only: Accept file bytes, return text (no filesystem)\n- Metadata: Extract page numbers, sections, authors\n\nTools to implement:\n1. extract_pdf_text(pdf_bytes: bytes) -> dict\n2. extract_docx_text(docx_bytes: bytes) -> dict\n3. analyze_document_structure(content: str) -> dict\n\n**Acceptance Criteria:**\n\n**Given** I have PDF document bytes\n**When** I call extract_pdf_text(pdf_bytes)\n**Then** returns {\"text\": \"...\", \"pages\": 15, \"metadata\": {...}}\n\n**Given** I have DOCX document bytes\n**When** I call extract_docx_text(docx_bytes)\n**Then** returns {\"text\": \"...\", \"paragraphs\": 42, \"metadata\": {...}}\n\n**Given** extracted document text\n**When** I call analyze_document_structure(text)\n**Then** returns {\"sections\": [...], \"headings\": [...], \"citations\": [...]}\n\n**Given** server deployment\n**When** documents are processed\n**Then** no files are written to disk (memory-only processing)\n\n**Testing Considerations:**\n- Test with sample legal PDFs (public court filings)\n- Test with DOCX templates\n- Test large documents (100+ pages)\n- Verify no filesystem writes\n- Test metadata extraction accuracy\n- Mock file bytes in unit tests\n\n**Implementation Hints:**\n- Use pdfplumber for better text extraction (vs PyPDF2)\n- Use python-docx for DOCX parsing\n- Return structured dict with text + metadata\n- Add page_number mapping for AI citations\n- Handle corrupted/encrypted PDFs gracefully\n- Add optional dependencies: pyproject.toml [legal] extras\n- Document usage in examples/legal/document_analysis.py\n- Keep tools stateless (no caching)",
+  "status": "todo",
+  "type": "story",
+  "priority": "high",
+  "labels": [
+    "sdk",
+    "tools",
+    "legal",
+    "enhancement"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-016",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

@@ -1,0 +1,22 @@
+{
+  "created_at": "2025-12-23T12:10:20.985393",
+  "updated_at": "2025-12-23T12:10:20.985395",
+  "id": "EPIC-017",
+  "title": "Production Server Package",
+  "description": "Create consoul.server package with production-ready FastAPI integration, session management, WebSocket streaming, and observability. Provides batteries-included server for deploying Consoul to production with minimal configuration.",
+  "status": "draft",
+  "owner": "jared@goatbytes.io",
+  "target_date": "2026-03-31",
+  "labels": [],
+  "tickets": [
+    "SOUL-296",
+    "SOUL-297",
+    "SOUL-298",
+    "SOUL-299"
+  ],
+  "comments": [],
+  "comment_count": 0,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}

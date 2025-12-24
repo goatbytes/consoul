@@ -1,0 +1,29 @@
+{
+  "created_at": "2025-12-23T12:12:14.942630",
+  "updated_at": "2025-12-23T23:09:24.698779Z",
+  "id": "SOUL-299",
+  "uuid": "6c557d09-2e4f-4ceb-8632-f4267ff13c15",
+  "title": "Add observability integration (LangSmith, OpenTelemetry, Prometheus)",
+  "description": "**As a** DevOps engineer\n**I want** built-in observability (traces, metrics, logs)\n**So that** I can monitor and debug production Consoul deployments\n\n**Context:**\nProduction deployments need observability for debugging, performance monitoring, and cost tracking. LangChain ecosystem provides:\n- LangSmith for LLM tracing (optional SaaS)\n- OpenTelemetry for distributed tracing\n- Prometheus for metrics\n\nNeed integration hooks without forcing specific vendors.\n\n**Technical Notes:**\n- Create: src/consoul/server/observability/langsmith.py\n- Create: src/consoul/server/observability/opentelemetry.py  \n- Create: src/consoul/server/observability/prometheus.py\n- Dependencies: langsmith, opentelemetry-api, prometheus-client (all optional)\n- Integration: create_server() enables based on config\n- Pattern: Plugin-based (enable what you need)\n\nObservability features:\n1. LangSmith: Trace LLM calls, tool execution, costs\n2. OpenTelemetry: Distributed traces with spans\n3. Prometheus: Metrics endpoint at /metrics\n4. Structured logs: From SOUL-295\n\nMetrics to track:\n- Request count/latency (by endpoint)\n- Token usage (input/output)\n- Cost tracking (by session/user)\n- Error rates\n- Active sessions\n- Tool execution count\n\n**Acceptance Criteria:**\n\n**Given** LangSmith configured with LANGSMITH_API_KEY\n**When** message is processed\n**Then** trace appears in LangSmith dashboard\n\n**Given** OpenTelemetry enabled\n**When** request flows through system\n**Then** distributed trace includes all spans (API → SDK → LLM)\n\n**Given** Prometheus metrics enabled\n**When** GET /metrics\n**Then** returns Prometheus format metrics\n\n**Given** multiple sessions active\n**When** checking metrics\n**Then** can aggregate by session_id, user_id, model\n\n**Testing Considerations:**\n- Test LangSmith integration (mock API)\n- Test OpenTelemetry span creation\n- Test Prometheus metrics export\n- Test metrics accuracy (token counts)\n- Verify no dependency if features disabled\n- Integration test with actual LangSmith\n\n**Implementation Hints:**\n- LangSmith: Use LangChainTracer callback\n- OpenTelemetry: Create spans for send_message(), tool execution\n- Prometheus: Use prometheus_client with Counter, Histogram\n- Metrics: request_count, request_latency_seconds, token_usage\n- Config: Enable via LANGSMITH_ENABLED, OTEL_ENABLED env vars\n- Graceful degradation: No-op if packages not installed\n- Add /metrics endpoint to server factory\n- Document setup in docs/operations/monitoring.md\n- Example: examples/observability/langsmith_tracing.py\n- Reference: SOUL-295 for structured logging integration\n- Reference: SOUL-296 for server factory hooks",
+  "status": "todo",
+  "type": "story",
+  "priority": "medium",
+  "labels": [
+    "server",
+    "observability",
+    "monitoring",
+    "production"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-017",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}
