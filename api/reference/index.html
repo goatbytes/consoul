@@ -2783,15 +2783,21 @@
 <a href="#consoul.sdk.Consoul" class="headerlink" title="Permanent link">¶</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Consoul</span><span class="p">(</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">profile</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"default"</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">tools</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">BaseTool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">persist</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">discover_tools</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">approval_provider</span><span class="p">:</span> <span class="n">ApprovalProvider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">tools</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">BaseTool</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">persist</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">discover_tools</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">approval_provider</span><span class="p">:</span> <span class="n">ApprovalProvider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">context_providers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">db_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">summarize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">summarize_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">keep_recent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">summary_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="o">**</span><span class="n">model_kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents first">
@@ -2816,7 +2822,7 @@
     &gt;&gt;&gt; print(f"Tokens: {response.tokens}")</p>
 <p 0.00025="0.00025" 10_="10," 15_="15," _input_tokens_:="'input_tokens':" _output_tokens_:="'output_tokens':" _total_cost_:="'total_cost':">Introspection:
     &gt;&gt;&gt; console.settings
-    {'model': 'claude-3-5-sonnet-20241022', 'profile': 'default', ...}
+    {'model': 'claude-3-5-sonnet-20241022', 'temperature': 0.7, ...}
     &gt;&gt;&gt; console.last_cost</p>
 
         <p>Initialize Consoul SDK.</p>
@@ -2843,27 +2849,12 @@
             <td>
               <div class="doc-md-description">
                 <p>Model name (e.g., "gpt-4o", "claude-3-5-sonnet").
-   Auto-detects provider. Defaults to profile's model.</p>
+   Auto-detects provider. If not specified, falls back to
+   config's current model.</p>
               </div>
             </td>
             <td>
                   <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>profile</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Profile name to use (default: "default")</p>
-              </div>
-            </td>
-            <td>
-                  <code>'default'</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -2996,6 +2987,145 @@
                   <code>None</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>context_providers</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="typing.Any">Any</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of context providers implementing ContextProvider protocol.
+              Each provider's get_context() is called before building system prompts,
+              injecting dynamic context from databases, APIs, or runtime sources.
+              See examples/sdk/context_providers/ for domain-specific examples.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>db_path</code>
+            </td>
+            <td>
+                  <code><span title="pathlib.Path">Path</span> | <span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to conversation history database (default: ~/.consoul/history.db).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>summarize</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Enable conversation summarization (default: False).</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>summarize_threshold</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of messages before summarization (default: 20).</p>
+              </div>
+            </td>
+            <td>
+                  <code>20</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>keep_recent</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of recent messages to keep when summarizing (default: 10).</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>summary_model</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Model name for summarization (optional, use cheaper model).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**model_kwargs</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Provider-specific parameters passed to the LLM.
+           These are validated and passed through to the model.</p>
+<div class="language-text highlight"><pre><span></span><code>       OpenAI-specific:
+       - service_tier: "auto"|"default"|"flex" (flex ~50% cheaper)
+       - seed: int (deterministic sampling)
+       - logit_bias: dict[str, float] (token likelihood)
+       - response_format: dict (json_object, json_schema)
+       - frequency_penalty: float (-2.0 to 2.0)
+       - presence_penalty: float (-2.0 to 2.0)
+       - top_p: float (0.0-1.0)
+
+       Anthropic-specific:
+       - thinking: dict (extended thinking config)
+       - betas: list[str] (experimental features)
+       - metadata: dict (run tracing)
+       - top_p: float (0.0-1.0)
+       - top_k: int (sampling parameter)
+
+       Google-specific:
+       - safety_settings: dict (content filtering)
+       - generation_config: dict (response modalities)
+       - candidate_count: int (completions to generate)
+       - top_p: float (0.0-1.0)
+       - top_k: int (sampling parameter)
+</code></pre></div>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -3015,7 +3145,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If profile not found or invalid parameters</p>
+                <p>If invalid parameters provided</p>
               </div>
             </td>
           </tr>
@@ -3029,14 +3159,25 @@
               </div>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If profile parameter is used (removed in v0.5.0)</p>
+              </div>
+            </td>
+          </tr>
       </tbody>
     </table>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
     <p>Basic usage:
-    &gt;&gt;&gt; console = Consoul()  # All tools enabled
-    &gt;&gt;&gt; console = Consoul(model="gpt-4o", temperature=0.7)</p>
+    &gt;&gt;&gt; console = Consoul(model="gpt-4o")  # Minimal setup
+    &gt;&gt;&gt; console = Consoul(model="gpt-4o", temperature=0.7, tools=False)
+    &gt;&gt;&gt; console = Consoul()  # Uses config defaults</p>
 <p>Tool specification:
     &gt;&gt;&gt; # Disable tools
     &gt;&gt;&gt; console = Consoul(tools=False)</p>
@@ -3082,6 +3223,78 @@
     ... )
     &gt;&gt;&gt; console = Consoul(tools=True, approval_provider=provider)
     &gt;&gt;&gt; # Tool approvals now go through web API instead of terminal</p>
+<p>Context providers (domain-specific AI):
+    &gt;&gt;&gt; # Legal AI with case law context
+    &gt;&gt;&gt; from examples.sdk.context_providers.legal_context_provider import LegalContextProvider
+    &gt;&gt;&gt; provider = LegalContextProvider("California", case_database)
+    &gt;&gt;&gt; console = Consoul(
+    ...     model="gpt-4o",
+    ...     system_prompt="You are a legal assistant...",
+    ...     context_providers=[provider],
+    ...     tools=False
+    ... )</p>
+<div class="language-text highlight"><pre><span></span><code>&gt;&gt;&gt; # Multiple context providers composition
+&gt;&gt;&gt; console = Consoul(
+...     model="gpt-4o",
+...     context_providers=[
+...         KnowledgeBaseProvider(kb_id="medical"),
+...         PatientContextProvider(patient_id="12345"),
+...         ComplianceProvider(regulations=["HIPAA"])
+...     ]
+... )
+</code></pre></div>
+<p>Provider-specific parameters:
+    &gt;&gt;&gt; # OpenAI with flex tier (50% cheaper, slower)
+    &gt;&gt;&gt; console = Consoul(model="gpt-4o", service_tier="flex")</p>
+<div class="language-text highlight"><pre><span></span><code>&gt;&gt;&gt; # Anthropic with extended thinking
+&gt;&gt;&gt; console = Consoul(
+...     model="claude-sonnet-4",
+...     thinking={"type": "enabled", "budget_tokens": 10000}
+... )
+
+&gt;&gt;&gt; # OpenAI with JSON schema mode
+&gt;&gt;&gt; schema = {"type": "object", "properties": {"answer": {"type": "string"}}}
+&gt;&gt;&gt; console = Consoul(
+...     model="gpt-4o",
+...     response_format={"type": "json_schema", "json_schema": schema}
+... )
+
+&gt;&gt;&gt; # Google with safety settings
+&gt;&gt;&gt; console = Consoul(
+...     model="gemini-pro",
+...     safety_settings={"HARM_CATEGORY_HARASSMENT": "BLOCK_NONE"}
+... )
+</code></pre></div>
+<p>Profile-free SDK usage (domain-specific apps):
+    &gt;&gt;&gt; # Legal AI (Richard project) - Clean prompt, no env noise
+    &gt;&gt;&gt; console = Consoul(
+    ...     model="gpt-4o",
+    ...     temperature=0.7,
+    ...     system_prompt="You are a workers' compensation legal assistant...",
+    ...     persist=True,
+    ...     db_path="~/richard/history.db",
+    ...     tools=False,  # Chat-only mode
+    ...     service_tier="flex"  # Cost optimization
+    ... )
+    &gt;&gt;&gt; # Note: Profile-free mode has NO environment/git injection by default
+    &gt;&gt;&gt; # For granular context control, use build_enhanced_system_prompt() directly</p>
+<div class="language-text highlight"><pre><span></span><code>&gt;&gt;&gt; # Medical chatbot with summarization
+&gt;&gt;&gt; console = Consoul(
+...     model="claude-sonnet-4",
+...     system_prompt="You are a medical assistant...",
+...     summarize=True,
+...     summarize_threshold=15,
+...     keep_recent=8,
+...     summary_model="gpt-4o-mini"  # Cheaper model for summaries
+... )
+
+&gt;&gt;&gt; # Customer support bot
+&gt;&gt;&gt; console = Consoul(
+...     model="gpt-4o",
+...     system_prompt="You are a customer support agent...",
+...     tools=["web_search", "read_url"],  # Only specific tools
+... )
+</code></pre></div>
 
 
 <details class="available-tool-categories" open>
@@ -3301,7 +3514,7 @@ Cost calculations use model-specific pricing data from major providers
 
 <p><span class="doc-section-title">Examples:</span></p>
     <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">console</span><span class="o">.</span><span class="n">settings</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">{'model': 'claude-3-5-sonnet-20241022', 'profile': 'default', ...}</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">{'model': 'claude-3-5-sonnet-20241022', 'temperature': 0.7, ...}</span>
 </span></code></pre></div>
 
     </div>
@@ -6194,7 +6407,13 @@ True</p>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">conversation</span><span class="p">:</span> <span class="n">ConversationHistory</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">tool_registry</span><span class="p">:</span> <span class="n">ToolRegistry</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">config</span><span class="p">:</span> <span class="n">ConsoulConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">context_providers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">base_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">include_tool_docs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">include_env_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">include_git_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">auto_append_tools</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents first">
@@ -6402,6 +6621,102 @@ async for token in service.send_message(
                   <code>None</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>context_providers</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="typing.Any">Any</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional list of context providers for dynamic context</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>base_prompt</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Base system prompt (before context injection)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_tool_docs</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Include tool documentation in system prompt</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_env_context</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Include OS/shell/directory info</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_git_context</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Include git repository info</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>auto_append_tools</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Auto-append tool docs if no marker present</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -6445,7 +6760,9 @@ async for token in service.send_message(
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">include_env_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">include_git_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">auto_append_tools</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConversationService</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">approval_provider</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">context_providers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConversationService</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6566,6 +6883,38 @@ manually creating dependencies.</p>
             </td>
             <td>
                   <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>approval_provider</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional approval provider for tool execution</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>context_providers</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="typing.Any">Any</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of ContextProvider implementations for dynamic context injection</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
