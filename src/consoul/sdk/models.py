@@ -14,7 +14,10 @@ Example:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from consoul.ai.tools.base import RiskLevel, ToolCategory
 
 
 @dataclass
@@ -295,3 +298,176 @@ class ModelInfo:
     created: str | None = None
     pricing: PricingInfo | None = None
     capabilities: ModelCapabilities | None = None
+
+
+@dataclass
+class ToolFilter:
+    """Fine-grained tool filtering for session-level sandboxing.
+
+    Enables per-session tool access control for multi-tenant deployments
+    where different users/sessions require different tool capabilities.
+    Essential for legal/enterprise environments with strict security requirements.
+
+    Filter rules are applied in precedence order:
+    1. deny list (highest priority - blocks specific tools)
+    2. allow list (whitelist - only specified tools)
+    3. risk_level (filter by max risk level)
+    4. categories (filter by functional category)
+
+    Attributes:
+        allow: Whitelist of allowed tool names (None = no restriction).
+               Example: ["web_search", "grep_search"] for research-only session
+        deny: Blacklist of blocked tool names (None = no restriction).
+              Example: ["bash_execute", "file_edit"] for read-only session
+        risk_level: Maximum allowed risk level (None = no restriction).
+                   Example: RiskLevel.SAFE for maximum safety (read-only tools)
+        categories: Allowed tool categories (None = no restriction).
+                   Example: [ToolCategory.SEARCH, ToolCategory.WEB] for search-only
+
+    Example - Legal industry (document analysis only):
+        >>> from consoul.ai.tools.base import RiskLevel, ToolCategory
+        >>> legal_filter = ToolFilter(
+        ...     allow=["web_search", "read_url", "grep_search"],
+        ...     deny=["bash_execute", "file_edit", "create_file"],
+        ...     risk_level=RiskLevel.SAFE
+        ... )
+        >>> # Only safe search tools allowed, no bash/filesystem access
+
+    Example - Research session (web + search, no execution):
+        >>> research_filter = ToolFilter(
+        ...     categories=[ToolCategory.SEARCH, ToolCategory.WEB],
+        ...     deny=["bash_execute"]
+        ... )
+
+    Example - Read-only session (maximum safety):
+        >>> readonly_filter = ToolFilter(
+        ...     risk_level=RiskLevel.SAFE,
+        ...     deny=["bash_execute", "file_edit", "create_file"]
+        ... )
+
+    Example - SDK integration with audit callback:
+        >>> def audit_blocked_tool(session_id, tool_name, reason):
+        ...     print(f"Blocked {tool_name}: {reason}")
+        >>> service = ConversationService.from_config(
+        ...     tool_filter=legal_filter,
+        ...     audit_callback=audit_blocked_tool
+        ... )
+    """
+
+    allow: list[str] | None = None
+    deny: list[str] | None = None
+    risk_level: RiskLevel | None = None
+    categories: list[ToolCategory] | None = None
+
+    def __post_init__(self) -> None:
+        """Validate filter configuration."""
+        # Import here to avoid circular dependency
+        from consoul.ai.tools.base import RiskLevel, ToolCategory
+
+        # Validate risk_level
+        if self.risk_level is not None and not isinstance(self.risk_level, RiskLevel):
+            raise ValueError(
+                f"risk_level must be RiskLevel enum, got {type(self.risk_level)}"
+            )
+
+        # Validate categories
+        if self.categories is not None:
+            if not isinstance(self.categories, list):
+                raise ValueError("categories must be a list")
+            for cat in self.categories:
+                if not isinstance(cat, ToolCategory):
+                    raise ValueError(
+                        f"All categories must be ToolCategory enum, got {type(cat)}"
+                    )
+
+        # Validate allow/deny lists
+        if self.allow is not None and not isinstance(self.allow, list):
+            raise ValueError("allow must be a list of tool names")
+        if self.deny is not None and not isinstance(self.deny, list):
+            raise ValueError("deny must be a list of tool names")
+
+        # Warn about conflicting configuration
+        if self.allow is not None and self.deny is not None:
+            # Check for overlap
+            allow_set = set(self.allow)
+            deny_set = set(self.deny)
+            overlap = allow_set & deny_set
+            if overlap:
+                import warnings
+
+                warnings.warn(
+                    f"ToolFilter has overlapping allow/deny lists: {overlap}. "
+                    "deny list takes precedence.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+    def is_tool_allowed(
+        self,
+        tool_name: str,
+        tool_risk: RiskLevel,
+        tool_categories: list[ToolCategory] | None = None,
+    ) -> tuple[bool, str | None]:
+        """Check if a tool is allowed by this filter.
+
+        Args:
+            tool_name: Name of the tool to check
+            tool_risk: Risk level of the tool
+            tool_categories: Optional categories for the tool
+
+        Returns:
+            Tuple of (is_allowed, reason). If not allowed, reason explains why.
+
+        Example:
+            >>> filter = ToolFilter(deny=["bash_execute"], risk_level=RiskLevel.SAFE)
+            >>> allowed, reason = filter.is_tool_allowed("bash_execute", RiskLevel.CAUTION)
+            >>> assert not allowed
+            >>> assert "denied by filter" in reason
+        """
+        # Import here to avoid circular dependency
+        from consoul.ai.tools.base import RiskLevel
+
+        # 1. Check deny list (highest priority)
+        if self.deny and tool_name in self.deny:
+            return False, f"Tool '{tool_name}' is explicitly denied by filter"
+
+        # 2. Check allow list (whitelist)
+        if self.allow is not None and tool_name not in self.allow:
+            return False, f"Tool '{tool_name}' is not in allow list"
+
+        # 3. Check risk level
+        if self.risk_level is not None:
+            # Get risk level priority (safe=0, caution=1, dangerous=2, blocked=3)
+            risk_priority = {
+                RiskLevel.SAFE: 0,
+                RiskLevel.CAUTION: 1,
+                RiskLevel.DANGEROUS: 2,
+                RiskLevel.BLOCKED: 3,
+            }
+            max_priority = risk_priority.get(self.risk_level, 0)
+            tool_priority = risk_priority.get(tool_risk, 3)
+
+            if tool_priority > max_priority:
+                return (
+                    False,
+                    f"Tool '{tool_name}' risk level {tool_risk.value} exceeds maximum {self.risk_level.value}",
+                )
+
+        # 4. Check categories
+        if self.categories is not None:
+            # If category filter is active, tool MUST have categories
+            if not tool_categories:
+                return (
+                    False,
+                    f"Tool '{tool_name}' has no category metadata (required when using category filter)",
+                )
+
+            # Tool must have at least one allowed category
+            if not any(cat in self.categories for cat in tool_categories):
+                allowed_cats = ", ".join(c.value for c in self.categories)
+                return (
+                    False,
+                    f"Tool '{tool_name}' categories not in allowed list: {allowed_cats}",
+                )
+
+        return True, None

@@ -24,6 +24,7 @@ from consoul.sdk.models import (
     ModelInfo,
     PricingInfo,
     Token,
+    ToolFilter,
     ToolRequest,
 )
 from consoul.sdk.protocols import ToolExecutionCallback
@@ -44,5 +45,6 @@ __all__ = [
     "PricingInfo",
     "Token",
     "ToolExecutionCallback",
+    "ToolFilter",
     "ToolRequest",
 ]

@@ -37,12 +37,36 @@
     }
   },
   "epic_view": {
-    "sort_column": null,
-    "sort_reverse": false,
+    "sort_column": 7,
+    "sort_reverse": true,
     "filters": {
       "status": [],
       "owner": null
-    }
+    },
+    "visible_columns": [
+      "id",
+      "title",
+      "status",
+      "owner",
+      "tickets",
+      "progress",
+      "story_points",
+      "created"
+    ],
+    "column_order": [
+      "id",
+      "title",
+      "status",
+      "owner",
+      "tickets",
+      "progress",
+      "story_points",
+      "target_date",
+      "labels",
+      "created",
+      "updated"
+    ],
+    "column_widths": {}
   },
   "sprint_view": {
     "filters": {
