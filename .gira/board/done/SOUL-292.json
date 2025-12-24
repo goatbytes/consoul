@@ -1,0 +1,69 @@
+{
+  "created_at": "2025-12-23T12:08:30.454455",
+  "updated_at": "2025-12-24T06:36:22.845587Z",
+  "id": "SOUL-292",
+  "uuid": "5a9204a1-8937-463a-978b-f65076cbccb8",
+  "title": "Add tool filtering and sandboxing system",
+  "description": "**As a** backend developer building multi-tenant AI applications\n**I want** fine-grained tool filtering and sandboxing per session\n**So that** I can safely deploy Consoul in legal/enterprise environments without security risks\n\n**Context:**\nLegal industry deployments require strict tool control - attorneys cannot execute arbitrary bash commands or access filesystem on shared servers. Current ToolService (src/consoul/sdk/services/tool.py) supports enabled/disabled lists globally but lacks per-session filtering.\n\nMulti-tenant requirements:\n- Disable dangerous tools (bash, file operations) for some users\n- Allow research tools (web_search) for all users\n- Audit trail for compliance (who executed what tool)\n- Prevent directory traversal attacks\n\n**Technical Notes:**\n- src/consoul/sdk/services/tool.py - Extend ToolService\n- src/consoul/sdk/services/conversation.py - Pass tool filter to ConversationService\n- Create ToolFilter class with allow/deny lists\n- Support tool filtering by:\n  - Risk level (SAFE, CAUTION, DANGEROUS)\n  - Tool category (filesystem, network, code)\n  - Explicit allow/deny lists\n- Hook into tool execution for audit logging\n\n**Acceptance Criteria:**\n\n**Given** I create a session with tool_filter={\"deny\": [\"bash_execute\", \"file_edit\"]}\n**When** AI attempts to call bash_execute\n**Then** tool call is blocked and AI receives error message\n\n**Given** I filter tools by risk_level=\"SAFE\"\n**When** AI requests tool execution\n**Then** only SAFE tools (analyze_text, calculate) are available\n\n**Given** tool execution occurs\n**When** using audit_callback parameter\n**Then** callback receives (session_id, tool_name, args, result, timestamp)\n\n**Given** legal industry deployment\n**When** configuring for document analysis only\n**Then** can disable all filesystem/bash tools while keeping web_search\n\n**Testing Considerations:**\n- Unit test ToolFilter allow/deny logic\n- Test risk level filtering\n- Test audit callback invocation\n- Integration test with ConversationService\n- Verify blocked tools return clear error messages\n\n**Implementation Hints:**\n- Create ToolFilter dataclass with allow/deny/risk_level fields\n- Add ToolService.apply_filter(filter: ToolFilter) method\n- Modify ConversationService to accept tool_filter parameter\n- Create audit hook: on_tool_execute(ToolExecutionEvent)\n- Update create_session() to support tool_filter parameter\n- Document security best practices in docstrings\n- Reference: SOUL-236 (session factory) for integration pattern",
+  "status": "done",
+  "type": "story",
+  "priority": "critical",
+  "labels": [
+    "sdk",
+    "security",
+    "tools",
+    "production"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-016",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-23T19:24:41.351333",
+      "updated_at": "2025-12-23T19:24:41.351334",
+      "id": "20251223192441-3069b515",
+      "ticket_id": "SOUL-292",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation complete for tool filtering and sandboxing system.\n\n## What Was Implemented\n\n### 1. ToolFilter Dataclass (src/consoul/sdk/models.py)\n- Created ToolFilter with allow/deny/risk_level/categories filtering\n- Validates filter configurations with helpful error messages\n- Provides is_tool_allowed() method for filter precedence: deny > allow > risk_level > categories\n- Includes comprehensive examples for legal/enterprise deployments\n\n### 2. ToolService Extensions (src/consoul/sdk/services/tool.py)\n- Added apply_filter() method to create filtered ToolService instances\n- Added get_filtered_tools() helper for querying filtered tools\n- Maintains approval provider and audit logger through filtering\n\n### 3. ConversationService Integration (src/consoul/sdk/services/conversation.py)\n- Added tool_filter parameter to __init__ and from_config()\n- Applies filter to tool registry during initialization\n- Blocks filtered tools with clear error messages\n\n### 4. Audit Hooks (src/consoul/ai/tools/audit.py + conversation.py)\n- Added 'blocked' event type to AuditEvent\n- Logs blocked tool attempts with session_id, tool_name, reason\n- Non-blocking async logging for performance\n\n### 5. SDK Wrapper Updates (src/consoul/sdk/wrapper.py)\n- Exposed tool_filter parameter in Consoul.__init__()\n- Exposed tool_filter in create_session() for multi-tenant use\n- Applied filter after registry creation but before model binding\n\n### 6. Comprehensive Tests\n- Unit tests: tests/sdk/models/test_tool_filter.py (15 passing)\n- Integration tests: tests/sdk/services/test_tool_filtering.py (10 passing)\n- Real-world use cases: legal industry, read-only sessions, research sessions\n\n## Acceptance Criteria Met\n✅ Block specific tools (deny list)\n✅ Filter by risk level (SAFE only)\n✅ Audit callback for tool execution/blocking\n✅ Legal industry deployment scenario (document analysis only, no bash/filesystem)\n✅ Clear error messages for blocked tools\n\n## Usage Examples\nSee tests for comprehensive examples including legal industry filters, read-only sessions, and research-only filters.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-23T19:31:58.961500",
+      "updated_at": "2025-12-23T19:31:58.961502",
+      "id": "20251223193158-54b9152d",
+      "ticket_id": "SOUL-292",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed P1 issue: Category-based tool filtering now works correctly.\n\n## Problem\nCategory metadata was being dropped during registry filtering in ToolService.apply_filter(), causing category-based filters to fail silently. Sessions configured with categories=[...] were allowing all tools except explicitly denied ones.\n\n## Root Cause\n1. ToolRegistry.register() didn't accept a 'categories' parameter\n2. ConversationService was converting categories to tags (losing type info)\n3. ToolService.apply_filter() wasn't preserving categories during re-registration\n4. SDK wrapper was discarding categories entirely (_categories)\n\n## Solution\n1. Added 'categories' parameter to ToolRegistry.register() (registry.py:100)\n2. Updated ConversationService to pass categories when registering (conversation.py:281)\n3. Updated ToolService.apply_filter() to preserve categories (tool.py:402)\n4. Updated SDK wrapper to pass categories (wrapper.py:620)\n\n## Files Changed\n- src/consoul/ai/tools/registry.py - Added categories parameter\n- src/consoul/sdk/services/conversation.py - Pass categories during registration\n- src/consoul/sdk/services/tool.py - Preserve categories in apply_filter()\n- src/consoul/sdk/wrapper.py - Pass categories instead of discarding\n\n## Tests\nAll 25 tests passing, including category filtering tests.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-23T19:36:13.855265",
+      "updated_at": "2025-12-23T19:36:13.855266",
+      "id": "20251223193613-f4a11414",
+      "ticket_id": "SOUL-292",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed P1 security vulnerability: Category filter bypass for uncategorized tools.\n\n## Problem\nWhen ToolFilter was configured with categories=[...], tools without category metadata were **silently allowed** instead of being blocked. This completely bypassed the intended sandboxing and could expose dangerous tools in restricted environments.\n\nExample attack vector:\n- Session configured with categories=[SEARCH, WEB] (research-only)\n- Custom tool registered without categories metadata\n- Tool bypasses category check and executes (DANGEROUS!)\n\n## Root Cause\nIn ToolFilter.is_tool_allowed() (models.py:449), the category check only ran when tool_categories was truthy:\n\n```python\nif self.categories is not None and tool_categories:  # BUG!\n    # Check categories...\n```\n\nThis meant tools with None or [] categories skipped validation entirely.\n\n## Fix\nChanged logic to REQUIRE categories when category filter is active (models.py:449-457):\n\n```python\nif self.categories is not None:\n    # If category filter active, tool MUST have categories\n    if not tool_categories:\n        return False, \"Tool has no category metadata (required)\"\n    # Check categories...\n```\n\n## Security Impact\n- **HIGH** - This was a complete bypass of category-based sandboxing\n- Any deployment relying on category filtering for security was vulnerable\n- Uncategorized tools could execute in supposedly restricted environments\n\n## Tests\n- Added test_category_filtering_blocks_uncategorized_tools\n- Verifies both None and [] categories are blocked\n- All 26 tests passing",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 3,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {}
+}

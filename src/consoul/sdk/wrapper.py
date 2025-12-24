@@ -116,6 +116,7 @@ class Consoul:
         discover_tools: bool = False,
         approval_provider: ApprovalProvider | None = None,
         context_providers: list[Any] | None = None,
+        tool_filter: Any | None = None,
         db_path: Path | str | None = None,
         summarize: bool = False,
         summarize_threshold: int = 20,
@@ -160,6 +161,10 @@ class Consoul:
                               Each provider's get_context() is called before building system prompts,
                               injecting dynamic context from databases, APIs, or runtime sources.
                               See examples/sdk/context_providers/ for domain-specific examples.
+            tool_filter: Optional ToolFilter for session-level tool sandboxing.
+                        Enables fine-grained control over which tools are available.
+                        Essential for multi-tenant deployments with varying security requirements.
+                        Example: ToolFilter(deny=["bash_execute"], risk_level=RiskLevel.SAFE)
             db_path: Path to conversation history database (default: ~/.consoul/history.db).
             summarize: Enable conversation summarization (default: False).
             summarize_threshold: Number of messages before summarization (default: 20).
@@ -427,6 +432,7 @@ class Consoul:
         self.tools_spec = tools
         self.discover_tools = discover_tools
         self.approval_provider = approval_provider
+        self.tool_filter = tool_filter
         self.tools_enabled = (
             False  # Will be set to True if tools are actually registered
         )
@@ -607,11 +613,24 @@ class Consoul:
         )
 
         # Register all resolved tools
-        for tool, risk_level, _categories in tools_to_register:
+        for tool, risk_level, categories in tools_to_register:
             self.registry.register(
                 tool=tool,
                 risk_level=risk_level,
+                categories=categories,
             )
+
+        # Apply tool filter if provided (session-level sandboxing)
+        if self.tool_filter:
+            from consoul.sdk.services.tool import ToolService
+
+            # Create ToolService wrapper to apply filter
+            temp_service = ToolService(
+                tool_registry=self.registry,
+                config=tool_config,
+            )
+            filtered_service = temp_service.apply_filter(self.tool_filter)
+            self.registry = filtered_service.tool_registry
 
         # Bind tools to model
         self.model = self.registry.bind_to_model(self.model)
@@ -1046,6 +1065,7 @@ def create_session(
     discover_tools: bool = False,
     approval_provider: ApprovalProvider | None = None,
     context_providers: list[Any] | None = None,
+    tool_filter: Any | None = None,
     summarize: bool = False,
     summarize_threshold: int = 20,
     keep_recent: int = 10,
@@ -1087,6 +1107,9 @@ def create_session(
                           If None with tools enabled, falls back to CliApprovalProvider
                           which will BLOCK on stdin prompts (unsuitable for web backends).
         context_providers: List of ContextProvider instances for dynamic context
+        tool_filter: Optional ToolFilter for session-level tool sandboxing.
+                    Essential for multi-tenant deployments where different users
+                    require different tool access levels (e.g., legal industry).
         summarize: Enable conversation summarization (default: False)
         summarize_threshold: Number of messages before summarization (default: 20)
         keep_recent: Number of recent messages to keep when summarizing (default: 10)
@@ -1249,6 +1272,7 @@ def create_session(
         discover_tools=discover_tools,
         approval_provider=approval_provider,
         context_providers=context_providers,
+        tool_filter=tool_filter,  # Session-level tool sandboxing
         db_path=session_db_path,  # Session-specific DB (won't persist due to persist=False)
         summarize=summarize,
         summarize_threshold=summarize_threshold,

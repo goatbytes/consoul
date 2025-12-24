@@ -91,6 +91,7 @@ class ConversationService:
         include_env_context: bool = True,
         include_git_context: bool = True,
         auto_append_tools: bool = True,
+        tool_filter: Any | None = None,
     ) -> None:
         """Initialize conversation service.
 
@@ -105,6 +106,7 @@ class ConversationService:
             include_env_context: Include OS/shell/directory info
             include_git_context: Include git repository info
             auto_append_tools: Auto-append tool docs if no marker present
+            tool_filter: Optional ToolFilter for session-level tool sandboxing
         """
         self.model = model
         self.conversation = conversation
@@ -116,6 +118,7 @@ class ConversationService:
         self.include_env_context = include_env_context
         self.include_git_context = include_git_context
         self.auto_append_tools = auto_append_tools
+        self.tool_filter = tool_filter
         self.executor = ThreadPoolExecutor(max_workers=1)
 
     @classmethod
@@ -129,6 +132,7 @@ class ConversationService:
         auto_append_tools: bool = True,
         approval_provider: Any | None = None,
         context_providers: list[Any] | None = None,
+        tool_filter: Any | None = None,
     ) -> ConversationService:
         """Create ConversationService from configuration.
 
@@ -145,6 +149,7 @@ class ConversationService:
             auto_append_tools: Auto-append tool docs if no marker present (default: True)
             approval_provider: Optional approval provider for tool execution
             context_providers: List of ContextProvider implementations for dynamic context injection
+            tool_filter: Optional ToolFilter for session-level tool sandboxing
 
         Returns:
             Initialized ConversationService ready for use
@@ -164,6 +169,18 @@ class ConversationService:
             ...     include_tool_docs=False,
             ...     include_env_context=False,
             ...     include_git_context=False,
+            ... )
+
+        Example - Legal industry deployment (tool filtering):
+            >>> from consoul.sdk.models import ToolFilter
+            >>> from consoul.ai.tools.base import RiskLevel
+            >>> legal_filter = ToolFilter(
+            ...     allow=["web_search", "grep_search"],
+            ...     deny=["bash_execute", "file_edit"],
+            ...     risk_level=RiskLevel.SAFE
+            ... )
+            >>> service = ConversationService.from_config(
+            ...     tool_filter=legal_filter
             ... )
         """
         # Import here to avoid circular dependencies
@@ -261,7 +278,20 @@ class ConversationService:
                     risk_level=risk_level,
                     tags=tags_list,
                     enabled=enabled,
+                    categories=categories,  # Preserve categories for filtering
                 )
+
+            # Apply tool filter if provided (session-level sandboxing)
+            if tool_filter:
+                from consoul.sdk.services.tool import ToolService
+
+                # Create ToolService wrapper to apply filter
+                temp_service = ToolService(
+                    tool_registry=tool_registry,
+                    config=config.tools,
+                )
+                filtered_service = temp_service.apply_filter(tool_filter)
+                tool_registry = filtered_service.tool_registry
 
             # Bind tools to model if registry has enabled tools
             enabled_tools = [
@@ -311,6 +341,7 @@ class ConversationService:
             include_env_context=include_env_context,
             include_git_context=include_git_context,
             auto_append_tools=auto_append_tools,
+            tool_filter=tool_filter,
         )
 
     def _build_dynamic_system_prompt(
@@ -987,7 +1018,31 @@ class ConversationService:
                     break
 
             if not tool_metadata:
-                result = f"Unknown tool: {tool_name}"
+                # Tool not found - either doesn't exist or blocked by filter
+                # Check if tool was filtered out
+                if self.tool_filter:
+                    # Tool might be blocked by filter - log as blocked event
+                    from consoul.ai.tools.audit import AuditEvent
+
+                    # Create audit event for blocked tool
+                    if self.tool_registry.audit_logger:
+                        event = AuditEvent(
+                            event_type="blocked",
+                            tool_name=tool_name,
+                            arguments=tool_args,
+                            error=f"Tool '{tool_name}' blocked by session filter",
+                            metadata={
+                                "session_id": self.conversation.session_id,
+                                "reason": "tool_filter",
+                            },
+                        )
+                        # Log async (non-blocking)
+                        await self.tool_registry.audit_logger.log_event(event)
+
+                    result = f"Tool '{tool_name}' is not available in this session (blocked by filter)"
+                else:
+                    result = f"Unknown tool: {tool_name}"
+
                 tool_messages.append(ToolMessage(content=result, tool_call_id=tool_id))
                 continue
 

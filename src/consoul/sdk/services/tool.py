@@ -309,3 +309,101 @@ class ToolService:
         """
         all_tools = self.tool_registry.list_tools(enabled_only=False)
         return len(all_tools)
+
+    def get_filtered_tools(self, tool_filter: Any) -> list[Any]:
+        """Get tools filtered by ToolFilter criteria.
+
+        Args:
+            tool_filter: ToolFilter instance with allow/deny/risk/category rules
+
+        Returns:
+            List of ToolMetadata objects that pass the filter
+
+        Example:
+            >>> from consoul.sdk.models import ToolFilter
+            >>> from consoul.ai.tools.base import RiskLevel
+            >>> filter = ToolFilter(risk_level=RiskLevel.SAFE)
+            >>> safe_tools = service.get_filtered_tools(filter)
+            >>> print(f"Safe tools: {len(safe_tools)}")
+        """
+        all_tools = self.tool_registry.list_tools(enabled_only=True)
+        filtered = []
+
+        for tool_meta in all_tools:
+            # Check if tool passes filter
+            allowed, _reason = tool_filter.is_tool_allowed(
+                tool_name=tool_meta.name,
+                tool_risk=tool_meta.risk_level,
+                tool_categories=tool_meta.categories,
+            )
+            if allowed:
+                filtered.append(tool_meta)
+
+        return filtered
+
+    def apply_filter(self, tool_filter: Any) -> ToolService:
+        """Create a new ToolService with filtered tool registry.
+
+        Creates a filtered copy of the registry based on ToolFilter rules.
+        Useful for creating session-specific tool access (multi-tenant, security).
+
+        Args:
+            tool_filter: ToolFilter instance specifying allowed tools
+
+        Returns:
+            New ToolService with filtered tool registry
+
+        Example - Legal industry deployment (document analysis only):
+            >>> from consoul.sdk.models import ToolFilter
+            >>> from consoul.ai.tools.base import RiskLevel
+            >>> legal_filter = ToolFilter(
+            ...     allow=["web_search", "grep_search"],
+            ...     deny=["bash_execute", "file_edit"],
+            ...     risk_level=RiskLevel.SAFE
+            ... )
+            >>> filtered_service = service.apply_filter(legal_filter)
+            >>> # Only safe search tools available, no bash/filesystem
+
+        Example - Read-only session:
+            >>> readonly_filter = ToolFilter(
+            ...     risk_level=RiskLevel.SAFE,
+            ...     deny=["bash_execute"]
+            ... )
+            >>> readonly_service = service.apply_filter(readonly_filter)
+        """
+        from consoul.ai.tools import ToolRegistry
+
+        # Create new registry with same config and providers
+        filtered_registry = ToolRegistry(
+            config=self.tool_registry.config,
+            approval_provider=self.tool_registry.approval_provider,
+            audit_logger=self.tool_registry.audit_logger,
+        )
+
+        # Get all tools from original registry and re-register filtered ones
+        all_tools = self.tool_registry.list_tools(enabled_only=False)
+
+        for tool_meta in all_tools:
+            # Check if tool passes filter
+            allowed, _reason = tool_filter.is_tool_allowed(
+                tool_name=tool_meta.name,
+                tool_risk=tool_meta.risk_level,
+                tool_categories=tool_meta.categories,
+            )
+
+            # Only register tools that pass filter
+            # Keep original enabled state but filter determines availability
+            if allowed:
+                filtered_registry.register(
+                    tool=tool_meta.tool,
+                    risk_level=tool_meta.risk_level,
+                    tags=tool_meta.tags,
+                    enabled=tool_meta.enabled,
+                    categories=tool_meta.categories,  # Preserve categories for filtering
+                )
+
+        # Create new service with filtered registry
+        return ToolService(
+            tool_registry=filtered_registry,
+            config=self.config,
+        )

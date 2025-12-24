@@ -65,7 +65,9 @@ class AuditEvent:
         ... )
     """
 
-    event_type: Literal["request", "approval", "denial", "execution", "result", "error"]
+    event_type: Literal[
+        "request", "approval", "denial", "execution", "result", "error", "blocked"
+    ]
     tool_name: str
     arguments: dict[str, Any]
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

@@ -97,6 +97,7 @@ class ToolRegistry:
         risk_level: RiskLevel = RiskLevel.SAFE,
         tags: list[str] | None = None,
         enabled: bool = True,
+        categories: list[Any] | None = None,
     ) -> None:
         """Register a LangChain tool in the registry.
 
@@ -105,6 +106,7 @@ class ToolRegistry:
             risk_level: Security risk classification for this tool
             tags: Optional tags for categorization
             enabled: Whether tool is enabled (overrides global config.enabled)
+            categories: Optional functional categories (ToolCategory list) for filtering
 
         Raises:
             ToolValidationError: If tool is invalid or already registered
@@ -141,6 +143,7 @@ class ToolRegistry:
             schema=schema,
             enabled=enabled and self.config.enabled,
             tags=tags,
+            categories=categories,
         )
 
         self._tools[tool_name] = metadata
