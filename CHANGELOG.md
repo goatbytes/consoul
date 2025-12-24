@@ -9,6 +9,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.2] - 2025-12-23
+
+**Bug Fix Release - CLI Tool Support Fixes**
+
+This release fixes critical issues preventing CLI tools from working properly with all Ollama models and corrects session handling in the CLI.
+
+### Fixed
+
+- 🐛 **Fixed CLI tool support for all Ollama models** (SOUL-291)
+  - Removed hardcoded model whitelist that blocked gpt-oss:20b and other models from using tools
+  - Tools now bound optimistically with automatic fallback for unsupported models
+  - System prompts now include tool documentation for CLI sessions
+- 🐛 **Fixed AttributeError on Ctrl+C in CLI** (SOUL-291)
+  - Corrected session_id attribute path from `session.history.session_id` to `session.conversation_service.conversation.session_id`
+  - CLI exit now shows correct session ID
+- 🐛 **Fixed missing tool_registry in CLI system prompts** (SOUL-291)
+  - `ProfileManager.build_profile_system_prompt()` now accepts and passes `tool_registry`
+  - `ChatSession._build_system_prompt()` extracts tool_registry from conversation service
+  - Models no longer incorrectly report "no tools available" when tools are enabled
+
+### Changed
+
+- ♻️ **Reverted to optimistic tool binding for Ollama** (providers.py)
+  - Recovery layer in `streaming_orchestrator.py` handles runtime failures gracefully
+  - Allows new tool-capable models to work without code changes
+
+### Technical Details
+
+**Files Modified:**
+- `src/consoul/ai/providers.py` - Removed tool_capable_models whitelist
+- `src/consoul/tui/services/profile_manager.py` - Added tool_registry parameter
+- `src/consoul/cli/chat_session.py` - Pass tool_registry to system prompt builder
+- `src/consoul/__main__.py` - Fixed session_id attribute path
+
+**Impact:**
+- CLI users can now use any tool-capable Ollama model without code modifications
+- Tool documentation properly appears in system prompts for all CLI sessions
+- Session exit displays correct session ID for debugging
+
+---
+
 ## [0.5.0] - 2025-12-17
 
 **Breaking Change Release - Profile Parameter Removal (SOUL-289 Phase 3)**

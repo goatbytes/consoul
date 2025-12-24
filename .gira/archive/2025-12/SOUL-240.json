@@ -1,0 +1,47 @@
+{
+  "created_at": "2025-12-07T19:40:34.244343",
+  "updated_at": "2025-12-23T15:15:05.110511",
+  "id": "SOUL-240",
+  "uuid": "47be84b9-6adf-4d90-925c-0b15838331aa",
+  "title": "Create complete FastAPI + WebSocket backend example",
+  "description": "**As a** developer building web applications with Consoul\n**I want** a complete, working FastAPI backend example with frontend client\n**So that** I can understand best practices and quickly bootstrap projects\n\n**Context:**\nChatGPT recommends comprehensive examples as essential for adoption (lines 2541-2553). Developers need more than API docs - they need working code showing:\n- FastAPI app structure\n- HTTP + WebSocket endpoints\n- Session management\n- Tool approval via WebSocket\n- TypeScript/React client consuming the API\n\nThis bridges gap between SDK and production use.\n\n**Technical Notes:**\n- Depends on: SOUL-234, SOUL-235, SOUL-236, SOUL-237, SOUL-238\n- Create: examples/backend/\n  - fastapi_app.py (complete backend)\n  - client/ (TypeScript/React frontend)\n  - requirements.txt\n  - README.md (setup instructions)\n  - docker-compose.yml (optional)\n- Demonstrate: HTTP chat, WebSocket streaming, tool approval, session management\n- Frontend: Next.js or Vite + React with WebSocket client\n- Real-world: Error handling, reconnection, loading states\n\n**Acceptance Criteria:**\n\n**Given** developer clones repository\n**When** follows README instructions\n**Then** can run complete backend + frontend in < 5 minutes\n\n**Given** backend is running\n**When** frontend connects\n**Then** can send messages via HTTP and WebSocket\n\n**Given** tool call requires approval\n**When** AI requests tool execution\n**Then** frontend displays approval modal and sends response\n\n**Given** WebSocket disconnects\n**When** network issue occurs\n**Then** frontend shows reconnection UI and restores session\n\n**Given** multiple users access app\n**When** concurrent requests arrive\n**Then** sessions remain isolated with no data leakage\n\n**Testing Considerations:**\n- Manual testing with actual OpenAI/Anthropic API keys\n- Test all endpoints (HTTP, WebSocket)\n- Test tool approval workflow end-to-end\n- Test error scenarios (API down, invalid input)\n- Test with multiple browser sessions\n- Verify session isolation\n\n**Implementation Hints:**\n- Backend structure:\n  - app.py: FastAPI app with endpoints\n  - sessions.py: Session management with create_session()\n  - config.py: Settings (API keys via env)\n- Frontend components:\n  - ChatInterface.tsx: Message list + input\n  - WebSocketClient.ts: Connection management\n  - ApprovalModal.tsx: Tool approval UI\n- Use uvicorn for development server\n- TypeScript types match Pydantic models\n- Include .env.example with placeholder API keys\n- Docker: Optional containerization\n- README sections:\n  1. Setup (Python + Node)\n  2. Configuration (API keys)\n  3. Running (backend + frontend)\n  4. Architecture overview\n  5. Customization guide\n- Reference: ChatGPT ProtoStack example (lines 2487-2553)",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "backend",
+    "documentation",
+    "examples"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-011",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-23T15:15:05.110350",
+      "updated_at": "2025-12-23T15:15:05.110351",
+      "id": "20251223151505-b7cdf459",
+      "ticket_id": "SOUL-240",
+      "author": "jared@goatbytes.io",
+      "content": "Superseded by EPIC-018 (Legal Industry Deployment Template).\n\nOriginal ticket proposed generic FastAPI + WebSocket example. Replaced with production-ready legal industry template:\n\n- SOUL-300: Legal industry production example (document analysis, compliance logging, multi-user isolation)\n- SOUL-301: Cloud deployment configurations (GCP/AWS/Azure with Terraform)\n- SOUL-302: Operations runbook (security checklist, incident response, scaling guide)\n\nNew implementation focuses on workers' compensation attorney use case with:\n- Document processing (case files, depositions, medical records)\n- Tool filtering (no bash/filesystem for security)\n- Compliance audit trails\n- Docker + Redis deployment\n- Production security hardening\n\nEPIC-018 provides complete legal tech deployment vs generic example.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-23T23:19:07.267160+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

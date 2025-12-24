@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "consoul"
-version = "0.4.1"
+version = "0.4.2"
 description = "AI-powered terminal assistant with rich TUI - brings ChatGPT/Claude to your command line"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -121,7 +121,7 @@ consoul = "consoul.__main__:main"
 # Poetry configuration
 [tool.poetry]
 name = "consoul"
-version = "0.4.1"
+version = "0.4.2"
 description = "AI-powered terminal assistant with rich TUI - brings ChatGPT/Claude to your command line"
 authors = ["GoatBytes.IO <jared@goatbytes.io>"]
 license = "Apache-2.0"
