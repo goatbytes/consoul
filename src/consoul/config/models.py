@@ -1376,6 +1376,89 @@ class ToolConfig(BaseModel):
         return self
 
 
+class LoggingConfig(BaseModel):
+    """Configuration for structured logging and compliance audit trails.
+
+    Enables JSON-formatted logging with correlation IDs for debugging,
+    compliance, and log aggregation (Datadog, Splunk, etc.).
+
+    Example - Production compliance logging:
+        >>> config = LoggingConfig(
+        ...     enabled=True,
+        ...     format="json",
+        ...     output="file",
+        ...     file_path=Path("/var/log/consoul/audit.jsonl"),
+        ...     redact_pii=True
+        ... )
+
+    Example - Development console logging:
+        >>> config = LoggingConfig(format="console", output="stdout")
+
+    Attributes:
+        enabled: Enable structured logging (default: True)
+        level: Log level (DEBUG, INFO, WARNING, ERROR)
+        format: Output format (json or console)
+        output: Destination (stdout, file, or both)
+        file_path: Log file path (required if output includes "file")
+        correlation_ids: Include correlation IDs for request tracing
+        redact_pii: Enable PII/secret redaction for compliance
+        redact_fields: Additional field names to redact
+        max_arg_length: Maximum argument length before truncation
+        sample_rate: Sampling rate for high-volume environments (0.0-1.0)
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="Enable structured logging with JSON format and correlation IDs",
+    )
+    level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field(
+        default="INFO",
+        description="Logging level (DEBUG for development, INFO for production)",
+    )
+    format: Literal["json", "console"] = Field(
+        default="json",
+        description="Log format: json for aggregation, console for human reading",
+    )
+    output: Literal["stdout", "file", "both"] = Field(
+        default="stdout",
+        description="Log destination: stdout (containers), file (traditional), or both",
+    )
+    file_path: Path | None = Field(
+        default=None,
+        description="Log file path (required if output is 'file' or 'both')",
+    )
+    correlation_ids: bool = Field(
+        default=True,
+        description="Include correlation IDs for distributed tracing across requests",
+    )
+    redact_pii: bool = Field(
+        default=True,
+        description="Redact PII and secrets (passwords, API keys, tokens) before logging",
+    )
+    redact_fields: list[str] = Field(
+        default_factory=lambda: ["password", "api_key", "token", "secret"],
+        description="Additional field names to redact (case-insensitive)",
+    )
+    max_arg_length: int = Field(
+        default=1000,
+        description="Maximum argument/result length before truncation (0 = no limit)",
+    )
+    sample_rate: float = Field(
+        default=1.0,
+        description="Sampling rate for high-volume logging (1.0 = log all, 0.5 = log 50%)",
+        ge=0.0,
+        le=1.0,
+    )
+
+    @model_validator(mode="after")
+    def validate_file_path(self) -> LoggingConfig:
+        """Validate file_path is set when output includes 'file'."""
+        if self.output in ("file", "both") and not self.file_path:
+            # Set default path (matches StructuredAuditLogger default)
+            self.file_path = Path.home() / ".consoul" / "logs" / "audit.jsonl"
+        return self
+
+
 class ProfileConfig(BaseModel):
     """Configuration profile with conversation and context settings.
 
@@ -1476,6 +1559,10 @@ class ConsoulCoreConfig(BaseModel):
     tool_presets: dict[str, ToolPreset] = Field(
         default_factory=dict,
         description="Custom tool presets (in addition to built-in presets: readonly, development, safe-research, power-user)",
+    )
+    logging: LoggingConfig = Field(
+        default_factory=LoggingConfig,
+        description="Structured logging configuration for compliance audit trails",
     )
     show_thinking: Literal["always", "auto", "never", "collapsed"] = Field(
         default="auto",
