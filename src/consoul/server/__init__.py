@@ -56,6 +56,7 @@ Installation:
     - redis>=5.2.0
 """
 
+from consoul.server.factory import create_server
 from consoul.server.middleware import (
     APIKeyAuth,
     RateLimiter,
@@ -72,4 +73,5 @@ __all__ = [
     "SecurityConfig",
     "ServerConfig",
     "configure_cors",
+    "create_server",
 ]

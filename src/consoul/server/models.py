@@ -180,8 +180,8 @@ class CORSConfig(BaseModel):
         description="Allowed origins (use specific domains in production)",
     )
     allow_credentials: bool = Field(
-        default=True,
-        description="Whether to allow credentials",
+        default=False,
+        description="Whether to allow credentials (set to False when using wildcard origins)",
     )
     allow_methods: list[str] = Field(
         default_factory=lambda: ["*"],
@@ -249,4 +249,8 @@ class ServerConfig(BaseSettings):
     reload: bool = Field(
         default=False,
         description="Enable auto-reload (development only)",
+    )
+    app_name: str = Field(
+        default="Consoul API",
+        description="Application name for health checks and metadata",
     )
