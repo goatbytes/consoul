@@ -28,11 +28,29 @@ Example - Using rate limiter:
     ...     return {"status": "ok"}
 
 Environment Variables:
-    CONSOUL_API_KEYS: Comma-separated API keys for authentication
-    CONSOUL_DEFAULT_LIMITS: Rate limits (e.g., "10/minute;100/hour")
-    CONSOUL_REDIS_URL: Redis URL for distributed rate limiting
-    CONSOUL_HOST: Server host (default: 0.0.0.0)
-    CONSOUL_PORT: Server port (default: 8000)
+    Security:
+        CONSOUL_API_KEYS: Comma-separated API keys (or JSON array)
+        CONSOUL_BYPASS_PATHS: Paths that bypass auth (or JSON array)
+
+    Rate Limiting:
+        CONSOUL_DEFAULT_LIMITS: Rate limits (e.g., "10/minute;100/hour")
+        CONSOUL_RATE_LIMIT_REDIS_URL: Redis URL for rate limiting
+        REDIS_URL: Universal fallback
+
+    Session Storage:
+        CONSOUL_SESSION_REDIS_URL: Redis URL for session storage
+        REDIS_URL: Universal fallback
+
+    CORS:
+        CONSOUL_CORS_ORIGINS: Allowed origins (comma or JSON array)
+        CONSOUL_CORS_ALLOW_METHODS: Allowed HTTP methods (comma or JSON array)
+        CONSOUL_CORS_ALLOW_HEADERS: Allowed HTTP headers (comma or JSON array)
+        CONSOUL_CORS_ALLOW_CREDENTIALS: Allow credentials (true/false)
+        CONSOUL_CORS_MAX_AGE: Preflight cache duration (seconds)
+
+    Server:
+        CONSOUL_HOST: Server host (default: 0.0.0.0)
+        CONSOUL_PORT: Server port (default: 8000)
 
 Security Notes:
     - Health/readiness endpoints bypass auth and rate limiting
@@ -168,12 +186,13 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
     )
 
     # Configure CORS middleware (must be first)
+    # Note: validators ensure these are always list[str] at runtime
     configure_cors(
         app,
-        allowed_origins=config.cors.allowed_origins,
+        allowed_origins=config.cors.allowed_origins,  # type: ignore[arg-type]
         allow_credentials=config.cors.allow_credentials,
-        allow_methods=config.cors.allow_methods,
-        allow_headers=config.cors.allow_headers,
+        allow_methods=config.cors.allow_methods,  # type: ignore[arg-type]
+        allow_headers=config.cors.allow_headers,  # type: ignore[arg-type]
         max_age=config.cors.max_age,
     )
 

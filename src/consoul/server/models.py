@@ -6,25 +6,51 @@ and server settings. All models support environment variable configuration.
 
 from __future__ import annotations
 
+import json
+import logging
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import AliasChoices, BeforeValidator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+logger = logging.getLogger(__name__)
 
-def parse_comma_separated_list(v: str | list[str] | list[str]) -> list[str]:
-    """Parse comma-separated string into list.
+
+def parse_comma_separated_list(v: str | list[str]) -> list[str]:
+    """Parse comma-separated string or JSON array into list.
 
     Supports:
-    - "key1,key2,key3" -> ["key1", "key2", "key3"]
-    - ["key1", "key2"] -> ["key1", "key2"]
+    - Comma-separated: "item1,item2,item3" → ["item1", "item2", "item3"]
+    - JSON array: '["item1","item2"]' → ["item1", "item2"]
+    - List passthrough: ["item1"] → ["item1"]
+
+    Raises:
+        ValueError: If string looks like JSON (starts with '[') but is malformed
+
+    Note:
+        This validator is used by SecurityConfig (api_keys, bypass_paths) and
+        CORSConfig (allowed_origins). Malformed JSON will raise ValidationError
+        at config initialization, not fall back to comma-separated parsing.
     """
-    if v is None or (isinstance(v, list) and len(v) == 0):
-        return []
-    if isinstance(v, str):
-        return [item.strip() for item in v.split(",") if item.strip()]
     if isinstance(v, list):
         return [str(item).strip() for item in v]
+    if isinstance(v, str):
+        v = v.strip()
+        if not v:
+            return []
+        # Strict JSON parsing - if starts with '[' or '{', MUST be valid JSON array
+        if v.startswith("[") or v.startswith("{"):
+            try:
+                parsed = json.loads(v)
+                if not isinstance(parsed, list):
+                    raise ValueError(
+                        f"Expected JSON array, got {type(parsed).__name__}"
+                    )
+                return [str(item).strip() for item in parsed]
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Malformed JSON array: {e}") from e
+        # Comma-separated
+        return [item.strip() for item in v.split(",") if item.strip()]
     return []
 
 
@@ -57,9 +83,16 @@ class SecurityConfig(BaseSettings):
         bypass_paths: Paths that bypass authentication (e.g., /health)
 
     Environment Variables:
-        CONSOUL_API_KEYS: Comma-separated list of API keys
+        CONSOUL_API_KEYS: Comma-separated list or JSON array
+            - Comma: CONSOUL_API_KEYS="key1,key2"
+            - JSON: CONSOUL_API_KEYS='["key1","key2"]'
+            - Malformed JSON: CONSOUL_API_KEYS='["key1"' → ValidationError
         CONSOUL_API_KEY_HEADER: Header name
         CONSOUL_API_KEY_QUERY: Query parameter name
+        CONSOUL_BYPASS_PATHS: Comma-separated or JSON array
+            - Comma: CONSOUL_BYPASS_PATHS="/health,/metrics"
+            - JSON: CONSOUL_BYPASS_PATHS='["/health","/metrics"]'
+            - Malformed JSON raises ValidationError
 
     Example:
         >>> config = SecurityConfig(
@@ -116,7 +149,8 @@ class RateLimitConfig(BaseSettings):
             - Single: "10/minute"
             - Multiple (semicolon): "10/minute;100/hour"
             - JSON: '["10/minute","100/hour"]'
-        CONSOUL_STORAGE_URL or CONSOUL_REDIS_URL: Redis connection URL
+        CONSOUL_RATE_LIMIT_REDIS_URL: Redis URL for distributed rate limiting
+        REDIS_URL: Universal fallback for Redis URL
 
     Example:
         >>> config = RateLimitConfig(
@@ -130,11 +164,13 @@ class RateLimitConfig(BaseSettings):
         >>> config = RateLimitConfig()
     """
 
-    model_config = SettingsConfigDict(env_prefix="CONSOUL_")
+    # NO env_prefix - use explicit full names for deterministic resolution
+    model_config = SettingsConfigDict(populate_by_name=True, extra="ignore")
 
     enabled: bool = Field(
         default=True,
         description="Whether rate limiting is enabled",
+        validation_alias="CONSOUL_ENABLED",
     )
     # Use str | list[str] to allow env var parsing before validation
     default_limits: Annotated[
@@ -142,24 +178,30 @@ class RateLimitConfig(BaseSettings):
     ] = Field(
         default_factory=lambda: ["10 per minute"],
         description="Default rate limits",
+        validation_alias="CONSOUL_DEFAULT_LIMITS",
     )
     storage_url: str | None = Field(
         default=None,
         description="Redis URL for distributed rate limiting",
-        validation_alias="REDIS_URL",
+        validation_alias=AliasChoices(
+            "CONSOUL_RATE_LIMIT_REDIS_URL",
+            "REDIS_URL",  # Universal fallback
+        ),
     )
     strategy: Literal["fixed-window", "moving-window"] = Field(
         default="moving-window",
         description="Rate limiting strategy",
+        validation_alias="CONSOUL_STRATEGY",
     )
     key_prefix: str = Field(
         default="consoul:ratelimit",
         description="Redis key prefix",
+        validation_alias="CONSOUL_KEY_PREFIX",
     )
 
 
-class CORSConfig(BaseModel):
-    """CORS configuration.
+class CORSConfig(BaseSettings):
+    """CORS configuration with environment variable support.
 
     Attributes:
         allowed_origins: List of allowed origins (use specific domains in production)
@@ -168,6 +210,17 @@ class CORSConfig(BaseModel):
         allow_headers: Allowed HTTP headers
         max_age: Preflight cache duration in seconds
 
+    Environment Variables:
+        CONSOUL_CORS_ORIGINS: Allowed origins (comma-separated or JSON array)
+            - Single: CONSOUL_CORS_ORIGINS="https://app.com"
+            - Comma: CONSOUL_CORS_ORIGINS="https://app.com,https://admin.com"
+            - JSON: CONSOUL_CORS_ORIGINS='["https://app.com","https://admin.com"]'
+            - Malformed JSON: CONSOUL_CORS_ORIGINS='["https://app.com"' → ValidationError
+        CONSOUL_CORS_ALLOW_CREDENTIALS: Allow credentials (true/false)
+        CONSOUL_CORS_ALLOW_METHODS: Allowed methods (comma or JSON)
+        CONSOUL_CORS_ALLOW_HEADERS: Allowed headers (comma or JSON)
+        CONSOUL_CORS_MAX_AGE: Preflight cache duration (seconds)
+
     Example:
         >>> config = CORSConfig(
         ...     allowed_origins=["https://app.example.com"],
@@ -175,25 +228,79 @@ class CORSConfig(BaseModel):
         ... )
     """
 
-    allowed_origins: list[str] = Field(
+    # NO env_prefix - use explicit full names for deterministic resolution
+    model_config = SettingsConfigDict(populate_by_name=True, extra="ignore")
+
+    allowed_origins: Annotated[
+        str | list[str], BeforeValidator(parse_comma_separated_list)
+    ] = Field(
         default_factory=lambda: ["*"],
         description="Allowed origins (use specific domains in production)",
+        validation_alias=AliasChoices(
+            "CONSOUL_CORS_ORIGINS", "CONSOUL_CORS_ALLOWED_ORIGINS"
+        ),
     )
     allow_credentials: bool = Field(
         default=False,
         description="Whether to allow credentials (set to False when using wildcard origins)",
+        validation_alias="CONSOUL_CORS_ALLOW_CREDENTIALS",
     )
-    allow_methods: list[str] = Field(
+    allow_methods: Annotated[
+        str | list[str], BeforeValidator(parse_comma_separated_list)
+    ] = Field(
         default_factory=lambda: ["*"],
         description="Allowed HTTP methods",
+        validation_alias="CONSOUL_CORS_ALLOW_METHODS",
     )
-    allow_headers: list[str] = Field(
+    allow_headers: Annotated[
+        str | list[str], BeforeValidator(parse_comma_separated_list)
+    ] = Field(
         default_factory=lambda: ["*"],
         description="Allowed HTTP headers",
+        validation_alias="CONSOUL_CORS_ALLOW_HEADERS",
     )
     max_age: int = Field(
         default=600,
         description="Preflight cache duration in seconds",
+        validation_alias="CONSOUL_CORS_MAX_AGE",
+    )
+
+
+class SessionConfig(BaseSettings):
+    """Session storage configuration.
+
+    Environment Variables:
+        CONSOUL_SESSION_REDIS_URL: Redis URL for session storage
+        REDIS_URL: Universal fallback for Redis URL
+
+    Example:
+        # Dedicated session Redis
+        CONSOUL_SESSION_REDIS_URL=redis://localhost:6379/1
+
+        # Universal fallback
+        REDIS_URL=redis://localhost:6379/0
+    """
+
+    # NO env_prefix - use explicit full names for deterministic resolution
+    model_config = SettingsConfigDict(populate_by_name=True, extra="ignore")
+
+    redis_url: str | None = Field(
+        default=None,
+        description="Redis URL for session storage",
+        validation_alias=AliasChoices(
+            "CONSOUL_SESSION_REDIS_URL",
+            "REDIS_URL",  # Universal fallback
+        ),
+    )
+    ttl: int = Field(
+        default=3600,
+        description="Session TTL in seconds",
+        validation_alias="CONSOUL_SESSION_TTL",
+    )
+    key_prefix: str = Field(
+        default="consoul:session:",
+        description="Redis key prefix",
+        validation_alias="CONSOUL_SESSION_KEY_PREFIX",
     )
 
 
@@ -206,6 +313,7 @@ class ServerConfig(BaseSettings):
         security: API key authentication configuration
         rate_limit: Rate limiting configuration
         cors: CORS configuration
+        session: Session storage configuration
         host: Server host
         port: Server port
         reload: Enable auto-reload (development only)
@@ -214,6 +322,12 @@ class ServerConfig(BaseSettings):
         CONSOUL_HOST: Server host
         CONSOUL_PORT: Server port
         CONSOUL_RELOAD: Enable auto-reload
+
+        See nested config classes for their environment variables:
+        - SecurityConfig: CONSOUL_API_KEYS, etc.
+        - RateLimitConfig: CONSOUL_RATE_LIMIT_REDIS_URL, etc.
+        - CORSConfig: CONSOUL_CORS_ORIGINS, etc.
+        - SessionConfig: CONSOUL_SESSION_REDIS_URL, etc.
 
     Example:
         >>> config = ServerConfig()
@@ -237,6 +351,10 @@ class ServerConfig(BaseSettings):
     cors: CORSConfig = Field(
         default_factory=CORSConfig,
         description="CORS configuration",
+    )
+    session: SessionConfig = Field(
+        default_factory=SessionConfig,
+        description="Session storage configuration",
     )
     host: str = Field(
         default="0.0.0.0",
