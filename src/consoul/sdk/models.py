@@ -471,3 +471,124 @@ class ToolFilter:
                 )
 
         return True, None
+
+
+@dataclass
+class SessionState:
+    """Serializable session state for HTTP endpoints and multi-user backends.
+
+    Contains all information needed to persist and restore a Consoul session
+    across HTTP requests without using pickle (which has RCE vulnerabilities).
+    Only stores JSON-serializable data: conversation history, config, and metadata.
+
+    Attributes:
+        session_id: Unique session identifier
+        model: Model name (e.g., "gpt-4o", "claude-3-5-sonnet-20241022")
+        temperature: Temperature setting (0.0 to 2.0)
+        messages: Conversation history as LangChain message dicts
+        created_at: Unix timestamp when session was created
+        updated_at: Unix timestamp when session was last updated
+        config: Additional configuration (tools, system_prompt, max_tokens, etc.)
+
+    Example - Save session state:
+        >>> from consoul.sdk import create_session, save_session_state
+        >>> console = create_session(session_id="user123", model="gpt-4o")
+        >>> console.chat("Hello!")
+        >>> state = save_session_state(console)
+        >>> # Store state.to_dict() in Redis/database/file
+
+    Example - Restore session state:
+        >>> from consoul.sdk import restore_session
+        >>> state_dict = load_from_storage("user123")
+        >>> state = SessionState.from_dict(state_dict)
+        >>> console = restore_session(state)
+        >>> console.chat("Continue conversation")
+
+    Security Notes:
+        - Only JSON-serializable data (no Consoul objects, no pickle)
+        - No executable code in messages or config
+        - Validate all data when deserializing
+        - Use secure session_id (UUID, JWT subject, not sequential)
+    """
+
+    session_id: str
+    model: str
+    temperature: float
+    messages: list[dict[str, Any]]
+    created_at: float
+    updated_at: float
+    config: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert session state to JSON-serializable dictionary.
+
+        Returns:
+            Dictionary with all session state fields
+
+        Example:
+            >>> state = SessionState(
+            ...     session_id="user123",
+            ...     model="gpt-4o",
+            ...     temperature=0.7,
+            ...     messages=[{"role": "user", "content": "Hi"}],
+            ...     created_at=time.time(),
+            ...     updated_at=time.time()
+            ... )
+            >>> state_dict = state.to_dict()
+            >>> json.dumps(state_dict)  # JSON-serializable
+        """
+        return {
+            "session_id": self.session_id,
+            "model": self.model,
+            "temperature": self.temperature,
+            "messages": self.messages,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "config": self.config,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SessionState:
+        """Create session state from dictionary.
+
+        Args:
+            data: Dictionary with session state fields
+
+        Returns:
+            SessionState instance
+
+        Raises:
+            ValueError: If required fields are missing or invalid
+
+        Example:
+            >>> state_dict = {
+            ...     "session_id": "user123",
+            ...     "model": "gpt-4o",
+            ...     "temperature": 0.7,
+            ...     "messages": [],
+            ...     "created_at": 1704067200.0,
+            ...     "updated_at": 1704067200.0
+            ... }
+            >>> state = SessionState.from_dict(state_dict)
+        """
+        required_fields = [
+            "session_id",
+            "model",
+            "temperature",
+            "messages",
+            "created_at",
+            "updated_at",
+        ]
+        for field_name in required_fields:
+            if field_name not in data:
+                raise ValueError(f"Missing required field: {field_name}")
+
+        return cls(
+            session_id=data["session_id"],
+            model=data["model"],
+            temperature=data["temperature"],
+            messages=data["messages"],
+            created_at=data["created_at"],
+            updated_at=data["updated_at"],
+            config=data.get("config", {}),
+        )

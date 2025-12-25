@@ -1,0 +1,40 @@
+{
+  "created_at": "2025-12-25T06:43:52.602750Z",
+  "updated_at": "2025-12-24T23:00:42.354812Z",
+  "id": "SOUL-307",
+  "uuid": "b66ecc47-79f0-4adb-8289-5a6a33ac8da3",
+  "title": "Audit and fix security issues in example code",
+  "description": "**As a** developer learning from Consoul examples\n**I want** secure and correct example code\n**So that** I don't accidentally introduce vulnerabilities by copying patterns\n\n**Context:**\nSeveral example files contain security issues or misleading patterns that could lead to vulnerabilities if copied into production code. This includes returning functions instead of calling them for auth, misleading startup banners, and other anti-patterns that need correction.\n\n**Technical Notes:**\n- examples/server/basic_server.py:138 returns auth_dependency function instead of calling it\n- examples/backend/fastapi_sessions.py shows patterns but may have issues\n- Startup banners may show endpoints that don't actually exist\n- Some examples use wildcard CORS origins without warnings\n- Missing security headers and best practice demonstrations\n- No clear warnings about development vs production patterns\n\n**Acceptance Criteria:**\n\n**Given** an example file with authentication\n**When** the auth pattern is implemented\n**Then** it should properly call auth functions, not return them uncalled\n\n**Given** a server example with a startup banner\n**When** the server starts\n**Then** the banner should only list endpoints that actually exist\n\n**Given** an example using CORS wildcards or disabled auth\n**When** a developer reads the code\n**Then** clear warnings should indicate these are development-only settings\n\n**Given** all example files\n**When** security patterns are demonstrated\n**Then** they should follow production best practices with clear documentation\n\n**Given** an example with API keys or secrets\n**When** the code is reviewed\n**Then** it should use environment variables, never hardcoded values\n\n**Testing Considerations:**\n- Manual review of all example files for security issues\n- Automated linting for common security anti-patterns\n- Test that examples actually run without errors\n- Verify auth flows work as documented\n- Check for information disclosure in error messages\n- Test CORS configurations with actual browser requests\n\n**Implementation Hints:**\n- Fix auth_dependency to use Depends(get_auth_dependency()) pattern correctly\n- Add # SECURITY WARNING: Development only! comments to unsafe patterns\n- Create examples/security_best_practices.py with production patterns\n- Add validation that startup banners match actual routes\n- Use environment variables in all examples, with clear documentation\n- Add security headers example (HSTS, CSP, X-Frame-Options)\n- Create examples/README.md with security considerations section\n- Consider adding Bandit security linting to examples directory\n- Reference OWASP guidelines for API security",
+  "status": "todo",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "security",
+    "documentation",
+    "examples"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-25T07:00:42.354714Z",
+      "updated_at": "2025-12-25T07:00:42.354717Z",
+      "id": "20251224230042-3fb0aa87",
+      "ticket_id": "SOUL-307",
+      "author": "jared@goatbytes.io",
+      "content": "## P3 Issue: Scope Clarification - Remove Bandit Addition\n\n**Problem**: \"Add Bandit security scanning\" is scope creep for a 5-point ticket focused on example auditing.\n\n**Scope Reduction**: Focus on auditing and fixing examples, not adding new tooling.\n\n### Updated Scope\n\n**In Scope** (5 story points):\n- Audit all files in `examples/` directory for security issues\n- Fix auth dependency pattern (function return vs call) in examples/server/\n- Verify startup banners match actual endpoint availability\n- Add security warnings to development-only examples\n- Document secure patterns in example docstrings\n\n**Out of Scope** (separate ticket if needed):\n- Adding Bandit to pre-commit hooks\n- Adding Safety checks\n- CI/CD pipeline changes\n- New security tooling infrastructure\n\n### Rationale for Type: task\n\nThis is cleanup/audit work, not a bug fix. Changing from `bug` to `task` correctly categorizes it as:\n- Preventive maintenance\n- Code quality improvement  \n- Documentation enhancement\n- Example correctness\n\nIt's not fixing a production bug in the library itself, it's improving example quality.\n\n### If Bandit is Desired\n\nCreate a **separate ticket**:\n- **Title**: \"Add Bandit security scanning to pre-commit hooks\"\n- **Type**: task\n- **Story Points**: 2 (simple tooling addition)\n- **Labels**: security, ci-cd, tooling\n- **Scope**: Add Bandit to pre-commit, configure rules, fix initial findings\n\nThis keeps SOUL-307 focused and properly scoped.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

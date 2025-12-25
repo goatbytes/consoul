@@ -44,13 +44,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+from consoul.sdk.session_store import MemorySessionStore
 
 if TYPE_CHECKING:
     from consoul.sdk import Consoul
@@ -63,10 +64,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Session storage with TTL tracking
-# In production, use Redis or similar for distributed storage
-sessions: dict[str, tuple[Consoul, float]] = {}
+# Session storage - using new SessionStore for safe persistence
+# Choose storage backend:
+# - MemorySessionStore: In-memory (single server, not distributed)
+# - FileSessionStore: File-based (single server with persistence)
+# - RedisSessionStore: Redis-based (distributed, production-ready)
+
 SESSION_TTL = 3600  # 1 hour
+session_store = MemorySessionStore(ttl=SESSION_TTL)
 
 
 # Pydantic models for HTTP API
@@ -89,7 +94,7 @@ class ChatResponse(BaseModel):
     cost: float
 
 
-# Session management utilities
+# Session management utilities using new SessionStore
 def get_or_create_session(
     session_id: str,
     model: str | None = None,
@@ -97,7 +102,10 @@ def get_or_create_session(
     approval_provider: Any = None,
     enable_tools: bool = False,
 ) -> Consoul:
-    """Get existing session or create new one with TTL tracking.
+    """Get existing session or create new one with persistent storage.
+
+    Uses SessionStore for safe JSON-based session persistence across requests.
+    Sessions are automatically serialized and restored without pickle (no RCE).
 
     Args:
         session_id: Unique session identifier
@@ -107,25 +115,25 @@ def get_or_create_session(
         enable_tools: Enable tool execution (default: False, chat-only mode)
 
     Returns:
-        Isolated Consoul instance for this session
+        Consoul instance with restored conversation history
 
     Note:
         If enable_tools=True, you MUST provide approval_provider to avoid blocking
         on CLI prompts. Use WebSocketApprovalProvider or similar non-interactive provider.
     """
-    from consoul.sdk import create_session
+    from consoul.sdk import create_session, restore_session, save_session_state
 
-    now = time.time()
+    # Try to load existing session from store
+    state = session_store.load(session_id)
 
-    # Check if session exists and not expired
-    if session_id in sessions:
-        console, created_at = sessions[session_id]
-        if now - created_at < SESSION_TTL:
-            logger.info(f"Reusing session: {session_id}")
-            return console
-        # Expired - cleanup
-        logger.info(f"Session expired, cleaning up: {session_id}")
-        del sessions[session_id]
+    if state is not None:
+        logger.info(f"Restoring session from store: {session_id}")
+        # Restore session from saved state
+        console = restore_session(
+            state,
+            approval_provider=approval_provider,
+        )
+        return console
 
     # Create new session
     logger.info(f"Creating new session: {session_id}")
@@ -148,7 +156,11 @@ def get_or_create_session(
         temperature=temperature or 0.7,
         approval_provider=approval_provider,
     )
-    sessions[session_id] = (console, now)
+
+    # Save initial state to store
+    state = save_session_state(console)
+    session_store.save(session_id, state)
+
     return console
 
 
@@ -158,16 +170,7 @@ def cleanup_expired_sessions() -> int:
     Returns:
         Number of sessions cleaned up
     """
-    now = time.time()
-    expired = [
-        sid
-        for sid, (_, created_at) in sessions.items()
-        if now - created_at >= SESSION_TTL
-    ]
-    for sid in expired:
-        logger.info(f"Cleaning up expired session: {sid}")
-        del sessions[sid]
-    return len(expired)
+    return session_store.cleanup()
 
 
 async def periodic_cleanup():
@@ -189,15 +192,14 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown: Cancel cleanup task and clear sessions
+    # Shutdown: Cancel cleanup task
     logger.info("Shutting down - canceling cleanup task")
     cleanup_task.cancel()
     from contextlib import suppress
 
     with suppress(asyncio.CancelledError):
         await cleanup_task
-    sessions.clear()
-    logger.info("All sessions cleared")
+    logger.info("Session cleanup stopped")
 
 
 # Create FastAPI app
@@ -292,16 +294,17 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "consoul-multi-user-chat",
-        "active_sessions": len(sessions),
+        "storage_backend": type(session_store).__name__,
     }
 
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
-    """HTTP chat endpoint - creates new session per request.
+    """HTTP chat endpoint with session persistence.
 
-    This pattern is suitable for stateless HTTP requests where each
-    request is independent. For stateful conversations, use WebSocket.
+    This pattern restores conversation history from session store, processes
+    the message, and saves the updated state back to storage. Sessions persist
+    across requests using safe JSON serialization (no pickle).
 
     Args:
         request: Chat request with session_id and message
@@ -309,8 +312,10 @@ async def chat_endpoint(request: ChatRequest):
     Returns:
         Chat response with AI message and metadata
     """
+    from consoul.sdk import save_session_state
+
     try:
-        # Get or create session-scoped Consoul instance
+        # Get or restore session from store
         console = get_or_create_session(
             session_id=request.session_id,
             model=request.model,
@@ -319,6 +324,10 @@ async def chat_endpoint(request: ChatRequest):
 
         # Send message and get response
         response = console.chat(request.message)
+
+        # Save updated session state to store
+        state = save_session_state(console)
+        session_store.save(request.session_id, state)
 
         # Get cost information
         cost_info = console.last_cost
@@ -346,14 +355,9 @@ async def clear_session(session_id: str):
     Returns:
         Success message
     """
-    if session_id in sessions:
-        console, _ = sessions[session_id]
-        console.clear()
-        # Update timestamp to prevent expiration
-        sessions[session_id] = (console, time.time())
-        return {"status": "cleared", "session_id": session_id}
-    else:
-        raise HTTPException(status_code=404, detail=f"Session not found: {session_id}")
+    # Delete session from store (will be recreated on next request)
+    session_store.delete(session_id)
+    return {"status": "cleared", "session_id": session_id}
 
 
 @app.delete("/sessions/{session_id}")
@@ -366,11 +370,8 @@ async def delete_session(session_id: str):
     Returns:
         Success message
     """
-    if session_id in sessions:
-        del sessions[session_id]
-        return {"status": "deleted", "session_id": session_id}
-    else:
-        raise HTTPException(status_code=404, detail=f"Session not found: {session_id}")
+    session_store.delete(session_id)
+    return {"status": "deleted", "session_id": session_id}
 
 
 # WebSocket Endpoint

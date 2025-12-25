@@ -1262,7 +1262,7 @@ def create_session(
     session_db_path = temp_dir / f"session_{session_id}_{uuid4().hex}.db"
 
     # Create Consoul instance with session-scoped configuration
-    return Consoul(
+    console = Consoul(
         model=model,
         tools=tools,
         temperature=temperature,
@@ -1280,3 +1280,298 @@ def create_session(
         summary_model=summary_model,
         **model_kwargs,
     )
+
+    # Store session_id for later retrieval
+    console.session_id = session_id  # type: ignore[attr-defined]
+
+    return console
+
+
+def save_session_state(console: Consoul) -> dict[str, Any]:
+    """Extract session state from Consoul instance for persistence.
+
+    Serializes the current conversation history and configuration to a
+    JSON-safe dictionary that can be stored in Redis, database, or file.
+    Does NOT serialize the Consoul object itself (which would be unsafe).
+
+    This function enables session persistence for HTTP backends and
+    multi-user applications by extracting only the necessary state:
+    - Conversation history (LangChain message dicts)
+    - Model configuration (model, temperature)
+    - Session metadata (session_id, timestamps)
+
+    Args:
+        console: Consoul instance to extract state from
+
+    Returns:
+        JSON-serializable dictionary with session state
+
+    Example - Save to Redis:
+        >>> from consoul.sdk import create_session, save_session_state
+        >>> from consoul.sdk.session_store import RedisSessionStore
+        >>>
+        >>> console = create_session(session_id="user123", model="gpt-4o")
+        >>> console.chat("Hello!")
+        >>> state = save_session_state(console)
+        >>>
+        >>> store = RedisSessionStore(redis_client, ttl=3600)
+        >>> store.save("user123", state)
+
+    Example - Save to file:
+        >>> from consoul.sdk.session_store import FileSessionStore
+        >>> store = FileSessionStore("/var/consoul/sessions")
+        >>> state = save_session_state(console)
+        >>> store.save("user123", state)
+
+    Example - Direct JSON storage:
+        >>> import json
+        >>> state = save_session_state(console)
+        >>> with open("session.json", "w") as f:
+        ...     json.dump(state, f)
+
+    Security Notes:
+        - Only JSON-safe data is extracted (no pickle)
+        - No executable code in serialized state
+        - API keys are NOT included in state
+        - Tool call metadata is preserved but not executable
+
+    See Also:
+        - restore_session: Restore session from saved state
+        - SessionStore protocol: Storage backend interface
+        - examples/backend/fastapi_sessions.py: FastAPI integration
+    """
+    import time
+
+    # Extract conversation history as message dicts
+    messages = console.history.get_messages_as_dicts()
+
+    # Build session state dictionary with complete configuration
+    state = {
+        "session_id": getattr(console, "session_id", None) or "unknown",
+        "model": console.model_name,
+        "temperature": console.temperature,
+        "messages": messages,
+        "created_at": time.time(),
+        "updated_at": time.time(),
+        "config": {
+            # Core configuration
+            "system_prompt": getattr(console, "_explicit_system_prompt", None),
+            "tools_enabled": getattr(console, "tools_enabled", False),
+            # Summarization configuration
+            "summarize": getattr(console, "_summarize", False),
+            "summarize_threshold": getattr(console, "_summarize_threshold", 20),
+            "keep_recent": getattr(console, "_keep_recent", 10),
+            "summary_model": getattr(console, "_summary_model", None),
+            # Note: Don't serialize API keys, tool instances, or callbacks
+            # Only store configuration that can be safely reconstructed
+            # We save tools_enabled flag but not the specific tools/registry
+            # since tools must be re-registered on restore for security
+            # model_kwargs are not serialized as they may contain sensitive data
+            # and should be re-provided on restore if needed
+        },
+    }
+
+    return state
+
+
+def restore_session(
+    state: dict[str, Any] | Any,  # Accept dict or SessionState
+    approval_provider: Any | None = None,
+    context_providers: list[Any] | None = None,
+    tool_filter: Any | None = None,
+    tools: bool | str | list[str | Any] | None = None,
+) -> Consoul:
+    """Restore Consoul session from saved state.
+
+    Recreates a Consoul instance from serialized session state (from
+    save_session_state). Restores conversation history and configuration
+    without using pickle (safe for HTTP backends).
+
+    The restored session will:
+    - Have the same conversation history
+    - Use the same model and configuration
+    - Restore tools_enabled status (unless explicitly overridden)
+    - NOT re-execute past tool calls (preserved for context only)
+    - NOT restore API keys (must be re-configured from environment)
+
+    Args:
+        state: Session state from save_session_state() - can be either:
+               - dict[str, Any]: Raw dictionary (typical usage)
+               - SessionState: SessionState instance (from SessionState.from_dict())
+        approval_provider: Optional approval provider for tool execution
+        context_providers: Optional context providers for dynamic prompts
+        tool_filter: Optional tool filter for session-level sandboxing
+        tools: Optional tools override. If None, uses saved tools_enabled state.
+               If False, disables tools even if session had them enabled.
+               If True/str/list, enables tools with specified configuration.
+
+    Returns:
+        Restored Consoul instance with conversation history
+
+    Raises:
+        ValueError: If state is missing required fields or invalid
+        KeyError: If state dictionary is malformed
+        TypeError: If state is not a dict or SessionState instance
+
+    Example - Restore from Redis:
+        >>> from consoul.sdk import restore_session
+        >>> from consoul.sdk.session_store import RedisSessionStore
+        >>>
+        >>> store = RedisSessionStore(redis_client)
+        >>> state = store.load("user123")
+        >>> if state:
+        ...     console = restore_session(state)
+        ...     console.chat("Continue our conversation")
+
+    Example - Restore from file (dict):
+        >>> from consoul.sdk.session_store import FileSessionStore
+        >>> store = FileSessionStore("/var/consoul/sessions")
+        >>> state = store.load("user123")  # Returns dict
+        >>> console = restore_session(state)
+
+    Example - Restore using SessionState model:
+        >>> from consoul.sdk import SessionState, restore_session
+        >>> state_dict = load_from_storage("user123")
+        >>> state = SessionState.from_dict(state_dict)
+        >>> console = restore_session(state)  # Accepts SessionState instance
+
+    Example - FastAPI with session persistence:
+        >>> from fastapi import FastAPI, HTTPException
+        >>> from consoul.sdk import save_session_state, restore_session
+        >>> from consoul.sdk.session_store import MemorySessionStore
+        >>>
+        >>> app = FastAPI()
+        >>> store = MemorySessionStore(ttl=3600)
+        >>>
+        >>> @app.post("/chat")
+        >>> async def chat(request: ChatRequest):
+        ...     # Try to restore existing session
+        ...     state = store.load(request.session_id)
+        ...     if state:
+        ...         # Tools automatically restored from saved state
+        ...         console = restore_session(state)
+        ...     else:
+        ...         console = create_session(
+        ...             session_id=request.session_id,
+        ...             model="gpt-4o"
+        ...         )
+        ...
+        ...     # Process message
+        ...     response = console.chat(request.message)
+        ...
+        ...     # Save updated state
+        ...     state = save_session_state(console)
+        ...     store.save(request.session_id, state)
+        ...
+        ...     return {"response": response}
+
+    Example - Restore with custom approval provider:
+        >>> # Restore session with tools enabled, providing approval provider
+        >>> state = store.load("user123")
+        >>> console = restore_session(
+        ...     state,
+        ...     approval_provider=MyWebApprovalProvider()
+        ... )
+        >>> # Tools will be enabled if they were in original session
+
+    Example - Override tools configuration on restore:
+        >>> # Force disable tools even if session had them enabled
+        >>> console = restore_session(state, tools=False)
+        >>>
+        >>> # Force enable specific tools regardless of saved state
+        >>> console = restore_session(state, tools=["search", "web"])
+
+    Security Notes:
+        - Only restores JSON-safe data (no pickle/exec)
+        - Tool calls are preserved for context but not re-executed
+        - API keys must be re-configured (not serialized)
+        - Validates state structure before restoration
+
+    See Also:
+        - save_session_state: Extract state for persistence
+        - create_session: Create new session
+        - SessionStore protocol: Storage backend interface
+    """
+    # Convert SessionState instance to dict if needed
+    from consoul.sdk.models import SessionState
+
+    if isinstance(state, SessionState):
+        # Convert SessionState instance to dict
+        state_dict = state.to_dict()
+    elif isinstance(state, dict):
+        # Already a dict, use as-is
+        state_dict = state
+    else:
+        # Invalid type
+        raise TypeError(
+            f"state must be a dict or SessionState instance, got {type(state).__name__}"
+        )
+
+    # Validate required fields
+    required_fields = ["session_id", "model", "temperature", "messages"]
+    for field in required_fields:
+        if field not in state_dict:
+            raise ValueError(f"Missing required field in session state: {field}")
+
+    # Extract configuration
+    session_id = state_dict["session_id"]
+    model = state_dict["model"]
+    temperature = state_dict["temperature"]
+    messages = state_dict["messages"]
+    config = state_dict.get("config", {})
+
+    # Extract all configuration fields
+    system_prompt = config.get("system_prompt")
+    tools_enabled = config.get("tools_enabled", False)
+    summarize = config.get("summarize", False)
+    summarize_threshold = config.get("summarize_threshold", 20)
+    keep_recent = config.get("keep_recent", 10)
+    summary_model = config.get("summary_model")
+
+    # Determine tools configuration for restoration
+    # Priority: explicit parameter > saved state > default (False for safety)
+    if tools is not None:
+        # Explicit override provided by caller
+        restored_tools = tools
+    elif tools_enabled:
+        # Session had tools enabled - restore that capability
+        # Note: We use True to enable default tool set since we don't save
+        # the specific tools list (for security). Caller can override via
+        # tools parameter if specific tools are needed.
+        restored_tools = True
+    else:
+        # Session was created without tools
+        restored_tools = False
+
+    # Create new Consoul instance WITHOUT system_prompt to avoid duplication
+    # The system prompt is already included in the saved messages and will be
+    # restored when we call restore_from_dicts()
+    # All other configuration is restored to maintain functional equivalence
+    console = create_session(
+        session_id=session_id,
+        model=model,
+        temperature=temperature,
+        system_prompt=None,  # Don't set - already in saved messages
+        approval_provider=approval_provider,
+        context_providers=context_providers,
+        tool_filter=tool_filter,
+        tools=restored_tools,  # Restore tools capability
+        summarize=summarize,  # Restore summarization settings
+        summarize_threshold=summarize_threshold,
+        keep_recent=keep_recent,
+        summary_model=summary_model,
+    )
+
+    # Restore conversation history (includes system message if it was present)
+    if messages:
+        console.history.restore_from_dicts(messages)
+
+    # Store session_id (already set by create_session, but update from state)
+    console.session_id = session_id  # type: ignore[attr-defined]
+
+    # Restore system prompt metadata (but don't add to history - it's already there)
+    # This ensures operations like clear() or config inspection work correctly
+    if system_prompt is not None:
+        console._explicit_system_prompt = system_prompt
+
+    return console
