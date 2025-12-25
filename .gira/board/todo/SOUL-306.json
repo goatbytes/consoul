@@ -1,0 +1,41 @@
+{
+  "created_at": "2025-12-25T06:43:18.910545Z",
+  "updated_at": "2025-12-24T23:00:39.810346Z",
+  "id": "SOUL-306",
+  "uuid": "102c07fc-f5bb-414d-aa34-f5b5b75e9e10",
+  "title": "Standardize health and readiness endpoint response schemas",
+  "description": "**As a** DevOps engineer deploying Consoul servers\n**I want** consistent and documented health/readiness response formats\n**So that** monitoring tools and orchestrators can reliably check service status\n\n**Context:**\nThe health and readiness endpoints in the server factory have inconsistent response schemas and lack comprehensive documentation. The auth/rate-limit exemption behavior needs testing, and response contracts should be standardized across all factory-created servers for reliable monitoring integration.\n\n**Technical Notes:**\n- Health endpoint at src/consoul/server/factory.py:233 returns basic status\n- Readiness endpoint at line 251 has different schema with 'checks' field\n- Both endpoints use @limiter.exempt but bypass_paths behavior unclear\n- No pydantic response models defined for standardization\n- Missing OpenAPI schema documentation for monitoring endpoints\n- Health returns dict, readiness can return dict or JSONResponse (inconsistent)\n\n**Acceptance Criteria:**\n\n**Given** a health check request to /health\n**When** the server is running\n**Then** response should follow standard schema: {\"status\": \"ok\", \"service\": str, \"version\": str, \"timestamp\": str}\n\n**Given** a readiness check request to /ready\n**When** all dependencies are healthy\n**Then** response should be 200 with schema: {\"status\": \"ready\", \"checks\": dict, \"timestamp\": str}\n\n**Given** a readiness check request\n**When** Redis or other dependencies are unhealthy\n**Then** response should be 503 with details about failed checks\n\n**Given** health/readiness endpoints with auth configured\n**When** accessed without API key\n**Then** endpoints should still respond (auth bypass verified)\n\n**Given** health/readiness endpoints with rate limiting configured\n**When** accessed frequently\n**Then** endpoints should not be rate limited (exemption verified)\n\n**Testing Considerations:**\n- Unit tests for response schema validation\n- Integration tests with actual Redis/database connections\n- Test auth bypass with various SecurityConfig settings\n- Test rate limit exemption under load\n- Mock dependency failures for 503 responses\n- Verify OpenAPI schema generation\n\n**Implementation Hints:**\n- Create HealthResponse and ReadinessResponse pydantic models in models.py\n- Add response_model to endpoint decorators for OpenAPI docs\n- Standardize timestamp format (ISO 8601) across endpoints\n- Add comprehensive docstrings for OpenAPI documentation\n- Consider adding /metrics endpoint for Prometheus integration\n- Test with both in-memory and Redis rate limiting configs\n- Add explicit test for bypass_paths including /health and /ready\n- Reference Kubernetes health check best practices",
+  "status": "todo",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "monitoring",
+    "backend",
+    "server",
+    "testing"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-25T07:00:39.810248Z",
+      "updated_at": "2025-12-25T07:00:39.810251Z",
+      "id": "20251224230039-97361730",
+      "ticket_id": "SOUL-306",
+      "author": "jared@goatbytes.io",
+      "content": "## P2 Issue: Add Explicit Bypass Verification Criteria\n\n**Problem**: Description asks for auth bypass and rate-limit exemption but doesn't specify HOW to verify.\n\n**Current Implementation** (from SOUL-296):\n- Health/readiness endpoints use `@limiter.exempt` decorator\n- APIKeyAuth has `bypass_paths=[\"/health\", \"/ready\"]` by default\n- Need explicit tests to verify this behavior\n\n### Updated Acceptance Criteria - Explicit Verification\n\n**Given** APIKeyAuth is configured with api_keys\n**When** I inspect auth.bypass_paths\n**Then** both `/health` and `/ready` are in the list\n\n**Given** server has rate limiting enabled\n**When** I check the `/health` endpoint decorator\n**Then** `@limiter.exempt` is applied\n\n**Given** server has rate limiting enabled  \n**When** I check the `/ready` endpoint decorator\n**Then** `@limiter.exempt` is applied\n\n**Given** server requires API key authentication\n**When** I GET `/health` without API key\n**Then** response is 200 OK (auth bypassed)\n\n**Given** server has rate limit of 1/minute\n**When** I hit `/health` 10 times in 10 seconds\n**Then** all requests return 200 OK (never 429)\n\n### Implementation Verification\n\n**Check bypass_paths**:\n```python\n# In factory.py\nauth = APIKeyAuth(\n    api_keys=config.security.api_keys,\n    bypass_paths=[\"/health\", \"/ready\", \"/docs\"],  # Explicit\n)\n```\n\n**Check limiter.exempt**:\n```python\n# In factory.py\n@app.get(\"/health\", tags=[\"monitoring\"])\n@limiter.exempt  # ← Verify this decorator exists\nasync def health() -> dict[str, Any]:\n    ...\n\n@app.get(\"/ready\", tags=[\"monitoring\"])  \n@limiter.exempt  # ← Verify this decorator exists\nasync def readiness() -> dict[str, Any]:\n    ...\n```\n\n### Test Cases to Add\n\n1. **test_health_in_auth_bypass_paths()**: Assert \"/health\" in auth.bypass_paths\n2. **test_ready_in_auth_bypass_paths()**: Assert \"/ready\" in auth.bypass_paths\n3. **test_health_has_limiter_exempt()**: Verify decorator applied\n4. **test_ready_has_limiter_exempt()**: Verify decorator applied\n5. **test_health_bypasses_auth_401()**: No auth required (existing)\n6. **test_health_bypasses_rate_limit_429()**: No rate limit (existing)\n\nThis ensures the behavior is explicitly verified, not just assumed.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

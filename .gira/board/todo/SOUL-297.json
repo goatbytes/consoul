@@ -1,6 +1,6 @@
 {
-  "created_at": "2025-12-23T12:11:18.417513",
-  "updated_at": "2025-12-23T23:09:24.697061Z",
+  "created_at": "2025-12-23T12:11:18.417513Z",
+  "updated_at": "2025-12-24T22:45:13.949004Z",
   "id": "SOUL-297",
   "uuid": "1852be34-45ba-45b0-a375-9bb06a11a3fa",
   "title": "Add HTTP chat endpoint with session management",
@@ -25,10 +25,24 @@
     "SOUL-298",
     "SOUL-300"
   ],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2025-12-25T06:45:13.948875Z",
+      "updated_at": "2025-12-25T06:45:13.948878Z",
+      "id": "20251224224513-8d850671",
+      "ticket_id": "SOUL-297",
+      "author": "jared@goatbytes.io",
+      "content": "## Implementation Plan Update - Critical API & Architecture Fixes Required\n\nAfter code review with Codex, the original plan has **critical flaws** that must be addressed before implementation:\n\n### P1 Issues - Blocking Implementation\n\n1. **Incorrect SDK APIs Used**:\n   - ❌ Plan used `console.chat_stream()` - DOES NOT EXIST\n   - ✅ Actual API: `console.chat(message)` returns string (blocking!)\n   - ❌ Plan used `token.usage_metadata` - DOES NOT EXIST  \n   - ✅ Actual API: `Token.metadata` dict, `console.last_cost`, `console.model_name`\n   - ❌ Plan used `console.get_usage_metadata()` - DOES NOT EXIST\n   - 📍 References: src/consoul/sdk/wrapper.py:712, src/consoul/sdk/models.py:24\n\n2. **Unsafe Session Serialization**:\n   - ❌ Plan proposed pickling Consoul objects - **RCE VULNERABILITY**\n   - Consoul contains non-serializable LangChain clients, locks, callbacks\n   - ✅ Must use explicit JSON serialization of conversation history only\n   - ✅ Rehydrate via create_session() with history restoration\n   - 📍 Blocked by: **SOUL-304** (Session Store Safety)\n   - 📍 References: src/consoul/sdk/wrapper.py:81, src/consoul/ai/history.py:815\n\n3. **Missing Concurrency Controls**:\n   - ❌ Plan allows concurrent requests to same session_id → race conditions\n   - Multiple requests can mutate conversation history simultaneously\n   - ✅ Need per-session asyncio.Lock or request queue\n   - 📍 Reference: src/consoul/sdk/wrapper.py:742\n\n### P2 Issues - Architecture Concerns\n\n4. **Silent Redis Fallback Breaks Multi-Worker**:\n   - ❌ Plan: \"Fallback to MemorySessionStore if Redis unavailable\"\n   - Problem: Sessions diverge across worker processes (split brain)\n   - ✅ **Production**: Fail fast if Redis unavailable (no silent fallback)\n   - ✅ **Development**: Opt-in fallback with loud warning\n\n5. **Redis URL Ambiguity**:\n   - Plan adds `redis_url` to ServerConfig\n   - Conflicts with existing `CONSOUL_REDIS_URL` for rate limiting\n   - ✅ Use distinct env var: `CONSOUL_SESSION_REDIS_URL`\n   - 📍 Blocked by: **SOUL-305** (Server Config Hygiene)\n\n6. **Blocking Event Loop**:\n   - Consoul.chat() is synchronous, blocks asyncio event loop\n   - ✅ Use asyncio.to_thread() or switch to ConversationService.send_message()\n   - 📍 Reference: src/consoul/sdk/wrapper.py:712\n\n### Architectural Decisions (from Codex Review)\n\n**Session TTL Strategy**: Sliding TTL with max lifetime cap\n- Refresh TTL on each request (better UX for active users)\n- Max lifetime cap (e.g., 24h) prevents unbounded growth\n- Helps compliance (data retention policies)\n\n**Redis Fallback Policy**:\n- Production: `allow_fallback=False` (default) - fail fast\n- Development: `allow_fallback=True` (opt-in) - with loud warning\n\n### Dependencies - Must Complete First\n\n1. ✅ **SOUL-292** (Tool Filtering) - Complete\n2. ✅ **SOUL-296** (Server Factory) - Complete\n3. 🔴 **SOUL-304** (Session Store Safety) - **BLOCKING** - Must define safe serialization\n4. 🟡 **SOUL-305** (Server Config Hygiene) - Should fix Redis URL ambiguity\n5. 🟡 **SOUL-306** (Health/Readiness Contract) - Should standardize before adding session counts\n\n### Streaming Support Question\n\n**Do we need streaming before HTTP chat?**\n\nCurrent state:\n- SDK has `ConversationService.send_message()` which yields `Token` objects\n- This supports streaming but is async iterator pattern\n- HTTP endpoint would need to:\n  - Use Server-Sent Events (SSE) for streaming\n  - Or return complete response (simpler, acceptable for MVP)\n\n**Recommendation**: Start with **non-streaming** HTTP endpoint (complete response)\n- Simpler implementation, easier testing\n- Good enough for legal document analysis use case\n- Add streaming in SOUL-298 (WebSocket) or future SSE ticket\n\n### Revised Implementation Approach\n\n**Block implementation until**:\n1. SOUL-304 defines safe session serialization format\n2. SOUL-305 resolves Redis URL configuration\n3. Research actual SDK APIs (chat vs send_message, Token metadata)\n\n**Then implement with**:\n- Non-streaming endpoint (complete response)\n- Per-session locking for concurrency\n- Fail-fast Redis (no silent fallback in production)\n- Sliding TTL with max lifetime\n- Safe JSON serialization (history only, no pickle)\n\n**Example corrected endpoint**:\n```python\nasync def chat_endpoint(request: ChatRequest, store: SessionStore):\n    # Get per-session lock\n    async with store.get_lock(request.session_id):\n        console = await store.get(request.session_id)\n        if not console:\n            console = create_session(...)\n            await store.set(request.session_id, console)\n        \n        # Use asyncio.to_thread to avoid blocking event loop\n        response_text = await asyncio.to_thread(console.chat, request.message)\n        \n        return ChatResponse(\n            session_id=request.session_id,\n            content=response_text,\n            tokens=console.last_cost or 0,  # Correct API\n            model=console.model_name,       # Correct API\n        )\n```\n\nSee SOUL-304, SOUL-305, SOUL-306 for prerequisite work.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 5,
   "order": 0,
   "custom_fields": {}

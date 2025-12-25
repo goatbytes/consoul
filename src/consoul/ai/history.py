@@ -143,6 +143,9 @@ def to_dict_message(message: BaseMessage) -> dict[str, Any]:
 
     result: dict[str, Any] = {"role": role, "content": content}
 
+    # Preserve all metadata fields for faithful round-trip serialization
+    # This ensures sessions with function calls, named messages, etc. restore correctly
+
     # Preserve tool_calls for AIMessage (required for tool calling)
     if (
         isinstance(message, AIMessage)
@@ -151,9 +154,37 @@ def to_dict_message(message: BaseMessage) -> dict[str, Any]:
     ):
         result["tool_calls"] = message.tool_calls
 
+    # Preserve invalid_tool_calls for AIMessage (malformed tool call tracking)
+    if (
+        isinstance(message, AIMessage)
+        and hasattr(message, "invalid_tool_calls")
+        and message.invalid_tool_calls
+    ):
+        result["invalid_tool_calls"] = message.invalid_tool_calls
+
     # Preserve tool_call_id for ToolMessage (required for tool results)
     if isinstance(message, ToolMessage) and hasattr(message, "tool_call_id"):
         result["tool_call_id"] = message.tool_call_id
+
+    # Preserve additional_kwargs (function_call, etc.)
+    if hasattr(message, "additional_kwargs") and message.additional_kwargs:
+        result["additional_kwargs"] = message.additional_kwargs
+
+    # Preserve response_metadata (model responses, usage info, etc.)
+    if hasattr(message, "response_metadata") and message.response_metadata:
+        result["response_metadata"] = message.response_metadata
+
+    # Preserve name field (named messages for multi-agent scenarios)
+    if hasattr(message, "name") and message.name:
+        result["name"] = message.name
+
+    # Preserve id field (message tracking)
+    if hasattr(message, "id") and message.id:
+        result["id"] = message.id
+
+    # Preserve usage_metadata (token usage tracking)
+    if hasattr(message, "usage_metadata") and message.usage_metadata:
+        result["usage_metadata"] = message.usage_metadata
 
     return result
 
@@ -825,6 +856,107 @@ class ConversationHistory:
             [{'role': 'user', 'content': 'Hello!'}]
         """
         return [to_dict_message(msg) for msg in self.messages]
+
+    def restore_from_dicts(self, message_dicts: list[dict[str, Any]]) -> None:
+        """Restore conversation history from message dictionaries.
+
+        Converts message dictionaries (from JSON storage) back to LangChain
+        BaseMessage objects and appends them to the conversation history.
+        Used for session restoration in HTTP endpoints and multi-user backends.
+
+        Args:
+            message_dicts: List of message dictionaries with 'role' and 'content' keys
+
+        Raises:
+            ValueError: If message dict is missing required fields or has invalid role
+
+        Example - Restore session:
+            >>> # Load serialized messages from storage
+            >>> message_dicts = [
+            ...     {"role": "user", "content": "Hello!"},
+            ...     {"role": "assistant", "content": "Hi there!"}
+            ... ]
+            >>> history = ConversationHistory("gpt-4o")
+            >>> history.restore_from_dicts(message_dicts)
+            >>> len(history)
+            2
+
+        Example - With tool calls:
+            >>> message_dicts = [
+            ...     {"role": "user", "content": "List files"},
+            ...     {
+            ...         "role": "assistant",
+            ...         "content": "Let me check...",
+            ...         "tool_calls": [{"id": "call_123", "name": "bash", "args": {"command": "ls"}}]
+            ...     },
+            ...     {"role": "tool", "content": "file1.txt\nfile2.txt", "tool_call_id": "call_123"}
+            ... ]
+            >>> history.restore_from_dicts(message_dicts)
+
+        Security Notes:
+            - Only restores JSON-safe data (no pickle/exec)
+            - Validates message roles and structure
+            - Tool calls are preserved for context but not re-executed
+        """
+        for msg_dict in message_dicts:
+            # Validate required fields
+            if "role" not in msg_dict or "content" not in msg_dict:
+                raise ValueError(
+                    f"Message dict must have 'role' and 'content' keys: {msg_dict}"
+                )
+
+            role = msg_dict["role"]
+            content = msg_dict["content"]
+
+            # Handle different message types
+            # Restore all metadata fields for faithful round-trip
+            message: BaseMessage
+            if role == "system":
+                message = SystemMessage(
+                    content=content,
+                    name=msg_dict.get("name"),
+                    id=msg_dict.get("id"),
+                    additional_kwargs=msg_dict.get("additional_kwargs", {}),
+                )
+            elif role in ("user", "human"):
+                message = HumanMessage(
+                    content=content,
+                    name=msg_dict.get("name"),
+                    id=msg_dict.get("id"),
+                    additional_kwargs=msg_dict.get("additional_kwargs", {}),
+                )
+            elif role in ("assistant", "ai"):
+                # Restore AIMessage with all metadata
+                message = AIMessage(
+                    content=content,
+                    name=msg_dict.get("name"),
+                    id=msg_dict.get("id"),
+                    tool_calls=msg_dict.get("tool_calls", []),
+                    invalid_tool_calls=msg_dict.get("invalid_tool_calls", []),
+                    additional_kwargs=msg_dict.get("additional_kwargs", {}),
+                    response_metadata=msg_dict.get("response_metadata", {}),
+                    usage_metadata=msg_dict.get("usage_metadata"),
+                )
+            elif role == "tool":
+                # Restore ToolMessage with required tool_call_id
+                tool_call_id = msg_dict.get("tool_call_id", "unknown")
+                message = ToolMessage(
+                    content=content,
+                    tool_call_id=tool_call_id,
+                    name=msg_dict.get("name"),
+                    id=msg_dict.get("id"),
+                    additional_kwargs=msg_dict.get("additional_kwargs", {}),
+                )
+            else:
+                raise ValueError(
+                    f"Unknown message role: {role}. "
+                    f"Expected: 'system', 'user', 'assistant', 'tool'"
+                )
+
+            # Append to conversation history
+            self.messages.append(message)
+
+        logger.debug(f"Restored {len(message_dicts)} messages to conversation history")
 
     def get_trimmed_messages(
         self, reserve_tokens: int = 1000, strategy: str = "last"
