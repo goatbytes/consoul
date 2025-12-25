@@ -92,6 +92,7 @@ class ConversationService:
         include_git_context: bool = True,
         auto_append_tools: bool = True,
         tool_filter: Any | None = None,
+        audit_logger: Any | None = None,
     ) -> None:
         """Initialize conversation service.
 
@@ -107,6 +108,7 @@ class ConversationService:
             include_git_context: Include git repository info
             auto_append_tools: Auto-append tool docs if no marker present
             tool_filter: Optional ToolFilter for session-level tool sandboxing
+            audit_logger: Optional structured audit logger for compliance logging
         """
         self.model = model
         self.conversation = conversation
@@ -119,6 +121,7 @@ class ConversationService:
         self.include_git_context = include_git_context
         self.auto_append_tools = auto_append_tools
         self.tool_filter = tool_filter
+        self.audit_logger = audit_logger
         self.executor = ThreadPoolExecutor(max_workers=1)
 
     @classmethod
@@ -330,6 +333,20 @@ class ConversationService:
             if system_prompt:
                 conversation.add_system_message(system_prompt)
 
+        # Initialize structured audit logger if logging is enabled
+        audit_logger = None
+        if config.logging.enabled:
+            try:
+                from consoul.ai.tools.audit import StructuredAuditLogger
+
+                audit_logger = StructuredAuditLogger(config.logging)
+            except ImportError:
+                # logging extra not installed
+                logger.warning(
+                    "Structured logging enabled but consoul[logging] extra not installed. "
+                    "Install with: pip install consoul[logging]"
+                )
+
         return cls(
             model=model,
             conversation=conversation,
@@ -342,6 +359,7 @@ class ConversationService:
             include_git_context=include_git_context,
             auto_append_tools=auto_append_tools,
             tool_filter=tool_filter,
+            audit_logger=audit_logger,
         )
 
     def _build_dynamic_system_prompt(
@@ -452,6 +470,46 @@ class ConversationService:
             ... ):
             ...     print(token, end="")
         """
+        import time
+
+        # Set correlation ID for request tracing (preserve existing if present)
+        correlation_id = None
+        if self.audit_logger:
+            try:
+                from consoul.sdk.context import get_correlation_id, set_correlation_id
+
+                # Check if correlation ID already exists in context
+                correlation_id = get_correlation_id()
+                if correlation_id is None:
+                    # No existing ID - generate new one
+                    correlation_id = set_correlation_id()
+            except ImportError:
+                pass
+
+        # Log message_received event
+        if self.audit_logger:
+            try:
+                from consoul.ai.tools.audit import AuditEvent
+
+                await self.audit_logger.log_event(
+                    AuditEvent(
+                        event_type="request",
+                        tool_name="message",
+                        arguments={"length": len(content)},
+                        correlation_id=correlation_id,
+                        session_id=self.conversation.session_id,
+                        metadata={
+                            "has_attachments": bool(attachments),
+                            "attachment_count": len(attachments) if attachments else 0,
+                        },
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"Failed to log message_received event: {e}")
+
+        # Track start time for latency measurement
+        start_time = time.monotonic()
+
         # Update system prompt with dynamic context from providers
         if self.context_providers:
             conversation_id = getattr(self.conversation, "conversation_id", None)
@@ -516,9 +574,48 @@ class ConversationService:
             # Persist multimodal message (conversation now guaranteed to be created)
             await self.conversation._persist_message(message)
 
-        # Stream response
-        async for token in self._stream_response(on_tool_request):
+        # Stream response (token tracking happens in _stream_response via usage_metadata)
+        async for token in self._stream_response(
+            on_tool_request, start_time, correlation_id
+        ):
             yield token
+
+        # Log message_sent event after streaming completes
+        # Note: Token counts are extracted from final AIMessage.usage_metadata in _stream_response
+        if self.audit_logger:
+            try:
+                from consoul.ai.tools.audit import AuditEvent
+
+                duration_ms = int((time.monotonic() - start_time) * 1000)
+
+                # Try to get token count from last message's usage_metadata
+                total_tokens = 0
+                if self.conversation.messages:
+                    last_msg = self.conversation.messages[-1]
+                    if hasattr(last_msg, "usage_metadata") and last_msg.usage_metadata:
+                        total_tokens = last_msg.usage_metadata.get(
+                            "input_tokens", 0
+                        ) + last_msg.usage_metadata.get("output_tokens", 0)
+
+                await self.audit_logger.log_event(
+                    AuditEvent(
+                        event_type="result",
+                        tool_name="message",
+                        arguments={},
+                        result="completed",
+                        duration_ms=duration_ms,
+                        correlation_id=correlation_id,
+                        session_id=self.conversation.session_id,
+                        metadata={
+                            "model": self.config.current_model
+                            if self.config
+                            else "unknown",
+                            "total_tokens": total_tokens,
+                        },
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"Failed to log message_sent event: {e}")
 
     def _model_supports_vision(self) -> bool:
         """Check if current model supports vision/multimodal input.
@@ -667,6 +764,8 @@ class ConversationService:
     async def _stream_response(
         self,
         on_tool_request: ToolApprovalCallback | None = None,
+        start_time: float | None = None,
+        correlation_id: str | None = None,
     ) -> AsyncIterator[Token]:
         """Stream AI response with tool execution support.
 
@@ -676,6 +775,8 @@ class ConversationService:
 
         Args:
             on_tool_request: Optional callback for tool execution approval
+            start_time: Optional start time for latency tracking (from time.monotonic())
+            correlation_id: Optional correlation ID for audit logging
 
         Yields:
             Token: Streaming tokens with content, cost, and metadata
@@ -729,8 +830,10 @@ class ConversationService:
                 # Only continue if tools were actually executed
                 # (If all were rejected, don't recurse to avoid infinite loop)
                 if any_executed:
-                    # Stream next iteration with tool results
-                    async for result_token in self._stream_response(on_tool_request):
+                    # Stream next iteration with tool results (pass start_time and correlation_id)
+                    async for result_token in self._stream_response(
+                        on_tool_request, start_time, correlation_id
+                    ):
                         yield result_token
 
     async def _get_trimmed_messages(self) -> list[Any]:

@@ -33,7 +33,13 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol
 if TYPE_CHECKING:
     from pathlib import Path
 
-__all__ = ["AuditEvent", "AuditLogger", "FileAuditLogger", "NullAuditLogger"]
+__all__ = [
+    "AuditEvent",
+    "AuditLogger",
+    "FileAuditLogger",
+    "NullAuditLogger",
+    "StructuredAuditLogger",
+]
 
 
 @dataclass
@@ -71,6 +77,8 @@ class AuditEvent:
     tool_name: str
     arguments: dict[str, Any]
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    correlation_id: str | None = None
+    session_id: str | None = None
     user: str | None = None
     decision: bool | None = None
     result: str | None = None
@@ -170,6 +178,8 @@ class FileAuditLogger:
     async def log_event(self, event: AuditEvent) -> None:
         """Log event to JSONL file asynchronously to avoid blocking UI.
 
+        Automatically injects correlation_id from context if not already set.
+
         Args:
             event: AuditEvent to log
 
@@ -178,6 +188,16 @@ class FileAuditLogger:
             Errors are printed to stderr for debugging.
         """
         try:
+            # Auto-inject correlation_id from context if not set
+            if event.correlation_id is None:
+                try:
+                    from consoul.sdk.context import get_correlation_id
+
+                    event.correlation_id = get_correlation_id()
+                except ImportError:
+                    # context module not available (structlog not installed)
+                    pass
+
             # Convert event to JSON
             event_json = json.dumps(event.to_dict())
 
@@ -197,6 +217,140 @@ class FileAuditLogger:
             import sys
 
             print(f"Audit logging error: {e}", file=sys.stderr)
+
+
+class StructuredAuditLogger:
+    """Audit logger with PII redaction and configurable output destinations.
+
+    Supports multiple output modes:
+    - stdout: Log to standard output (for containers/log aggregators)
+    - file: Log to file (traditional logging)
+    - both: Log to both stdout and file
+
+    Features:
+    - Automatic PII/secret redaction before logging
+    - Configurable via LoggingConfig
+    - Correlation ID injection from context
+    - Argument/result truncation for performance
+
+    Example - File output with redaction:
+        >>> from consoul.config.models import LoggingConfig
+        >>> from pathlib import Path
+        >>> config = LoggingConfig(
+        ...     output="file",
+        ...     file_path=Path("audit.jsonl"),
+        ...     redact_pii=True,
+        ...     redact_fields=["password", "api_key"],
+        ...     max_arg_length=1000
+        ... )
+        >>> logger = StructuredAuditLogger(config)
+        >>> event = AuditEvent(
+        ...     event_type="execution",
+        ...     tool_name="bash_execute",
+        ...     arguments={"command": "echo $API_KEY"},
+        ...     session_id="user-123"
+        ... )
+        >>> await logger.log_event(event)  # API_KEY redacted
+
+    Example - Stdout output (containers):
+        >>> config = LoggingConfig(output="stdout", format="json")
+        >>> logger = StructuredAuditLogger(config)
+        >>> await logger.log_event(event)  # Logs to stdout as JSON
+    """
+
+    def __init__(self, config: Any) -> None:
+        """Initialize structured audit logger.
+
+        Args:
+            config: LoggingConfig instance with redaction and output settings
+        """
+        from pathlib import Path
+
+        self.config = config
+        self.output = config.output
+
+        # Initialize file logger if needed
+        self.file_logger = None
+        if self.output in ("file", "both"):
+            log_path = config.file_path
+            if not log_path:
+                log_path = Path.home() / ".consoul" / "logs" / "audit.jsonl"
+            self.file_logger = FileAuditLogger(log_path)
+
+        # Initialize redactor if PII redaction is enabled
+        self.redactor = None
+        if config.redact_pii:
+            try:
+                from consoul.sdk.redaction import PiiRedactor
+
+                self.redactor = PiiRedactor(
+                    fields=config.redact_fields, max_length=config.max_arg_length
+                )
+            except ImportError:
+                # redaction module not available (logging extra not installed)
+                import warnings
+
+                warnings.warn(
+                    "PII redaction requested but consoul[logging] extra not installed. "
+                    "Install with: pip install consoul[logging]",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+    async def log_event(self, event: AuditEvent) -> None:
+        """Log event with PII redaction to configured output(s).
+
+        Args:
+            event: AuditEvent to log (will be redacted if config.redact_pii=True)
+        """
+        # Apply redaction if enabled
+        if self.redactor:
+            # Redact arguments
+            event.arguments = self.redactor.redact_dict(event.arguments)
+
+            # Redact result
+            if event.result:
+                event.result = self.redactor.redact_result(
+                    event.result, max_length=self.config.max_arg_length
+                )
+
+            # Redact error message
+            if event.error:
+                event.error = self.redactor.redact_result(event.error, max_length=None)
+
+            # Redact metadata
+            event.metadata = self.redactor.redact_dict(event.metadata)
+
+        # Auto-inject correlation_id from context if not set
+        if event.correlation_id is None:
+            try:
+                from consoul.sdk.context import get_correlation_id
+
+                event.correlation_id = get_correlation_id()
+            except ImportError:
+                # context module not available
+                pass
+
+        # Convert to JSON
+        event_json = json.dumps(event.to_dict())
+
+        # Write to stdout if configured
+        if self.output in ("stdout", "both"):
+            import sys
+
+            print(event_json, file=sys.stdout, flush=True)
+
+        # Write to file if configured
+        if self.output in ("file", "both") and self.file_logger:
+            # Use file logger's write mechanism
+            import asyncio
+
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                self.file_logger._write_sync,
+                event_json,
+            )
 
 
 class NullAuditLogger:
