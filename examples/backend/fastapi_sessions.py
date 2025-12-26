@@ -34,10 +34,26 @@ Usage:
     wscat -c ws://localhost:8000/ws/chat/user123
 
 Security Notes:
-    - Use secure session_id (UUID, JWT subject)
-    - Implement rate limiting per session
-    - Use approval_provider for tool execution
+    ⚠️  DEVELOPMENT CONFIGURATION - Not production-ready without changes
+
+    This example uses development-friendly settings that are INSECURE for production:
+    - Wildcard CORS origins (allows any website to access API)
+    - No API authentication (anyone can create sessions)
+    - In-memory session storage (not distributed)
+    - Tools enabled without proper authorization checks
+
+    REQUIRED for Production:
+    - Replace wildcard CORS with specific allowed origins
+    - Add API authentication (API keys, OAuth, JWT)
+    - Use Redis for distributed session storage
+    - Implement per-session rate limiting
+    - Add authorization checks for tool execution
+    - Use secure session_id generation (UUID v4, not user-provided)
     - Never expose API keys in responses
+    - Enable HTTPS/TLS
+    - Add request logging and monitoring
+
+    See examples/README.md#security-considerations for complete production checklist.
 """
 
 from __future__ import annotations
@@ -210,10 +226,29 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add CORS middleware for browser clients
+# ==============================================================================
+# ⚠️  SECURITY WARNING: Development-Only CORS Configuration
+# ==============================================================================
+# This configuration uses wildcard origins (["*"]) which is INSECURE for production.
+#
+# PRODUCTION REQUIREMENTS:
+# 1. Replace ["*"] with specific allowed origins:
+#    allow_origins=["https://yourdomain.com", "https://app.yourdomain.com"]
+# 2. If using credentials, wildcard origins are NOT ALLOWED by browsers
+# 3. Never use allow_credentials=True with allow_origins=["*"]
+# 4. Restrict methods and headers to only what's needed
+#
+# SECURITY RISKS of wildcard CORS:
+# - Any website can make requests to your API
+# - Potential for CSRF attacks
+# - No origin-based access control
+# - Credentials could be exposed to malicious sites
+#
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+# ==============================================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],  # ⚠️  DEVELOPMENT ONLY - Replace with specific origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
