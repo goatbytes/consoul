@@ -99,7 +99,7 @@ from datetime import datetime, timezone
 from importlib.metadata import version as get_version
 from typing import TYPE_CHECKING, Any
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Request, WebSocket
 from fastapi.responses import JSONResponse
 
 if TYPE_CHECKING:
@@ -328,6 +328,11 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
     app.state.session_store = session_store
     app.state.session_locks = SessionLockManager()
 
+    # Initialize WebSocket connection manager
+    from consoul.server.endpoints.websocket import WebSocketConnectionManager
+
+    app.state.ws_connections = WebSocketConnectionManager()
+
     # Register health endpoint (exempt from auth and rate limiting)
     @app.get("/health", tags=["monitoring"], response_model=HealthResponse)  # type: ignore[misc]
     @limiter.exempt
@@ -353,6 +358,7 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
             service=config.app_name,
             version=app_version,
             timestamp=datetime.now(timezone.utc).isoformat(),
+            connections=app.state.ws_connections.active_count,
         )
 
     # Register readiness endpoint (exempt from auth and rate limiting)
@@ -562,9 +568,44 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                 ).model_dump(),
             )
 
+    # Register WebSocket endpoint
+    from consoul.server.endpoints.websocket import websocket_chat_handler
+
+    @app.websocket("/ws/chat/{session_id}")  # type: ignore[misc]
+    async def websocket_chat(
+        websocket: WebSocket,
+        session_id: str,
+        api_key: str | None = None,  # Query param: ?api_key=xxx
+    ) -> None:
+        """WebSocket endpoint for streaming AI chat with tool approval.
+
+        Provides token-by-token streaming, bidirectional tool approval,
+        and session management compatible with HTTP /chat endpoint.
+
+        Args:
+            websocket: WebSocket connection
+            session_id: Unique session identifier from URL path
+            api_key: Optional API key from query parameter
+
+        Protocol:
+            Client → Server:
+                {"type": "message", "content": "user message"}
+                {"type": "tool_approval", "id": "call_123", "approved": true}
+
+            Server → Client:
+                {"type": "token", "data": {"text": "..."}}
+                {"type": "tool_approval_request", "data": {...}}
+                {"type": "done", "data": {"usage": {...}, "timestamp": "..."}}
+                {"type": "error", "data": {"message": "..."}}
+        """
+        await websocket_chat_handler(websocket, session_id, api_key)
+
     logger.info(f"Server factory created: {config.app_name} v{app_version}")
     logger.info("Health endpoint: GET /health (auth: bypass, rate_limit: exempt)")
     logger.info("Readiness endpoint: GET /ready (auth: bypass, rate_limit: exempt)")
     logger.info("Chat endpoint: POST /chat (auth: optional, rate_limit: 30/minute)")
+    logger.info(
+        "WebSocket endpoint: WS /ws/chat/{session_id} (auth: optional, streaming)"
+    )
 
     return app

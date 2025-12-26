@@ -56,6 +56,11 @@ Installation:
     - redis>=5.2.0
 """
 
+from consoul.server.endpoints.websocket import (
+    BackpressureHandler,
+    WebSocketApprovalProvider,
+    WebSocketConnectionManager,
+)
 from consoul.server.factory import create_server
 from consoul.server.middleware import (
     APIKeyAuth,
@@ -76,6 +81,7 @@ from consoul.server.session_locks import SessionLockManager
 
 __all__ = [
     "APIKeyAuth",
+    "BackpressureHandler",
     "ChatErrorResponse",
     "ChatRequest",
     "ChatResponse",
@@ -86,6 +92,8 @@ __all__ = [
     "SecurityConfig",
     "ServerConfig",
     "SessionLockManager",
+    "WebSocketApprovalProvider",
+    "WebSocketConnectionManager",
     "configure_cors",
     "create_server",
 ]

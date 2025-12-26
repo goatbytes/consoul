@@ -84,13 +84,15 @@ class HealthResponse(BaseModel):
         service: Service name from ServerConfig.app_name
         version: Package version from importlib.metadata
         timestamp: ISO 8601 timestamp when health check was performed
+        connections: Number of active WebSocket connections
 
     Example:
         >>> response = HealthResponse(
         ...     status="ok",
         ...     service="Consoul API",
         ...     version="0.4.2",
-        ...     timestamp="2025-12-25T10:30:45.123456Z"
+        ...     timestamp="2025-12-25T10:30:45.123456Z",
+        ...     connections=5,
         ... )
     """
 
@@ -106,6 +108,10 @@ class HealthResponse(BaseModel):
     )
     timestamp: str = Field(
         description="ISO 8601 timestamp when health check was performed",
+    )
+    connections: int = Field(
+        default=0,
+        description="Number of active WebSocket connections",
     )
 
 
