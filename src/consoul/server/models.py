@@ -10,7 +10,7 @@ import json
 import logging
 from typing import Annotated, Literal
 
-from pydantic import AliasChoices, BeforeValidator, Field
+from pydantic import AliasChoices, BaseModel, BeforeValidator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -73,6 +73,109 @@ def parse_semicolon_or_single(v: str | list[str] | list[str]) -> list[str]:
     return ["10 per minute"]
 
 
+class HealthResponse(BaseModel):
+    """Health check endpoint response schema.
+
+    Standardized response for GET /health endpoint, used by monitoring systems
+    and orchestrators (Kubernetes, Docker Swarm, etc.) to verify service availability.
+
+    Attributes:
+        status: Health status indicator (always "ok" when service is running)
+        service: Service name from ServerConfig.app_name
+        version: Package version from importlib.metadata
+        timestamp: ISO 8601 timestamp when health check was performed
+
+    Example:
+        >>> response = HealthResponse(
+        ...     status="ok",
+        ...     service="Consoul API",
+        ...     version="0.4.2",
+        ...     timestamp="2025-12-25T10:30:45.123456Z"
+        ... )
+    """
+
+    status: Literal["ok"] = Field(
+        default="ok",
+        description="Health status indicator (always 'ok' when service is running)",
+    )
+    service: str = Field(
+        description="Service name from configuration",
+    )
+    version: str = Field(
+        description="Package version",
+    )
+    timestamp: str = Field(
+        description="ISO 8601 timestamp when health check was performed",
+    )
+
+
+class ReadinessResponse(BaseModel):
+    """Readiness check endpoint success response schema.
+
+    Returned with HTTP 200 when all dependencies are healthy. Used by orchestrators
+    to determine if service is ready to receive traffic.
+
+    Attributes:
+        status: Readiness status (always "ready" on success)
+        checks: Dictionary of dependency health checks (e.g., {"redis": true})
+        timestamp: ISO 8601 timestamp when readiness check was performed
+
+    Example:
+        >>> response = ReadinessResponse(
+        ...     status="ready",
+        ...     checks={"redis": True},
+        ...     timestamp="2025-12-25T10:30:45.123456Z"
+        ... )
+    """
+
+    status: Literal["ready"] = Field(
+        default="ready",
+        description="Readiness status (always 'ready' on success)",
+    )
+    checks: dict[str, bool | str] = Field(
+        description="Dictionary of dependency health checks",
+    )
+    timestamp: str = Field(
+        description="ISO 8601 timestamp when readiness check was performed",
+    )
+
+
+class ReadinessErrorResponse(BaseModel):
+    """Readiness check endpoint error response schema.
+
+    Returned with HTTP 503 when one or more dependencies are unhealthy. Indicates
+    service should not receive traffic until dependencies recover.
+
+    Attributes:
+        status: Error status (always "not_ready" on failure)
+        checks: Dictionary of dependency health checks showing which failed
+        message: Human-readable error description
+        timestamp: ISO 8601 timestamp when readiness check was performed
+
+    Example:
+        >>> response = ReadinessErrorResponse(
+        ...     status="not_ready",
+        ...     checks={"redis": False},
+        ...     message="Redis connection failed",
+        ...     timestamp="2025-12-25T10:30:45.123456Z"
+        ... )
+    """
+
+    status: Literal["not_ready"] = Field(
+        default="not_ready",
+        description="Error status (always 'not_ready' on failure)",
+    )
+    checks: dict[str, bool | str] = Field(
+        description="Dictionary of dependency health checks showing failures",
+    )
+    message: str = Field(
+        description="Human-readable error description",
+    )
+    timestamp: str = Field(
+        description="ISO 8601 timestamp when readiness check was performed",
+    )
+
+
 class SecurityConfig(BaseSettings):
     """API key authentication configuration.
 
@@ -128,7 +231,7 @@ class SecurityConfig(BaseSettings):
     bypass_paths: Annotated[
         str | list[str], BeforeValidator(parse_comma_separated_list)
     ] = Field(
-        default_factory=lambda: ["/health", "/docs", "/openapi.json"],
+        default_factory=lambda: ["/health", "/ready", "/docs", "/openapi.json"],
         description="Paths that bypass authentication",
     )
 
