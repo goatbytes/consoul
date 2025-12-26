@@ -52,6 +52,38 @@ Environment Variables:
         CONSOUL_HOST: Server host (default: 0.0.0.0)
         CONSOUL_PORT: Server port (default: 8000)
 
+Health & Readiness Endpoints:
+    Health Endpoint (GET /health):
+        Returns basic service status with ISO 8601 timestamp.
+        Always returns HTTP 200 when service is running.
+
+        Response Schema:
+        {
+            "status": "ok",
+            "service": "Consoul API",
+            "version": "0.4.2",
+            "timestamp": "2025-12-25T10:30:45.123456Z"
+        }
+
+    Readiness Endpoint (GET /ready):
+        Returns dependency health status with ISO 8601 timestamp.
+        Returns HTTP 200 when all dependencies healthy, 503 when unhealthy.
+
+        Success Response (HTTP 200):
+        {
+            "status": "ready",
+            "checks": {"redis": true},
+            "timestamp": "2025-12-25T10:30:45.123456Z"
+        }
+
+        Error Response (HTTP 503):
+        {
+            "status": "not_ready",
+            "checks": {"redis": false},
+            "message": "Redis connection failed",
+            "timestamp": "2025-12-25T10:30:45.123456Z"
+        }
+
 Security Notes:
     - Health/readiness endpoints bypass auth and rate limiting
     - Store API keys in environment variables, never in code
@@ -63,8 +95,9 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from importlib.metadata import version as get_version
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -150,7 +183,12 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         RateLimiter,
         configure_cors,
     )
-    from consoul.server.models import ServerConfig
+    from consoul.server.models import (
+        HealthResponse,
+        ReadinessErrorResponse,
+        ReadinessResponse,
+        ServerConfig,
+    )
 
     # Load configuration (default to environment if None)
     if config is None:
@@ -249,27 +287,44 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
     app.state.auth = auth
 
     # Register health endpoint (exempt from auth and rate limiting)
-    @app.get("/health", tags=["monitoring"])  # type: ignore[misc]
+    @app.get("/health", tags=["monitoring"], response_model=HealthResponse)  # type: ignore[misc]
     @limiter.exempt
-    async def health() -> dict[str, Any]:
+    async def health() -> HealthResponse:
         """Health check endpoint for monitoring systems.
 
         Returns basic service status and version. This endpoint bypasses
         authentication and rate limiting for reliable monitoring.
 
         Returns:
-            Health check response with status and version
+            HealthResponse: Standardized health check response with ISO 8601 timestamp
+
+        Response Schema:
+            {
+                "status": "ok",
+                "service": "Consoul API",
+                "version": "0.4.2",
+                "timestamp": "2025-12-25T10:30:45.123456Z"
+            }
         """
-        return {
-            "status": "ok",
-            "service": config.app_name,
-            "version": app_version,
-        }
+        return HealthResponse(
+            status="ok",
+            service=config.app_name,
+            version=app_version,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+        )
 
     # Register readiness endpoint (exempt from auth and rate limiting)
-    @app.get("/ready", tags=["monitoring"], response_model=None)  # type: ignore[misc]
+    @app.get(
+        "/ready",
+        tags=["monitoring"],
+        response_model=None,
+        responses={
+            200: {"model": ReadinessResponse},
+            503: {"model": ReadinessErrorResponse},
+        },
+    )  # type: ignore[misc]
     @limiter.exempt
-    async def readiness() -> dict[str, Any] | JSONResponse:
+    async def readiness() -> ReadinessResponse | JSONResponse:
         """Readiness check endpoint with dependency health checks.
 
         Checks the health of external dependencies (e.g., Redis) and returns
@@ -277,9 +332,27 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         rate limiting for reliable monitoring.
 
         Returns:
-            Readiness response with dependency check status
+            ReadinessResponse: Success response when all dependencies healthy (200)
+            JSONResponse: Error response when dependencies unhealthy (503)
+
+        Response Schemas:
+            Success (200):
+            {
+                "status": "ready",
+                "checks": {"redis": true},
+                "timestamp": "2025-12-25T10:30:45.123456Z"
+            }
+
+            Error (503):
+            {
+                "status": "not_ready",
+                "checks": {"redis": false},
+                "message": "Redis connection failed",
+                "timestamp": "2025-12-25T10:30:45.123456Z"
+            }
         """
-        checks: dict[str, bool] = {}
+        checks: dict[str, bool | str] = {}
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Check Redis if configured
         if config.rate_limit.storage_url:
@@ -289,18 +362,20 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
             if not redis_healthy:
                 return JSONResponse(
                     status_code=503,
-                    content={
-                        "status": "not_ready",
-                        "checks": checks,
-                        "message": "Redis connection failed",
-                    },
+                    content=ReadinessErrorResponse(
+                        status="not_ready",
+                        checks=checks,
+                        message="Redis connection failed",
+                        timestamp=timestamp,
+                    ).model_dump(),
                 )
 
-        # Return dict - checks can contain bool or string values
-        return {
-            "status": "ready",
-            "checks": checks or {"status": "no_dependencies"},
-        }
+        # Return success response
+        return ReadinessResponse(
+            status="ready",
+            checks=checks or {"status": "no_dependencies"},
+            timestamp=timestamp,
+        )
 
     logger.info(f"Server factory created: {config.app_name} v{app_version}")
     logger.info("Health endpoint: GET /health (auth: bypass, rate_limit: exempt)")

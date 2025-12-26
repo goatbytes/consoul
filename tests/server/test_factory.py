@@ -10,6 +10,9 @@ Tests the create_server() factory function and all its components:
 
 from __future__ import annotations
 
+from datetime import datetime
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -319,6 +322,256 @@ class TestEdgeCases:
 
         # docs are disabled even without auth (production best practice)
         assert app.docs_url is None
+
+
+class TestHealthEndpointSchema:
+    """Test /health endpoint response schema."""
+
+    def test_health_response_schema(self) -> None:
+        """Health endpoint returns all required fields."""
+        app = create_server()
+        client = TestClient(app)
+
+        response = client.get("/health")
+        data = response.json()
+
+        # Verify all required fields present
+        assert "status" in data
+        assert "service" in data
+        assert "version" in data
+        assert "timestamp" in data
+
+    def test_health_timestamp_format(self) -> None:
+        """Health endpoint returns ISO 8601 timestamp."""
+        app = create_server()
+        client = TestClient(app)
+
+        response = client.get("/health")
+        data = response.json()
+
+        # Verify ISO 8601 format (should parse without error)
+        timestamp = data["timestamp"]
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        assert parsed is not None
+
+    def test_health_status_always_ok(self) -> None:
+        """Health endpoint status field is always 'ok'."""
+        app = create_server()
+        client = TestClient(app)
+
+        response = client.get("/health")
+        data = response.json()
+
+        assert data["status"] == "ok"
+
+    def test_health_service_name_from_config(self) -> None:
+        """Health endpoint service name matches config."""
+        config = ServerConfig(app_name="Custom Service Name")
+        app = create_server(config)
+        client = TestClient(app)
+
+        response = client.get("/health")
+        data = response.json()
+
+        assert data["service"] == "Custom Service Name"
+
+    def test_health_version_populated(self) -> None:
+        """Health endpoint version field is not empty."""
+        app = create_server()
+        client = TestClient(app)
+
+        response = client.get("/health")
+        data = response.json()
+
+        assert data["version"]
+        assert isinstance(data["version"], str)
+
+
+class TestReadinessEndpointSchema:
+    """Test /ready endpoint response schemas."""
+
+    def test_ready_response_schema_success(self) -> None:
+        """Readiness endpoint returns correct schema on success."""
+        app = create_server()
+        client = TestClient(app)
+
+        response = client.get("/ready")
+        data = response.json()
+
+        # Verify success schema fields
+        assert "status" in data
+        assert "checks" in data
+        assert "timestamp" in data
+        assert data["status"] == "ready"
+
+    def test_ready_timestamp_format(self) -> None:
+        """Readiness endpoint returns ISO 8601 timestamp."""
+        app = create_server()
+        client = TestClient(app)
+
+        response = client.get("/ready")
+        data = response.json()
+
+        # Verify ISO 8601 format
+        timestamp = data["timestamp"]
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        assert parsed is not None
+
+    def test_ready_checks_field_present(self) -> None:
+        """Readiness endpoint includes checks dictionary."""
+        app = create_server()
+        client = TestClient(app)
+
+        response = client.get("/ready")
+        data = response.json()
+
+        assert "checks" in data
+        assert isinstance(data["checks"], dict)
+
+    def test_ready_no_dependencies_response(self) -> None:
+        """Readiness endpoint returns valid response with no dependencies."""
+        app = create_server()
+        client = TestClient(app)
+
+        response = client.get("/ready")
+        data = response.json()
+
+        assert response.status_code == 200
+        assert data["status"] == "ready"
+        assert "checks" in data
+
+    @pytest.mark.skip(reason="Requires Redis connection - integration test only")
+    def test_ready_response_schema_error(self) -> None:
+        """Readiness endpoint returns correct schema on error."""
+        # Mock Redis failure
+        with patch(
+            "consoul.server.factory.check_redis_connection",
+            new=AsyncMock(return_value=False),
+        ):
+            config = ServerConfig(
+                rate_limit=RateLimitConfig(storage_url="redis://localhost:6379")
+            )
+            app = create_server(config)
+            client = TestClient(app)
+
+            response = client.get("/ready")
+            data = response.json()
+
+            # Verify error schema fields
+            assert response.status_code == 503
+            assert "status" in data
+            assert "checks" in data
+            assert "message" in data
+            assert "timestamp" in data
+            assert data["status"] == "not_ready"
+
+
+class TestAuthBypassVerification:
+    """Test authentication bypass for health/readiness endpoints."""
+
+    def test_health_in_bypass_paths(self) -> None:
+        """Health endpoint path is in auth bypass list."""
+        config = ServerConfig(security=SecurityConfig(api_keys=["test-key"]))
+        app = create_server(config)
+
+        assert app.state.auth is not None
+        assert "/health" in app.state.auth.bypass_paths
+
+    def test_ready_in_bypass_paths(self) -> None:
+        """Readiness endpoint path is in auth bypass list."""
+        config = ServerConfig(security=SecurityConfig(api_keys=["test-key"]))
+        app = create_server(config)
+
+        assert app.state.auth is not None
+        assert "/ready" in app.state.auth.bypass_paths
+
+    def test_health_accessible_without_api_key(self) -> None:
+        """Health endpoint returns 200 without API key."""
+        config = ServerConfig(security=SecurityConfig(api_keys=["secret-key"]))
+        app = create_server(config)
+        client = TestClient(app)
+
+        # No API key header
+        response = client.get("/health")
+        assert response.status_code == 200
+
+    def test_ready_accessible_without_api_key(self) -> None:
+        """Readiness endpoint returns 200 without API key."""
+        config = ServerConfig(security=SecurityConfig(api_keys=["secret-key"]))
+        app = create_server(config)
+        client = TestClient(app)
+
+        # No API key header
+        response = client.get("/ready")
+        assert response.status_code == 200
+
+    def test_health_bypasses_invalid_api_key(self) -> None:
+        """Health endpoint works even with invalid API key."""
+        config = ServerConfig(security=SecurityConfig(api_keys=["valid-key"]))
+        app = create_server(config)
+        client = TestClient(app)
+
+        # Invalid API key
+        response = client.get("/health", headers={"X-API-Key": "invalid-key"})
+        assert response.status_code == 200
+
+    def test_ready_bypasses_invalid_api_key(self) -> None:
+        """Readiness endpoint works even with invalid API key."""
+        config = ServerConfig(security=SecurityConfig(api_keys=["valid-key"]))
+        app = create_server(config)
+        client = TestClient(app)
+
+        # Invalid API key
+        response = client.get("/ready", headers={"X-API-Key": "invalid-key"})
+        assert response.status_code == 200
+
+
+class TestRateLimitExemptionVerification:
+    """Test rate limit exemption for health/readiness endpoints."""
+
+    def test_health_never_rate_limited(self) -> None:
+        """Health endpoint never returns 429 even under load."""
+        config = ServerConfig(rate_limit=RateLimitConfig(default_limits=["1/minute"]))
+        app = create_server(config)
+        client = TestClient(app)
+
+        # Hit endpoint 100 times (far exceeds rate limit)
+        for _ in range(100):
+            response = client.get("/health")
+            assert response.status_code == 200  # Never 429
+
+    def test_ready_never_rate_limited(self) -> None:
+        """Readiness endpoint never returns 429 even under load."""
+        config = ServerConfig(rate_limit=RateLimitConfig(default_limits=["1/minute"]))
+        app = create_server(config)
+        client = TestClient(app)
+
+        # Hit endpoint 100 times (far exceeds rate limit)
+        for _ in range(100):
+            response = client.get("/ready")
+            assert response.status_code == 200  # Never 429
+
+    def test_health_exempt_with_strict_limits(self) -> None:
+        """Health endpoint works with very strict rate limits."""
+        config = ServerConfig(rate_limit=RateLimitConfig(default_limits=["1/hour"]))
+        app = create_server(config)
+        client = TestClient(app)
+
+        # Multiple requests should all succeed
+        for _ in range(50):
+            response = client.get("/health")
+            assert response.status_code == 200
+
+    def test_ready_exempt_with_strict_limits(self) -> None:
+        """Readiness endpoint works with very strict rate limits."""
+        config = ServerConfig(rate_limit=RateLimitConfig(default_limits=["1/hour"]))
+        app = create_server(config)
+        client = TestClient(app)
+
+        # Multiple requests should all succeed
+        for _ in range(50):
+            response = client.get("/ready")
+            assert response.status_code == 200
 
 
 class TestIntegration:
