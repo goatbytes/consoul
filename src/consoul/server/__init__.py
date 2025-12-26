@@ -63,15 +63,29 @@ from consoul.server.middleware import (
     RequestValidator,
     configure_cors,
 )
-from consoul.server.models import RateLimitConfig, SecurityConfig, ServerConfig
+from consoul.server.models import (
+    ChatErrorResponse,
+    ChatRequest,
+    ChatResponse,
+    ChatUsage,
+    RateLimitConfig,
+    SecurityConfig,
+    ServerConfig,
+)
+from consoul.server.session_locks import SessionLockManager
 
 __all__ = [
     "APIKeyAuth",
+    "ChatErrorResponse",
+    "ChatRequest",
+    "ChatResponse",
+    "ChatUsage",
     "RateLimitConfig",
     "RateLimiter",
     "RequestValidator",
     "SecurityConfig",
     "ServerConfig",
+    "SessionLockManager",
     "configure_cors",
     "create_server",
 ]
