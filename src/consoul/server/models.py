@@ -176,6 +176,163 @@ class ReadinessErrorResponse(BaseModel):
     )
 
 
+class ChatRequest(BaseModel):
+    """Request body for POST /chat endpoint.
+
+    Attributes:
+        session_id: Unique session identifier. Auto-creates session if not exists.
+        message: User message to send to the AI.
+        model: Optional model override (only applies on session creation).
+
+    Example:
+        >>> request = ChatRequest(
+        ...     session_id="user-abc123",
+        ...     message="What is the weather like?",
+        ...     model="gpt-4o"
+        ... )
+    """
+
+    session_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=128,
+        description="Unique session identifier. Auto-creates session if not exists.",
+        examples=["user-abc123", "session-uuid-v4"],
+    )
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=32768,
+        description="User message to send to the AI (32KB max).",
+        examples=["Hello, how are you?"],
+    )
+    model: str | None = Field(
+        default=None,
+        description="Model to use (only applies when creating new session). "
+        "Ignored for existing sessions.",
+        examples=["gpt-4o", "claude-3-5-sonnet-20241022"],
+    )
+
+
+class ChatUsage(BaseModel):
+    """Token usage and cost information for a chat request.
+
+    Attributes:
+        input_tokens: Number of input tokens consumed.
+        output_tokens: Number of output tokens generated.
+        total_tokens: Total tokens (input + output).
+        estimated_cost: Estimated cost in USD.
+
+    Example:
+        >>> usage = ChatUsage(
+        ...     input_tokens=15,
+        ...     output_tokens=8,
+        ...     total_tokens=23,
+        ...     estimated_cost=0.000115
+        ... )
+    """
+
+    input_tokens: int = Field(
+        ...,
+        ge=0,
+        description="Number of input tokens consumed",
+    )
+    output_tokens: int = Field(
+        ...,
+        ge=0,
+        description="Number of output tokens generated",
+    )
+    total_tokens: int = Field(
+        ...,
+        ge=0,
+        description="Total tokens (input + output)",
+    )
+    estimated_cost: float = Field(
+        ...,
+        ge=0.0,
+        description="Estimated cost in USD",
+    )
+
+
+class ChatResponse(BaseModel):
+    """Response body for POST /chat endpoint.
+
+    Attributes:
+        session_id: Session identifier (echoed from request).
+        response: AI's response text.
+        model: Model that generated the response.
+        usage: Token usage and cost information.
+        timestamp: ISO 8601 timestamp of response.
+
+    Example:
+        >>> response = ChatResponse(
+        ...     session_id="user-abc123",
+        ...     response="I'm doing well, thank you!",
+        ...     model="gpt-4o",
+        ...     usage=ChatUsage(
+        ...         input_tokens=15,
+        ...         output_tokens=8,
+        ...         total_tokens=23,
+        ...         estimated_cost=0.000115
+        ...     ),
+        ...     timestamp="2025-12-25T10:30:45.123456Z"
+        ... )
+    """
+
+    session_id: str = Field(
+        ...,
+        description="Session identifier",
+    )
+    response: str = Field(
+        ...,
+        description="AI's response text",
+    )
+    model: str = Field(
+        ...,
+        description="Model that generated the response",
+    )
+    usage: ChatUsage = Field(
+        ...,
+        description="Token usage and cost information",
+    )
+    timestamp: str = Field(
+        ...,
+        description="ISO 8601 timestamp of response",
+    )
+
+
+class ChatErrorResponse(BaseModel):
+    """Error response for chat endpoint failures.
+
+    Used for 500 and 503 responses.
+
+    Attributes:
+        error: Error type identifier.
+        message: Human-readable error description.
+        timestamp: ISO 8601 timestamp when error occurred.
+
+    Example:
+        >>> error = ChatErrorResponse(
+        ...     error="storage_unavailable",
+        ...     message="Session storage temporarily unavailable",
+        ...     timestamp="2025-12-25T10:30:45.123456Z"
+        ... )
+    """
+
+    error: str = Field(
+        ...,
+        description="Error type identifier",
+    )
+    message: str = Field(
+        ...,
+        description="Human-readable error description",
+    )
+    timestamp: str = Field(
+        ...,
+        description="ISO 8601 timestamp when error occurred",
+    )
+
+
 class SecurityConfig(BaseSettings):
     """API key authentication configuration.
 

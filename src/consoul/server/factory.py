@@ -97,13 +97,13 @@ import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from importlib.metadata import version as get_version
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Callable, Coroutine
 
     from consoul.server.models import ServerConfig
 
@@ -184,11 +184,21 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         configure_cors,
     )
     from consoul.server.models import (
+        ChatErrorResponse,
+        ChatRequest,
+        ChatResponse,
+        ChatUsage,
         HealthResponse,
         ReadinessErrorResponse,
         ReadinessResponse,
         ServerConfig,
     )
+
+    # Ensure Pydantic models are fully resolved for FastAPI
+    ChatRequest.model_rebuild()
+    ChatResponse.model_rebuild()
+    ChatErrorResponse.model_rebuild()
+    ChatUsage.model_rebuild()
 
     # Load configuration (default to environment if None)
     if config is None:
@@ -286,6 +296,38 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
 
     app.state.auth = auth
 
+    # Initialize session store based on configuration
+    from consoul.sdk.session_store import MemorySessionStore, RedisSessionStore
+    from consoul.server.session_locks import SessionLockManager
+
+    session_store: MemorySessionStore | RedisSessionStore
+    if config.session.redis_url:
+        try:
+            import redis
+
+            redis_client = redis.from_url(config.session.redis_url)
+            session_store = RedisSessionStore(
+                redis_client=redis_client,
+                ttl=config.session.ttl,
+                prefix=config.session.key_prefix,
+            )
+            logger.info(f"Session store: Redis ({config.session.redis_url})")
+        except Exception as e:
+            # FAIL-FAST: No silent fallback to memory in production
+            raise RuntimeError(
+                f"Redis session store configured but unavailable: {e}. "
+                "Set CONSOUL_SESSION_REDIS_URL='' to use in-memory storage."
+            ) from e
+    else:
+        session_store = MemorySessionStore(ttl=config.session.ttl)
+        logger.warning(
+            "Session store: In-memory (not distributed). "
+            "Set CONSOUL_SESSION_REDIS_URL for production."
+        )
+
+    app.state.session_store = session_store
+    app.state.session_locks = SessionLockManager()
+
     # Register health endpoint (exempt from auth and rate limiting)
     @app.get("/health", tags=["monitoring"], response_model=HealthResponse)  # type: ignore[misc]
     @limiter.exempt
@@ -377,8 +419,152 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
             timestamp=timestamp,
         )
 
+    # Helper for optional auth (works with or without API keys configured)
+    def get_optional_auth() -> Callable[[Request], Coroutine[Any, Any, str | None]]:
+        """Get auth dependency that works with or without API keys configured."""
+
+        async def verify(request: Request) -> str | None:
+            if request.app.state.auth is not None:
+                result: str | None = await request.app.state.auth.verify(request)
+                return result
+            return None
+
+        return verify
+
+    # Chat request body dependency
+    async def get_chat_request(request: Request) -> ChatRequest:
+        """Parse and validate chat request from body."""
+        from fastapi import HTTPException
+        from pydantic import ValidationError
+
+        try:
+            body = await request.json()
+            return ChatRequest(**body)
+        except ValidationError as e:
+            raise HTTPException(
+                status_code=422,
+                detail=e.errors(),
+            ) from e
+        except Exception as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid request body: {e}",
+            ) from e
+
+    # Register chat endpoint
+    @app.post(
+        "/chat",
+        tags=["chat"],
+        response_model=ChatResponse,
+        responses={
+            503: {
+                "model": ChatErrorResponse,
+                "description": "Session storage unavailable",
+            },
+            500: {"model": ChatErrorResponse, "description": "Internal server error"},
+        },
+    )  # type: ignore[misc]
+    @limiter.limit("30/minute")  # type: ignore[misc]
+    async def chat(
+        request: Request,
+        chat_request: ChatRequest = Depends(get_chat_request),  # noqa: B008
+        api_key: str | None = Depends(get_optional_auth()),
+    ) -> ChatResponse | JSONResponse:
+        """HTTP chat endpoint with session management.
+
+        Processes chat messages with automatic session creation and persistence.
+        Sessions are identified by session_id and maintain conversation history
+        across requests.
+
+        Args:
+            request: FastAPI request object
+            chat_request: Chat request with session_id and message
+            api_key: Optional API key (if authentication configured)
+
+        Returns:
+            ChatResponse on success, JSONResponse with ChatErrorResponse on failure
+
+        Raises:
+            HTTPException: 401 if authentication fails (when configured)
+            HTTPException: 429 if rate limit exceeded
+        """
+        import asyncio
+
+        from consoul.sdk import create_session, restore_session, save_session_state
+        from consoul.server.session_locks import SessionLock
+
+        session_id = chat_request.session_id
+        timestamp = datetime.now(timezone.utc).isoformat()
+        store = request.app.state.session_store
+        lock_manager = request.app.state.session_locks
+
+        try:
+            # Per-session lock ensures atomic load→chat→save (prevents race conditions)
+            async with SessionLock(lock_manager, session_id):
+                # Load session state (blocking Redis call → run in thread)
+                state = await asyncio.to_thread(store.load, session_id)
+
+                if state:
+                    console = restore_session(state)
+                    # Warn if model parameter differs from existing session
+                    if chat_request.model and chat_request.model != console.model_name:
+                        logger.warning(
+                            f"Ignoring model={chat_request.model!r} for existing session "
+                            f"{session_id} (locked to {console.model_name})"
+                        )
+                else:
+                    console = create_session(
+                        session_id=session_id,
+                        model=chat_request.model,
+                        tools=False,
+                    )
+
+                # Run blocking chat in thread pool
+                response_text = await asyncio.to_thread(
+                    console.chat, chat_request.message
+                )
+
+                # Save session state (blocking Redis call → run in thread)
+                new_state = save_session_state(console)
+                await asyncio.to_thread(store.save, session_id, new_state)
+
+            cost = console.last_cost
+            return ChatResponse(
+                session_id=session_id,
+                response=response_text,
+                model=console.model_name,
+                usage=ChatUsage(
+                    input_tokens=cost.get("input_tokens", 0),
+                    output_tokens=cost.get("output_tokens", 0),
+                    total_tokens=cost.get("total_tokens", 0),
+                    estimated_cost=cost.get("estimated_cost", 0.0),
+                ),
+                timestamp=timestamp,
+            )
+        except OSError as e:
+            logger.error(f"Session storage error for {session_id}: {e}")
+            return JSONResponse(
+                status_code=503,
+                content=ChatErrorResponse(
+                    error="storage_unavailable",
+                    message="Session storage temporarily unavailable",
+                    timestamp=timestamp,
+                ).model_dump(),
+            )
+        except Exception as e:
+            logger.exception(f"Chat error for session {session_id}: {e}")
+            return JSONResponse(
+                status_code=500,
+                content=ChatErrorResponse(
+                    error="internal_error",
+                    message=str(e),
+                    timestamp=timestamp,
+                ).model_dump(),
+            )
+
     logger.info(f"Server factory created: {config.app_name} v{app_version}")
     logger.info("Health endpoint: GET /health (auth: bypass, rate_limit: exempt)")
     logger.info("Readiness endpoint: GET /ready (auth: bypass, rate_limit: exempt)")
+    logger.info("Chat endpoint: POST /chat (auth: optional, rate_limit: 30/minute)")
 
     return app
