@@ -46,6 +46,25 @@ Architecture Comparison:
 
 Requirements:
     pip install consoul fastapi uvicorn websockets
+
+Security Notes:
+    ⚠️  DEVELOPMENT CONFIGURATION - Not production-ready without changes
+
+    This is a simplified example for learning async_stream_events() API.
+    It uses insecure development settings:
+    - Wildcard CORS origins (allows any website to connect)
+    - No authentication
+    - No rate limiting
+
+    REQUIRED for Production:
+    - Replace wildcard CORS with specific allowed origins
+    - Add authentication (API keys, JWT, OAuth)
+    - Implement rate limiting
+    - Enable HTTPS/WSS (TLS)
+    - Add input validation and sanitization
+    - Implement connection limits and timeouts
+
+    See examples/README.md#security-considerations for complete production checklist.
 """
 
 from __future__ import annotations
@@ -73,10 +92,29 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Add CORS middleware
+# ==============================================================================
+# ⚠️  SECURITY WARNING: Development-Only CORS Configuration
+# ==============================================================================
+# This configuration uses wildcard origins (["*"]) which is INSECURE for production.
+#
+# PRODUCTION REQUIREMENTS:
+# 1. Replace ["*"] with specific allowed origins:
+#    allow_origins=["https://yourdomain.com", "https://app.yourdomain.com"]
+# 2. If using credentials, wildcard origins are NOT ALLOWED by browsers
+# 3. Never use allow_credentials=True with allow_origins=["*"]
+# 4. Restrict methods and headers to only what's needed
+#
+# SECURITY RISKS of wildcard CORS:
+# - Any website can make requests to your API
+# - Potential for CSRF attacks
+# - No origin-based access control
+# - Credentials could be exposed to malicious sites
+#
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+# ==============================================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # ⚠️  DEVELOPMENT ONLY - Replace with specific origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

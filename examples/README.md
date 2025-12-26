@@ -29,7 +29,7 @@ python examples/fastapi_websocket_server.py
 # Connect with test client
 python examples/fastapi_websocket_client.py
 
-# Or use wscat
+# Or use wscat (add ?api_key=YOUR_KEY if authentication is enabled)
 npm install -g wscat
 wscat -c ws://localhost:8000/ws/chat
 ```
@@ -381,9 +381,369 @@ Pull the model first: `ollama pull <model-name>`
 
 ---
 
+## Security Considerations
+
+### Development vs Production
+
+⚠️ **IMPORTANT**: All examples in this directory are configured for **development convenience**, not production security.
+
+Before deploying to production, you MUST address these security requirements:
+
+### 1. API Authentication
+
+✅ **Production Best Practices:**
+- Store API keys in environment variables or secret management systems (AWS Secrets Manager, HashiCorp Vault)
+- Use different keys per environment (dev/staging/prod)
+- Rotate keys regularly (at least quarterly)
+- Implement rate limiting per API key
+- Monitor and audit API key usage
+- Use strong, randomly generated keys (minimum 32 characters)
+
+❌ **Never Do This:**
+- Hardcode API keys in source code
+- Commit API keys to version control
+- Share API keys between services
+- Use development keys in production
+- Reuse API keys across environments
+
+**Example - Development (NOT for production):**
+```python
+# ❌ BAD: Hardcoded fallback for development
+api_keys = os.getenv("CONSOUL_API_KEYS", "dev-key-1,dev-key-2").split(",")
+```
+
+**Example - Production:**
+```python
+# ✅ GOOD: Require environment variable
+api_keys = os.getenv("CONSOUL_API_KEYS")
+if not api_keys:
+    raise ValueError(
+        "CONSOUL_API_KEYS environment variable is required. "
+        "Never hardcode API keys in source code."
+    )
+api_keys = api_keys.split(",")
+```
+
+### 2. CORS Configuration
+
+✅ **Production Best Practices:**
+- Specify exact allowed origins (no wildcards)
+- Use HTTPS for all origins
+- Restrict methods and headers to minimum required
+- Set appropriate cache times with `max_age`
+- Never combine `allow_origins=["*"]` with `allow_credentials=True`
+
+❌ **Never Do This:**
+- Use wildcard origins (`["*"]`) in production
+- Allow all methods and headers unless necessary
+- Enable credentials with wildcard origins (browsers block this anyway)
+
+**Example - Development (NOT for production):**
+```python
+# ⚠️  DEVELOPMENT ONLY - INSECURE for production
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Any website can access your API!
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+**Example - Production:**
+```python
+# ✅ PRODUCTION-SAFE
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://app.yourdomain.com",
+        "https://admin.yourdomain.com"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
+    max_age=3600,
+)
+```
+
+**Security Risks of Wildcard CORS:**
+- Any website can make requests to your API
+- Potential for CSRF (Cross-Site Request Forgery) attacks
+- No origin-based access control
+- Credentials could be exposed to malicious sites
+- Data leakage to untrusted origins
+
+**References:**
+- [MDN CORS Documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
+- [OWASP CORS Guide](https://owasp.org/www-community/attacks/csrf)
+
+### 3. Rate Limiting
+
+✅ **Production Best Practices:**
+- Enable rate limiting on all endpoints (except health checks)
+- Use Redis for distributed rate limiting (multiple server instances)
+- Set appropriate limits per endpoint type
+- Implement per-API-key rate limiting
+- Monitor rate limit violations
+- Use multiple time windows (e.g., `["10/minute", "100/hour", "1000/day"]`)
+
+❌ **Never Do This:**
+- Disable rate limiting in production
+- Use in-memory rate limiting with multiple server instances
+- Set overly permissive rate limits
+- Forget to exempt health check endpoints
+
+**Example - Production Configuration:**
+```python
+from consoul.server import RateLimiter
+
+# Use Redis for distributed rate limiting
+limiter = RateLimiter(
+    default_limits=["100/minute", "1000/hour", "10000/day"],
+    storage_url=os.getenv("REDIS_URL"),  # Required for production
+    key_func=lambda request: request.headers.get("X-API-Key", request.client.host),
+)
+
+# Apply stricter limits to expensive endpoints
+@app.post("/chat")
+@limiter.limit("10/minute")  # Override default
+async def chat(...):
+    ...
+
+# Always exempt health checks
+@app.get("/health")
+@limiter.exempt
+async def health(...):
+    ...
+```
+
+### 4. HTTPS/TLS
+
+✅ **Production Best Practices:**
+- Use HTTPS for all production endpoints
+- Configure TLS 1.2 or higher (TLS 1.3 recommended)
+- Use valid SSL certificates (Let's Encrypt, commercial CA)
+- Enable HSTS (HTTP Strict Transport Security) headers
+- Redirect HTTP to HTTPS
+- Configure via reverse proxy (nginx, Caddy, Traefik)
+
+❌ **Never Do This:**
+- Use HTTP in production
+- Accept self-signed certificates in production
+- Disable certificate verification
+- Allow mixed content (HTTP resources on HTTPS pages)
+
+**Example - nginx reverse proxy configuration:**
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name api.yourdomain.com;
+
+    # TLS configuration
+    ssl_certificate /etc/letsencrypt/live/api.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.yourdomain.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    # Proxy to FastAPI
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+```
+
+### 5. Input Validation
+
+✅ **Production Best Practices:**
+- Use Pydantic models for request validation
+- Set maximum body sizes
+- Validate all user input
+- Sanitize data before logging
+- Use parameterized queries for databases
+- Set field constraints (min/max length, regex patterns)
+
+❌ **Never Do This:**
+- Trust user input
+- Log sensitive data (API keys, passwords, PII)
+- Disable validation in production
+- Use user input directly in commands or queries
+
+**Example - Proper Input Validation:**
+```python
+from pydantic import BaseModel, Field, validator
+
+class ChatRequest(BaseModel):
+    session_id: str = Field(..., min_length=1, max_length=100, regex="^[a-zA-Z0-9-]+$")
+    message: str = Field(..., min_length=1, max_length=10000)
+
+    @validator("message")
+    def sanitize_message(cls, v):
+        # Remove potentially dangerous characters
+        return v.strip()
+
+# Configure maximum request body size
+from consoul.server import RequestValidator
+
+validator = RequestValidator(
+    max_body_size=1024 * 100  # 100KB limit
+)
+```
+
+### 6. Session Management
+
+✅ **Production Best Practices:**
+- Use Redis or database for session storage (not in-memory)
+- Generate secure session IDs (UUID v4, cryptographically random)
+- Set appropriate session TTL
+- Implement session invalidation
+- Never accept user-provided session IDs
+- Clear sessions on logout
+
+❌ **Never Do This:**
+- Use in-memory session storage in production (not distributed)
+- Accept user-provided session IDs directly
+- Store sensitive data in sessions without encryption
+- Use predictable session IDs
+
+**Example - Secure Session Management:**
+```python
+import uuid
+from consoul.sdk.session_store import RedisSessionStore
+
+# Use Redis for distributed session storage
+session_store = RedisSessionStore(
+    redis_url=os.getenv("REDIS_URL"),
+    ttl=3600,  # 1 hour
+    key_prefix="app:session:"
+)
+
+# Generate secure session IDs server-side
+def create_session(user_id: str):
+    session_id = str(uuid.uuid4())  # Cryptographically random
+    # Never use user-provided IDs or predictable patterns
+    return session_id
+```
+
+### 7. Error Handling
+
+✅ **Production Best Practices:**
+- Return generic error messages to clients
+- Log detailed errors server-side only
+- Never expose stack traces to users
+- Don't leak internal implementation details
+- Use proper HTTP status codes
+
+❌ **Never Do This:**
+- Return stack traces or internal errors to clients
+- Include file paths or code snippets in error responses
+- Expose database schema or query details
+
+**Example - Secure Error Handling:**
+```python
+from fastapi import HTTPException
+import logging
+
+logger = logging.getLogger(__name__)
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    try:
+        # Process request
+        result = process_chat(request)
+        return result
+    except Exception as e:
+        # ✅ Log detailed error server-side
+        logger.error(f"Chat processing failed: {e}", exc_info=True)
+
+        # ✅ Return generic error to client (don't expose internals)
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred processing your request"
+        )
+```
+
+### Production Deployment Checklist
+
+Before deploying any example to production:
+
+**Security:**
+- [ ] Replace wildcard CORS with specific origins
+- [ ] Move all API keys to environment variables
+- [ ] Enable rate limiting with Redis backend
+- [ ] Configure HTTPS/TLS properly
+- [ ] Add security headers (HSTS, X-Frame-Options, CSP)
+- [ ] Implement proper authentication (not just API keys)
+- [ ] Add authorization checks for sensitive operations
+- [ ] Enable request validation with size limits
+- [ ] Configure proper error handling (no stack traces)
+- [ ] Use secure session IDs (UUID v4, not user-provided)
+
+**Monitoring & Logging:**
+- [ ] Set up logging (without sensitive data)
+- [ ] Add monitoring and alerting
+- [ ] Implement health check endpoints
+- [ ] Track API usage metrics
+- [ ] Monitor rate limit violations
+- [ ] Set up error tracking (Sentry, Rollbar)
+
+**Infrastructure:**
+- [ ] Use Redis for distributed caching/sessions
+- [ ] Configure load balancer with SSL termination
+- [ ] Set up auto-scaling
+- [ ] Implement backup and disaster recovery
+- [ ] Configure proper timeouts
+- [ ] Set resource limits (CPU, memory)
+
+**Testing:**
+- [ ] Test authentication flows
+- [ ] Verify CORS configuration with browser
+- [ ] Load test rate limiting
+- [ ] Security scan (OWASP ZAP, Burp Suite)
+- [ ] Penetration testing
+- [ ] Review dependencies for vulnerabilities
+
+### Reference Examples
+
+- **Development-Friendly:** `examples/server/basic_server.py`, `examples/backend/fastapi_sessions.py`
+  - Good for learning and local development
+  - ⚠️  NOT production-ready without modifications
+
+- **Security Best Practices:** `examples/server/security_middleware.py`
+  - ✅ Shows proper security patterns (no wildcards, required env vars, no hardcoded secrets)
+  - ✅ Demonstrates correct CORS configuration with specific origins
+  - ⚠️  Still requires customization: Update CORS origins for your domains before deployment
+  - Use as a reference template for security middleware configuration
+
+### Additional Resources
+
+- [OWASP API Security Top 10](https://owasp.org/www-project-api-security/)
+- [FastAPI Security Best Practices](https://fastapi.tiangolo.com/tutorial/security/)
+- [MDN CORS Documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
+- [OWASP Cheat Sheets](https://cheatsheetseries.owasp.org/)
+- [Consoul Server Documentation](https://docs.consoul.com/server/)
+
+---
+
 ## Next Steps
 
 - Explore the main documentation for advanced features
 - Create custom profiles for your workflows
 - Try different models to find what works best for your use case
 - Integrate Consoul into your own applications using the library API
+- Review security considerations before deploying to production

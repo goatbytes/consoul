@@ -1,35 +1,58 @@
 #!/usr/bin/env python3
-"""Production Security Middleware Example for Consoul Server.
+"""Security Middleware Reference Example for Consoul Server.
 
-Demonstrates all security middleware components:
+⭐ SECURITY BEST PRACTICES REFERENCE ⭐
+
+This example demonstrates PROPER security configuration patterns.
+Unlike other examples that use development-friendly wildcards, this shows
+how to configure security middleware correctly for staging and production.
+
+Security Features Demonstrated:
 - API key authentication (header + query param)
 - Rate limiting (per-API-key + per-IP)
-- CORS configuration (production-safe)
-- Request validation (Pydantic models)
+- CORS configuration (specific origins, no wildcards)
+- Request validation (Pydantic models with size limits)
+- Health check endpoints (bypass auth properly)
+- Required environment variables (no hardcoded secrets)
 
 Usage:
     # Install dependencies
     pip install consoul[server]
 
-    # Set API keys
-    export CONSOUL_API_KEYS="dev-key-1,dev-key-2"
+    # Set API keys (REQUIRED - no default fallback)
+    export CONSOUL_API_KEYS="your-key-1,your-key-2"
 
     # Run server
     python examples/server/security_middleware.py
 
     # Test authenticated endpoint
     curl -X POST http://localhost:8000/chat \\
-      -H "X-API-Key: dev-key-1" \\
+      -H "X-API-Key: your-key-1" \\
       -H "Content-Type: application/json" \\
       -d '{"session_id": "user123", "message": "Hello!"}'
 
     # Test rate limiting (>10 requests/minute)
     for i in {1..15}; do
-        curl -H "X-API-Key: dev-key-1" http://localhost:8000/status
+        curl -H "X-API-Key: your-key-1" http://localhost:8000/status
     done
 
     # Test health endpoint (bypasses auth)
     curl http://localhost:8000/health
+
+Configuration Notes:
+    ✅ API keys REQUIRED via environment (no hardcoded fallback)
+    ✅ CORS configured with specific origins (update for your domains)
+    ✅ Rate limiting with multiple time windows
+    ✅ Request validation with size limits
+    ✅ Proper health check exemptions
+
+    Before production deployment:
+    - Update CORS origins to your production domains
+    - Use HTTPS/TLS (configure via reverse proxy)
+    - Enable Redis for distributed rate limiting
+    - Set up monitoring and logging
+
+    See examples/README.md#security-considerations for complete guidance.
 """
 
 from __future__ import annotations
@@ -88,8 +111,15 @@ class HealthResponse(BaseModel):
 # ==============================================================================
 
 
-# Load API keys from environment or use defaults for development
-api_keys = os.getenv("CONSOUL_API_KEYS", "dev-key-1,dev-key-2").split(",")
+# Load API keys from environment (REQUIRED - no hardcoded fallback)
+api_keys_env = os.getenv("CONSOUL_API_KEYS")
+if not api_keys_env:
+    raise ValueError(
+        "CONSOUL_API_KEYS environment variable is required. "
+        "Never hardcode API keys in source code. "
+        "Set with: export CONSOUL_API_KEYS='key1,key2'"
+    )
+api_keys = api_keys_env.split(",")
 
 # Configure authentication
 auth = APIKeyAuth(
@@ -125,12 +155,17 @@ app = FastAPI(
 # Initialize rate limiter with app
 limiter.init_app(app)
 
-# Configure CORS (customize for production)
+# ==============================================================================
+# CORS Configuration - Update for Your Domains
+# ==============================================================================
+# This example shows CORRECT CORS patterns (specific origins, no wildcards).
+# IMPORTANT: Replace example.com with your actual domains before deployment.
+# ==============================================================================
 configure_cors(
     app,
     allowed_origins=[
-        "http://localhost:3000",  # Development frontend
-        "https://app.example.com",  # Production frontend
+        "https://app.example.com",  # Production frontend - UPDATE THIS
+        "https://staging.example.com",  # Staging frontend - UPDATE THIS
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],

@@ -41,6 +41,25 @@ Message Protocol:
         {"type": "tool_request", "id": "call_123", "name": "bash_execute", ...}
         {"type": "done"}
         {"type": "error", "message": "error details"}
+
+Security Notes:
+    ⚠️  DEVELOPMENT CONFIGURATION - Not production-ready without changes
+
+    This example is a proof-of-concept with development-friendly settings:
+    - Wildcard CORS origins (allows any website to connect)
+    - No authentication (anyone can connect and create conversations)
+    - Tools enabled without authorization checks
+
+    REQUIRED for Production:
+    - Replace wildcard CORS with specific allowed origins
+    - Add WebSocket authentication (token-based, OAuth, API keys)
+    - Implement connection rate limiting
+    - Add authorization checks for tool execution
+    - Enable HTTPS/WSS (TLS)
+    - Add request logging and monitoring
+    - Implement session management and timeouts
+
+    See examples/README.md#security-considerations for complete production checklist.
 """
 
 from __future__ import annotations
@@ -70,10 +89,29 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Add CORS middleware for browser clients
+# ==============================================================================
+# ⚠️  SECURITY WARNING: Development-Only CORS Configuration
+# ==============================================================================
+# This configuration uses wildcard origins (["*"]) which is INSECURE for production.
+#
+# PRODUCTION REQUIREMENTS:
+# 1. Replace ["*"] with specific allowed origins:
+#    allow_origins=["https://yourdomain.com", "https://app.yourdomain.com"]
+# 2. If using credentials, wildcard origins are NOT ALLOWED by browsers
+# 3. Never use allow_credentials=True with allow_origins=["*"]
+# 4. Restrict methods and headers to only what's needed
+#
+# SECURITY RISKS of wildcard CORS:
+# - Any website can make requests to your API
+# - Potential for CSRF attacks
+# - No origin-based access control
+# - Credentials could be exposed to malicious sites
+#
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+# ==============================================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],  # ⚠️  DEVELOPMENT ONLY - Replace with specific origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

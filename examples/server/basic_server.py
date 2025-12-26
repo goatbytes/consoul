@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Minimal Consoul Server Example using Factory Pattern.
 
-Demonstrates the simplest way to create a production-ready Consoul API server
-using the create_server() factory function. The factory automatically configures:
+Demonstrates the simplest way to create a Consoul API server using the
+create_server() factory function. The factory automatically configures:
 
 - CORS middleware for cross-origin requests
 - API key authentication (if CONSOUL_API_KEYS is set)
@@ -10,7 +10,7 @@ using the create_server() factory function. The factory automatically configures
 - Health and readiness endpoints
 - Graceful shutdown handling
 
-This is the recommended approach for deploying Consoul as a backend API.
+This factory pattern is the recommended starting point for backend APIs.
 
 Usage:
     # Install dependencies
@@ -41,7 +41,8 @@ Testing:
     done
 
     # Test WebSocket chat (requires wscat: npm install -g wscat)
-    wscat -c ws://localhost:8000/ws/chat -H "X-API-Key: dev-key-1"
+    # Note: WebSocket auth uses query param, not header
+    wscat -c "ws://localhost:8000/ws/chat?api_key=dev-key-1"
 
 Environment Variables:
     CONSOUL_API_KEYS: Comma-separated API keys for authentication
@@ -51,10 +52,20 @@ Environment Variables:
     CONSOUL_PORT: Server port (default: 8000)
 
 Security Notes:
-    - Always set CONSOUL_API_KEYS in production
-    - Use HTTPS in production (configure via reverse proxy)
-    - Configure specific CORS origins (no wildcards)
-    - Enable Redis for distributed rate limiting
+    ⚠️  DEVELOPMENT CONFIGURATION - Not production-ready without changes
+
+    This example uses the factory pattern which provides good defaults, but
+    you MUST configure these settings before deploying to production:
+
+    REQUIRED for Production:
+    - Set CONSOUL_API_KEYS environment variable (NEVER hardcode keys)
+    - Configure specific CORS origins via CONSOUL_CORS_ORIGINS (no wildcards)
+    - Enable HTTPS/TLS (configure via reverse proxy like nginx/Caddy)
+    - Enable Redis for distributed rate limiting (CONSOUL_RATE_LIMIT_REDIS_URL)
+    - Set appropriate rate limits for your use case
+    - Monitor and log API usage
+
+    See examples/README.md#security-considerations for complete production checklist.
 """
 
 from __future__ import annotations
@@ -100,7 +111,7 @@ class StatusResponse(BaseModel):
 # ==============================================================================
 
 # Create server - loads configuration from environment variables
-# This is all you need for a production-ready server!
+# The factory provides good defaults, but review Security Notes before production
 app = create_server()
 
 # The factory configures everything:
@@ -116,7 +127,26 @@ app = create_server()
 # ==============================================================================
 
 
-# Helper function to get auth dependency (required when auth is configured)
+# ==============================================================================
+# Authentication Dependency Pattern
+# ==============================================================================
+# This helper function creates a FastAPI dependency that conditionally enforces
+# authentication based on whether API keys are configured via environment variables.
+#
+# Pattern: Depends(get_auth_dependency())
+#   - get_auth_dependency() is CALLED to return the dependency function
+#   - Depends() receives the dependency function (not the result of calling it)
+#   - This is the CORRECT pattern for FastAPI dependency injection
+#
+# Behavior:
+#   - If CONSOUL_API_KEYS is set → Requires valid API key (401 if missing/invalid)
+#   - If CONSOUL_API_KEYS not set → Allows unauthenticated access (None returned)
+#
+# This pattern allows the same example to work both with and without API keys
+# configured, making it suitable for development and testing.
+# ==============================================================================
+
+
 def get_auth_dependency():
     """Get auth dependency - raises 401 if auth is configured but key invalid.
 
@@ -125,7 +155,13 @@ def get_auth_dependency():
     - Allows unauthenticated access if app.state.auth is None
 
     Returns:
-        FastAPI dependency function
+        FastAPI dependency function that validates API keys when configured
+
+    Usage:
+        @app.get("/endpoint")
+        async def endpoint(api_key: str | None = Depends(get_auth_dependency())):
+            # api_key will be validated string if auth enabled, None if disabled
+            ...
     """
 
     async def auth_dependency(request: Request):
@@ -258,31 +294,48 @@ if __name__ == "__main__":
 
     config = ServerConfig()
 
+    auth_status = (
+        "✓ Enabled"
+        if config.security.api_keys
+        else "✗ Disabled (allows unauthenticated access)"
+    )
+
     print("=" * 70)
     print("Consoul Server - Factory Pattern Example")
     print("=" * 70)
     print()
+    print("⚠️  DEVELOPMENT MODE - See Security Notes in module docstring")
+    print()
     print("Server Configuration:")
     print(f"  Host: {config.host}")
     print(f"  Port: {config.port}")
-    print(f"  API Keys: {'✓ Enabled' if config.security.api_keys else '✗ Disabled'}")
+    print(f"  API Keys: {auth_status}")
     print(f"  Rate Limiting: {config.rate_limit.default_limits}")
-    print(f"  Redis: {config.rate_limit.storage_url or '✗ Not configured'}")
+    print(
+        f"  Redis: {config.rate_limit.storage_url or '✗ Not configured (in-memory only)'}"
+    )
     print()
     print("Endpoints:")
-    print("  GET  http://localhost:8000/health  (no auth)")
-    print("  GET  http://localhost:8000/ready   (no auth)")
-    print("  GET  http://localhost:8000/status  (requires auth)")
-    print("  POST http://localhost:8000/status  (requires auth)")
-    print("  WS   ws://localhost:8000/ws/chat   (requires api_key param)")
+    print("  GET  /health             (public, no auth, no rate limit)")
+    print("  GET  /ready              (public, no auth, no rate limit)")
+    print("  GET  /status             (auth if enabled, rate limit: 10/min)")
+    print("  POST /status             (auth if enabled, rate limit: 5/min)")
+    print("  WS   /ws/chat            (auth via api_key param if enabled)")
     print()
     print("Documentation:")
     print("  ✗ API docs disabled (production best practice)")
     print("  Note: To enable docs, set docs_url='/docs' when creating FastAPI app")
     print()
     print("Test Commands:")
+    print("  # Health check (always works)")
     print("  curl http://localhost:8000/health")
-    print('  curl -H "X-API-Key: dev-key-1" http://localhost:8000/status')
+    print()
+    if config.security.api_keys:
+        print("  # Authenticated requests (API key required)")
+        print('  curl -H "X-API-Key: dev-key-1" http://localhost:8000/status')
+    else:
+        print("  # Status endpoint (no auth configured)")
+        print("  curl http://localhost:8000/status")
     print()
     print("Press Ctrl+C to stop")
     print("=" * 70)
