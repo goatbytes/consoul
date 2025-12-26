@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consoul Test Client</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #252542;
+            --accent: #8b5cf6;
+            --accent-hover: #7c3aed;
+            --accent-dim: rgba(139, 92, 246, 0.15);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-primary: #f1f1f1;
+            --text-secondary: #a0a0b0;
+            --text-muted: #6b6b80;
+            --border: #2a2a45;
+            --user-bubble: #3b3b5c;
+            --assistant-bubble: #1e1e35;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent), #c084fc);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--accent), #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-btn:hover {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Main Chat */
+        .main {
+            max-width: 900px;
+            margin: 0 auto;
+            height: calc(100vh - 60px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Mode Selector Bar */
+        .mode-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .mode-toggle {
+            display: flex;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .mode-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .mode-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .mode-btn:not(.active):hover {
+            background: var(--bg-secondary);
+        }
+
+        .mode-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-pill {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-pill::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-pill.connected { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .status-pill.disconnected { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .status-pill.connecting { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+
+        .ws-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ws-controls button {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-connect {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-connect:hover { background: #16a34a; }
+        .btn-connect:disabled { background: var(--bg-tertiary); color: var(--text-muted); cursor: not-allowed; }
+
+        .btn-disconnect {
+            background: transparent;
+            border: 1px solid var(--danger) !important;
+            color: var(--danger);
+        }
+
+        .btn-disconnect:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* Messages Area */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-height: 0;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 80%;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message.assistant { align-self: flex-start; }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message.user .avatar { background: var(--accent); }
+        .message.assistant .avatar { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .message.user .message-content {
+            background: var(--user-bubble);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: var(--assistant-bubble);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-content p { margin: 0 0 8px 0; }
+        .message-content p:last-child { margin: 0; }
+        .message-content code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .message-content pre {
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+        .message-content pre code { background: none; padding: 0; }
+
+        .message-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .message-meta .mode-tag {
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        /* System Messages */
+        .system-message {
+            text-align: center;
+            padding: 6px 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .system-message.success { color: var(--success); }
+        .system-message.error { color: var(--danger); }
+        .system-message.info { color: var(--accent); }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-6px); }
+        }
+
+        /* Tool Approval */
+        .tool-approval {
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 8px 16px;
+        }
+
+        .tool-approval-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: var(--accent);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .tool-approval-name {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: var(--bg-tertiary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .tool-approval-risk {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .tool-approval-risk.safe { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .tool-approval-risk.caution { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .tool-approval-risk.dangerous { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+        .tool-approval-args {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin-bottom: 12px;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .tool-approval-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tool-approval-actions button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .btn-approve { background: var(--success); color: white; }
+        .btn-approve:hover { background: #16a34a; }
+        .btn-deny { background: transparent; border: 1px solid var(--danger) !important; color: var(--danger); }
+        .btn-deny:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* Input Area */
+        .input-area {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+        }
+
+        .input-area input {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .input-area input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .input-area input::placeholder { color: var(--text-muted); }
+
+        .send-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .send-btn:hover { background: var(--accent-hover); }
+        .send-btn:disabled { background: var(--bg-tertiary); color: var(--text-muted); cursor: not-allowed; }
+
+        /* Empty State */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            gap: 12px;
+            padding: 40px;
+        }
+
+        .empty-state-icon { font-size: 48px; opacity: 0.5; }
+        .empty-state p { font-size: 14px; text-align: center; }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            transition: right 0.3s ease;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-panel.open { right: 0; }
+
+        .settings-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .settings-header h3 { font-size: 16px; }
+
+        .settings-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .settings-close:hover { color: var(--text-primary); }
+
+        .settings-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .setting-group label {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .setting-group input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .setting-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 150;
+        }
+
+        .overlay.active { opacity: 1; visibility: visible; }
+
+        /* Health Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal h3 {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .modal-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-row:last-child { border: none; }
+        .modal-label { color: var(--text-secondary); }
+        .modal-value { font-weight: 500; }
+
+        .modal-close {
+            margin-top: 16px;
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .modal-close:hover { background: var(--accent-dim); border-color: var(--accent); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">C</div>
+                <span class="logo-text">Consoul</span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="checkHealth()" title="Health Check">&#9829;</button>
+                <button class="icon-btn" onclick="clearMessages()" title="Clear Chat">&#128465;</button>
+                <button class="icon-btn" onclick="toggleSettings()" title="Settings">&#9881;</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Mode Bar -->
+        <div class="mode-bar">
+            <div class="mode-toggle">
+                <button class="mode-btn active" data-mode="ws" onclick="setMode('ws')">
+                    <span>&#9889;</span> Streaming
+                </button>
+                <button class="mode-btn" data-mode="http" onclick="setMode('http')">
+                    <span>&#128640;</span> HTTP
+                </button>
+            </div>
+            <div class="mode-info">
+                <div id="wsControls" class="ws-controls">
+                    <span id="wsStatus" class="status-pill disconnected">Disconnected</span>
+                    <button id="wsConnectBtn" class="btn-connect" onclick="wsConnect()">Connect</button>
+                    <button class="btn-disconnect" onclick="wsDisconnect()">Disconnect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="messages" class="messages">
+            <div class="empty-state">
+                <div class="empty-state-icon">&#128172;</div>
+                <p>Start a conversation<br>Messages work with both streaming and HTTP modes</p>
+            </div>
+        </div>
+
+        <!-- Tool Approval -->
+        <div id="toolApproval"></div>
+
+        <!-- Input -->
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter' && !event.shiftKey)sendMessage()">
+            <button class="send-btn" onclick="sendMessage()">
+                Send <span>&#10148;</span>
+            </button>
+        </div>
+    </main>
+
+    <!-- Settings Panel -->
+    <div class="overlay" onclick="toggleSettings()"></div>
+    <div id="settingsPanel" class="settings-panel">
+        <div class="settings-header">
+            <h3>Settings</h3>
+            <button class="settings-close" onclick="toggleSettings()">&times;</button>
+        </div>
+        <div class="settings-body">
+            <div class="setting-group">
+                <label>Server URL</label>
+                <input type="text" id="serverUrl" value="http://127.0.0.1:8000">
+            </div>
+            <div class="setting-group">
+                <label>API Key</label>
+                <input type="text" id="apiKey" value="test-key-123">
+            </div>
+            <div class="setting-group">
+                <label>Session ID</label>
+                <input type="text" id="sessionId" value="test-session-1">
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Modal -->
+    <div id="healthModal" class="modal-overlay" onclick="if(event.target===this)closeHealthModal()">
+        <div class="modal">
+            <h3><span style="color: var(--success)">&#9829;</span> Health Check</h3>
+            <div id="healthContent" class="modal-content"></div>
+            <button class="modal-close" onclick="closeHealthModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentStreamDiv = null;
+        let currentMode = 'ws';
+        let hasMessages = false;
+
+        marked.setOptions({ breaks: true, gfm: true });
+
+        // Mode switching
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            document.getElementById('wsControls').style.display = mode === 'ws' ? 'flex' : 'none';
+        }
+
+        // Settings
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('open');
+            document.querySelector('.overlay').classList.toggle('active');
+        }
+
+        // Send message (routes to WS or HTTP based on mode)
+        function sendMessage() {
+            if (currentMode === 'ws') {
+                wsSend();
+            } else {
+                httpSend();
+            }
+        }
+
+        // WebSocket Functions
+        function wsConnect() {
+            const serverUrl = document.getElementById('serverUrl').value.replace('http', 'ws');
+            const sessionId = document.getElementById('sessionId').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const wsUrl = `${serverUrl}/ws/chat/${sessionId}?api_key=${apiKey}`;
+
+            updateWsStatus('connecting', 'Connecting...');
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                updateWsStatus('connected', 'Connected');
+                document.getElementById('wsConnectBtn').disabled = true;
+            };
+
+            ws.onclose = (event) => {
+                updateWsStatus('disconnected', 'Disconnected');
+                document.getElementById('wsConnectBtn').disabled = false;
+                ws = null;
+            };
+
+            ws.onerror = () => {
+                addSystemMessage('Connection error', 'error');
+            };
+
+            ws.onmessage = (event) => {
+                handleWsMessage(JSON.parse(event.data));
+            };
+        }
+
+        function wsDisconnect() {
+            if (ws) ws.close();
+        }
+
+        function wsSend() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                addSystemMessage('Not connected. Click Connect first.', 'error');
+                return;
+            }
+
+            addMessage('user', message);
+            ws.send(JSON.stringify({ type: 'message', content: message }));
+            input.value = '';
+
+            currentStreamDiv = addMessage('assistant', '', true, 'ws');
+        }
+
+        function handleWsMessage(data) {
+            switch (data.type) {
+                case 'token':
+                    if (currentStreamDiv) {
+                        const content = currentStreamDiv.querySelector('.message-content');
+                        const text = content.getAttribute('data-raw') || '';
+                        const newText = text + data.data.text;
+                        content.setAttribute('data-raw', newText);
+                        content.innerHTML = marked.parse(newText);
+                        scrollToBottom();
+                    }
+                    break;
+
+                case 'done':
+                    if (currentStreamDiv) {
+                        const meta = currentStreamDiv.querySelector('.message-meta');
+                        if (meta && data.data.usage?.duration_ms) {
+                            meta.innerHTML = `<span class="mode-tag">WS</span> ${(data.data.usage.duration_ms/1000).toFixed(1)}s`;
+                        }
+                    }
+                    currentStreamDiv = null;
+                    break;
+
+                case 'error':
+                    if (currentStreamDiv) currentStreamDiv.remove();
+                    currentStreamDiv = null;
+                    addSystemMessage(data.data.message, 'error');
+                    break;
+
+                case 'tool_approval_request':
+                    showToolApproval(data.data);
+                    break;
+            }
+        }
+
+        function showToolApproval(tool) {
+            const container = document.getElementById('toolApproval');
+            container.innerHTML = `
+                <div class="tool-approval">
+                    <div class="tool-approval-header">
+                        <span>&#9881;</span> Tool Approval Required
+                    </div>
+                    <div class="tool-approval-name">${tool.name}</div>
+                    <span class="tool-approval-risk ${tool.risk_level}">${tool.risk_level}</span>
+                    <div class="tool-approval-args">${JSON.stringify(tool.arguments, null, 2)}</div>
+                    <div class="tool-approval-actions">
+                        <button class="btn-approve" onclick="approveToolCall('${tool.id}', true)">Approve</button>
+                        <button class="btn-deny" onclick="approveToolCall('${tool.id}', false)">Deny</button>
+                    </div>
+                </div>
+            `;
+            scrollToBottom();
+        }
+
+        function approveToolCall(id, approved) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'tool_approval', id, approved }));
+                document.getElementById('toolApproval').innerHTML = '';
+            }
+        }
+
+        // HTTP Functions
+        async function httpSend() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const serverUrl = document.getElementById('serverUrl').value;
+            const sessionId = document.getElementById('sessionId').value;
+            const apiKey = document.getElementById('apiKey').value;
+
+            addMessage('user', message);
+            input.value = '';
+
+            const loadingDiv = addMessage('assistant', '', true, 'http');
+
+            try {
+                const response = await fetch(`${serverUrl}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({ session_id: sessionId, message })
+                });
+
+                const data = await response.json();
+                loadingDiv.remove();
+
+                if (response.ok) {
+                    addMessage('assistant', data.response, false, 'http', `${data.usage.total_tokens} tokens`);
+                } else {
+                    addSystemMessage(`Error ${response.status}: ${data.message || data.detail || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                loadingDiv.remove();
+                addSystemMessage(`Network error: ${error.message}`, 'error');
+            }
+        }
+
+        // Message Functions
+        function addMessage(role, content, isStreaming = false, mode = '', meta = '') {
+            const container = document.getElementById('messages');
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+
+            const avatar = role === 'user' ? '&#128100;' : '&#129302;';
+            const parsedContent = isStreaming ? '' : marked.parse(content);
+            const modeTag = mode ? `<span class="mode-tag">${mode.toUpperCase()}</span>` : '';
+            const metaText = meta ? ` ${meta}` : '';
+
+            div.innerHTML = `
+                <div class="avatar">${avatar}</div>
+                <div>
+                    <div class="message-content" ${isStreaming ? 'data-raw=""' : ''}>${isStreaming ? '<div class="typing-indicator"><span></span><span></span><span></span></div>' : parsedContent}</div>
+                    ${role === 'assistant' ? `<div class="message-meta">${modeTag}${metaText}</div>` : ''}
+                </div>
+            `;
+
+            container.appendChild(div);
+            scrollToBottom();
+            hasMessages = true;
+            return div;
+        }
+
+        function addSystemMessage(text, type = '') {
+            const container = document.getElementById('messages');
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            const div = document.createElement('div');
+            div.className = `system-message ${type}`;
+            div.textContent = text;
+            container.appendChild(div);
+            scrollToBottom();
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">&#128172;</div>
+                    <p>Start a conversation<br>Messages work with both streaming and HTTP modes</p>
+                </div>
+            `;
+            document.getElementById('toolApproval').innerHTML = '';
+            hasMessages = false;
+        }
+
+        function updateWsStatus(state, text) {
+            const status = document.getElementById('wsStatus');
+            status.className = `status-pill ${state}`;
+            status.textContent = text;
+        }
+
+        // Health Check
+        async function checkHealth() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const content = document.getElementById('healthContent');
+
+            try {
+                const response = await fetch(`${serverUrl}/health`);
+                const data = await response.json();
+                content.innerHTML = `
+                    <div class="modal-row"><span class="modal-label">Status</span><span class="modal-value" style="color: var(--success)">${data.status.toUpperCase()}</span></div>
+                    <div class="modal-row"><span class="modal-label">Service</span><span class="modal-value">${data.service}</span></div>
+                    <div class="modal-row"><span class="modal-label">Version</span><span class="modal-value">${data.version}</span></div>
+                    <div class="modal-row"><span class="modal-label">WebSocket Connections</span><span class="modal-value">${data.connections}</span></div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="system-message error">Failed to connect: ${error.message}</div>`;
+            }
+            document.getElementById('healthModal').classList.add('active');
+        }
+
+        function closeHealthModal() {
+            document.getElementById('healthModal').classList.remove('active');
+        }
+
+        function scrollToBottom() {
+            const el = document.getElementById('messages');
+            el.scrollTop = el.scrollHeight;
+        }
+    </script>
+</body>
+</html>
