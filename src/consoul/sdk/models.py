@@ -474,6 +474,107 @@ class ToolFilter:
 
 
 @dataclass
+class SessionMetadata:
+    """Extensible metadata for session customization.
+
+    Provides a structured way for SDK users to attach custom data
+    to sessions without modifying SessionState fields. Enables multi-tenant
+    deployments, user context tracking, and arbitrary custom fields.
+
+    All fields are optional to support incremental adoption without
+    breaking backward compatibility.
+
+    Attributes:
+        user_id: Optional user identifier (not enforced, for SDK user convenience)
+        tenant_id: Optional tenant/organization identifier for multi-tenant deployments
+        namespace: Optional namespace for session scoping (e.g., "tenant:user:session")
+        created_by: Optional identifier of the entity that created the session
+        tags: Optional list of string tags for categorization and filtering
+        custom: Free-form dict for SDK user-defined data (must be JSON-serializable)
+        schema_version: Version string for migration support (default: "1.0")
+
+    Example - Multi-tenant deployment:
+        >>> metadata = SessionMetadata(
+        ...     user_id="user_123",
+        ...     tenant_id="acme_corp",
+        ...     namespace="acme_corp:user_123",
+        ...     tags=["legal", "case_456"],
+        ...     custom={"department": "legal", "case_id": "456"}
+        ... )
+
+    Example - Simple user tracking:
+        >>> metadata = SessionMetadata(user_id="alice@example.com")
+
+    Example - Custom application data:
+        >>> metadata = SessionMetadata(
+        ...     custom={
+        ...         "app_version": "2.1.0",
+        ...         "locale": "en-US",
+        ...         "feature_flags": ["beta_chat", "tool_preview"]
+        ...     }
+        ... )
+
+    Security Notes:
+        - Do not store sensitive data (passwords, tokens) in metadata
+        - All data is serialized to JSON and may be logged
+        - Validate custom field contents before storage
+    """
+
+    user_id: str | None = None
+    tenant_id: str | None = None
+    namespace: str | None = None
+    created_by: str | None = None
+    tags: list[str] = field(default_factory=list)
+    custom: dict[str, Any] = field(default_factory=dict)
+    schema_version: str = "1.0"
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert metadata to JSON-serializable dictionary.
+
+        Returns:
+            Dictionary with all metadata fields
+
+        Example:
+            >>> metadata = SessionMetadata(user_id="alice", tags=["legal"])
+            >>> data = metadata.to_dict()
+            >>> json.dumps(data)  # JSON-serializable
+        """
+        return {
+            "user_id": self.user_id,
+            "tenant_id": self.tenant_id,
+            "namespace": self.namespace,
+            "created_by": self.created_by,
+            "tags": self.tags,
+            "custom": self.custom,
+            "schema_version": self.schema_version,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SessionMetadata:
+        """Create metadata from dictionary.
+
+        Args:
+            data: Dictionary with metadata fields
+
+        Returns:
+            SessionMetadata instance
+
+        Example:
+            >>> data = {"user_id": "alice", "tags": ["legal"]}
+            >>> metadata = SessionMetadata.from_dict(data)
+        """
+        return cls(
+            user_id=data.get("user_id"),
+            tenant_id=data.get("tenant_id"),
+            namespace=data.get("namespace"),
+            created_by=data.get("created_by"),
+            tags=data.get("tags", []),
+            custom=data.get("custom", {}),
+            schema_version=data.get("schema_version", "1.0"),
+        )
+
+
+@dataclass
 class SessionState:
     """Serializable session state for HTTP endpoints and multi-user backends.
 
@@ -504,6 +605,10 @@ class SessionState:
         >>> console = restore_session(state)
         >>> console.chat("Continue conversation")
 
+    New in v0.6.0:
+        - metadata: Optional SessionMetadata for user/tenant context
+        - version: Schema version for forward compatibility and migration
+
     Security Notes:
         - Only JSON-serializable data (no Consoul objects, no pickle)
         - No executable code in messages or config
@@ -518,6 +623,10 @@ class SessionState:
     created_at: float
     updated_at: float
     config: dict[str, Any] = field(default_factory=dict)
+    # NEW: Extensible metadata for user/tenant context (optional, backward compatible)
+    metadata: SessionMetadata | None = None
+    # NEW: Schema version for migration support
+    version: str = "1.0"
 
     def to_dict(self) -> dict[str, Any]:
         """Convert session state to JSON-serializable dictionary.
@@ -537,7 +646,7 @@ class SessionState:
             >>> state_dict = state.to_dict()
             >>> json.dumps(state_dict)  # JSON-serializable
         """
-        return {
+        result = {
             "session_id": self.session_id,
             "model": self.model,
             "temperature": self.temperature,
@@ -545,7 +654,12 @@ class SessionState:
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "config": self.config,
+            "version": self.version,
         }
+        # Only include metadata if present (backward compatible)
+        if self.metadata is not None:
+            result["metadata"] = self.metadata.to_dict()
+        return result
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SessionState:
@@ -570,6 +684,10 @@ class SessionState:
             ...     "updated_at": 1704067200.0
             ... }
             >>> state = SessionState.from_dict(state_dict)
+
+        Note:
+            Handles backward compatibility for older state dicts without
+            metadata or version fields.
         """
         required_fields = [
             "session_id",
@@ -583,6 +701,11 @@ class SessionState:
             if field_name not in data:
                 raise ValueError(f"Missing required field: {field_name}")
 
+        # Handle metadata (new field, may be absent in older states)
+        metadata = None
+        if "metadata" in data and data["metadata"] is not None:
+            metadata = SessionMetadata.from_dict(data["metadata"])
+
         return cls(
             session_id=data["session_id"],
             model=data["model"],
@@ -591,4 +714,6 @@ class SessionState:
             created_at=data["created_at"],
             updated_at=data["updated_at"],
             config=data.get("config", {}),
+            metadata=metadata,
+            version=data.get("version", "1.0"),
         )

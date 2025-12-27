@@ -148,6 +148,38 @@ class SessionStore(Protocol):
         """
         ...
 
+    def list_sessions(
+        self,
+        namespace: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[str]:
+        """List session IDs, optionally filtered by namespace prefix.
+
+        Enables listing sessions per user/tenant when using namespaced session IDs
+        (e.g., "user123:conv1", "user123:conv2").
+
+        Args:
+            namespace: Optional namespace prefix filter (e.g., "user123:")
+            limit: Maximum sessions to return (default: 100)
+            offset: Number of sessions to skip for pagination (default: 0)
+
+        Returns:
+            List of session IDs matching criteria
+
+        Example - List all sessions for a user:
+            >>> store.list_sessions(namespace="user123:")
+            ['user123:conv1', 'user123:conv2', 'user123:conv3']
+
+        Example - Paginated listing:
+            >>> page1 = store.list_sessions(limit=10, offset=0)
+            >>> page2 = store.list_sessions(limit=10, offset=10)
+
+        Note:
+            This method is optional. Implementations may raise NotImplementedError.
+        """
+        ...
+
 
 class MemorySessionStore:
     """In-memory session storage with TTL support.
@@ -292,6 +324,52 @@ class MemorySessionStore:
             logger.info(f"Cleaned up {len(expired)} expired sessions from memory")
 
         return len(expired)
+
+    def list_sessions(
+        self,
+        namespace: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[str]:
+        """List session IDs with optional namespace filtering.
+
+        Sessions are filtered by TTL (expired sessions excluded) and sorted
+        by recency (most recently created/updated first).
+
+        Args:
+            namespace: Optional namespace prefix filter
+            limit: Maximum sessions to return
+            offset: Number of sessions to skip
+
+        Returns:
+            List of session IDs matching criteria, sorted by recency
+        """
+        now = time.time()
+
+        with self._global_lock:
+            # Get non-expired sessions with timestamps
+            valid_sessions: list[tuple[str, float]] = []
+            for sid in self._sessions:
+                timestamp = self._timestamps.get(sid, 0.0)
+                # Check TTL if set
+                if self.ttl is not None and now - timestamp >= self.ttl:
+                    continue  # Skip expired sessions
+                valid_sessions.append((sid, timestamp))
+
+        # Filter by namespace prefix if provided
+        if namespace:
+            valid_sessions = [
+                (sid, ts) for sid, ts in valid_sessions if sid.startswith(namespace)
+            ]
+
+        # Sort by recency (most recent first)
+        valid_sessions.sort(key=lambda x: x[1], reverse=True)
+
+        # Extract just the session IDs
+        all_ids = [sid for sid, _ in valid_sessions]
+
+        # Apply pagination
+        return all_ids[offset : offset + limit]
 
 
 class FileSessionStore:
@@ -533,6 +611,70 @@ class FileSessionStore:
         except Exception as e:
             raise OSError(f"Failed to cleanup sessions: {e}") from e
 
+    def list_sessions(
+        self,
+        namespace: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[str]:
+        """List session IDs with optional namespace filtering.
+
+        Sessions are filtered by TTL (expired sessions excluded) and sorted
+        by recency (most recently modified first).
+
+        Note: Reads session_id from JSON files since filenames are sanitized.
+
+        Args:
+            namespace: Optional namespace prefix filter
+            limit: Maximum sessions to return
+            offset: Number of sessions to skip
+
+        Returns:
+            List of session IDs matching criteria, sorted by recency
+        """
+        # Collect sessions with their timestamps for sorting
+        sessions_with_time: list[tuple[str, float]] = []
+
+        try:
+            for path in self.storage_dir.glob("*.json"):
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        wrapper = json.load(f)
+
+                    # Get created_at timestamp
+                    created_at = wrapper.get("created_at", 0.0)
+
+                    # Check TTL if applicable
+                    if self.ttl is not None and time.time() - created_at >= self.ttl:
+                        continue  # Skip expired sessions
+
+                    # Get actual session_id from file content (filename is sanitized)
+                    session_id = wrapper.get("session_id", path.stem)
+                    sessions_with_time.append((session_id, created_at))
+
+                except (json.JSONDecodeError, KeyError):
+                    # Skip invalid files
+                    continue
+
+        except Exception as e:
+            logger.error(f"Error listing sessions: {e}")
+            return []
+
+        # Filter by namespace prefix if provided
+        if namespace:
+            sessions_with_time = [
+                (sid, ts) for sid, ts in sessions_with_time if sid.startswith(namespace)
+            ]
+
+        # Sort by recency (most recent first)
+        sessions_with_time.sort(key=lambda x: x[1], reverse=True)
+
+        # Extract just session IDs
+        session_ids = [sid for sid, _ in sessions_with_time]
+
+        # Apply pagination
+        return session_ids[offset : offset + limit]
+
 
 class RedisSessionStore:
     """Redis-based session storage with automatic expiration.
@@ -717,9 +859,327 @@ class RedisSessionStore:
         """
         return 0
 
+    def list_sessions(
+        self,
+        namespace: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[str]:
+        """List session IDs with optional namespace filtering using SCAN.
+
+        Uses Redis SCAN for production-safe, non-blocking iteration.
+        Sessions are sorted by recency (most recently created/updated first)
+        for consistency with other SessionStore implementations.
+
+        Args:
+            namespace: Optional namespace prefix filter
+            limit: Maximum sessions to return
+            offset: Number of sessions to skip
+
+        Returns:
+            List of session IDs matching criteria, sorted by recency
+
+        Note:
+            For very large numbers of sessions, consider using a Redis sorted set
+            to track session timestamps for more efficient recency-based listing.
+            The current implementation loads each session to get timestamps.
+        """
+        pattern = f"{self.prefix}*"
+        if namespace:
+            pattern = f"{self.prefix}{namespace}*"
+
+        # Collect sessions with timestamps for recency sorting
+        sessions_with_time: list[tuple[str, float]] = []
+        cursor = 0
+
+        try:
+            # Collect all matching sessions first
+            while True:
+                cursor, keys = self.redis.scan(cursor=cursor, match=pattern, count=100)
+
+                for key in keys:
+                    # Extract session_id from key (remove prefix)
+                    key_str = key.decode() if isinstance(key, bytes) else key
+                    session_id = key_str[len(self.prefix) :]
+
+                    # Get timestamp from session data for recency sorting
+                    try:
+                        json_data = self.redis.get(key)
+                        if json_data:
+                            data = json.loads(json_data)
+                            # Use updated_at if available, else created_at, else 0
+                            timestamp = data.get(
+                                "updated_at", data.get("created_at", 0.0)
+                            )
+                            sessions_with_time.append((session_id, timestamp))
+                    except (json.JSONDecodeError, TypeError):
+                        # If we can't get timestamp, use 0 (will sort to end)
+                        sessions_with_time.append((session_id, 0.0))
+
+                if cursor == 0:
+                    break
+
+            # Filter by namespace prefix if provided (already filtered by pattern,
+            # but double-check in case of edge cases)
+            if namespace:
+                sessions_with_time = [
+                    (sid, ts)
+                    for sid, ts in sessions_with_time
+                    if sid.startswith(namespace)
+                ]
+
+            # Sort by recency (most recent first)
+            sessions_with_time.sort(key=lambda x: x[1], reverse=True)
+
+            # Extract just session IDs
+            all_session_ids = [sid for sid, _ in sessions_with_time]
+
+            # Apply pagination
+            return all_session_ids[offset : offset + limit]
+
+        except Exception as e:
+            logger.error(f"Error listing sessions from Redis: {e}")
+            return []
+
+
+class HookedSessionStore:
+    """SessionStore wrapper that applies lifecycle hooks.
+
+    Wraps any SessionStore implementation to add hook execution around
+    save/load operations. Enables encryption, summarization, redaction,
+    and custom processing without modifying store implementations.
+
+    Supports both sync and async hooks - auto-detects and handles both.
+
+    Attributes:
+        store: Underlying SessionStore implementation
+        hooks: List of SessionHooks to apply (in order)
+
+    Example - Encryption + Audit logging:
+        >>> base_store = RedisSessionStore(client, ttl=3600)
+        >>> hooked_store = HookedSessionStore(
+        ...     store=base_store,
+        ...     hooks=[
+        ...         EncryptionHook(key_provider),
+        ...         AuditLoggingHook(audit_logger),
+        ...     ]
+        ... )
+        >>> hooked_store.save(session_id, state)  # Encrypted then logged
+
+    Example - PII redaction:
+        >>> from consoul.sdk.redaction import PiiRedactor
+        >>> redactor = PiiRedactor(fields=["password", "ssn"])
+        >>> hooked_store = HookedSessionStore(
+        ...     store=FileSessionStore("/var/sessions"),
+        ...     hooks=[RedactionHook(redactor)]
+        ... )
+
+    Note:
+        Hooks are applied in order for on_before_save (first to last)
+        and reverse order for on_after_load (last to first).
+    """
+
+    def __init__(
+        self,
+        store: SessionStore,
+        hooks: list[Any] | None = None,
+    ) -> None:
+        """Initialize hooked store wrapper.
+
+        Args:
+            store: Underlying SessionStore to wrap
+            hooks: List of SessionHooks to apply
+        """
+        self.store = store
+        self.hooks: list[Any] = hooks or []
+
+    def _get_hook_method(self, hook: Any, method_name: str) -> Any | None:
+        """Get a hook method if it exists, None otherwise.
+
+        Supports partial hook implementations by returning None for
+        missing methods instead of raising AttributeError.
+        """
+        method = getattr(hook, method_name, None)
+        return method if callable(method) else None
+
+    def _run_hook_sync(
+        self,
+        hook_method: Any,
+        *args: Any,
+    ) -> Any:
+        """Run a hook method, handling both sync and async.
+
+        Uses inspect.iscoroutinefunction to detect async methods.
+        For async methods, runs them with asyncio.
+        """
+        import asyncio
+        import inspect
+
+        if inspect.iscoroutinefunction(hook_method):
+            # Async hook - run with asyncio
+            try:
+                asyncio.get_running_loop()
+                # We're in an async context, need to use a thread pool
+                # to avoid "cannot run event loop while another is running"
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, hook_method(*args))
+                    return future.result()
+            except RuntimeError:
+                # No running loop - safe to use asyncio.run
+                return asyncio.run(hook_method(*args))
+        else:
+            # Sync hook - call directly
+            return hook_method(*args)
+
+    def save(self, session_id: str, state: dict[str, Any]) -> None:
+        """Save session state with hook transformations.
+
+        Applies on_before_save hooks, saves to store, then calls on_after_save.
+        Hooks can implement any subset of methods (partial implementation).
+        """
+        transformed_state = state.copy()
+
+        # Apply on_before_save hooks (in order)
+        for hook in self.hooks:
+            hook_method = self._get_hook_method(hook, "on_before_save")
+            if hook_method is None:
+                continue  # Hook doesn't implement this method
+            try:
+                result = self._run_hook_sync(hook_method, session_id, transformed_state)
+                if result is not None:
+                    transformed_state = result
+            except Exception as e:
+                logger.error(
+                    f"Hook {hook.__class__.__name__}.on_before_save failed: {e}"
+                )
+                raise
+
+        # Save to underlying store
+        self.store.save(session_id, transformed_state)
+
+        # Call on_after_save hooks (for audit/notification)
+        for hook in self.hooks:
+            hook_method = self._get_hook_method(hook, "on_after_save")
+            if hook_method is None:
+                continue  # Hook doesn't implement this method
+            try:
+                self._run_hook_sync(hook_method, session_id, transformed_state)
+            except Exception as e:
+                # Don't fail the save for after-save hooks
+                logger.warning(
+                    f"Hook {hook.__class__.__name__}.on_after_save failed: {e}"
+                )
+
+    def load(self, session_id: str) -> dict[str, Any] | None:
+        """Load session state with hook transformations.
+
+        Applies on_before_load hooks, loads from store, then applies
+        on_after_load hooks in reverse order.
+        Hooks can implement any subset of methods (partial implementation).
+        """
+        current_session_id = session_id
+
+        # Apply on_before_load hooks (in order) for access control/transformation
+        for hook in self.hooks:
+            hook_method = self._get_hook_method(hook, "on_before_load")
+            if hook_method is None:
+                continue  # Hook doesn't implement this method
+            try:
+                result = self._run_hook_sync(hook_method, current_session_id)
+                if result is None:
+                    # Hook returned None - abort load (access denied)
+                    return None
+                current_session_id = result
+            except Exception as e:
+                logger.error(
+                    f"Hook {hook.__class__.__name__}.on_before_load failed: {e}"
+                )
+                raise
+
+        # Load from underlying store
+        state = self.store.load(current_session_id)
+
+        if state is None:
+            return None
+
+        # Apply on_after_load hooks (in reverse order for unwrapping)
+        for hook in reversed(self.hooks):
+            hook_method = self._get_hook_method(hook, "on_after_load")
+            if hook_method is None:
+                continue  # Hook doesn't implement this method
+            try:
+                result = self._run_hook_sync(hook_method, session_id, state)
+                if result is not None:
+                    state = result
+                else:
+                    # Hook returned None - propagate as session not found
+                    return None
+            except Exception as e:
+                logger.error(
+                    f"Hook {hook.__class__.__name__}.on_after_load failed: {e}"
+                )
+                raise
+
+        return state
+
+    def delete(self, session_id: str) -> None:
+        """Delete session with hook callbacks.
+
+        Calls on_before_delete hooks, deletes from store, then on_after_delete.
+        Hooks can implement any subset of methods (partial implementation).
+        """
+        # Apply on_before_delete hooks (in order)
+        for hook in self.hooks:
+            hook_method = self._get_hook_method(hook, "on_before_delete")
+            if hook_method is None:
+                continue  # Hook doesn't implement this method
+            try:
+                self._run_hook_sync(hook_method, session_id)
+            except Exception as e:
+                logger.error(
+                    f"Hook {hook.__class__.__name__}.on_before_delete failed: {e}"
+                )
+                raise
+
+        # Delete from underlying store
+        self.store.delete(session_id)
+
+        # Call on_after_delete hooks (for audit/notification)
+        for hook in self.hooks:
+            hook_method = self._get_hook_method(hook, "on_after_delete")
+            if hook_method is None:
+                continue  # Hook doesn't implement this method
+            try:
+                self._run_hook_sync(hook_method, session_id)
+            except Exception as e:
+                # Don't fail the delete for after-delete hooks
+                logger.warning(
+                    f"Hook {hook.__class__.__name__}.on_after_delete failed: {e}"
+                )
+
+    def exists(self, session_id: str) -> bool:
+        """Check if session exists (delegates to underlying store)."""
+        return self.store.exists(session_id)
+
+    def cleanup(self) -> int:
+        """Cleanup expired sessions (delegates to underlying store)."""
+        return self.store.cleanup()
+
+    def list_sessions(
+        self,
+        namespace: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[str]:
+        """List sessions (delegates to underlying store)."""
+        return self.store.list_sessions(namespace=namespace, limit=limit, offset=offset)
+
 
 __all__ = [
     "FileSessionStore",
+    "HookedSessionStore",
     "MemorySessionStore",
     "RedisSessionStore",
     "SessionStore",

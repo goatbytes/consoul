@@ -15,7 +15,7 @@ Example:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from consoul.sdk.models import ToolRequest
@@ -216,5 +216,228 @@ class ToolExecutionCallback(Protocol):
         Note:
             This method MUST be async to support non-blocking approval workflows
             like showing UI modals, sending network requests, or user input.
+        """
+        ...
+
+
+@runtime_checkable
+class SessionHooks(Protocol):
+    """Protocol for session lifecycle transformation hooks.
+
+    Implementations can transform session state during save/load operations,
+    enabling encryption, summarization, redaction, or custom processing
+    without modifying core session management logic.
+
+    Hook methods can be either sync or async - the HookedSessionStore wrapper
+    auto-detects and handles both cases.
+
+    Hook Execution Order:
+        Save: on_before_save (all hooks, in order) -> store.save -> on_after_save (all hooks)
+        Load: store.load -> on_after_load (all hooks, in reverse order for unwrapping)
+
+    Example - Encryption hook:
+        >>> class EncryptionHook:
+        ...     def __init__(self, key_provider):
+        ...         self.key_provider = key_provider
+        ...
+        ...     async def on_before_save(
+        ...         self,
+        ...         session_id: str,
+        ...         state: dict[str, Any]
+        ...     ) -> dict[str, Any]:
+        ...         # Encrypt messages before storage
+        ...         key = await self.key_provider.get_key(session_id)
+        ...         encrypted_messages = encrypt(state["messages"], key)
+        ...         return {**state, "messages": encrypted_messages, "_encrypted": True}
+        ...
+        ...     async def on_after_load(
+        ...         self,
+        ...         session_id: str,
+        ...         state: dict[str, Any] | None
+        ...     ) -> dict[str, Any] | None:
+        ...         if not state or not state.get("_encrypted"):
+        ...             return state
+        ...         key = await self.key_provider.get_key(session_id)
+        ...         decrypted = decrypt(state["messages"], key)
+        ...         result = {**state, "messages": decrypted}
+        ...         del result["_encrypted"]
+        ...         return result
+        ...
+        ...     async def on_after_save(
+        ...         self,
+        ...         session_id: str,
+        ...         state: dict[str, Any]
+        ...     ) -> None:
+        ...         pass  # No-op
+
+    Example - Summarization hook (context compaction):
+        >>> class SummarizationHook:
+        ...     def __init__(self, summarizer, threshold: int = 50):
+        ...         self.summarizer = summarizer
+        ...         self.threshold = threshold
+        ...
+        ...     async def on_before_save(
+        ...         self,
+        ...         session_id: str,
+        ...         state: dict[str, Any]
+        ...     ) -> dict[str, Any]:
+        ...         messages = state["messages"]
+        ...         if len(messages) < self.threshold:
+        ...             return state
+        ...         # Summarize older messages, keep recent
+        ...         summary = await self.summarizer.summarize(messages[:-10])
+        ...         summarized_messages = [
+        ...             {"role": "system", "content": f"Previous context: {summary}"}
+        ...         ] + messages[-10:]
+        ...         return {**state, "messages": summarized_messages}
+
+    Example - Sync PII redaction hook:
+        >>> class RedactionHook:
+        ...     def __init__(self, redactor):
+        ...         self.redactor = redactor
+        ...
+        ...     def on_before_save(  # Sync method - auto-detected
+        ...         self,
+        ...         session_id: str,
+        ...         state: dict[str, Any]
+        ...     ) -> dict[str, Any]:
+        ...         redacted_messages = [
+        ...             self.redactor.redact_dict(msg)
+        ...             for msg in state["messages"]
+        ...         ]
+        ...         return {**state, "messages": redacted_messages}
+        ...
+        ...     def on_after_load(self, session_id, state):
+        ...         return state  # Redaction is one-way
+        ...
+        ...     def on_after_save(self, session_id, state):
+        ...         pass
+
+    Security Notes:
+        - Hooks receive full session state - implement carefully
+        - on_before_save runs before storage - ideal for encryption/redaction
+        - on_after_load runs after retrieval - ideal for decryption
+        - Errors in on_after_save are logged but don't fail the save
+        - Errors in on_before_save/on_after_load abort the operation
+    """
+
+    def on_before_save(
+        self,
+        session_id: str,
+        state: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Transform state before saving to storage.
+
+        Called after state extraction, before store.save().
+        Can be sync or async - HookedSessionStore handles both.
+
+        Args:
+            session_id: Session identifier
+            state: Session state dictionary (mutable copy)
+
+        Returns:
+            Transformed state dictionary (same or modified)
+
+        Raises:
+            Any exception will abort the save operation
+        """
+        ...
+
+    def on_before_load(
+        self,
+        session_id: str,
+    ) -> str | None:
+        """Pre-load hook for session access control or ID transformation.
+
+        Called before store.load(). Useful for access control checks,
+        session ID transformation, or logging access attempts.
+        Can be sync or async - HookedSessionStore handles both.
+
+        Args:
+            session_id: Session identifier to be loaded
+
+        Returns:
+            Session ID to load (may be transformed), or None to abort load
+
+        Raises:
+            Any exception will abort the load operation
+        """
+        ...
+
+    def on_after_load(
+        self,
+        session_id: str,
+        state: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        """Transform state after loading from storage.
+
+        Called after store.load(), before returning to caller.
+        Can be sync or async - HookedSessionStore handles both.
+
+        Args:
+            session_id: Session identifier
+            state: Session state dictionary or None if not found
+
+        Returns:
+            Transformed state dictionary, or None
+
+        Raises:
+            Any exception will be propagated to caller
+        """
+        ...
+
+    def on_after_save(
+        self,
+        session_id: str,
+        state: dict[str, Any],
+    ) -> None:
+        """Callback after successful save (optional).
+
+        Called after store.save() completes successfully.
+        Useful for audit logging, notifications, metrics.
+        Can be sync or async - HookedSessionStore handles both.
+
+        Args:
+            session_id: Session identifier
+            state: Session state that was saved
+
+        Note:
+            Exceptions are logged but don't affect the save result.
+        """
+        ...
+
+    def on_before_delete(
+        self,
+        session_id: str,
+    ) -> None:
+        """Callback before session deletion (optional).
+
+        Called before store.delete(). Useful for cleanup operations
+        or preventing deletion of certain sessions.
+        Can be sync or async - HookedSessionStore handles both.
+
+        Args:
+            session_id: Session identifier to be deleted
+
+        Raises:
+            Any exception will abort the delete operation
+        """
+        ...
+
+    def on_after_delete(
+        self,
+        session_id: str,
+    ) -> None:
+        """Callback after session deletion (optional).
+
+        Called after store.delete() completes successfully.
+        Useful for audit logging, cache invalidation, notifications.
+        Can be sync or async - HookedSessionStore handles both.
+
+        Args:
+            session_id: Session identifier that was deleted
+
+        Note:
+            Exceptions are logged but don't affect the delete result.
         """
         ...

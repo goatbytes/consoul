@@ -23,13 +23,22 @@ from consoul.sdk.models import (
     ModelCapabilities,
     ModelInfo,
     PricingInfo,
+    SessionMetadata,
     SessionState,
     Token,
     ToolFilter,
     ToolRequest,
 )
-from consoul.sdk.protocols import ToolExecutionCallback
+from consoul.sdk.protocols import SessionHooks, ToolExecutionCallback
 from consoul.sdk.services.conversation import ConversationService
+from consoul.sdk.session_id import (
+    ParsedSessionId,
+    SessionIdBuilder,
+    build_session_id,
+    generate_session_id,
+    parse_session_id,
+)
+from consoul.sdk.session_store import HookedSessionStore
 from consoul.sdk.wrapper import (
     Consoul,
     ConsoulResponse,
@@ -45,6 +54,15 @@ __all__ = [
     "create_session",
     "restore_session",
     "save_session_state",
+    # Session management (new in v0.6.0)
+    "SessionMetadata",
+    "SessionHooks",
+    "HookedSessionStore",
+    "SessionIdBuilder",
+    "ParsedSessionId",
+    "build_session_id",
+    "parse_session_id",
+    "generate_session_id",
     # Service layer (advanced usage)
     "Attachment",
     "ConversationService",
