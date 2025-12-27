@@ -1,0 +1,41 @@
+{
+  "created_at": "2025-12-26T21:25:47.682209Z",
+  "updated_at": "2025-12-27T01:40:50.734422Z",
+  "id": "SOUL-309",
+  "uuid": "7f92ee6f-dbb2-4728-acd7-c42e8b31b56c",
+  "title": "Add SessionMetadata infrastructure for multi-tenant context",
+  "description": "**As a** backend developer building multi-tenant AI applications\n**I want** structured metadata attached to sessions (user_id, tenant_id, namespace)\n**So that** I can implement proper user isolation and track session ownership in production\n\n**Context:**\nThe current `SessionState` dataclass (src/consoul/sdk/models.py:477-594) stores session configuration but lacks user/tenant context. Multi-tenant deployments need to:\n- Track which user owns each session\n- Isolate sessions by tenant/organization\n- Add custom metadata (department, project, billing_id)\n- Version session state for migration support\n\nIndustry patterns reviewed:\n- LangGraph uses namespaced memory stores: `(user_id, \"memories\")`\n- MCP Python SDK uses typed metadata in session objects\n- CrewAI separates short-term and long-term memory per agent\n\n**Technical Notes:**\n- File: `src/consoul/sdk/models.py`\n- Add `SessionMetadata` dataclass with:\n  - `user_id: str | None` - User identifier\n  - `tenant_id: str | None` - Tenant/organization identifier\n  - `namespace: str | None` - Logical grouping (e.g., \"legal\", \"support\")\n  - `tags: list[str]` - Searchable labels\n  - `custom: dict[str, Any]` - Arbitrary extension data\n  - `created_by: str | None` - Creator identifier (for admin-created sessions)\n- Add to `SessionState`:\n  - `metadata: SessionMetadata | None = None` - Optional metadata\n  - `version: int = 1` - Schema version for future migrations\n- Maintain backward compatibility:\n  - `from_dict()` handles missing metadata gracefully\n  - `to_dict()` only includes metadata if set\n  - Existing serialized sessions load without errors\n\n**Acceptance Criteria:**\n\n**Given** I create a SessionState with user context\n**When** I set `metadata=SessionMetadata(user_id=\"user-123\", tenant_id=\"acme-corp\")`\n**Then** the metadata is preserved through serialization/deserialization\n\n**Given** I have an existing serialized session without metadata\n**When** I call `SessionState.from_dict(old_session_dict)`\n**Then** the session loads successfully with `metadata=None`\n\n**Given** I need custom metadata for my domain\n**When** I set `metadata.custom={\"billing_id\": \"B-123\", \"project\": \"legal-ai\"}`\n**Then** the custom data round-trips through JSON serialization\n\n**Given** I want to tag sessions for filtering\n**When** I set `metadata.tags=[\"premium\", \"legal\", \"california\"]`\n**Then** I can later query sessions by tags\n\n**Given** I upgrade SessionState schema in the future\n**When** I check `state.version`\n**Then** I can apply appropriate migration logic\n\n**Testing Considerations:**\n- Unit tests for SessionMetadata creation and validation\n- Unit tests for SessionState backward compatibility\n- Test to_dict/from_dict round-trip with metadata\n- Test to_dict/from_dict round-trip without metadata (backward compat)\n- Test version field defaults and persistence\n- Test custom dict with nested objects\n\n**Implementation Hints:**\n- Follow existing dataclass patterns in models.py (see Token, ToolFilter)\n- Use `field(default_factory=dict)` for custom and tags\n- Add `SessionMetadata.to_dict()` and `SessionMetadata.from_dict()` methods\n- Update `SessionState.to_dict()` to conditionally include metadata\n- Update `SessionState.from_dict()` to parse metadata if present\n- Add type stubs for mypy strict mode\n- Example usage in docstrings\n\n```python\n@dataclass\nclass SessionMetadata:\n    \"\"\"Metadata for multi-tenant session tracking.\"\"\"\n    user_id: str | None = None\n    tenant_id: str | None = None\n    namespace: str | None = None\n    tags: list[str] = field(default_factory=list)\n    custom: dict[str, Any] = field(default_factory=dict)\n    created_by: str | None = None\n```",
+  "status": "done",
+  "type": "story",
+  "priority": "high",
+  "labels": [
+    "sdk",
+    "session",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-019",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-27T01:40:37.609368Z",
+      "updated_at": "2025-12-27T01:40:37.609371Z",
+      "id": "20251226174037-e3fc8a83",
+      "ticket_id": "SOUL-309",
+      "author": "jared@goatbytes.io",
+      "content": "**Implementation Note (2025-12-26):**\n\nThe `version` field was implemented as a string (`\"1.0\"`) rather than an integer for the following reasons:\n\n1. **Semantic versioning support**: String versions allow for `\"1.1\"`, `\"2.0-beta\"`, etc.\n2. **Industry alignment**: JSON Schema, OpenAPI, and most config formats use string versions\n3. **Migration flexibility**: Can encode additional info like `\"1.0-migrated\"`\n\nAll other aspects match the ticket specification, including `created_by` field.\n\nStatus: **Implemented** in commit ce1b49a and subsequent commits.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

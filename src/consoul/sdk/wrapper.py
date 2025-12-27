@@ -36,6 +36,7 @@ from consoul.ai.tools.permissions import PermissionPolicy
 from consoul.ai.tools.providers import CliApprovalProvider
 from consoul.config import load_config
 from consoul.config.models import ConsoulConfig, ToolConfig
+from consoul.sdk.models import SessionMetadata
 
 if TYPE_CHECKING:
     from langchain_core.tools import BaseTool
@@ -1056,7 +1057,11 @@ class Consoul:
 
 
 def create_session(
-    session_id: str,
+    session_id: str | None = None,
+    *,
+    user_id: str | None = None,
+    tenant_id: str | None = None,
+    metadata: SessionMetadata | dict[str, Any] | None = None,
     model: str | None = None,
     tools: bool | str | list[str | BaseTool] | None = False,
     temperature: float | None = None,
@@ -1092,7 +1097,15 @@ def create_session(
         - persist=False: Forced internally, no disk writes (critical for isolation).
 
     Args:
-        session_id: Unique identifier for this session (e.g., user ID, UUID, connection ID)
+        session_id: Unique identifier for this session. Auto-generated if None.
+                   Can be namespaced with user_id/tenant_id (e.g., "acme:alice:conv123").
+        user_id: Optional user identifier for namespaced session ID.
+                If provided with session_id=None, generates "user_id:auto_generated_id".
+        tenant_id: Optional tenant identifier for namespaced session ID.
+                  If provided, generates "tenant_id:user_id:session_id".
+        metadata: Optional SessionMetadata or dict for custom session data.
+                 Includes user_id, tenant_id, namespace, tags, and custom fields.
+                 Stored on console._session_metadata for later retrieval.
         model: Model name (e.g., "gpt-4o", "claude-3-5-sonnet"). Falls back to config default.
         tools: Tool specification. Default: False (chat-only, no tools).
                For tool support, pass tools=True or specific tools AND provide
@@ -1255,11 +1268,41 @@ def create_session(
     from tempfile import gettempdir
     from uuid import uuid4
 
+    from consoul.sdk.session_id import build_session_id
+
+    # Build namespaced session ID
+    final_session_id = build_session_id(
+        session_id=session_id,
+        user_id=user_id,
+        tenant_id=tenant_id,
+    )
+
+    # Handle metadata (dict or SessionMetadata)
+    # Auto-create if user_id or tenant_id provided without explicit metadata
+    final_metadata: SessionMetadata | None = None
+    if metadata is not None:
+        if isinstance(metadata, dict):
+            final_metadata = SessionMetadata.from_dict(metadata)
+        else:
+            final_metadata = metadata
+    elif user_id or tenant_id:
+        # Auto-create metadata when user/tenant context is provided
+        final_metadata = SessionMetadata()
+
+    # Sync namespace components to metadata if we have metadata
+    if final_metadata is not None:
+        if user_id and not final_metadata.user_id:
+            final_metadata.user_id = user_id
+        if tenant_id and not final_metadata.tenant_id:
+            final_metadata.tenant_id = tenant_id
+        if not final_metadata.namespace:
+            final_metadata.namespace = final_session_id
+
     # Create session-specific temporary database path to ensure isolation
     # Use temp directory to prevent disk persistence across restarts
     temp_dir = Path(gettempdir()) / "consoul_sessions"
     temp_dir.mkdir(exist_ok=True)
-    session_db_path = temp_dir / f"session_{session_id}_{uuid4().hex}.db"
+    session_db_path = temp_dir / f"session_{final_session_id}_{uuid4().hex}.db"
 
     # Create Consoul instance with session-scoped configuration
     console = Consoul(
@@ -1281,13 +1324,17 @@ def create_session(
         **model_kwargs,
     )
 
-    # Store session_id for later retrieval
-    console.session_id = session_id  # type: ignore[attr-defined]
+    # Store session_id and metadata for later retrieval
+    console.session_id = final_session_id  # type: ignore[attr-defined]
+    console._session_metadata = final_metadata  # type: ignore[attr-defined]
 
     return console
 
 
-def save_session_state(console: Consoul) -> dict[str, Any]:
+def save_session_state(
+    console: Consoul,
+    metadata: SessionMetadata | dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Extract session state from Consoul instance for persistence.
 
     Serializes the current conversation history and configuration to a
@@ -1298,10 +1345,12 @@ def save_session_state(console: Consoul) -> dict[str, Any]:
     multi-user applications by extracting only the necessary state:
     - Conversation history (LangChain message dicts)
     - Model configuration (model, temperature)
-    - Session metadata (session_id, timestamps)
+    - Session metadata (session_id, timestamps, user/tenant context)
 
     Args:
         console: Consoul instance to extract state from
+        metadata: Optional SessionMetadata or dict for custom session data.
+                 If not provided, uses console._session_metadata if available.
 
     Returns:
         JSON-serializable dictionary with session state
@@ -1345,14 +1394,26 @@ def save_session_state(console: Consoul) -> dict[str, Any]:
     # Extract conversation history as message dicts
     messages = console.history.get_messages_as_dicts()
 
+    # Resolve metadata: use provided, or fall back to console._session_metadata
+    final_metadata: SessionMetadata | None = None
+    if metadata is not None:
+        if isinstance(metadata, dict):
+            final_metadata = SessionMetadata.from_dict(metadata)
+        else:
+            final_metadata = metadata
+    else:
+        # Try to get metadata from console instance
+        final_metadata = getattr(console, "_session_metadata", None)
+
     # Build session state dictionary with complete configuration
-    state = {
+    state: dict[str, Any] = {
         "session_id": getattr(console, "session_id", None) or "unknown",
         "model": console.model_name,
         "temperature": console.temperature,
         "messages": messages,
         "created_at": time.time(),
         "updated_at": time.time(),
+        "version": "1.0",  # Schema version for migration support
         "config": {
             # Core configuration
             "system_prompt": getattr(console, "_explicit_system_prompt", None),
@@ -1370,6 +1431,10 @@ def save_session_state(console: Consoul) -> dict[str, Any]:
             # and should be re-provided on restore if needed
         },
     }
+
+    # Include metadata if present (backward compatible)
+    if final_metadata is not None:
+        state["metadata"] = final_metadata.to_dict()
 
     return state
 
@@ -1568,6 +1633,14 @@ def restore_session(
 
     # Store session_id (already set by create_session, but update from state)
     console.session_id = session_id  # type: ignore[attr-defined]
+
+    # Restore metadata if present (SOUL-313 round-trip requirement)
+    if "metadata" in state_dict:
+        from consoul.sdk.models import SessionMetadata
+
+        metadata_dict = state_dict["metadata"]
+        if isinstance(metadata_dict, dict):
+            console._session_metadata = SessionMetadata.from_dict(metadata_dict)  # type: ignore[attr-defined]
 
     # Restore system prompt metadata (but don't add to history - it's already there)
     # This ensures operations like clear() or config inspection work correctly

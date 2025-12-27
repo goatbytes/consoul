@@ -1,0 +1,41 @@
+{
+  "created_at": "2025-12-26T21:25:49.053796Z",
+  "updated_at": "2025-12-27T01:40:51.422855Z",
+  "id": "SOUL-310",
+  "uuid": "986c678a-66b9-435a-8afb-f9a9f0740269",
+  "title": "Add session ID utilities for namespaced session generation",
+  "description": "**As a** backend developer managing sessions across users and tenants\n**I want** helper utilities for generating and parsing namespaced session IDs\n**So that** I can follow consistent patterns without being locked into specific formats\n\n**Context:**\nSession IDs in multi-tenant systems often need structure for:\n- Namespace isolation (tenant-specific prefixes)\n- User association (user ID embedded in session ID)\n- Collision avoidance (UUID generation)\n- Debugging (human-readable components)\n\nCurrent Consoul sessions use arbitrary string IDs with no built-in structure. This ticket provides OPTIONAL utilities - not enforced patterns.\n\nIndustry patterns:\n- LangGraph: `{user_id}:{thread_id}` format\n- Redis: `prefix:namespace:id` convention\n- JWT: Structured claims with subject/issuer\n\n**Technical Notes:**\n- Create new file: `src/consoul/sdk/session_id.py`\n- Implement utilities:\n  - `SessionIdBuilder`: Fluent builder for structured IDs\n  - `build_session_id(user_id, tenant_id, namespace) -> str`\n  - `parse_session_id(session_id) -> SessionIdComponents`\n  - `generate_session_id() -> str` - Simple UUID-based generation\n- Design principles:\n  - All utilities are OPTIONAL helpers\n  - SDK users can use any string as session_id\n  - Components are separated by `:` (Redis-friendly)\n  - Escaped `:` in components via URL encoding\n\n**Acceptance Criteria:**\n\n**Given** I want a structured session ID\n**When** I call `build_session_id(user_id=\"u123\", tenant_id=\"acme\")`\n**Then** I get a string like `\"acme:u123:abc123-uuid\"`\n\n**Given** I have a structured session ID\n**When** I call `parse_session_id(\"acme:u123:abc123\")`\n**Then** I get `SessionIdComponents(tenant_id=\"acme\", user_id=\"u123\", session_id=\"abc123\")`\n\n**Given** I want a simple random session ID\n**When** I call `generate_session_id()`\n**Then** I get a UUID-based string like `\"ses_abc123def456\"`\n\n**Given** I use the fluent builder\n**When** I call `SessionIdBuilder().tenant(\"acme\").user(\"u123\").namespace(\"legal\").build()`\n**Then** I get `\"acme:legal:u123:random-uuid\"`\n\n**Given** my user_id contains a colon character\n**When** I call `build_session_id(user_id=\"user:name\")`\n**Then** the colon is properly escaped and round-trips through parse\n\n**Testing Considerations:**\n- Test build/parse round-trip with all components\n- Test build/parse with partial components (user_id only, etc.)\n- Test generate_session_id uniqueness (100 calls, no duplicates)\n- Test special character escaping (colons, unicode)\n- Test empty string handling\n- Test SessionIdBuilder fluent interface\n\n**Implementation Hints:**\n- Use `urllib.parse.quote/unquote` for escaping colons\n- Generate UUIDs with `uuid.uuid4().hex[:12]` for shorter IDs\n- Add `ses_` prefix to generated IDs for recognition\n- Follow Redis key naming conventions for compatibility\n- Make all functions pure (no side effects)\n\n```python\n@dataclass\nclass SessionIdComponents:\n    \"\"\"Parsed components of a structured session ID.\"\"\"\n    session_id: str\n    user_id: str | None = None\n    tenant_id: str | None = None\n    namespace: str | None = None\n\nclass SessionIdBuilder:\n    \"\"\"Fluent builder for structured session IDs.\"\"\"\n    def tenant(self, tenant_id: str) -> SessionIdBuilder: ...\n    def user(self, user_id: str) -> SessionIdBuilder: ...\n    def namespace(self, namespace: str) -> SessionIdBuilder: ...\n    def build(self) -> str: ...\n```",
+  "status": "done",
+  "type": "story",
+  "priority": "medium",
+  "labels": [
+    "sdk",
+    "session",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-019",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-27T01:40:38.744941Z",
+      "updated_at": "2025-12-27T01:40:38.744944Z",
+      "id": "20251226174038-81522e74",
+      "ticket_id": "SOUL-310",
+      "author": "jared@goatbytes.io",
+      "content": "**Implementation Note (2025-12-26):**\n\nThe session ID format was simplified from 4-part to 3-part:\n\n**Ticket spec**: `tenant:namespace:user:session` (4 parts)\n**Implemented**: `tenant:user:session` (3 parts)\n\n**Rationale**:\n- The `namespace` concept overlaps with `tenant` in most multi-tenant scenarios\n- 3-part format covers 95% of use cases with less complexity\n- SDK users can encode namespace in `tenant_id` if needed (e.g., `\"acme:legal\"`)\n- URL encoding handles separators in values, so complex namespacing still works\n\nThe `SessionIdComponents` dataclass was named `ParsedSessionId` in implementation.\n\nAll other aspects match the ticket:\n- URL encoding for separator escaping ✓\n- Fluent `SessionIdBuilder` API ✓  \n- `generate_session_id()` with configurable prefix ✓\n- `build_session_id()` convenience function ✓\n- `is_namespaced()` helper function (bonus) ✓\n\nStatus: **Implemented** in session_id.py",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}
