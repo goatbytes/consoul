@@ -218,6 +218,36 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         logger.info(f"Starting {config.app_name} v{app_version}")
         logger.info(f"Listening on {config.host}:{config.port}")
 
+        # Initialize observability (metrics, tracing)
+        from consoul.server.observability import (
+            MetricsCollector,
+            setup_langsmith,
+            setup_opentelemetry,
+            start_metrics_server,
+        )
+
+        # Start Prometheus metrics server on separate port
+        if config.observability.prometheus_enabled:
+            if start_metrics_server(config.observability.metrics_port):
+                app.state.metrics = MetricsCollector()
+            else:
+                app.state.metrics = None
+        else:
+            app.state.metrics = None
+
+        # Setup OpenTelemetry tracing
+        if config.observability.otel_enabled:
+            setup_opentelemetry(
+                service_name=config.observability.otel_service_name,
+                endpoint=config.observability.otel_endpoint,
+            )
+
+        # Setup LangSmith tracing
+        if config.observability.langsmith_enabled:
+            app.state.langsmith_tracer = setup_langsmith()
+        else:
+            app.state.langsmith_tracer = None
+
         yield
 
         logger.info("Shutting down gracefully...")
