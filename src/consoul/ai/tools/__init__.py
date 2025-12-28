@@ -25,6 +25,7 @@ Example:
 """
 
 from consoul.ai.tools.approval import (
+    ApprovalContext,
     ApprovalError,
     ApprovalProvider,
     ToolApprovalRequest,
@@ -87,6 +88,7 @@ from consoul.tui.models import ToolStatus
 
 __all__ = [
     "CACHE_VERSION",
+    "ApprovalContext",
     "ApprovalError",
     "ApprovalProvider",
     "AuditEvent",

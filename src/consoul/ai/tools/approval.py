@@ -17,6 +17,50 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class ApprovalContext:
+    """Per-session approval state to prevent cross-tenant leakage.
+
+    This context should be created ONCE per session/conversation, NOT per request.
+    It preserves once_per_session semantics within a conversation while isolating
+    approval decisions between different sessions/tenants.
+
+    The context caches approval decisions so that tools only require approval once
+    per session (for approval_mode='once_per_session'), preventing repeated prompts.
+
+    Attributes:
+        session_id: Unique identifier for this session/conversation
+        tenant_id: Optional tenant identifier for multi-tenant deployments
+        approved_tools: Set of tool names approved during this session
+        denied_tools: Set of tool names denied during this session
+
+    Example - Single-tenant (CLI/TUI):
+        >>> context = ApprovalContext(session_id="session123")
+        >>> # Pass to registry methods
+        >>> if registry.needs_approval("bash_execute", args, context=context):
+        ...     # Show approval prompt
+        ...     registry.mark_approved("bash_execute", context=context)
+
+    Example - Multi-tenant (backend service):
+        >>> # Create context per user session
+        >>> context = ApprovalContext(
+        ...     session_id=user_session_id,
+        ...     tenant_id=tenant_id
+        ... )
+        >>> # Each session gets isolated approval state
+        >>> # No cross-tenant leakage even with shared registry
+
+    Note:
+        When context is None, the registry falls back to its internal
+        _approved_this_session set (backward compatible behavior).
+    """
+
+    session_id: str
+    tenant_id: str | None = None
+    approved_tools: set[str] = field(default_factory=set)
+    denied_tools: set[str] = field(default_factory=set)
+
+
+@dataclass
 class ToolApprovalRequest:
     """Request for tool execution approval.
 

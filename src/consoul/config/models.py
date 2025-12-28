@@ -1280,6 +1280,15 @@ class ToolConfig(BaseModel):
         "NOTE: This field is deprecated in favor of tool-specific timeout configs (e.g., bash.timeout). "
         "Individual tools should use their own timeout configuration.",
     )
+    execution_timeout: float = Field(
+        default=30.0,
+        ge=1.0,
+        le=600.0,
+        description="SDK-level timeout for tool execution in seconds (default: 30s, max: 10 minutes). "
+        "This wraps tool.invoke() with asyncio.wait_for() to prevent indefinite blocking. "
+        "NOTE: Timed-out tools may continue running in background thread (Python limitation). "
+        "For bash tools, use bash.timeout for subprocess-level timeout instead.",
+    )
     bash: BashToolConfig = Field(
         default_factory=BashToolConfig,
         description="Bash tool-specific configuration",

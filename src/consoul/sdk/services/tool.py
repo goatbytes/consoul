@@ -67,7 +67,12 @@ class ToolService:
         self.config = config
 
     @classmethod
-    def from_config(cls, config: ConsoulConfig) -> ToolService:
+    def from_config(
+        cls,
+        config: ConsoulConfig,
+        approval_provider: Any | None = None,
+        custom_tools: list[tuple[Any, Any, list[Any]]] | None = None,
+    ) -> ToolService:
         """Create ToolService from configuration.
 
         Factory method that initializes ToolRegistry with tool configuration,
@@ -77,14 +82,37 @@ class ToolService:
 
         Args:
             config: Consoul configuration with tool settings
+            approval_provider: Optional custom approval provider for tool execution.
+                If not provided, defaults to CliApprovalProvider.
+                For backend use, pass a PolicyBasedApprovalProvider or custom provider.
+            custom_tools: Optional list of custom tools to register.
+                Each item is a tuple of (tool: BaseTool, risk_level: RiskLevel, categories: list[ToolCategory]).
+                Custom tools are registered BEFORE catalog tools and take priority (override by name).
 
         Returns:
             Initialized ToolService ready for use
 
-        Example:
+        Example - Default CLI/TUI usage:
             >>> from consoul.config import load_config
             >>> config = load_config()
             >>> service = ToolService.from_config(config)
+
+        Example - Backend usage with policy-based approval:
+            >>> from consoul.ai.tools.providers import PolicyBasedApprovalProvider
+            >>> from consoul.ai.tools.base import RiskLevel
+            >>> provider = PolicyBasedApprovalProvider(max_risk=RiskLevel.CAUTION)
+            >>> service = ToolService.from_config(config, approval_provider=provider)
+
+        Example - Custom tools with explicit risk levels:
+            >>> from langchain_core.tools import tool
+            >>> @tool
+            ... def my_custom_tool(x: str) -> str:
+            ...     '''My custom tool'''
+            ...     return x.upper()
+            >>> service = ToolService.from_config(
+            ...     config,
+            ...     custom_tools=[(my_custom_tool, RiskLevel.SAFE, [])]
+            ... )
         """
         from consoul.ai.tools import ToolRegistry
         from consoul.ai.tools.catalog import (
@@ -233,26 +261,51 @@ class ToolService:
                 f"Enabled all {len(enabled_tool_names)} available tools (no filters specified)"
             )
 
-        # Create registry with CLI provider (may be overridden by callers)
-        # The provider is required by registry but callers can provide their own approval
+        # Create registry with approval provider (default to CLI if not specified)
+        # The provider is required by registry but callers can inject their own
         # NOTE: If allowed_tools was specified, it has been normalized to actual tool names
         tool_registry = ToolRegistry(
             config=config.tools,
-            approval_provider=CliApprovalProvider(),  # Default provider
+            approval_provider=approval_provider or CliApprovalProvider(),
         )
 
-        # Register ALL tools with appropriate enabled state
+        # Track registered tool names (custom tools take priority over catalog)
+        registered_tool_names: set[str] = set()
+
+        # Register custom tools FIRST (priority over catalog)
+        if custom_tools:
+            for tool, risk_level, categories in custom_tools:
+                tool_name = tool.name
+                is_enabled = tool_name in enabled_tool_names or not enabled_tool_names
+                tool_registry.register(
+                    tool,
+                    risk_level=risk_level,
+                    categories=categories,
+                    enabled=is_enabled,
+                )
+                registered_tool_names.add(tool_name)
+                logger.debug(f"Registered custom tool: {tool_name}")
+
+        # Register catalog tools (skip duplicates from custom tools)
         # This ensures Tool Manager shows all available tools (not just enabled ones)
         for tool, risk_level, _categories in all_tools:
+            if tool.name in registered_tool_names:
+                logger.debug(
+                    f"Skipping catalog tool {tool.name} (overridden by custom)"
+                )
+                continue
             # Tool is enabled if its name is in the enabled_tool_names set
             is_enabled = tool.name in enabled_tool_names
             tool_registry.register(tool, risk_level=risk_level, enabled=is_enabled)
+            registered_tool_names.add(tool.name)
 
         # Get tool metadata list for logging
         tool_metadata_list = tool_registry.list_tools(enabled_only=True)
 
+        custom_count = len(custom_tools) if custom_tools else 0
         logger.info(
-            f"Initialized tool registry with {len(tool_metadata_list)} enabled tools"
+            f"Initialized tool registry with {len(tool_metadata_list)} enabled tools "
+            f"({custom_count} custom, {len(registered_tool_names) - custom_count} catalog)"
         )
 
         return cls(tool_registry=tool_registry, config=config.tools)

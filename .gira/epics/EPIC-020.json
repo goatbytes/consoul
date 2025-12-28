@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-28T06:42:39.787952Z",
+  "updated_at": "2025-12-28T06:42:39.787961Z",
+  "id": "EPIC-020",
+  "title": "Production Backend Readiness for LLM Orchestration",
+  "description": "Enable SDK users to build production backend services with custom tool support. Addresses gaps in approval provider injection, custom tool registration, tool execution timeouts, and multi-tenant isolation.",
+  "status": "draft",
+  "owner": "jared@goatbytes.io",
+  "labels": [],
+  "tickets": [
+    "SOUL-316",
+    "SOUL-317",
+    "SOUL-318",
+    "SOUL-319",
+    "SOUL-320",
+    "SOUL-321",
+    "SOUL-322",
+    "SOUL-323",
+    "SOUL-324",
+    "SOUL-325"
+  ],
+  "comments": [],
+  "comment_count": 0,
+  "attachments": [],
+  "attachment_count": 0,
+  "custom_fields": {}
+}
