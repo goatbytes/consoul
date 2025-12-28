@@ -221,6 +221,7 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         # Initialize observability (metrics, tracing)
         from consoul.server.observability import (
             MetricsCollector,
+            create_metrics_middleware,
             setup_langsmith,
             setup_opentelemetry,
             start_metrics_server,
@@ -230,10 +231,23 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         if config.observability.prometheus_enabled:
             if start_metrics_server(config.observability.metrics_port):
                 app.state.metrics = MetricsCollector()
+                logger.info(
+                    f"Prometheus metrics enabled on port {config.observability.metrics_port}"
+                )
             else:
                 app.state.metrics = None
+                logger.warning("Prometheus metrics disabled (server failed to start)")
         else:
             app.state.metrics = None
+
+        # Add metrics middleware AFTER app.state.metrics is set
+        # This middleware records request latency, status codes, and errors
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        app.add_middleware(
+            BaseHTTPMiddleware,
+            dispatch=create_metrics_middleware(app.state.metrics),
+        )
 
         # Setup OpenTelemetry tracing
         if config.observability.otel_enabled:
@@ -565,6 +579,17 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                 await asyncio.to_thread(store.save, session_id, new_state)
 
             cost = console.last_cost
+
+            # Record token usage metrics (if metrics enabled)
+            metrics = request.app.state.metrics
+            if metrics is not None:
+                metrics.record_tokens(
+                    input_tokens=cost.get("input_tokens", 0),
+                    output_tokens=cost.get("output_tokens", 0),
+                    model=console.model_name,
+                    session_id=session_id,
+                )
+
             return ChatResponse(
                 session_id=session_id,
                 response=response_text,

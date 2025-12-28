@@ -28,11 +28,16 @@ Installation:
     pip install consoul[otel]           # OpenTelemetry only
 """
 
-from consoul.server.observability.metrics import MetricsCollector, start_metrics_server
+from consoul.server.observability.metrics import (
+    MetricsCollector,
+    create_metrics_middleware,
+    start_metrics_server,
+)
 from consoul.server.observability.tracing import setup_langsmith, setup_opentelemetry
 
 __all__ = [
     "MetricsCollector",
+    "create_metrics_middleware",
     "setup_langsmith",
     "setup_opentelemetry",
     "start_metrics_server",
