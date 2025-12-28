@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-26T21:25:49.053796Z",
-  "updated_at": "2025-12-27T01:40:51.422855Z",
+  "updated_at": "2025-12-28T22:17:12.022302Z",
   "id": "SOUL-310",
   "uuid": "986c678a-66b9-435a-8afb-f9a9f0740269",
   "title": "Add session ID utilities for namespaced session generation",
@@ -13,6 +13,7 @@
     "session",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-019",
   "blocked_by": [],

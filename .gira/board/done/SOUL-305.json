@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-25T06:42:46.151077Z",
-  "updated_at": "2025-12-25T23:33:47.309126Z",
+  "updated_at": "2025-12-28T22:17:12.019108Z",
   "id": "SOUL-305",
   "uuid": "e85e8164-f011-4aee-a067-0b1a6195c553",
   "title": "Align server configuration environment variables and add session Redis config",
@@ -14,6 +14,7 @@
     "server",
     "environment"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

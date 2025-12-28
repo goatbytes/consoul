@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-26T21:28:21.215262Z",
-  "updated_at": "2025-12-27T01:41:05.525330Z",
+  "updated_at": "2025-12-28T22:17:12.032846Z",
   "id": "SOUL-315",
   "uuid": "7ac4b1bc-b12a-47a4-b171-d5d3dec05d33",
   "title": "Add comprehensive test suite for session management features",
@@ -12,6 +12,7 @@
     "sdk",
     "testing"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-019",
   "blocked_by": [],
