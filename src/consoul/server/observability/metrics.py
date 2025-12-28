@@ -268,26 +268,45 @@ def create_metrics_middleware(
             return await call_next(request)
 
         start_time = time.perf_counter()
-        response: StarletteResponse = await call_next(request)
-        latency = time.perf_counter() - start_time
+        status = 500  # Default to 500 if exception occurs
+        response: StarletteResponse | None = None
 
-        # Record request metrics
-        endpoint = request.url.path
-        method = request.method
-        status = response.status_code
+        try:
+            response = await call_next(request)
+            status = response.status_code
+        except Exception:
+            # Record metrics for unhandled exceptions before re-raising
+            latency = time.perf_counter() - start_time
+            endpoint = request.url.path
+            method = request.method
 
-        metrics.record_request(
-            endpoint=endpoint,
-            method=method,
-            status=status,
-            latency=latency,
-            model="unknown",  # Model recorded separately in chat endpoint
-        )
+            metrics.record_request(
+                endpoint=endpoint,
+                method=method,
+                status=500,
+                latency=latency,
+                model="unknown",
+            )
+            metrics.record_error(endpoint=endpoint, error_type="unhandled_exception")
+            raise
+        else:
+            # Record metrics for successful responses (including error responses)
+            latency = time.perf_counter() - start_time
+            endpoint = request.url.path
+            method = request.method
 
-        # Record errors
-        if status >= 400:
-            error_type = "client_error" if status < 500 else "server_error"
-            metrics.record_error(endpoint=endpoint, error_type=error_type)
+            metrics.record_request(
+                endpoint=endpoint,
+                method=method,
+                status=status,
+                latency=latency,
+                model="unknown",  # Model recorded separately in chat endpoint
+            )
+
+            # Record errors for 4xx/5xx responses
+            if status >= 400:
+                error_type = "client_error" if status < 500 else "server_error"
+                metrics.record_error(endpoint=endpoint, error_type=error_type)
 
         return response
 
