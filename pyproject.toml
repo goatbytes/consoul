@@ -99,6 +99,19 @@ pdf = ["pypdf>=6.2.0"]
 ollama-library = ["beautifulsoup4>=4.12.0"]
 logging = ["structlog>=24.4.0"]  # Structured JSON logging with correlation IDs and compliance audit trails
 
+# Observability (production monitoring and tracing)
+observability = [
+    "langsmith>=0.1",
+    "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
+    "opentelemetry-exporter-otlp>=1.20",
+    "prometheus-client>=0.19",
+    "structlog>=24.4.0",
+]
+langsmith = ["langsmith>=0.1"]
+otel = ["opentelemetry-api>=1.20", "opentelemetry-sdk>=1.20", "opentelemetry-exporter-otlp>=1.20"]
+prometheus = ["prometheus-client>=0.19"]
+
 # Server dependencies (FastAPI backends with security middleware)
 server = [
     "fastapi>=0.115.0",
@@ -203,6 +216,14 @@ uvicorn = {version = "^0.34.0", optional = true, extras = ["standard"]}
 slowapi = {version = "^0.1.9", optional = true}
 redis = {version = "^5.2.0", optional = true}
 
+# Observability dependencies (optional)
+langsmith = {version = "^0.1", optional = true}
+opentelemetry-api = {version = "^1.20", optional = true}
+opentelemetry-sdk = {version = "^1.20", optional = true}
+opentelemetry-exporter-otlp = {version = "^1.20", optional = true}
+prometheus-client = {version = "^0.19", optional = true}
+structlog = {version = "^24.4.0", optional = true}
+
 # Code search dependencies (AST parsing and caching)
 grep-ast = "^0.9.0"                    # AST parsing and tag extraction (used by Aider)
 tree-sitter = "^0.25.2"                # Tree-sitter parser core
@@ -228,6 +249,13 @@ huggingface-local = ["transformers", "torch", "accelerate"]  # torch updated to 
 huggingface-quantization = ["transformers", "torch", "accelerate", "bitsandbytes"]
 llamacpp = ["llama-cpp-python"]  # Recommended for local execution on macOS
 mlx = ["mlx-lm"]  # Apple Silicon optimized, best for M-series Macs
+
+# Observability (production monitoring and tracing)
+observability = ["langsmith", "opentelemetry-api", "opentelemetry-sdk", "opentelemetry-exporter-otlp", "prometheus-client", "structlog"]
+langsmith = ["langsmith"]  # LangSmith LLM tracing
+otel = ["opentelemetry-api", "opentelemetry-sdk", "opentelemetry-exporter-otlp"]  # OpenTelemetry distributed tracing
+prometheus = ["prometheus-client"]  # Prometheus metrics
+logging = ["structlog"]  # Structured JSON logging
 
 # Convenience bundles
 all = ["textual", "click", "pyperclip", "pillow", "pypdf", "beautifulsoup4"]
@@ -382,6 +410,11 @@ module = [
     "accelerate.*",
     "bitsandbytes.*",
     "llama_cpp.*",
+    # Observability optional dependencies
+    "prometheus_client.*",
+    "opentelemetry.*",
+    "langsmith.*",
+    "langchain_core.tracers.*",
 ]
 ignore_missing_imports = true
 

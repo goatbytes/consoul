@@ -570,6 +570,81 @@ class SessionConfig(BaseSettings):
     )
 
 
+class ObservabilityConfig(BaseSettings):
+    """Observability configuration for monitoring and tracing.
+
+    Supports LangSmith (LLM tracing), OpenTelemetry (distributed tracing),
+    and Prometheus (metrics). All integrations are optional and gracefully
+    degrade if dependencies are not installed.
+
+    Attributes:
+        langsmith_enabled: Enable LangSmith tracing (requires LANGSMITH_API_KEY env)
+        otel_enabled: Enable OpenTelemetry tracing
+        prometheus_enabled: Enable Prometheus metrics on separate port
+        metrics_port: Port for Prometheus /metrics endpoint (default: 9090)
+        metrics_path: Path for metrics endpoint (default: /metrics)
+        otel_endpoint: OpenTelemetry collector endpoint (e.g., http://localhost:4317)
+        otel_service_name: Service name for OpenTelemetry traces
+
+    Environment Variables:
+        CONSOUL_OBSERVABILITY_LANGSMITH_ENABLED: Enable LangSmith
+        CONSOUL_OBSERVABILITY_OTEL_ENABLED: Enable OpenTelemetry
+        CONSOUL_OBSERVABILITY_PROMETHEUS_ENABLED: Enable Prometheus
+        CONSOUL_OBSERVABILITY_METRICS_PORT: Metrics server port
+        LANGSMITH_API_KEY: LangSmith API key (standard LangSmith env var)
+        OTEL_EXPORTER_OTLP_ENDPOINT: OTel collector endpoint (standard OTel env var)
+
+    Example:
+        >>> config = ObservabilityConfig(
+        ...     prometheus_enabled=True,
+        ...     metrics_port=9090,
+        ...     langsmith_enabled=True,  # Requires LANGSMITH_API_KEY env
+        ... )
+
+    Installation:
+        pip install consoul[observability]  # All integrations
+        pip install consoul[prometheus]     # Prometheus only
+        pip install consoul[langsmith]      # LangSmith only
+        pip install consoul[otel]           # OpenTelemetry only
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="CONSOUL_OBSERVABILITY_",
+        env_nested_delimiter="__",
+    )
+
+    langsmith_enabled: bool = Field(
+        default=False,
+        description="Enable LangSmith tracing for LLM calls",
+    )
+    otel_enabled: bool = Field(
+        default=False,
+        description="Enable OpenTelemetry distributed tracing",
+    )
+    prometheus_enabled: bool = Field(
+        default=True,
+        description="Enable Prometheus metrics endpoint on separate port",
+    )
+    metrics_port: int = Field(
+        default=9090,
+        ge=1024,
+        le=65535,
+        description="Separate port for Prometheus /metrics endpoint",
+    )
+    metrics_path: str = Field(
+        default="/metrics",
+        description="Path for metrics endpoint",
+    )
+    otel_endpoint: str | None = Field(
+        default=None,
+        description="OpenTelemetry collector endpoint (e.g., http://localhost:4317)",
+    )
+    otel_service_name: str = Field(
+        default="consoul",
+        description="Service name for OpenTelemetry traces",
+    )
+
+
 class ServerConfig(BaseSettings):
     """Complete server configuration.
 
@@ -580,6 +655,7 @@ class ServerConfig(BaseSettings):
         rate_limit: Rate limiting configuration
         cors: CORS configuration
         session: Session storage configuration
+        observability: Observability configuration (metrics, tracing)
         host: Server host
         port: Server port
         reload: Enable auto-reload (development only)
@@ -594,6 +670,7 @@ class ServerConfig(BaseSettings):
         - RateLimitConfig: CONSOUL_RATE_LIMIT_REDIS_URL, etc.
         - CORSConfig: CONSOUL_CORS_ORIGINS, etc.
         - SessionConfig: CONSOUL_SESSION_REDIS_URL, etc.
+        - ObservabilityConfig: CONSOUL_OBSERVABILITY_*, LANGSMITH_API_KEY, etc.
 
     Example:
         >>> config = ServerConfig()
@@ -621,6 +698,10 @@ class ServerConfig(BaseSettings):
     session: SessionConfig = Field(
         default_factory=SessionConfig,
         description="Session storage configuration",
+    )
+    observability: ObservabilityConfig = Field(
+        default_factory=ObservabilityConfig,
+        description="Observability configuration (metrics, tracing)",
     )
     host: str = Field(
         default="0.0.0.0",
