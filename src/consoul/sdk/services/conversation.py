@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 from collections.abc import Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -1232,7 +1233,7 @@ class ConversationService:
                     )
                     continue
 
-            # Execute tool in thread pool with timeout
+            # Execute tool in thread pool with timeout and cooperative cancellation
             try:
                 loop = asyncio.get_running_loop()
 
@@ -1243,14 +1244,39 @@ class ConversationService:
                         self.config.tools, "execution_timeout", 30.0
                     )
 
+                # Import cancellation infrastructure
+                from consoul.ai.tools.base import (
+                    _register_cancellation_flag,
+                    _unregister_cancellation_flag,
+                )
+
+                # Create cancellation flag for this tool execution
+                cancel_flag = threading.Event()
+
+                # Type assertion for mypy - we've checked tool_metadata is not None above
+                assert tool_metadata is not None
+                tool_to_invoke = tool_metadata.tool
+
+                # Bind loop variables explicitly to avoid B023 closure issues
+                def run_with_cancellation(
+                    flag: threading.Event = cancel_flag,
+                    tool: Any = tool_to_invoke,
+                    args: dict[str, Any] = tool_args,
+                ) -> Any:
+                    """Run tool with cancellation flag registered."""
+                    _register_cancellation_flag(flag)
+                    try:
+                        return tool.invoke(args)
+                    finally:
+                        _unregister_cancellation_flag()
+
                 # Wrap execution with timeout
                 # NOTE: asyncio.wait_for() does NOT cancel the underlying thread.
-                # If timeout occurs, the thread continues running but we return immediately.
-                # This is a Python limitation - threads cannot be forcibly stopped.
+                # If timeout/cancellation occurs, we set the cancel_flag so cooperative
+                # tools can check via check_cancelled() and exit gracefully.
+                # Non-cooperative tools will continue running in the background.
                 result = await asyncio.wait_for(
-                    loop.run_in_executor(
-                        self.executor, tool_metadata.tool.invoke, tool_args
-                    ),
+                    loop.run_in_executor(self.executor, run_with_cancellation),
                     timeout=execution_timeout,
                 )
                 tool_messages.append(
@@ -1258,20 +1284,30 @@ class ConversationService:
                 )
                 any_executed = True
             except asyncio.TimeoutError:
-                # Tool timed out - thread may still be running in background
+                # Tool timed out - set cancellation flag for cooperative tools
+                cancel_flag.set()
                 logger.warning(
                     f"Tool '{tool_name}' timed out after {execution_timeout}s "
-                    "(thread may still be running)"
+                    "(thread may still run if tool doesn't check cancellation)"
                 )
                 result = (
                     f"Tool '{tool_name}' timed out after {execution_timeout}s. "
                     "The operation may still be running in the background."
                 )
                 tool_messages.append(ToolMessage(content=result, tool_call_id=tool_id))
+                # Mark as executed so conversation continues - model should see timeout result
+                any_executed = True
+            except asyncio.CancelledError:
+                # Task was cancelled - set flag and propagate
+                cancel_flag.set()
+                logger.info(f"Tool '{tool_name}' cancellation requested")
+                raise  # Propagate CancelledError
             except Exception as e:
                 logger.error(f"Tool execution error: {e}", exc_info=True)
                 result = f"Tool execution failed: {e}"
                 tool_messages.append(ToolMessage(content=result, tool_call_id=tool_id))
+                # Mark as executed so conversation continues - model should see error result
+                any_executed = True
 
         return tool_messages, any_executed
 

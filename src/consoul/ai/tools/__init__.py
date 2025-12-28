@@ -37,7 +37,13 @@ from consoul.ai.tools.audit import (
     FileAuditLogger,
     NullAuditLogger,
 )
-from consoul.ai.tools.base import RiskLevel, ToolCategory, ToolMetadata
+from consoul.ai.tools.base import (
+    RiskLevel,
+    ToolCategory,
+    ToolMetadata,
+    check_cancelled,
+    get_cancellation_flag,
+)
 from consoul.ai.tools.cache import CACHE_VERSION, CacheStats, CodeSearchCache
 from consoul.ai.tools.catalog import (
     get_all_category_names,
@@ -119,6 +125,7 @@ __all__ = [
     "WhitelistPattern",
     "append_to_file",
     "bash_execute",
+    "check_cancelled",
     "code_search",
     "create_file",
     "delete_file",
@@ -128,6 +135,7 @@ __all__ = [
     "find_references",
     "get_all_category_names",
     "get_all_tool_names",
+    "get_cancellation_flag",
     "get_tool_by_name",
     "get_tools_by_category",
     "get_tools_by_risk_level",
