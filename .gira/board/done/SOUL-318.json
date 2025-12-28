@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-28T06:43:04.185447Z",
+  "updated_at": "2025-12-28T06:51:46.582037Z",
+  "id": "SOUL-318",
+  "uuid": "bfa92eda-f7b1-4063-a217-16485338ff88",
+  "title": "Add tool execution timeout with thread limitations documented",
+  "description": "Add configurable timeout to tool execution using asyncio.wait_for(). Document that threads cannot be forcibly stopped - timeout only unblocks the caller.",
+  "status": "done",
+  "type": "story",
+  "priority": "critical",
+  "labels": [
+    "sdk",
+    "tools",
+    "reliability"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-020",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

@@ -136,6 +136,7 @@ class ConversationService:
         approval_provider: Any | None = None,
         context_providers: list[Any] | None = None,
         tool_filter: Any | None = None,
+        custom_tools: list[tuple[Any, Any, list[Any]]] | None = None,
     ) -> ConversationService:
         """Create ConversationService from configuration.
 
@@ -153,6 +154,9 @@ class ConversationService:
             approval_provider: Optional approval provider for tool execution
             context_providers: List of ContextProvider implementations for dynamic context injection
             tool_filter: Optional ToolFilter for session-level tool sandboxing
+            custom_tools: Optional list of custom tools to register.
+                Each item is a tuple of (tool: BaseTool, risk_level: RiskLevel, categories: list[ToolCategory]).
+                Custom tools are registered BEFORE catalog tools and take priority (override by name).
 
         Returns:
             Initialized ConversationService ready for use
@@ -172,6 +176,17 @@ class ConversationService:
             ...     include_tool_docs=False,
             ...     include_env_context=False,
             ...     include_git_context=False,
+            ... )
+
+        Example - Custom tools with explicit risk levels:
+            >>> from langchain_core.tools import tool
+            >>> from consoul.ai.tools.base import RiskLevel
+            >>> @tool
+            ... def my_tool(x: str) -> str:
+            ...     '''Process input'''
+            ...     return x.upper()
+            >>> service = ConversationService.from_config(
+            ...     custom_tools=[(my_tool, RiskLevel.SAFE, [])]
             ... )
 
         Example - Legal industry deployment (tool filtering):
@@ -260,12 +275,42 @@ class ConversationService:
                 set_analyze_images_config(config.tools.image_analysis)
 
             # Create tool registry with config and approval provider
+            # Default to CliApprovalProvider if no provider specified
+            from consoul.ai.tools.providers import CliApprovalProvider
+
             tool_registry = ToolRegistry(
-                config.tools, approval_provider=approval_provider
+                config.tools,
+                approval_provider=approval_provider or CliApprovalProvider(),
             )
 
-            # Get all available tools from catalog
+            # Track registered tool names (custom tools take priority)
+            registered_tool_names: set[str] = set()
+
+            # Register custom tools FIRST (priority over catalog)
+            if custom_tools:
+                for tool, risk_level, categories in custom_tools:
+                    # Determine if tool should be enabled
+                    enabled = True  # Default to enabled for custom tools
+                    if config.tools.allowed_tools:
+                        enabled = tool.name in config.tools.allowed_tools
+
+                    # Convert categories to string tags
+                    tags_list = [cat.value for cat in categories] if categories else []
+
+                    tool_registry.register(
+                        tool,
+                        risk_level=risk_level,
+                        tags=tags_list,
+                        enabled=enabled,
+                        categories=categories,
+                    )
+                    registered_tool_names.add(tool.name)
+
+            # Get all available tools from catalog (skip duplicates from custom)
             for tool, risk_level, categories in TOOL_CATALOG.values():
+                if tool.name in registered_tool_names:
+                    continue  # Skip - custom tool with same name takes priority
+
                 # Determine if tool should be enabled
                 enabled = True  # Default to enabled
                 if config.tools.allowed_tools:
@@ -283,6 +328,7 @@ class ConversationService:
                     enabled=enabled,
                     categories=categories,  # Preserve categories for filtering
                 )
+                registered_tool_names.add(tool.name)
 
             # Apply tool filter if provided (session-level sandboxing)
             if tool_filter:
@@ -1186,16 +1232,42 @@ class ConversationService:
                     )
                     continue
 
-            # Execute tool in thread pool
+            # Execute tool in thread pool with timeout
             try:
                 loop = asyncio.get_running_loop()
-                result = await loop.run_in_executor(
-                    self.executor, tool_metadata.tool.invoke, tool_args
+
+                # Get execution timeout from config (default: 30 seconds)
+                execution_timeout = 30.0  # Default
+                if self.config and hasattr(self.config, "tools") and self.config.tools:
+                    execution_timeout = getattr(
+                        self.config.tools, "execution_timeout", 30.0
+                    )
+
+                # Wrap execution with timeout
+                # NOTE: asyncio.wait_for() does NOT cancel the underlying thread.
+                # If timeout occurs, the thread continues running but we return immediately.
+                # This is a Python limitation - threads cannot be forcibly stopped.
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        self.executor, tool_metadata.tool.invoke, tool_args
+                    ),
+                    timeout=execution_timeout,
                 )
                 tool_messages.append(
                     ToolMessage(content=str(result), tool_call_id=tool_id)
                 )
                 any_executed = True
+            except asyncio.TimeoutError:
+                # Tool timed out - thread may still be running in background
+                logger.warning(
+                    f"Tool '{tool_name}' timed out after {execution_timeout}s "
+                    "(thread may still be running)"
+                )
+                result = (
+                    f"Tool '{tool_name}' timed out after {execution_timeout}s. "
+                    "The operation may still be running in the background."
+                )
+                tool_messages.append(ToolMessage(content=result, tool_call_id=tool_id))
             except Exception as e:
                 logger.error(f"Tool execution error: {e}", exc_info=True)
                 result = f"Tool execution failed: {e}"

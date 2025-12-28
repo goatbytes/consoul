@@ -1,0 +1,27 @@
+{
+  "created_at": "2025-12-28T06:43:03.022157Z",
+  "updated_at": "2025-12-28T07:00:54.164523Z",
+  "id": "SOUL-317",
+  "uuid": "f5b931d6-1704-4a06-8e7c-fd4a88925f93",
+  "title": "Add custom_tools parameter to SDK factories",
+  "description": "Add custom_tools parameter to ToolService.from_config() and ConversationService.from_config() to allow SDK users to register custom tools with explicit risk levels.",
+  "status": "done",
+  "type": "story",
+  "priority": "high",
+  "labels": [
+    "sdk",
+    "tools",
+    "backend"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-020",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}

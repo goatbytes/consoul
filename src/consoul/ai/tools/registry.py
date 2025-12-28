@@ -259,7 +259,10 @@ class ToolRegistry:
         )
 
     def needs_approval(
-        self, tool_name: str, arguments: dict[str, Any] | None = None
+        self,
+        tool_name: str,
+        arguments: dict[str, Any] | None = None,
+        context: Any | None = None,
     ) -> bool:
         """Determine if tool execution requires user approval.
 
@@ -287,6 +290,10 @@ class ToolRegistry:
         Args:
             tool_name: Name of tool to check
             arguments: Optional tool arguments (used for command-level whitelist and risk assessment)
+            context: Optional ApprovalContext for per-session approval caching.
+                If provided, uses context.approved_tools instead of registry-level cache.
+                This enables multi-tenant isolation (prevents cross-tenant approval leakage).
+                When None, falls back to registry's _approved_this_session (backward compatible).
 
         Returns:
             True if approval UI should be shown, False if cached/whitelisted
@@ -308,12 +315,23 @@ class ToolRegistry:
             >>> config = ToolConfig(permission_policy=PermissionPolicy.BALANCED)
             >>> registry = ToolRegistry(config)
             >>> # SAFE commands auto-approved, CAUTION+ require approval
+            >>>
+            >>> # Multi-tenant with ApprovalContext (SOUL-320)
+            >>> from consoul.ai.tools.approval import ApprovalContext
+            >>> ctx = ApprovalContext(session_id="user123", tenant_id="acme")
+            >>> registry.needs_approval("bash_execute", context=ctx)  # Per-session cache
 
         Warning:
             Never execute tools when needs_approval() returns True without
             going through the approval provider first. The registry-level
             caching is an optimization, not a replacement for user approval.
         """
+        # Get the approval cache to use (context or registry-level)
+        approved_cache = (
+            context.approved_tools
+            if context is not None and hasattr(context, "approved_tools")
+            else self._approved_this_session
+        )
         # Use PolicyResolver if permission_policy is set
         if (
             hasattr(self.config, "permission_policy")
@@ -373,7 +391,7 @@ class ToolRegistry:
 
         # Once per session: require approval if not yet approved
         if self.config.approval_mode == "once_per_session":
-            return tool_name not in self._approved_this_session
+            return tool_name not in approved_cache
 
         # Whitelist mode: only require approval for non-whitelisted tools
         if self.config.approval_mode == "whitelist":
@@ -401,7 +419,7 @@ class ToolRegistry:
         # Never mode (manual config - DANGEROUS) or default: require approval
         return self.config.approval_mode != "never"
 
-    def mark_approved(self, tool_name: str) -> None:
+    def mark_approved(self, tool_name: str, context: Any | None = None) -> None:
         """Mark a tool as approved for this session.
 
         IMPORTANT: This method should ONLY be called by the approval provider
@@ -414,6 +432,9 @@ class ToolRegistry:
 
         Args:
             tool_name: Name of tool to mark as approved
+            context: Optional ApprovalContext for per-session approval caching.
+                If provided, adds to context.approved_tools instead of registry cache.
+                When None, uses registry's _approved_this_session (backward compatible).
 
         Warning:
             Calling this method bypasses the approval UI for future executions
@@ -427,8 +448,15 @@ class ToolRegistry:
             ...     if user_approved:
             ...         registry.mark_approved("bash")  # Cache approval
             ...         # Now execute tool
+            >>>
+            >>> # With ApprovalContext for multi-tenant:
+            >>> ctx = ApprovalContext(session_id="session1", tenant_id="acme")
+            >>> registry.mark_approved("bash", context=ctx)
         """
-        self._approved_this_session.add(tool_name)
+        if context is not None and hasattr(context, "approved_tools"):
+            context.approved_tools.add(tool_name)
+        else:
+            self._approved_this_session.add(tool_name)
 
     def assess_risk(self, tool_name: str, arguments: dict[str, Any]) -> Any:
         """Assess risk level for a tool execution.
@@ -629,6 +657,7 @@ class ToolRegistry:
         arguments: dict[str, Any],
         tool_call_id: str = "",
         context: dict[str, Any] | None = None,
+        approval_context: Any | None = None,
     ) -> ToolApprovalResponse:
         """Request approval for tool execution.
 
@@ -645,7 +674,10 @@ class ToolRegistry:
             tool_name: Name of tool to execute
             arguments: Tool arguments
             tool_call_id: Unique tool call ID from AI message
-            context: Additional context for approval provider
+            context: Additional context for approval provider (passed to provider request)
+            approval_context: Optional ApprovalContext for per-session approval caching.
+                If provided, uses context for approval cache instead of registry-level cache.
+                This enables multi-tenant isolation.
 
         Returns:
             ToolApprovalResponse with decision
@@ -662,6 +694,13 @@ class ToolRegistry:
             >>> if response.approved:
             ...     # Execute tool
             ...     pass
+            >>>
+            >>> # With ApprovalContext for multi-tenant:
+            >>> from consoul.ai.tools.approval import ApprovalContext
+            >>> ctx = ApprovalContext(session_id="s1", tenant_id="acme")
+            >>> response = await registry.request_tool_approval(
+            ...     "bash_execute", args, approval_context=ctx
+            ... )
         """
         # Get tool metadata
         metadata = self.get_tool(tool_name)
@@ -679,8 +718,8 @@ class ToolRegistry:
             )
         )
 
-        # Check if approval needed (registry-level caching)
-        if not self.needs_approval(tool_name, arguments):
+        # Check if approval needed (registry-level or per-session caching)
+        if not self.needs_approval(tool_name, arguments, context=approval_context):
             # Auto-approved (cached or whitelisted)
             duration_ms = int((time.time() - start_time) * 1000)
             await self.audit_logger.log_event(
@@ -755,7 +794,7 @@ class ToolRegistry:
 
             # If approved, mark for session caching
             if response.approved:
-                self.mark_approved(tool_name)
+                self.mark_approved(tool_name, context=approval_context)
 
             return response
 
