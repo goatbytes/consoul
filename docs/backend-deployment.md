@@ -183,12 +183,14 @@ ObservabilityConfig(
 Each HTTP request gets an isolated session that persists across requests:
 
 ```python
+import redis
 from consoul.sdk import create_session, restore_session, save_session_state
 from consoul.sdk.session_store import RedisSessionStore
 
 # Production: Use Redis for distributed sessions
+redis_client = redis.from_url("redis://localhost:6379")
 session_store = RedisSessionStore(
-    redis_url="redis://localhost:6379",
+    redis_client=redis_client,
     ttl=3600,
 )
 

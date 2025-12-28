@@ -53,14 +53,17 @@ class ChatResponse(BaseModel):
 
 
 # Session storage - choose based on environment
-def create_session_store():
+def create_session_store() -> MemorySessionStore | RedisSessionStore:
     """Create session store based on environment."""
     import os
 
     redis_url = os.environ.get("REDIS_URL")
     if redis_url:
+        import redis
+
         logger.info(f"Using Redis session store: {redis_url}")
-        return RedisSessionStore(redis_url=redis_url, ttl=3600)
+        client = redis.from_url(redis_url)
+        return RedisSessionStore(redis_client=client, ttl=3600)
     else:
         logger.warning("No REDIS_URL set, using in-memory storage (not distributed)")
         return MemorySessionStore(ttl=3600)
