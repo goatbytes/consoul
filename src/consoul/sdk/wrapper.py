@@ -118,6 +118,8 @@ class Consoul:
         approval_provider: ApprovalProvider | None = None,
         context_providers: list[Any] | None = None,
         tool_filter: Any | None = None,
+        tool_risk_mapping: dict[str, RiskLevel] | None = None,
+        tool_categories_mapping: dict[str, list[ToolCategory]] | None = None,
         db_path: Path | str | None = None,
         summarize: bool = False,
         summarize_threshold: int = 20,
@@ -166,6 +168,12 @@ class Consoul:
                         Enables fine-grained control over which tools are available.
                         Essential for multi-tenant deployments with varying security requirements.
                         Example: ToolFilter(deny=["bash_execute"], risk_level=RiskLevel.SAFE)
+            tool_risk_mapping: Optional mapping of tool names to risk levels.
+                        Allows specifying explicit risk levels for custom tools instead
+                        of defaulting to CAUTION. Example: {"my_tool": RiskLevel.SAFE}
+            tool_categories_mapping: Optional mapping of tool names to categories.
+                        Allows specifying categories for custom tools.
+                        Example: {"my_tool": [ToolCategory.SEARCH]}
             db_path: Path to conversation history database (default: ~/.consoul/history.db).
             summarize: Enable conversation summarization (default: False).
             summarize_threshold: Number of messages before summarization (default: 20).
@@ -434,6 +442,8 @@ class Consoul:
         self.discover_tools = discover_tools
         self.approval_provider = approval_provider
         self.tool_filter = tool_filter
+        self.tool_risk_mapping = tool_risk_mapping or {}
+        self.tool_categories_mapping = tool_categories_mapping or {}
         self.tools_enabled = (
             False  # Will be set to True if tools are actually registered
         )
@@ -552,9 +562,10 @@ class Consoul:
                             )
                         resolved_tools.append(result)
                 elif hasattr(tool_spec, "name") and hasattr(tool_spec, "run"):
-                    # Check if it's a BaseTool instance (custom tool)
-                    # Assume custom tools are CAUTION level by default
-                    resolved_tools.append((tool_spec, RiskLevel.CAUTION, []))
+                    # Custom tool - use mapping or default to CAUTION
+                    risk = self.tool_risk_mapping.get(tool_spec.name, RiskLevel.CAUTION)
+                    categories = self.tool_categories_mapping.get(tool_spec.name, [])
+                    resolved_tools.append((tool_spec, risk, categories))
                 else:
                     raise ValueError(
                         f"Invalid tool specification: {tool_spec}. "
@@ -578,10 +589,11 @@ class Consoul:
         if self.discover_tools:
             tools_dir = Path.cwd() / ".consoul" / "tools"
             discovered_tools = discover_tools_from_directory(tools_dir, recursive=True)
-            # Convert (tool, risk) to (tool, risk, []) for discovered tools
-            tools_to_register.extend(
-                [(tool, risk, []) for tool, risk in discovered_tools]
-            )
+            # Apply risk/category mappings to discovered tools (override defaults)
+            for tool, default_risk in discovered_tools:
+                risk = self.tool_risk_mapping.get(tool.name, default_risk)
+                categories = self.tool_categories_mapping.get(tool.name, [])
+                tools_to_register.append((tool, risk, categories))
 
         # Deduplicate tools by name (last occurrence wins)
         # This allows mixing categories with specific tools (e.g., tools=["search", "grep"])
