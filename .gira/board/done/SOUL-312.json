@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-26T21:26:58.991818Z",
-  "updated_at": "2025-12-27T01:41:03.253947Z",
+  "updated_at": "2025-12-28T22:17:12.030890Z",
   "id": "SOUL-312",
   "uuid": "4011ae66-852d-4316-9b96-f8a61b4f7c6c",
   "title": "Add SessionHooks protocol and HookedSessionStore wrapper",
@@ -14,6 +14,7 @@
     "enhancement",
     "hooks"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-019",
   "blocked_by": [],

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-26T21:27:00.349818Z",
-  "updated_at": "2025-12-27T01:41:03.935174Z",
+  "updated_at": "2025-12-28T22:17:12.021351Z",
   "id": "SOUL-313",
   "uuid": "df5caff2-0ef3-4bca-a02b-4bd40014936d",
   "title": "Update session factory functions with metadata support",
@@ -13,6 +13,7 @@
     "session",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-019",
   "blocked_by": [],

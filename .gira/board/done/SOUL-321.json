@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-28T06:43:28.320492Z",
-  "updated_at": "2025-12-28T07:51:04.335437Z",
+  "updated_at": "2025-12-28T22:17:12.027694Z",
   "id": "SOUL-321",
   "uuid": "e9e2d502-3307-4918-a2ad-63c1e2156398",
   "title": "Add cooperative tool cancellation support",
@@ -13,6 +13,7 @@
     "tools",
     "reliability"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-020",
   "blocked_by": [],

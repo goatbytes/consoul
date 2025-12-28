@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-26T21:25:50.416656Z",
-  "updated_at": "2025-12-27T01:41:02.585139Z",
+  "updated_at": "2025-12-28T22:17:12.023953Z",
   "id": "SOUL-311",
   "uuid": "c1ed20cb-1063-4407-8131-0da50b548d46",
   "title": "Add list_sessions method to SessionStore protocol and implementations",
@@ -13,6 +13,7 @@
     "session",
     "enhancement"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-019",
   "blocked_by": [],

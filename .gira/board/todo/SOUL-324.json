@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-28T06:43:31.742899Z",
-  "updated_at": "2025-12-28T06:43:31.742904Z",
+  "updated_at": "2025-12-28T22:17:12.029996Z",
   "id": "SOUL-324",
   "uuid": "c7fa8fb7-7d2d-4d6c-b285-2d4cf9cf306f",
   "title": "Create backend deployment documentation and examples",
@@ -13,6 +13,7 @@
     "backend",
     "examples"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-020",
   "blocked_by": [],

@@ -1,6 +1,6 @@
 {
   "created_at": "2025-12-25T06:43:18.910545Z",
-  "updated_at": "2025-12-26T05:04:57.366416Z",
+  "updated_at": "2025-12-28T22:17:12.020343Z",
   "id": "SOUL-306",
   "uuid": "102c07fc-f5bb-414d-aa34-f5b5b75e9e10",
   "title": "Standardize health and readiness endpoint response schemas",
@@ -14,6 +14,7 @@
     "server",
     "testing"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],

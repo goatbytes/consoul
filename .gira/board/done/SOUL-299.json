@@ -1,0 +1,29 @@
+{
+  "created_at": "2025-12-23T12:12:14.942630Z",
+  "updated_at": "2025-12-28T21:58:26.285305Z",
+  "id": "SOUL-299",
+  "uuid": "6c557d09-2e4f-4ceb-8632-f4267ff13c15",
+  "title": "Add observability integration (LangSmith, OpenTelemetry, Prometheus)",
+  "description": "**As a** DevOps engineer\n**I want** built-in observability (traces, metrics, logs)\n**So that** I can monitor and debug production Consoul deployments\n\n**Dependencies:**\n- EPIC-019: SessionMetadata provides session_id, user_id, tenant_id for metric labels\n- SOUL-295: Structured logging integration\n- SOUL-296: Server factory hooks\n\n**Context:**\nProduction deployments need observability for debugging, performance monitoring, and cost tracking. LangChain ecosystem provides:\n- LangSmith for LLM tracing (optional SaaS)\n- OpenTelemetry for distributed tracing\n- Prometheus for metrics\n\nNeed integration hooks without forcing specific vendors.\n\n**Configuration Model:**\nAdd to ServerConfig in config/models.py:\n```python\nclass ObservabilityConfig(BaseModel):\n    langsmith_enabled: bool = Field(default=False)\n    otel_enabled: bool = Field(default=False)\n    prometheus_enabled: bool = Field(default=True)\n    metrics_port: int = Field(default=9090, description=\"Separate internal port for /metrics\")\n    metrics_path: str = Field(default=\"/metrics\")\n```\n\nEnvironment variable precedence (higher priority than config file):\n- LANGSMITH_ENABLED, LANGSMITH_API_KEY\n- OTEL_ENABLED, OTEL_EXPORTER_OTLP_ENDPOINT\n- PROMETHEUS_ENABLED, METRICS_PORT\n\n**/metrics Security:**\nDefault: Expose on separate internal port (:9090) - standard Kubernetes/Prometheus pattern.\nThis keeps metrics isolated from the main API and doesn't require auth.\nDocument alternative: expose on main port with API key protection if needed.\n\n**Packaging (pyproject.toml extras):**\n```toml\n[tool.poetry.extras]\nobservability = [\"langsmith\", \"opentelemetry-api\", \"opentelemetry-sdk\", \"prometheus-client\"]\nlangsmith = [\"langsmith\"]\notel = [\"opentelemetry-api\", \"opentelemetry-sdk\", \"opentelemetry-exporter-otlp\"]\nprometheus = [\"prometheus-client\"]\n```\nInstall: `pip install consoul[observability]` or individual extras.\n\n**Technical Notes:**\n- Create: src/consoul/server/observability/langsmith.py\n- Create: src/consoul/server/observability/opentelemetry.py  \n- Create: src/consoul/server/observability/prometheus.py\n- Integration: create_server() enables based on ObservabilityConfig\n- Pattern: Plugin-based (enable what you need)\n- Graceful degradation: No-op if packages not installed (ImportError handling)\n\nObservability features:\n1. LangSmith: Trace LLM calls, tool execution, costs\n2. OpenTelemetry: Distributed traces with spans\n3. Prometheus: Metrics endpoint on separate port\n4. Structured logs: From SOUL-295\n\nMetrics to track (with labels from SessionMetadata):\n- request_count{endpoint, method, status, session_id, user_id, model}\n- request_latency_seconds{endpoint, method}\n- token_usage{direction=input|output, model, session_id}\n- cost_dollars{model, session_id, user_id}\n- error_count{endpoint, error_type}\n- active_sessions{}\n- tool_execution_count{tool_name, status}\n\n**Known Limitation:**\nOpenTelemetry span context propagation into ThreadPoolExecutor (tool execution) requires explicit context passing. Initial implementation may show fragmented traces for tool calls. Document as known limitation; follow-up ticket for context propagation if needed.\n\n**Acceptance Criteria:**\n\n**Given** LangSmith configured with LANGSMITH_API_KEY\n**When** message is processed\n**Then** trace appears in LangSmith dashboard\n\n**Given** OpenTelemetry enabled\n**When** request flows through system\n**Then** distributed trace includes all spans (API → SDK → LLM)\n\n**Given** Prometheus metrics enabled\n**When** GET :9090/metrics (separate port)\n**Then** returns Prometheus format metrics with session_id/user_id labels\n\n**Given** multiple sessions active\n**When** checking metrics\n**Then** can aggregate by session_id, user_id, tenant_id, model\n\n**Given** observability extras not installed\n**When** feature is enabled in config\n**Then** logs warning and continues without crash (graceful degradation)\n\n**Testing Considerations:**\n- Test LangSmith integration (mock API)\n- Test OpenTelemetry span creation\n- Test Prometheus metrics export on separate port\n- Test metrics accuracy (token counts match actual usage)\n- Test label propagation from SessionMetadata\n- Verify no ImportError if features disabled and packages missing\n- Integration test with actual LangSmith (optional CI job)\n\n**Implementation Hints:**\n- LangSmith: Use LangChainTracer callback\n- OpenTelemetry: Create spans for send_message(), tool execution\n- Prometheus: Use prometheus_client with Counter, Histogram, start_http_server()\n- Metrics server: Run on separate port via start_http_server(metrics_port)\n- Document setup in docs/operations/monitoring.md\n- Example: examples/observability/langsmith_tracing.py",
+  "status": "done",
+  "type": "story",
+  "priority": "medium",
+  "labels": [
+    "server",
+    "observability",
+    "monitoring",
+    "production"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-017",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {}
+}
