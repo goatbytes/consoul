@@ -35,7 +35,13 @@ Installation:
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from starlette.requests import Request
+    from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
 
@@ -227,6 +233,67 @@ class MetricsCollector:
         self.active_sessions.set(count)
 
 
+def create_metrics_middleware(
+    metrics: MetricsCollector | None,
+) -> Callable[[Request, Callable[[Request], Awaitable[Response]]], Awaitable[Response]]:
+    """Create Starlette middleware that records request metrics.
+
+    Records request count, latency, and error counts for all HTTP requests.
+    Metrics are recorded ONLY if a MetricsCollector is provided and enabled.
+
+    Args:
+        metrics: MetricsCollector instance or None
+
+    Returns:
+        Starlette middleware callable that records metrics.
+
+    Example:
+        >>> from fastapi import FastAPI
+        >>> from starlette.middleware.base import BaseHTTPMiddleware
+        >>> app = FastAPI()
+        >>> metrics = MetricsCollector()
+        >>> app.add_middleware(BaseHTTPMiddleware, dispatch=create_metrics_middleware(metrics))
+    """
+    import time
+
+    from starlette.requests import Request as StarletteRequest  # noqa: TC002
+    from starlette.responses import Response as StarletteResponse  # noqa: TC002
+
+    async def metrics_middleware(
+        request: StarletteRequest,
+        call_next: Callable[[StarletteRequest], Awaitable[StarletteResponse]],
+    ) -> StarletteResponse:
+        """Record request metrics (latency, status, endpoint)."""
+        if metrics is None or not metrics.enabled:
+            return await call_next(request)
+
+        start_time = time.perf_counter()
+        response: StarletteResponse = await call_next(request)
+        latency = time.perf_counter() - start_time
+
+        # Record request metrics
+        endpoint = request.url.path
+        method = request.method
+        status = response.status_code
+
+        metrics.record_request(
+            endpoint=endpoint,
+            method=method,
+            status=status,
+            latency=latency,
+            model="unknown",  # Model recorded separately in chat endpoint
+        )
+
+        # Record errors
+        if status >= 400:
+            error_type = "client_error" if status < 500 else "server_error"
+            metrics.record_error(endpoint=endpoint, error_type=error_type)
+
+        return response
+
+    return metrics_middleware
+
+
 def start_metrics_server(port: int = 9090) -> bool:
     """Start Prometheus metrics HTTP server on separate port.
 
@@ -254,10 +321,14 @@ def start_metrics_server(port: int = 9090) -> bool:
         return True
     except OSError as e:
         if "Address already in use" in str(e):
-            logger.warning(
-                f"Metrics port {port} already in use (likely already started)"
+            # Port bound by another process - metrics won't be recorded here
+            # This is a deployment error, not a success condition
+            logger.error(
+                f"Metrics port {port} already in use by another process. "
+                "Metrics will NOT be recorded. Use a different port or ensure "
+                "only one worker binds the metrics port."
             )
-            return True  # Already running is OK
+            return False
         logger.error(f"Failed to start metrics server: {e}")
         return False
     except Exception as e:
