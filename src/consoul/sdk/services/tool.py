@@ -182,6 +182,12 @@ class ToolService:
         # Get all available tools
         all_tools = list(TOOL_CATALOG.values())
 
+        # Build set of custom tool names for validation
+        # Custom tools can be whitelisted in allowed_tools even though they're not in catalog
+        custom_tool_names = (
+            {tool.name for tool, _, _ in custom_tools} if custom_tools else set()
+        )
+
         # Determine which tools should be ENABLED based on config
         # Precedence: allowed_tools > risk_filter > all tools (default)
         enabled_tool_names = set()  # Set of tool.name values that should be enabled
@@ -192,18 +198,26 @@ class ToolService:
             invalid_tools = []
 
             for tool_name in config.tools.allowed_tools:
+                # Check catalog first (handles friendly names like "bash" -> "bash_execute")
                 result = get_tool_by_name(tool_name)
                 if result:
                     tool, risk_level, _categories = result
                     # Store the actual tool.name for execution whitelist
                     normalized_tool_names.append(tool.name)
                     enabled_tool_names.add(tool.name)
+                elif tool_name in custom_tool_names:
+                    # Custom tool - use name as-is (already the actual tool.name)
+                    normalized_tool_names.append(tool_name)
+                    enabled_tool_names.add(tool_name)
                 else:
                     invalid_tools.append(tool_name)
 
-            # Error if any invalid tool names
+            # Error if any invalid tool names (not in catalog AND not in custom_tools)
             if invalid_tools:
                 available = get_all_tool_names()
+                # Include custom tool names in the error message
+                if custom_tool_names:
+                    available = available + list(custom_tool_names)
                 raise ValueError(
                     f"Invalid tool names in allowed_tools: {invalid_tools}. "
                     f"Available tools: {available}"

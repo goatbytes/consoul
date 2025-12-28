@@ -6,6 +6,8 @@ the tool calling implementation.
 
 from __future__ import annotations
 
+import asyncio
+import threading
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -129,3 +131,106 @@ def get_tool_schema(tool: BaseTool) -> dict[str, Any]:
 
     # If no schema available, return empty schema
     return {"type": "object", "properties": {}}
+
+
+# -----------------------------------------------------------------------------
+# Cooperative Cancellation Infrastructure
+# -----------------------------------------------------------------------------
+#
+# Python threads cannot be forcibly stopped. This infrastructure enables
+# *cooperative* cancellation - tools must periodically call check_cancelled()
+# to respond to cancellation requests.
+#
+# Usage in custom tools:
+#     from consoul.ai.tools import check_cancelled
+#
+#     @tool
+#     def my_long_running_tool(data: str) -> str:
+#         for chunk in process_chunks(data):
+#             check_cancelled()  # Exit early if cancelled
+#             results.append(analyze(chunk))
+#         return summarize(results)
+# -----------------------------------------------------------------------------
+
+# Thread-local storage for cancellation flags
+# Maps thread ident -> threading.Event
+_cancellation_flags: dict[int, threading.Event] = {}
+_flags_lock = threading.Lock()  # Thread-safe access
+
+
+def get_cancellation_flag() -> threading.Event | None:
+    """Get cancellation flag for current thread.
+
+    Returns the Event associated with the current thread's tool execution,
+    or None if no cancellation flag is registered (e.g., not running in
+    the tool execution context).
+
+    Returns:
+        The Event for current thread, or None if not set.
+
+    Example:
+        >>> flag = get_cancellation_flag()
+        >>> if flag and flag.is_set():
+        ...     # Clean up and exit
+        ...     return "Cancelled"
+    """
+    thread_id = threading.current_thread().ident
+    if thread_id is None:
+        return None
+    return _cancellation_flags.get(thread_id)
+
+
+def check_cancelled() -> None:
+    """Check if cancellation was requested for current tool execution.
+
+    Call this periodically in long-running tools to enable graceful cancellation.
+    This is the recommended way to support cooperative cancellation.
+
+    Raises:
+        asyncio.CancelledError: If cancellation was requested.
+
+    Example:
+        >>> from consoul.ai.tools import check_cancelled
+        >>> from langchain_core.tools import tool
+        >>>
+        >>> @tool
+        ... def my_long_running_tool(input: str) -> str:
+        ...     '''Process data with cancellation support.'''
+        ...     for i in range(1000):
+        ...         check_cancelled()  # Raises if cancelled
+        ...         do_work(i)
+        ...     return "done"
+    """
+    flag = get_cancellation_flag()
+    if flag is not None and flag.is_set():
+        raise asyncio.CancelledError("Tool execution cancelled")
+
+
+def _register_cancellation_flag(flag: threading.Event) -> None:
+    """Register cancellation flag for current thread. Internal use only.
+
+    Called by ConversationService before executing a tool in the thread pool.
+    The flag is set when timeout or cancellation occurs, allowing cooperative
+    tools to check and exit gracefully.
+
+    Args:
+        flag: The Event to register for this thread.
+    """
+    thread_id = threading.current_thread().ident
+    if thread_id is None:
+        return  # Cannot register without thread ID
+    with _flags_lock:
+        _cancellation_flags[thread_id] = flag
+
+
+def _unregister_cancellation_flag() -> None:
+    """Unregister cancellation flag for current thread. Internal use only.
+
+    Called by ConversationService after tool execution completes (in finally block).
+    Prevents memory leaks from accumulating flags for completed executions.
+    """
+    thread_id = threading.current_thread().ident
+    if thread_id is None:
+        return  # Cannot unregister without thread ID
+    with _flags_lock:
+        _cancellation_flags.pop(thread_id, None)
