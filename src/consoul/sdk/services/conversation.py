@@ -25,6 +25,7 @@ from consoul.sdk.protocols import ToolExecutionCallback
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
+    from types import TracebackType
 
     from langchain_core.language_models.chat_models import BaseChatModel
 
@@ -94,6 +95,8 @@ class ConversationService:
         auto_append_tools: bool = True,
         tool_filter: Any | None = None,
         audit_logger: Any | None = None,
+        executor: ThreadPoolExecutor | None = None,
+        max_workers: int = 1,
     ) -> None:
         """Initialize conversation service.
 
@@ -110,6 +113,11 @@ class ConversationService:
             auto_append_tools: Auto-append tool docs if no marker present
             tool_filter: Optional ToolFilter for session-level tool sandboxing
             audit_logger: Optional structured audit logger for compliance logging
+            executor: Optional ThreadPoolExecutor to use for tool execution.
+                If not provided, one will be created and owned by this service.
+            max_workers: Number of worker threads if creating executor (default: 1).
+                Keep at 1 to preserve tool execution ordering. Only increase if
+                tools are independent and ordering doesn't matter.
         """
         self.model = model
         self.conversation = conversation
@@ -123,7 +131,10 @@ class ConversationService:
         self.auto_append_tools = auto_append_tools
         self.tool_filter = tool_filter
         self.audit_logger = audit_logger
-        self.executor = ThreadPoolExecutor(max_workers=1)
+
+        # Track executor ownership for cleanup
+        self._owns_executor = executor is None
+        self.executor = executor or ThreadPoolExecutor(max_workers=max_workers)
 
     @classmethod
     def from_config(
@@ -138,6 +149,8 @@ class ConversationService:
         context_providers: list[Any] | None = None,
         tool_filter: Any | None = None,
         custom_tools: list[tuple[Any, Any, list[Any]]] | None = None,
+        executor: ThreadPoolExecutor | None = None,
+        max_workers: int = 1,
     ) -> ConversationService:
         """Create ConversationService from configuration.
 
@@ -158,6 +171,10 @@ class ConversationService:
             custom_tools: Optional list of custom tools to register.
                 Each item is a tuple of (tool: BaseTool, risk_level: RiskLevel, categories: list[ToolCategory]).
                 Custom tools are registered BEFORE catalog tools and take priority (override by name).
+            executor: Optional ThreadPoolExecutor to use for tool execution.
+                If not provided, one will be created and owned by this service.
+            max_workers: Number of worker threads if creating executor (default: 1).
+                Keep at 1 to preserve tool execution ordering.
 
         Returns:
             Initialized ConversationService ready for use
@@ -407,7 +424,50 @@ class ConversationService:
             auto_append_tools=auto_append_tools,
             tool_filter=tool_filter,
             audit_logger=audit_logger,
+            executor=executor,
+            max_workers=max_workers,
         )
+
+    # -------------------------------------------------------------------------
+    # Lifecycle Management
+    # -------------------------------------------------------------------------
+
+    async def close(self) -> None:
+        """Clean up resources. Call when service is no longer needed.
+
+        Shuts down the thread pool executor if it was created by this service.
+        Safe to call multiple times. Does nothing if executor was injected
+        (not owned by this service).
+
+        Example:
+            >>> service = ConversationService.from_config(config)
+            >>> try:
+            ...     async for token in service.send_message("Hello"):
+            ...         print(token.content, end="")
+            ... finally:
+            ...     await service.close()
+        """
+        if self._owns_executor and hasattr(self, "executor"):
+            self.executor.shutdown(wait=True, cancel_futures=True)
+
+    async def __aenter__(self) -> ConversationService:
+        """Enter async context manager.
+
+        Example:
+            >>> async with ConversationService.from_config(config) as service:
+            ...     async for token in service.send_message("Hello"):
+            ...         print(token.content, end="")
+        """
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit async context manager, cleaning up resources."""
+        await self.close()
 
     def _build_dynamic_system_prompt(
         self, query: str | None = None, conversation_id: str | None = None
