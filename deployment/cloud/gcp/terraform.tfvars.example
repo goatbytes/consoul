@@ -1,0 +1,71 @@
+# GCP Consoul Deployment Configuration
+# Copy to terraform.tfvars and customize
+
+# =============================================================================
+# Required
+# =============================================================================
+
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+# API keys for authentication (generate with: openssl rand -hex 32)
+api_keys = ["your-api-key-here"]
+
+# =============================================================================
+# Application Settings
+# =============================================================================
+
+app_name    = "consoul-api"
+environment = "prod"
+
+# Container image (leave empty to use default: gcr.io/PROJECT/consoul-api:latest)
+# image_url = "gcr.io/your-project/consoul-api:v1.0.0"
+
+# =============================================================================
+# Scaling
+# =============================================================================
+
+# Scale to zero for cost savings (set min_instances = 1 for faster cold starts)
+min_instances = 0
+max_instances = 10
+
+# Resources per instance
+cpu    = "1"
+memory = "512Mi"
+
+# Concurrent requests per instance
+concurrency = 80
+
+# =============================================================================
+# Redis
+# =============================================================================
+
+# BASIC = single zone, STANDARD_HA = high availability
+redis_tier      = "BASIC"
+redis_memory_gb = 1
+redis_version   = "REDIS_7_0"
+
+# =============================================================================
+# Consoul Configuration
+# =============================================================================
+
+# CORS: Use specific origins in production
+cors_origins = "*"
+
+# Rate limiting
+rate_limits = "30/minute;500/hour"
+
+# Session expiration
+session_ttl = 3600
+
+# Observability
+prometheus_enabled = true
+
+# =============================================================================
+# Optional: LLM Provider API Keys
+# =============================================================================
+
+# Uncomment and set the API keys you need:
+# openai_api_key    = "sk-..."
+# anthropic_api_key = "sk-ant-..."
+# google_api_key    = "AIza..."
