@@ -1,0 +1,72 @@
+# Azure Consoul Deployment Configuration
+# Copy to terraform.tfvars and customize
+
+# =============================================================================
+# Required
+# =============================================================================
+
+location = "eastus"
+
+# API keys for authentication (generate with: openssl rand -hex 32)
+api_keys = ["your-api-key-here"]
+
+# =============================================================================
+# Application Settings
+# =============================================================================
+
+app_name    = "consoul-api"
+environment = "prod"
+
+# Container image (leave empty to use ACR created by Terraform)
+# image_url = "myregistry.azurecr.io/consoul-api:v1.0.0"
+
+# =============================================================================
+# Container Apps Configuration
+# =============================================================================
+
+# CPU cores (0.25, 0.5, 1, 2, 4)
+cpu = 0.5
+
+# Memory (must match CPU: 0.25->0.5Gi, 0.5->1Gi, 1->2Gi, 2->4Gi, 4->8Gi)
+memory = "1Gi"
+
+# Scale to zero for cost savings (set min_replicas = 1 for faster response)
+min_replicas = 0
+max_replicas = 10
+
+# =============================================================================
+# Azure Cache for Redis
+# =============================================================================
+
+# SKU: Basic, Standard, Premium
+redis_sku = "Basic"
+
+# Family: C (Basic/Standard), P (Premium)
+redis_family = "C"
+
+# Capacity: 0-6 for C family (250MB to 53GB)
+redis_capacity = 0
+
+# =============================================================================
+# Consoul Configuration
+# =============================================================================
+
+# CORS: Use specific origins in production
+cors_origins = "*"
+
+# Rate limiting
+rate_limits = "30/minute;500/hour"
+
+# Session expiration
+session_ttl = 3600
+
+# Observability
+prometheus_enabled = true
+
+# =============================================================================
+# Optional: LLM Provider API Keys
+# =============================================================================
+
+# Uncomment and set the API keys you need:
+# openai_api_key    = "sk-..."
+# anthropic_api_key = "sk-ant-..."

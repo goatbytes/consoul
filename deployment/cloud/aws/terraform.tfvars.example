@@ -1,0 +1,78 @@
+# AWS Consoul Deployment Configuration
+# Copy to terraform.tfvars and customize
+
+# =============================================================================
+# Required
+# =============================================================================
+
+aws_region = "us-east-1"
+
+# API keys for authentication (generate with: openssl rand -hex 32)
+api_keys = ["your-api-key-here"]
+
+# =============================================================================
+# Application Settings
+# =============================================================================
+
+app_name    = "consoul-api"
+environment = "prod"
+
+# Container image (leave empty to use ECR repository created by Terraform)
+# image_url = "123456789012.dkr.ecr.us-east-1.amazonaws.com/consoul-api:v1.0.0"
+
+# =============================================================================
+# Networking
+# =============================================================================
+
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+# =============================================================================
+# ECS Fargate Configuration
+# =============================================================================
+
+# Fargate CPU units (256, 512, 1024, 2048, 4096)
+cpu = 512
+
+# Fargate memory in MB (must match CPU: 256->512-2048, 512->1024-4096, etc.)
+memory = 1024
+
+# Task count
+desired_count = 1
+min_capacity  = 1
+max_capacity  = 10
+
+# CPU utilization target for auto-scaling
+cpu_target = 70
+
+# =============================================================================
+# ElastiCache Redis
+# =============================================================================
+
+redis_node_type       = "cache.t3.micro"
+redis_num_cache_nodes = 1
+redis_engine_version  = "7.0"
+
+# =============================================================================
+# Consoul Configuration
+# =============================================================================
+
+# CORS: Use specific origins in production
+cors_origins = "*"
+
+# Rate limiting
+rate_limits = "30/minute;500/hour"
+
+# Session expiration
+session_ttl = 3600
+
+# Observability
+prometheus_enabled = true
+
+# =============================================================================
+# Optional: LLM Provider API Keys
+# =============================================================================
+
+# Uncomment and set the API keys you need:
+# openai_api_key    = "sk-..."
+# anthropic_api_key = "sk-ant-..."
