@@ -208,16 +208,24 @@ resource "aws_elasticache_subnet_group" "main" {
   tags = local.tags
 }
 
-resource "aws_elasticache_cluster" "redis" {
-  cluster_id           = "${local.name_prefix}-redis"
-  engine               = "redis"
+resource "aws_elasticache_replication_group" "redis" {
+  replication_group_id = "${local.name_prefix}-redis"
+  description          = "Redis for ${local.name_prefix}"
+
   node_type            = var.redis_node_type
-  num_cache_nodes      = var.redis_num_cache_nodes
+  num_cache_clusters   = var.redis_num_cache_nodes
   parameter_group_name = "default.redis7"
   engine_version       = var.redis_engine_version
   port                 = 6379
-  subnet_group_name    = aws_elasticache_subnet_group.main.name
-  security_group_ids   = [aws_security_group.redis.id]
+
+  subnet_group_name  = aws_elasticache_subnet_group.main.name
+  security_group_ids = [aws_security_group.redis.id]
+
+  automatic_failover_enabled = var.redis_num_cache_nodes > 1
+  multi_az_enabled           = var.redis_num_cache_nodes > 1
+
+  at_rest_encryption_enabled = true
+  transit_encryption_enabled = false # Set to true for TLS
 
   tags = local.tags
 }
@@ -394,7 +402,7 @@ resource "aws_ecs_task_definition" "main" {
     }]
 
     environment = [
-      { name = "REDIS_URL", value = "redis://${aws_elasticache_cluster.redis.cache_nodes[0].address}:6379" },
+      { name = "REDIS_URL", value = "redis://${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379" },
       { name = "CONSOUL_CORS_ORIGINS", value = var.cors_origins },
       { name = "CONSOUL_DEFAULT_LIMITS", value = var.rate_limits },
       { name = "CONSOUL_SESSION_TTL", value = tostring(var.session_ttl) },
