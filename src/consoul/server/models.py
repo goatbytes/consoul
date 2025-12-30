@@ -408,6 +408,8 @@ class RateLimitConfig(BaseSettings):
         strategy: Rate limiting strategy (fixed-window, moving-window)
         key_prefix: Redis key prefix
         enabled: Whether rate limiting is enabled
+        fallback_enabled: Fall back to in-memory when Redis unavailable
+        reconnect_interval: Seconds between Redis reconnection attempts
 
     Environment Variables:
         CONSOUL_ENABLED: Enable/disable rate limiting (default: true)
@@ -417,6 +419,8 @@ class RateLimitConfig(BaseSettings):
             - JSON: '["10/minute","100/hour"]'
         CONSOUL_RATE_LIMIT_REDIS_URL: Redis URL for distributed rate limiting
         REDIS_URL: Universal fallback for Redis URL
+        CONSOUL_REDIS_FALLBACK_ENABLED: Enable fallback to in-memory on Redis failure
+        CONSOUL_REDIS_RECONNECT_INTERVAL: Seconds between reconnection attempts
 
     Example:
         >>> config = RateLimitConfig(
@@ -463,6 +467,18 @@ class RateLimitConfig(BaseSettings):
         default="consoul:ratelimit",
         description="Redis key prefix",
         validation_alias="CONSOUL_KEY_PREFIX",
+    )
+    fallback_enabled: bool = Field(
+        default=False,
+        description="Fall back to in-memory when Redis unavailable",
+        validation_alias="CONSOUL_REDIS_FALLBACK_ENABLED",
+    )
+    reconnect_interval: int = Field(
+        default=60,
+        ge=10,
+        le=3600,
+        description="Seconds between Redis reconnection attempts",
+        validation_alias="CONSOUL_REDIS_RECONNECT_INTERVAL",
     )
 
 
@@ -574,6 +590,8 @@ class SessionConfig(BaseSettings):
     Environment Variables:
         CONSOUL_SESSION_REDIS_URL: Redis URL for session storage
         REDIS_URL: Universal fallback for Redis URL
+        CONSOUL_REDIS_FALLBACK_ENABLED: Enable fallback to in-memory on Redis failure
+        CONSOUL_REDIS_RECONNECT_INTERVAL: Seconds between reconnection attempts
 
     Example:
         # Dedicated session Redis
@@ -581,6 +599,10 @@ class SessionConfig(BaseSettings):
 
         # Universal fallback
         REDIS_URL=redis://localhost:6379/0
+
+        # Enable graceful degradation
+        CONSOUL_REDIS_FALLBACK_ENABLED=true
+        CONSOUL_REDIS_RECONNECT_INTERVAL=60
     """
 
     # NO env_prefix - use explicit full names for deterministic resolution
@@ -603,6 +625,18 @@ class SessionConfig(BaseSettings):
         default="consoul:session:",
         description="Redis key prefix",
         validation_alias="CONSOUL_SESSION_KEY_PREFIX",
+    )
+    fallback_enabled: bool = Field(
+        default=False,
+        description="Fall back to in-memory when Redis unavailable (default: fail-fast)",
+        validation_alias="CONSOUL_REDIS_FALLBACK_ENABLED",
+    )
+    reconnect_interval: int = Field(
+        default=60,
+        ge=10,
+        le=3600,
+        description="Seconds between Redis reconnection attempts",
+        validation_alias="CONSOUL_REDIS_RECONNECT_INTERVAL",
     )
 
 

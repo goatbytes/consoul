@@ -86,6 +86,8 @@ class MetricsCollector:
     - consoul_active_sessions: Gauge of active sessions
     - consoul_tool_executions_total: Tool execution count by name, status
     - consoul_errors_total: Error count by endpoint, error type
+    - consoul_redis_degraded: Gauge for Redis degradation status (SOUL-328)
+    - consoul_redis_recovered_total: Counter for Redis recovery events (SOUL-328)
 
     Gracefully degrades to no-op if prometheus-client not installed.
 
@@ -137,6 +139,16 @@ class MetricsCollector:
             "consoul_errors_total",
             "Error count",
             ["endpoint", "error_type"],
+        )
+
+        # Redis degradation metrics (SOUL-328)
+        self.redis_degraded = _Gauge(
+            "consoul_redis_degraded",
+            "Whether Redis is in degraded mode (1=degraded, 0=healthy)",
+        )
+        self.redis_recovered = _Counter(
+            "consoul_redis_recovered_total",
+            "Total number of Redis connection recoveries",
         )
 
     @property
@@ -231,6 +243,22 @@ class MetricsCollector:
         if not self._enabled:
             return
         self.active_sessions.set(count)
+
+    def set_redis_degraded(self, value: int) -> None:
+        """Set Redis degraded gauge (SOUL-328).
+
+        Args:
+            value: 1 if degraded, 0 if healthy
+        """
+        if not self._enabled:
+            return
+        self.redis_degraded.set(value)
+
+    def increment_redis_recovered(self) -> None:
+        """Increment Redis recovery counter (SOUL-328)."""
+        if not self._enabled:
+            return
+        self.redis_recovered.inc()
 
 
 def create_metrics_middleware(
