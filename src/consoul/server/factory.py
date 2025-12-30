@@ -288,6 +288,35 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         max_age=config.cors.max_age,
     )
 
+    # Configure body size limit middleware (after CORS, before rate limiter)
+    # This protects against DoS attacks via oversized payloads
+    if config.validation.enabled:
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        # Capture value to avoid closure issues with mypy
+        max_body_size = config.validation.max_body_size
+
+        async def body_size_limit_dispatch(request: Request, call_next: Any) -> Any:
+            """Check request body size and reject if too large."""
+            content_length = request.headers.get("content-length")
+            if content_length:
+                try:
+                    if int(content_length) > max_body_size:
+                        return JSONResponse(
+                            status_code=413,
+                            content={
+                                "error": "Request too large",
+                                "message": f"Request body must be less than {max_body_size} bytes",
+                                "limit": max_body_size,
+                            },
+                        )
+                except ValueError:
+                    pass  # Invalid Content-Length, let request proceed
+            return await call_next(request)
+
+        app.add_middleware(BaseHTTPMiddleware, dispatch=body_size_limit_dispatch)
+        logger.info(f"Body size limit: {max_body_size} bytes")
+
     # Initialize rate limiter and store in app.state
     # Ensure default_limits is a list (pydantic validator guarantees this)
     default_limits: list[str] = (
