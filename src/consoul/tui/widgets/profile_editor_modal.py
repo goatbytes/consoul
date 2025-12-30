@@ -239,7 +239,6 @@ class ProfileEditorModal(ModalScreen[ProfileConfig | None]):
                     )
                     yield TextArea(
                         id="system-prompt",
-                        language="markdown",
                     )
 
                 # Tab 3: Conversation Settings
