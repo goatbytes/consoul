@@ -461,46 +461,51 @@ async def websocket_chat_handler(
                         state = await asyncio.to_thread(store.load, session_id)
 
                         # Create ConversationService with approval provider for tools
-                        service = ConversationService.from_config(
+                        # Use async context manager to ensure executor cleanup
+                        async with ConversationService.from_config(
                             approval_provider=approval_provider,
-                        )
+                        ) as service:
+                            # Restore messages if session exists
+                            if state and state.get("messages"):
+                                service.conversation.restore_from_dicts(
+                                    state["messages"]
+                                )
 
-                        # Restore messages if session exists
-                        if state and state.get("messages"):
-                            service.conversation.restore_from_dicts(state["messages"])
+                            # Stream response
+                            start_time = time.monotonic()
+                            async for token in service.send_message(
+                                user_message,
+                                on_tool_request=approval_provider,
+                            ):
+                                await backpressure.send(
+                                    {"type": "token", "data": {"text": token.content}}
+                                )
 
-                        # Stream response
-                        start_time = time.monotonic()
-                        async for token in service.send_message(
-                            user_message,
-                            on_tool_request=approval_provider,
-                        ):
-                            await backpressure.send(
-                                {"type": "token", "data": {"text": token.content}}
-                            )
-
-                        # Save session state (compatible with HTTP /chat)
-                        messages = [
-                            to_dict_message(m) for m in service.conversation.messages
-                        ]
-                        new_state = {
-                            "session_id": session_id,
-                            "model": (
-                                service.config.current_model
-                                if service.config
-                                else "unknown"
-                            ),
-                            "temperature": 0.7,
-                            "messages": messages,
-                            "created_at": (
-                                state.get("created_at", time.time())
-                                if state
-                                else time.time()
-                            ),
-                            "updated_at": time.time(),
-                            "config": {"tools_enabled": bool(service.tool_registry)},
-                        }
-                        await asyncio.to_thread(store.save, session_id, new_state)
+                            # Save session state (compatible with HTTP /chat)
+                            messages = [
+                                to_dict_message(m)
+                                for m in service.conversation.messages
+                            ]
+                            new_state = {
+                                "session_id": session_id,
+                                "model": (
+                                    service.config.current_model
+                                    if service.config
+                                    else "unknown"
+                                ),
+                                "temperature": 0.7,
+                                "messages": messages,
+                                "created_at": (
+                                    state.get("created_at", time.time())
+                                    if state
+                                    else time.time()
+                                ),
+                                "updated_at": time.time(),
+                                "config": {
+                                    "tools_enabled": bool(service.tool_registry)
+                                },
+                            }
+                            await asyncio.to_thread(store.save, session_id, new_state)
 
                     # Send done message
                     duration_ms = int((time.monotonic() - start_time) * 1000)
