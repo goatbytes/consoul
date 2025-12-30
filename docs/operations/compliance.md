@@ -389,8 +389,8 @@ redacted = redactor.redact_string(text)
 
 | Control | Implementation | Configuration |
 |---------|----------------|---------------|
-| Body Size Limit | Request validation | 1MB default |
-| Message Length | Pydantic validation | 32KB max |
+| Body Size Limit | RequestValidator middleware | Manual setup required (not default) |
+| Message Length | Pydantic validation | 32KB max (enforced) |
 | JSON Parsing | Strict parsing | Automatic |
 
 ### Network Security
