@@ -1,0 +1,34 @@
+{
+  "created_at": "2025-12-23T12:14:06.392329Z",
+  "updated_at": "2025-12-29T22:35:16.557170Z",
+  "id": "SOUL-302",
+  "uuid": "f0bdc0e0-17ae-4aee-9e78-d57a626c12a2",
+  "title": "Create production operations runbook and security checklist",
+  "description": "**As a** legal tech operator\n**I want** comprehensive operations runbook and security checklist\n**So that** I can operate Consoul safely in production\n\n**Context:**\nLegal industry has strict compliance and security requirements. Need operational documentation covering:\n- Pre-deployment security checklist\n- Monitoring and alerting setup\n- Incident response procedures\n- Scaling recommendations\n- Compliance verification\n\nSimilar to production runbooks for HIPAA/SOC2 compliant systems.\n\n**Technical Notes:**\n- Create: docs/operations/ directory\n- Create: docs/operations/runbook.md\n- Create: docs/operations/security-checklist.md\n- Create: docs/operations/incident-response.md\n- Create: docs/operations/scaling-guide.md\n- Create: docs/operations/compliance.md\n- Format: Markdown with step-by-step procedures\n- Include: Screenshots, CLI commands, example configs\n\nRunbook sections:\n1. Daily operations (monitoring, logs review)\n2. Incident response (API down, high latency, errors)\n3. Scaling procedures (increase capacity)\n4. Backup and recovery\n5. Security incident handling\n\nSecurity checklist items:\n- API keys rotated regularly\n- Rate limiting enabled\n- Tool filtering configured\n- Audit logging active\n- HTTPS enforced\n- Secrets in Secret Manager (not env vars)\n- CORS properly configured\n- Input validation enabled\n- No PII in logs\n\n**Acceptance Criteria:**\n\n**Given** pre-deployment security checklist\n**When** operator follows checklist\n**Then** all security controls verified before go-live\n\n**Given** incident occurs (API down)\n**When** following incident response guide\n**Then** can diagnose and resolve within SLA\n\n**Given** load increases\n**When** following scaling guide\n**Then** can scale infrastructure without downtime\n\n**Given** compliance audit\n**When** reviewing compliance documentation\n**Then** can demonstrate all required controls\n\n**Testing Considerations:**\n- Technical review by security team\n- Test runbook procedures in staging\n- Verify all checklist items actionable\n- Test incident response scenarios\n- Review with legal compliance team\n\n**Implementation Hints:**\n- Runbook format: Step-by-step with expected outcomes\n- Include monitoring dashboards (Grafana/Datadog)\n- Alert thresholds: Error rate > 1%, latency > 2s, etc.\n- Incident response: Detection \u2192 Triage \u2192 Resolution \u2192 Post-mortem\n- Scaling: Horizontal (more containers) vs vertical (bigger containers)\n- Security checklist: Pre-deployment, weekly, monthly items\n- Compliance: Map features to requirements (audit logs \u2192 SOC2)\n- Include example monitoring queries\n- Add troubleshooting flowcharts\n- Document in docs/operations/README.md\n- Reference: SOUL-295 for audit logging queries\n- Reference: SOUL-299 for monitoring setup",
+  "status": "done",
+  "type": "task",
+  "priority": "medium",
+  "labels": [
+    "documentation",
+    "operations",
+    "security",
+    "production"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-018",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-30T02:17:01.927171+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}
