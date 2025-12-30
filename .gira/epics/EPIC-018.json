@@ -1,7 +1,8 @@
 {
-  "created_at": "2025-12-23T12:12:42.602536",
-  "updated_at": "2025-12-23T12:12:42.602537",
+  "created_at": "2025-12-23T12:12:42.602536Z",
+  "updated_at": "2025-12-23T12:12:42.602537Z",
   "id": "EPIC-018",
+  "_version": 1,
   "title": "Legal Industry Deployment Template",
   "description": "Production-ready deployment template for legal tech applications. Includes document analysis workflows, compliance-ready configuration, security hardening, and cloud deployment guides for law firms and legal professionals.",
   "status": "draft",
@@ -11,7 +12,9 @@
   "tickets": [
     "SOUL-300",
     "SOUL-301",
-    "SOUL-302"
+    "SOUL-302",
+    "SOUL-327",
+    "SOUL-329"
   ],
   "comments": [],
   "comment_count": 0,

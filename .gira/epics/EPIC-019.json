@@ -2,6 +2,7 @@
   "created_at": "2025-12-26T21:24:25.632570Z",
   "updated_at": "2025-12-26T21:24:25.632576Z",
   "id": "EPIC-019",
+  "_version": 1,
   "title": "Extensible Session Management for Multi-User Production Deployments",
   "description": "## Overview\n\nImplement a flexible, extensible session management system for the Consoul SDK that supports multi-user/multi-tenant production deployments while giving SDK users full control over persistence and data handling.\n\n## Goals\n\n1. **Multi-Tenant Support**: Enable user/tenant isolation with namespaced sessions\n2. **Extensibility**: Provide lifecycle hooks without mandating specific patterns\n3. **Backward Compatibility**: Maintain existing simple use cases\n4. **Production Ready**: Support enterprise requirements (auditing, redaction, metadata)\n\n## Research Foundation\n\nIndustry patterns reviewed from:\n- **LangGraph**: Thread-based isolation, namespaced memory stores `(user_id, \"memories\")`\n- **MCP Python SDK**: Callback handler patterns, capability negotiation\n- **CrewAI**: Short-term and long-term memory separation\n- **Strands SDK**: Community-driven storage providers\n\n## Current State Analysis\n\nExisting components in Consoul:\n- `SessionStore` protocol in `src/consoul/sdk/session_store.py` with 3 implementations (Memory, File, Redis)\n- `SessionState` dataclass in `src/consoul/sdk/models.py`\n- `ToolFilter` for session-level sandboxing\n- `ContextProvider` protocol for dynamic context\n\nGaps identified:\n- No user/tenant context in SessionState\n- No metadata extension point for custom fields\n- No lifecycle hooks for session operations\n- No list_sessions() for querying active sessions\n\n## Scope\n\n### In Scope\n- SessionMetadata dataclass with user_id, tenant_id, namespace, tags, custom dict\n- Session ID utilities for namespaced ID generation/parsing\n- SessionStore.list_sessions() method across all implementations\n- SessionHooks protocol for lifecycle callbacks (on_save, on_load, on_delete)\n- HookedSessionStore wrapper for composable hook integration\n- Updated factory functions (create_session, save_session_state)\n- Example implementations (RedactionHook, AuditHook)\n- Comprehensive test coverage\n\n### Out of Scope\n- Database-backed session stores (separate epic)\n- Session migration tools\n- Multi-region session replication\n- Session encryption at rest\n\n## Technical Approach\n\n1. **Metadata Infrastructure**: Add SessionMetadata to SessionState without breaking existing serialization\n2. **Session ID Utilities**: Optional helpers, not enforced patterns\n3. **Lifecycle Hooks**: Protocol-based, supports both sync and async hooks\n4. **HookedSessionStore**: Decorator pattern wrapping any SessionStore\n5. **Backward Compatible**: All new parameters are optional with sensible defaults\n\n## Dependencies\n\n- Builds on EPIC-016 (Production SDK Hardening) infrastructure\n- Requires existing SessionStore implementations\n- Leverages existing AuditEvent and PiiRedactor for example hooks\n\n## Success Criteria\n\n- [ ] SessionMetadata allows arbitrary user/tenant context\n- [ ] list_sessions() works across all three store implementations\n- [ ] Hooks fire correctly for save/load/delete operations\n- [ ] Example hooks demonstrate real-world patterns\n- [ ] All existing tests pass (backward compatibility)\n- [ ] New comprehensive test suite for session management",
   "status": "draft",
@@ -14,7 +15,8 @@
     "SOUL-312",
     "SOUL-313",
     "SOUL-314",
-    "SOUL-315"
+    "SOUL-315",
+    "SOUL-332"
   ],
   "comments": [],
   "comment_count": 0,
