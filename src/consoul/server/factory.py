@@ -373,24 +373,49 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
     from consoul.sdk.session_store import MemorySessionStore, RedisSessionStore
     from consoul.server.session_locks import SessionLockManager
 
-    session_store: MemorySessionStore | RedisSessionStore
+    session_store: (
+        MemorySessionStore | RedisSessionStore | Any
+    )  # Any for ResilientSessionStore
     if config.session.redis_url:
-        try:
-            import redis
+        if config.session.fallback_enabled:
+            # Use resilient wrapper with fallback support (SOUL-328)
+            from consoul.server.resilient_store import ResilientSessionStore
 
-            redis_client = redis.from_url(config.session.redis_url)
-            session_store = RedisSessionStore(
-                redis_client=redis_client,
+            def metrics_callback(event: str, value: bool) -> None:
+                """Update metrics when Redis state changes."""
+                if hasattr(app.state, "metrics") and app.state.metrics:
+                    if event == "degraded":
+                        app.state.metrics.set_redis_degraded(1)
+                    elif event == "recovered":
+                        app.state.metrics.set_redis_degraded(0)
+                        app.state.metrics.increment_redis_recovered()
+
+            session_store = ResilientSessionStore(
+                redis_url=config.session.redis_url,
                 ttl=config.session.ttl,
                 prefix=config.session.key_prefix,
+                fallback_enabled=True,
+                reconnect_interval=config.session.reconnect_interval,
+                metrics_callback=metrics_callback,
             )
-            logger.info(f"Session store: Redis ({config.session.redis_url})")
-        except Exception as e:
-            # FAIL-FAST: No silent fallback to memory in production
-            raise RuntimeError(
-                f"Redis session store configured but unavailable: {e}. "
-                "Set CONSOUL_SESSION_REDIS_URL='' to use in-memory storage."
-            ) from e
+        else:
+            # Original fail-fast behavior (default)
+            try:
+                import redis
+
+                redis_client = redis.from_url(config.session.redis_url)
+                session_store = RedisSessionStore(
+                    redis_client=redis_client,
+                    ttl=config.session.ttl,
+                    prefix=config.session.key_prefix,
+                )
+                logger.info(f"Session store: Redis ({config.session.redis_url})")
+            except Exception as e:
+                # FAIL-FAST: No silent fallback to memory in production
+                raise RuntimeError(
+                    f"Redis session store configured but unavailable: {e}. "
+                    "Set CONSOUL_SESSION_REDIS_URL='' to use in-memory storage."
+                ) from e
     else:
         session_store = MemorySessionStore(ttl=config.session.ttl)
         logger.warning(
@@ -474,8 +499,9 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         """
         checks: dict[str, bool | str] = {}
         timestamp = datetime.now(timezone.utc).isoformat()
+        is_degraded = False
 
-        # Check Redis if configured
+        # Check Redis if configured for rate limiting
         if config.rate_limit.storage_url:
             redis_healthy = await check_redis_connection(config.rate_limit.storage_url)
             checks["redis"] = redis_healthy
@@ -491,12 +517,31 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                     ).model_dump(),
                 )
 
-        # Return success response
-        return ReadinessResponse(
+        # Check session store mode (SOUL-328: Redis fallback support)
+        store = app.state.session_store
+        if hasattr(store, "mode"):
+            checks["session_store"] = store.mode
+            if store.mode == "degraded":
+                is_degraded = True
+
+        # Return success response (200 even if degraded - service is operational)
+        response = ReadinessResponse(
             status="ready",
             checks=checks or {"status": "no_dependencies"},
             timestamp=timestamp,
         )
+
+        # Add message for degraded mode
+        if is_degraded:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    **response.model_dump(),
+                    "message": "Running in fallback mode",
+                },
+            )
+
+        return response
 
     # Helper for optional auth (works with or without API keys configured)
     def get_optional_auth() -> Callable[[Request], Coroutine[Any, Any, str | None]]:
