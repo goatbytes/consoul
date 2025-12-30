@@ -1,0 +1,100 @@
+{
+  "created_at": "2025-12-23T12:09:53.180172Z",
+  "updated_at": "2025-12-25T04:44:21.588375Z",
+  "id": "SOUL-295",
+  "uuid": "cade3e22-667b-42f4-a616-e24388d4b8b7",
+  "title": "Add structured logging and compliance audit trail",
+  "description": "**As a** legal tech operator\n**I want** structured JSON logging with audit trail for tool execution\n**So that** I can demonstrate compliance and debug production issues\n\n**Context:**\nLegal industry requires audit trails for compliance (who accessed what documents, what AI actions were taken). Current logging uses standard Python logger without structured output. Need JSON-formatted logs with:\n- Request/response tracking\n- Tool execution audit\n- User/session identification\n- Timestamp precision\n\nLangChain production best practices emphasize structured logging for debugging multi-step chains.\n\n**Technical Notes:**\n- Create: src/consoul/sdk/logging_config.py\n- Use: python-json-logger or structlog\n- Add: AuditLogger class for compliance events\n- Integration: ConversationService, ToolService\n- Format: JSON with correlation IDs\n- Destination: stdout (captured by log aggregation)\n\nLog types needed:\n1. Request logs: session_id, user_id, message\n2. Response logs: tokens, model, latency\n3. Tool execution logs: tool_name, args, result, approver\n4. Error logs: exception, stack trace, context\n\n**Acceptance Criteria:**\n\n**Given** SDK configured with structured logging\n**When** message is sent\n**Then** logs JSON: {\"event\": \"message\", \"session_id\": \"...\", \"timestamp\": \"...\"}\n\n**Given** tool is executed\n**When** using audit mode\n**Then** logs: {\"event\": \"tool_execution\", \"tool\": \"bash\", \"user\": \"...\", \"args\": {...}, \"approved_by\": \"...\"}\n\n**Given** error occurs\n**When** exception is raised\n**Then** logs: {\"event\": \"error\", \"exception\": \"...\", \"traceback\": \"...\", \"context\": {...}}\n\n**Given** production deployment\n**When** reviewing logs\n**Then** can filter by session_id, user_id, or event type\n\n**Testing Considerations:**\n- Test log output format (valid JSON)\n- Test log levels (INFO, WARNING, ERROR)\n- Test correlation ID propagation\n- Test PII redaction (if needed)\n- Verify log aggregation compatibility (Datadog, Splunk)\n- Test audit query patterns\n\n**Implementation Hints:**\n- Use structlog for structured logging\n- Add correlation_id to all logs (from request context)\n- Create AuditLogger.log_tool_execution(event)\n- Redact sensitive data (API keys, passwords)\n- Add log_level config option\n- JSON format: {\"timestamp\": ISO8601, \"level\": \"INFO\", \"event\": \"...\", ...}\n- Document compliance queries in docs/operations/audit.md\n- Add example: examples/logging/compliance_audit.py\n- Integration: Pass logger to ConversationService\n- Reference: SOUL-292 for tool execution hooks",
+  "status": "done",
+  "type": "story",
+  "priority": "high",
+  "labels": [
+    "sdk",
+    "observability",
+    "compliance",
+    "logging"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-016",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-24T22:18:29.235366Z",
+      "updated_at": "2025-12-24T22:18:29.235369Z",
+      "id": "20251224141829-cec11a99",
+      "ticket_id": "SOUL-295",
+      "author": "jared@goatbytes.io",
+      "content": "Implementation complete:\n\n\u2705 Added structlog to pyproject.toml as optional logging dependency\n\u2705 Created src/consoul/sdk/context.py for correlation ID management with contextvars\n\u2705 Created src/consoul/sdk/redaction.py with PII/secret redaction (API keys, JWT, SSN, etc.)\n\u2705 Added LoggingConfig model to config/models.py with full configurability\n\u2705 Enhanced AuditEvent with correlation_id and session_id fields\n\u2705 Created StructuredAuditLogger with auto-redaction support\n\u2705 Integrated into ConversationService.send_message() with request/response logging\n\u2705 Created comprehensive example: examples/sdk/compliance_logging.py\n\u2705 Created test suite: tests/sdk/test_structured_logging.py\n\nKey Features:\n- JSON log format with correlation IDs for distributed tracing\n- Auto-injection of correlation IDs from context\n- PII/secret redaction (passwords, API keys, tokens, JWT, SSN, credit cards)\n- Configurable via LoggingConfig (format, output, redaction, sampling)\n- Wires into existing audit.py infrastructure (no parallel audit trails)\n- Performance optimizations (async I/O, sampling, truncation)\n- Compliance-ready for GDPR/HIPAA requirements\n\nExample usage shown in compliance_logging.py with jq query patterns for audit trail analysis.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-24T22:29:02.719423Z",
+      "updated_at": "2025-12-24T22:29:02.719426Z",
+      "id": "20251224142902-f7e91e78",
+      "ticket_id": "SOUL-295",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed P1 and P2 review issues:\n\nP1 - Correlation ID Preservation:\n\u2705 Updated send_message() to check for existing correlation ID before generating new one\n\u2705 Prevents overwriting upstream IDs from HTTP headers or prior calls\n\u2705 Maintains trace linkage across distributed systems\nLocation: src/consoul/sdk/services/conversation.py:482-485\n\nP2 - LoggingConfig Output Implementation:\n\u2705 Refactored StructuredAuditLogger to support all output modes\n\u2705 output='stdout' - writes to sys.stdout only (containers/log aggregators)\n\u2705 output='file' - writes to file only (traditional logging)\n\u2705 output='both' - writes to both stdout and file\n\u2705 Properly initializes file_logger only when needed\nLocation: src/consoul/ai/tools/audit.py:222-353\n\nAdded comprehensive tests:\n\u2705 test_preserve_existing_correlation_id() - verifies P1 fix\n\u2705 test_stdout_output_mode() - verifies stdout-only logging\n\u2705 test_file_output_mode() - verifies file-only logging\n\u2705 test_both_output_mode() - verifies dual output\n\u2705 test_default_file_path_when_output_is_file() - verifies default paths\nLocation: tests/sdk/test_structured_logging.py:438-577\n\nReady for re-review.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-24T22:42:17.463836Z",
+      "updated_at": "2025-12-24T22:42:17.463841Z",
+      "id": "20251224144217-6d1e5561",
+      "ticket_id": "SOUL-295",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed P0 and P2 critical issues:\n\nP0 - Invalid Pydantic Validators (CRITICAL):\n\u2705 Removed @field_validator('auto_approve') - field doesn't exist in LoggingConfig\n\u2705 Removed validate_permission_policy() - method references non-existent fields\n\u2705 These were accidentally copied from ToolConfig during implementation\n\u2705 Would have caused PydanticUserError at import time, breaking all consumers\nLocation: src/consoul/config/models.py:1407-1413\n\nP2 - Default File Path Mismatch:\n\u2705 Changed LoggingConfig validator default from consoul.jsonl to audit.jsonl\n\u2705 Now matches StructuredAuditLogger default: ~/.consoul/logs/audit.jsonl\n\u2705 Aligns with test expectations in test_default_file_path_when_output_is_file\nLocation: src/consoul/config/models.py:1412\n\nAdded verification tests:\n\u2705 test_logging_config_imports_without_error() - smoke test for Pydantic\n\u2705 test_logging_config_has_no_invalid_validators() - ensures no orphaned validators\n\u2705 test_config_validator_sets_default_path() - verifies path alignment\nLocation: tests/sdk/test_structured_logging.py:25-51, 609-621\n\nManual verification:\n\u2705 python -c 'from consoul.config.models import LoggingConfig; c = LoggingConfig()'\n\u2705 Default path matches: config.file_path == logger.file_logger.log_file\n\u2705 No Pydantic errors on import\n\nReady for re-review.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-24T22:52:09.329238Z",
+      "updated_at": "2025-12-24T22:52:09.329240Z",
+      "id": "20251224145209-a6cef5d3",
+      "ticket_id": "SOUL-295",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed P2 - ToolConfig validators restoration:\n\nProblem:\n\u2705 During LoggingConfig cleanup, accidentally removed ToolConfig validators\n\u2705 This broke documented default permission_policy = BALANCED behavior\n\u2705 Security warnings for auto_approve=True and UNRESTRICTED policy were lost\n\u2705 Default configs now ran with permission_policy=None instead of BALANCED\n\nFix:\n\u2705 Restored @field_validator('auto_approve') with security warnings\n\u2705 Restored validate_permission_policy() that sets default to BALANCED\n\u2705 Validators now properly placed after ToolConfig fields (line 1332-1376)\n\u2705 LoggingConfig validators remain separate and valid (line 1407-1413)\nLocation: src/consoul/config/models.py:1332-1376\n\nAdded regression test:\n\u2705 test_tool_config_validators_preserved() - verifies default policy\n\u2705 Tests auto_approve warning is emitted\n\u2705 Ensures PermissionPolicy.BALANCED is default\nLocation: tests/sdk/test_structured_logging.py:53-71\n\nManual verification:\n\u2705 ToolConfig().permission_policy == PermissionPolicy.BALANCED\n\u2705 ToolConfig(auto_approve=True) raises UserWarning with 'DANGEROUS'\n\u2705 Security posture restored to documented behavior\n\nReady for re-review.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    },
+    {
+      "created_at": "2025-12-24T22:57:20.846167Z",
+      "updated_at": "2025-12-24T22:57:20.846170Z",
+      "id": "20251224145720-a6378f15",
+      "ticket_id": "SOUL-295",
+      "author": "jared@goatbytes.io",
+      "content": "Fixed P1 - Token cost TypeError (CRITICAL runtime crash):\n\nProblem:\n\u2705 Token.cost is defined as float | None in sdk/models.py\n\u2705 New logging code treated it as dict: 'if token.cost and \"total_tokens\" in token.cost'\n\u2705 TypeError: argument of type 'float' is not iterable when cost is non-None\n\u2705 This crashed streaming before response finished - complete failure path\n\u2705 Token counting logic was fundamentally wrong (cost \u2260 usage_metadata)\n\nRoot Cause:\n\u2705 Token counts come from AIMessage.usage_metadata, not Token.cost\n\u2705 Token.cost is per-token USD estimate (float), not token counts (dict)\n\u2705 Streaming yields Token objects with cost=None during output\n\u2705 Final usage_metadata appears on reconstructed AIMessage after streaming\n\nFix:\n\u2705 Removed invalid token tracking loop during streaming (lines 578-582)\n\u2705 Extract token counts from last message's usage_metadata after streaming\n\u2705 Calculate total_tokens = input_tokens + output_tokens from usage_metadata\n\u2705 Pass correlation_id through _stream_response for consistency\nLocation: src/consoul/sdk/services/conversation.py:577-615, 761-834\n\nAdded regression tests:\n\u2705 test_token_cost_is_float_not_dict() - verifies Token.cost type\n\u2705 test_usage_metadata_token_tracking() - shows correct token extraction\n\u2705 test_token_cost_float_does_not_support_in_operator() - proves the bug\nLocation: tests/sdk/test_structured_logging.py:644-691\n\nImpact:\n\u2705 Prevented runtime crash on ANY response with token costs\n\u2705 Token counts now correctly logged from usage_metadata\n\u2705 Streaming no longer interrupted by TypeError\n\nReady for re-review.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 5,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-30T02:17:01.880129+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

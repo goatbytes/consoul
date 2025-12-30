@@ -1,0 +1,47 @@
+{
+  "created_at": "2025-12-25T06:42:46.151077Z",
+  "updated_at": "2025-12-28T22:17:12.019108Z",
+  "id": "SOUL-305",
+  "uuid": "e85e8164-f011-4aee-a067-0b1a6195c553",
+  "title": "Align server configuration environment variables and add session Redis config",
+  "description": "**As a** Consoul server operator\n**I want** consistent and clear environment variable configuration\n**So that** I can configure CORS, Redis, and other settings without ambiguity\n\n**Context:**\nThe server factory and configuration models have inconsistent environment variable handling. CORSConfig doesn't parse CONSOUL_CORS_ORIGINS from environment, and using the same CONSOUL_REDIS_URL for both rate limiting and session storage creates ambiguity. We need separate, clearly named environment variables and consistent parsing across all configuration classes.\n\n**Technical Notes:**\n- CORSConfig in src/consoul/server/models.py:161 lacks env_prefix and env parsing\n- RateLimitConfig uses CONSOUL_REDIS_URL at line 149 with validation_alias\n- Need CONSOUL_SESSION_REDIS_URL separate from rate limit Redis\n- ServerConfig at line 200 uses nested config but CORS doesn't inherit env parsing\n- parse_comma_separated_list validator exists but not used for CORS origins\n- Configuration precedence should be: defaults \u2192 env \u2192 constructor args\n\n**Acceptance Criteria:**\n\n**Given** CONSOUL_CORS_ORIGINS=\"https://app.example.com,https://admin.example.com\" in environment\n**When** ServerConfig is instantiated\n**Then** cors.allowed_origins should contain both URLs as a list\n\n**Given** CONSOUL_SESSION_REDIS_URL and CONSOUL_RATE_LIMIT_REDIS_URL set to different values\n**When** configuring the server\n**Then** session storage and rate limiting should use separate Redis instances\n\n**Given** various environment variable formats (comma-separated, JSON array, single value)\n**When** parsed by configuration models\n**Then** all should be handled consistently with clear documentation\n\n**Given** missing environment variables\n**When** ServerConfig is instantiated\n**Then** sensible defaults should be used with warnings logged\n\n**Testing Considerations:**\n- Unit tests for env var parsing with various formats\n- Test comma-separated, semicolon-separated, and JSON array formats\n- Test validation and error messages for invalid values\n- Integration tests with actual environment variables\n- Edge cases: empty strings, whitespace, special characters\n\n**Implementation Hints:**\n- Add model_config with env_prefix to CORSConfig\n- Add parse_comma_separated_list validator to allowed_origins field\n- Create SessionConfig class with CONSOUL_SESSION_ prefix\n- Separate CONSOUL_RATE_LIMIT_REDIS_URL from CONSOUL_SESSION_REDIS_URL\n- Update factory.py to use new configuration structure\n- Add comprehensive env var documentation to models.py docstrings\n- Consider using pydantic's env_nested_delimiter for nested configs\n- Reference existing parse_semicolon_or_single validator pattern",
+  "status": "done",
+  "type": "task",
+  "priority": "high",
+  "labels": [
+    "config",
+    "backend",
+    "server",
+    "environment"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [
+    {
+      "created_at": "2025-12-25T07:00:07.695148Z",
+      "updated_at": "2025-12-25T07:00:07.695151Z",
+      "id": "20251224230007-e3dd097b",
+      "ticket_id": "SOUL-305",
+      "author": "jared@goatbytes.io",
+      "content": "## P2 Issue: Clarify Actual Environment Variable Names\n\n**Problem**: Description mentions `CONSOUL_RATE_LIMIT_REDIS_URL` but actual code uses different naming.\n\n**Current State** (src/consoul/server/models.py:103):\n- `CONSOUL_REDIS_URL` - Used for rate limiting\n- `REDIS_URL` - Alias fallback\n- No separate session Redis config yet\n\n### Updated Acceptance Criteria - Explicit Env Vars\n\n**Given** I configure rate limiting with Redis\n**When** I set `CONSOUL_RATE_LIMIT_REDIS_URL=redis://localhost:6379/0`\n**Then** rate limiter uses that Redis instance\n\n**Given** I configure session storage with Redis  \n**When** I set `CONSOUL_SESSION_REDIS_URL=redis://localhost:6379/1`\n**Then** session store uses that Redis instance (different DB)\n\n**Given** I set only `CONSOUL_REDIS_URL` (legacy)\n**When** session storage is not explicitly configured\n**Then** session store falls back to `CONSOUL_REDIS_URL` with loud deprecation warning\n\n### Final Environment Variables\n\n**After this ticket**:\n1. `CONSOUL_SESSION_REDIS_URL` - Session storage (explicit, preferred)\n2. `CONSOUL_RATE_LIMIT_REDIS_URL` - Rate limiting (explicit, new name)\n3. `CONSOUL_REDIS_URL` - Legacy fallback (deprecated, warn if used)\n4. `REDIS_URL` - Universal fallback (lowest precedence)\n\n**Precedence** (session example):\n```\nCONSOUL_SESSION_REDIS_URL  # Explicit (highest)\n  \u2193 (if not set)\nCONSOUL_REDIS_URL          # Legacy (with warning)\n  \u2193 (if not set)\nREDIS_URL                  # Universal (lowest)\n```\n\n### Configuration Models\n\n**RateLimitConfig**:\n```python\nstorage_url: str | None = Field(\n    default=None,\n    validation_alias=AliasChoices(\n        \"rate_limit_redis_url\",\n        \"consoul_rate_limit_redis_url\",\n        \"consoul_redis_url\",  # Legacy fallback\n        \"redis_url\",\n    )\n)\n```\n\n**SessionConfig** (new):\n```python\nsession_redis_url: str | None = Field(\n    default=None,\n    validation_alias=AliasChoices(\n        \"session_redis_url\",\n        \"consoul_session_redis_url\",\n        \"consoul_redis_url\",  # Legacy with warning\n        \"redis_url\",\n    )\n)\n```\n\nThis ensures no ambiguity and clear migration path.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 1,
+  "story_points": 5,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-30T02:17:01.130980+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}

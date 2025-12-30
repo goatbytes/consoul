@@ -1,0 +1,34 @@
+{
+  "created_at": "2025-12-26T21:26:58.991818Z",
+  "updated_at": "2025-12-28T22:17:12.030890Z",
+  "id": "SOUL-312",
+  "uuid": "4011ae66-852d-4316-9b96-f8a61b4f7c6c",
+  "title": "Add SessionHooks protocol and HookedSessionStore wrapper",
+  "description": "**As a** backend developer with custom session handling requirements\n**I want** lifecycle hooks that fire on session save/load/delete operations\n**So that** I can implement audit logging, data redaction, encryption, or custom persistence logic\n\n**Context:**\nSession lifecycle hooks enable cross-cutting concerns without modifying core SessionStore implementations:\n- **Audit**: Log all session operations for compliance\n- **Redaction**: Strip PII before persisting sessions\n- **Encryption**: Encrypt session data at rest\n- **Validation**: Reject invalid session state\n- **Metrics**: Track session operation latency\n\nIndustry patterns reviewed:\n- MCP Python SDK: Callback handler patterns with async support\n- LangChain: Runnable callbacks with before/after hooks\n- Django: Signal-based hooks (pre_save, post_save, pre_delete)\n\nThis ticket provides the protocol and wrapper; example implementations are in SOUL-314.\n\n**Technical Notes:**\n- Add to `src/consoul/sdk/protocols.py`:\n  - `SessionHooks` protocol with lifecycle methods\n  - Support both sync and async hooks via auto-detection\n- Add to `src/consoul/sdk/session_store.py`:\n  - `HookedSessionStore` class wrapping any SessionStore\n  - Decorator pattern for composable hook chains\n  \n```python\n# Protocol definition\n@runtime_checkable\nclass SessionHooks(Protocol):\n    \"\"\"Protocol for session lifecycle hooks.\"\"\"\n    \n    def on_before_save(\n        self, session_id: str, state: dict[str, Any]\n    ) -> dict[str, Any]:\n        \"\"\"Called before saving. Return modified state or raise to abort.\"\"\"\n        ...\n    \n    def on_after_save(self, session_id: str, state: dict[str, Any]) -> None:\n        \"\"\"Called after successful save.\"\"\"\n        ...\n    \n    def on_before_load(self, session_id: str) -> None:\n        \"\"\"Called before loading a session.\"\"\"\n        ...\n    \n    def on_after_load(\n        self, session_id: str, state: dict[str, Any] | None\n    ) -> dict[str, Any] | None:\n        \"\"\"Called after loading. Return modified state.\"\"\"\n        ...\n    \n    def on_before_delete(self, session_id: str) -> None:\n        \"\"\"Called before deleting. Raise to abort deletion.\"\"\"\n        ...\n    \n    def on_after_delete(self, session_id: str) -> None:\n        \"\"\"Called after successful deletion.\"\"\"\n        ...\n```\n\n**Acceptance Criteria:**\n\n**Given** I create a HookedSessionStore with an audit hook\n**When** I call `store.save(\"ses123\", state)`\n**Then** `hook.on_before_save()` is called before saving\n**And** `hook.on_after_save()` is called after saving\n\n**Given** I have a redaction hook that strips PII\n**When** `on_before_save()` modifies the state dict\n**Then** the modified state is what gets persisted\n\n**Given** I have a validation hook\n**When** `on_before_save()` raises ValueError\n**Then** the save is aborted and the exception propagates\n\n**Given** I have an async hook implementation\n**When** I use it with HookedSessionStore\n**Then** the hook methods are awaited correctly\n\n**Given** I chain multiple hooks\n**When** I call `HookedSessionStore(store, hooks=[hook1, hook2])`\n**Then** hooks fire in order (hook1 before hook2)\n\n**Given** I have a sync hook but use async SessionStore methods\n**When** hooks are invoked\n**Then** sync hooks are run in executor to avoid blocking\n\n**Testing Considerations:**\n- Test hook invocation order for save/load/delete\n- Test state modification in on_before_save\n- Test abort via exception in before hooks\n- Test async hook detection and execution\n- Test sync hook execution in async context\n- Test hook chain with multiple hooks\n- Test partial hook implementation (only some methods)\n- Mock inner store to verify hook timing\n\n**Implementation Hints:**\n- Use `inspect.iscoroutinefunction()` to detect async hooks\n- Implement `_run_hook()` helper that handles sync/async uniformly\n- HookedSessionStore should implement SessionStore protocol\n- Support hooks as list for chaining: `hooks: list[SessionHooks]`\n- Use `asyncio.to_thread()` for sync hooks in async context\n- Add `@runtime_checkable` to SessionHooks for isinstance checks\n- Reference existing protocol patterns in protocols.py (ContextProvider, ToolExecutionCallback)\n\n```python\nclass HookedSessionStore:\n    \"\"\"SessionStore wrapper that fires lifecycle hooks.\"\"\"\n    \n    def __init__(\n        self,\n        store: SessionStore,\n        hooks: SessionHooks | list[SessionHooks] | None = None,\n    ):\n        self._store = store\n        self._hooks = hooks if isinstance(hooks, list) else [hooks] if hooks else []\n    \n    def save(self, session_id: str, state: dict[str, Any]) -> None:\n        # Fire before hooks (may modify state)\n        for hook in self._hooks:\n            state = hook.on_before_save(session_id, state)\n        \n        # Delegate to inner store\n        self._store.save(session_id, state)\n        \n        # Fire after hooks\n        for hook in self._hooks:\n            hook.on_after_save(session_id, state)\n```\n\n**Dependencies:**\n- SOUL-309 (SessionMetadata) for metadata reference in hooks",
+  "status": "done",
+  "type": "story",
+  "priority": "high",
+  "labels": [
+    "sdk",
+    "session",
+    "enhancement",
+    "hooks"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-019",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2025-12-30T02:17:01.410925+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}
