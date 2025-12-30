@@ -1,0 +1,22 @@
+# Consoul Legal Industry Server Requirements
+#
+# Install with: pip install -r requirements.txt
+
+# Core Consoul SDK
+consoul>=0.6.0
+
+# Web server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# PDF processing
+pypdf>=4.0.0
+
+# Configuration
+pyyaml>=6.0
+
+# Redis client (for sessions)
+redis>=5.0.0
+
+# HTTP client (for health checks)
+httpx>=0.26.0

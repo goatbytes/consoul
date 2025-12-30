@@ -1,0 +1,151 @@
+# Consoul Legal Industry Deployment
+# Docker Compose for production-ready legal AI server
+#
+# Usage:
+#   # Set environment variables
+#   export OPENAI_API_KEY=your-key-here
+#   export CONSOUL_API_KEYS=key1,key2,key3
+#
+#   # Start services
+#   docker-compose up -d
+#
+#   # View logs
+#   docker-compose logs -f consoul-legal
+#
+#   # Stop services
+#   docker-compose down
+
+services:
+  # Consoul Legal API Server
+  consoul-legal:
+    build:
+      context: ../..  # Build from repository root
+      dockerfile: examples/legal/Dockerfile
+    container_name: consoul-legal
+    restart: unless-stopped
+
+    # Environment variables
+    environment:
+      # Required: OpenAI API key
+      - OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY is required}
+
+      # Required: API keys for authentication
+      - CONSOUL_API_KEYS=${CONSOUL_API_KEYS:?CONSOUL_API_KEYS is required}
+
+      # Redis connection
+      - REDIS_URL=redis://redis:6379
+
+      # CORS origins (comma-separated)
+      - CONSOUL_CORS_ORIGINS=${CONSOUL_CORS_ORIGINS:-http://localhost:3000}
+
+      # Logging
+      - CONSOUL_LOG_LEVEL=${CONSOUL_LOG_LEVEL:-INFO}
+
+    # Port mapping
+    ports:
+      - "${CONSOUL_PORT:-8000}:8000"
+
+    # Persistent volumes
+    volumes:
+      # Audit logs (persistent, append-only)
+      - audit_logs:/var/log/consoul:rw
+
+      # Matter storage (documents)
+      - matter_storage:/data/matters:rw
+
+      # Config (read-only)
+      - ./config.yaml:/app/examples/legal/config.yaml:ro
+
+    # Dependencies
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Security options
+    # Note: no-new-privileges is disabled because the entrypoint needs to
+    # fix volume permissions then drop to non-root user via su-exec
+    # security_opt:
+    #   - no-new-privileges:true
+
+    # Tmpfs for temporary files
+    tmpfs:
+      - /tmp:mode=1777,size=100M
+
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis for session management
+  redis:
+    image: redis:7-alpine
+    container_name: consoul-redis
+    restart: unless-stopped
+
+    # Persistence
+    volumes:
+      - redis_data:/data
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+    # Security: No external access
+    expose:
+      - "6379"
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+# Named volumes for persistence
+volumes:
+  # Audit logs - CRITICAL: Back up regularly
+  audit_logs:
+    driver: local
+
+  # Document storage
+  matter_storage:
+    driver: local
+
+  # Redis data
+  redis_data:
+    driver: local
+
+# Network
+networks:
+  default:
+    driver: bridge

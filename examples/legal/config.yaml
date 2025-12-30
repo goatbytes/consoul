@@ -1,0 +1,143 @@
+# Legal Industry Consoul Configuration
+# Single source of truth for all security and operational settings
+#
+# IMPORTANT: This configuration is designed for legal/compliance environments
+# with strict data handling requirements. Review all settings before deployment.
+
+# Model configuration
+model:
+  provider: openai
+  model: gpt-4o
+  temperature: 0.3  # Low temperature for legal accuracy and consistency
+  # Enterprise data handling notes:
+  # - For Azure OpenAI: Set provider to 'azure' and configure endpoint
+  # - Request opt-out from model training via OpenAI enterprise agreement
+  # - Verify data retention policies meet your jurisdiction requirements
+  # - Consider on-premises deployment for maximum data control
+
+# Tool restrictions - minimal read-only tools for legal safety
+tools:
+  # Only allow read-only tools - no code execution or file modification
+  allowed_tools:
+    - read           # Read files from sandboxed directories
+    - grep           # Search within allowed files
+
+  # Explicitly blocked tools - never allow in legal environment
+  blocked_tools:
+    - bash           # No shell execution
+    - create_file    # No file creation
+    - edit_lines     # No file editing
+    - edit_replace   # No file editing
+    - append_file    # No file modification
+    - delete_file    # No file deletion
+    - web_search     # No web access - privileged data must not leak
+    - wikipedia      # No external data sources
+
+  # Audit all tool executions
+  audit_logging: true
+
+  # Read tool sandbox configuration
+  read:
+    # Only allow reading from matter-specific directories
+    allowed_paths:
+      - /data/matters/
+    # Block access to sensitive system paths
+    blocked_paths:
+      - /etc
+      - /var
+      - /home
+      - /root
+      - /tmp
+      - /proc
+      - /sys
+    # Allowed file types for legal documents
+    allowed_extensions:
+      - .pdf
+      - .txt
+      - .docx
+      - .doc
+      - .rtf
+      - .md
+    # PDF processing settings
+    enable_pdf: true
+    pdf_max_pages: 200
+
+# Structured audit logging for compliance
+logging:
+  enabled: true
+  format: json
+  output: file
+  file_path: /var/log/consoul/legal_audit.jsonl
+
+  # PII redaction - critical for legal compliance
+  redact_pii: true
+  redact_fields:
+    # Standard PII fields
+    - ssn
+    - social_security
+    - account_number
+    - credit_card
+    - password
+    - api_key
+    - token
+    - secret
+    # Legal-specific sensitive fields
+    - case_number
+    - docket_number
+    - client_id
+    - matter_number
+    - claim_number
+
+  # Request correlation for audit trails
+  correlation_ids: true
+
+  # Tamper-evident logging
+  append_only: true
+
+  # Include model metadata for reproducibility
+  include_model_trace: true
+
+  # Maximum argument length in logs (truncate for privacy)
+  max_arg_length: 500
+
+# Security configuration
+security:
+  # API key authentication (set via environment variable)
+  api_keys: ${CONSOUL_API_KEYS}
+
+  # Rate limiting per API key (not just client IP)
+  rate_limits:
+    - "30 per minute"
+    - "500 per hour"
+  per_key_limits: true
+
+  # CORS - restrict to known origins in production
+  cors_origins:
+    - ${CONSOUL_CORS_ORIGINS:-http://localhost:3000}
+
+# Session management with Redis
+session:
+  redis_url: ${REDIS_URL:-redis://localhost:6379}
+  ttl: 3600  # 1 hour session timeout
+  # Session data is encrypted at rest in Redis
+
+# Storage configuration for document uploads
+storage:
+  root: /data/matters
+  per_matter_isolation: true
+
+  # File upload restrictions
+  max_file_size_mb: 50
+  allowed_mime_types:
+    - application/pdf
+    - text/plain
+    - application/msword
+    - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    - text/rtf
+    - text/markdown
+
+# Legal context provider settings
+context:
+  jurisdiction: California
+  practice_area: workers_compensation
+  include_disclaimers: true
