@@ -129,11 +129,13 @@ Complete all items before deploying to production.
 
 ### Input Validation
 
-- [ ] **Request body size limited** (not enforced by default)
-  ```python
-  # Add RequestValidator middleware to enforce body size limits
-  from consoul.server.middleware import RequestValidator
-  validator = RequestValidator(max_body_size=1024 * 1024)  # 1MB
+- [x] **Request body size limited** (enforced by default: 1MB)
+  ```bash
+  # Default: 1MB limit enforced by BodySizeLimitMiddleware
+  # Customize via environment variable:
+  export CONSOUL_MAX_BODY_SIZE=2097152  # 2MB
+  # Or disable validation:
+  export CONSOUL_VALIDATION_ENABLED=false
   ```
 
 - [ ] **Message length validated** (max 32KB - enforced by Pydantic model)
@@ -391,12 +393,11 @@ private_key, privatekey, session_key
 
 | Limit | Default | Enforced By Default | Description |
 |-------|---------|---------------------|-------------|
-| `max_body_size` | 1MB | **No** (manual setup required) | Maximum request body |
+| `max_body_size` | 1MB | **Yes** (via `BodySizeLimitMiddleware`) | Maximum request body |
 | `session_id` | 1-128 chars | Yes (Pydantic) | Session ID length |
 | `message` | 1-32768 chars | Yes (Pydantic) | Message length (32KB) |
 
-**Note**: Request body size limits require manually adding `RequestValidator` middleware.
-FastAPI accepts arbitrarily large bodies by default.
+Configure body size limit via environment variable: `CONSOUL_MAX_BODY_SIZE=2097152` (2MB).
 
 ---
 

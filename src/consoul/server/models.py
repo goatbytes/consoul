@@ -466,6 +466,42 @@ class RateLimitConfig(BaseSettings):
     )
 
 
+class ValidationConfig(BaseSettings):
+    """Request validation configuration.
+
+    Controls request body size limits to protect against denial-of-service
+    attacks via oversized payloads.
+
+    Attributes:
+        enabled: Whether body size validation is enabled
+        max_body_size: Maximum request body size in bytes (default: 1MB)
+
+    Environment Variables:
+        CONSOUL_VALIDATION_ENABLED: Enable/disable body size validation (default: true)
+        CONSOUL_MAX_BODY_SIZE: Maximum body size in bytes (default: 1048576 = 1MB)
+
+    Example:
+        >>> config = ValidationConfig(max_body_size=2 * 1024 * 1024)  # 2MB
+        >>> # Or from environment:
+        >>> # CONSOUL_MAX_BODY_SIZE=2097152
+    """
+
+    model_config = SettingsConfigDict(populate_by_name=True, extra="ignore")
+
+    enabled: bool = Field(
+        default=True,
+        description="Whether body size validation is enabled",
+        validation_alias="CONSOUL_VALIDATION_ENABLED",
+    )
+    max_body_size: int = Field(
+        default=1024 * 1024,  # 1MB
+        ge=1024,  # Minimum 1KB
+        le=100 * 1024 * 1024,  # Maximum 100MB
+        description="Maximum request body size in bytes",
+        validation_alias="CONSOUL_MAX_BODY_SIZE",
+    )
+
+
 class CORSConfig(BaseSettings):
     """CORS configuration with environment variable support.
 
@@ -653,6 +689,7 @@ class ServerConfig(BaseSettings):
     Attributes:
         security: API key authentication configuration
         rate_limit: Rate limiting configuration
+        validation: Request validation configuration (body size limits)
         cors: CORS configuration
         session: Session storage configuration
         observability: Observability configuration (metrics, tracing)
@@ -668,6 +705,7 @@ class ServerConfig(BaseSettings):
         See nested config classes for their environment variables:
         - SecurityConfig: CONSOUL_API_KEYS, etc.
         - RateLimitConfig: CONSOUL_RATE_LIMIT_REDIS_URL, etc.
+        - ValidationConfig: CONSOUL_VALIDATION_ENABLED, CONSOUL_MAX_BODY_SIZE
         - CORSConfig: CONSOUL_CORS_ORIGINS, etc.
         - SessionConfig: CONSOUL_SESSION_REDIS_URL, etc.
         - ObservabilityConfig: CONSOUL_OBSERVABILITY_*, LANGSMITH_API_KEY, etc.
@@ -690,6 +728,10 @@ class ServerConfig(BaseSettings):
     rate_limit: RateLimitConfig = Field(
         default_factory=RateLimitConfig,
         description="Rate limiting configuration",
+    )
+    validation: ValidationConfig = Field(
+        default_factory=ValidationConfig,
+        description="Request validation configuration (body size limits)",
     )
     cors: CORSConfig = Field(
         default_factory=CORSConfig,
