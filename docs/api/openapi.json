@@ -1,0 +1,393 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Consoul API",
+    "description": "AI-powered API built with Consoul SDK",
+    "version": "0.4.2"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "summary": "Health",
+        "description": "Health check endpoint for monitoring systems.\n\nReturns basic service status and version. This endpoint bypasses\nauthentication and rate limiting for reliable monitoring.\n\nReturns:\n    HealthResponse: Standardized health check response with ISO 8601 timestamp\n\nResponse Schema:\n    {\n        \"status\": \"ok\",\n        \"service\": \"Consoul API\",\n        \"version\": \"0.4.2\",\n        \"timestamp\": \"2025-12-25T10:30:45.123456Z\"\n    }",
+        "operationId": "health_health",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "summary": "Readiness",
+        "description": "Readiness check endpoint with dependency health checks.\n\nChecks the health of external dependencies (e.g., Redis) and returns\n503 if any are unhealthy. This endpoint bypasses authentication and\nrate limiting for reliable monitoring.\n\nReturns:\n    ReadinessResponse: Success response when all dependencies healthy (200)\n    JSONResponse: Error response when dependencies unhealthy (503)\n\nResponse Schemas:\n    Success (200):\n    {\n        \"status\": \"ready\",\n        \"checks\": {\"redis\": true},\n        \"timestamp\": \"2025-12-25T10:30:45.123456Z\"\n    }\n\n    Error (503):\n    {\n        \"status\": \"not_ready\",\n        \"checks\": {\"redis\": false},\n        \"message\": \"Redis connection failed\",\n        \"timestamp\": \"2025-12-25T10:30:45.123456Z\"\n    }",
+        "operationId": "readiness_ready",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat": {
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Chat",
+        "description": "HTTP chat endpoint with session management.\n\nProcesses chat messages with automatic session creation and persistence.\nSessions are identified by session_id and maintain conversation history\nacross requests.\n\nArgs:\n    request: FastAPI request object\n    chat_request: Chat request with session_id and message\n    api_key: Optional API key (if authentication configured)\n\nReturns:\n    ChatResponse on success, JSONResponse with ChatErrorResponse on failure\n\nRaises:\n    HTTPException: 401 if authentication fails (when configured)\n    HTTPException: 429 if rate limit exceeded",
+        "operationId": "chat",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Session storage unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChatErrorResponse": {
+        "properties": {
+          "error": {
+            "type": "string",
+            "title": "Error",
+            "description": "Error type identifier"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable error description"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "ISO 8601 timestamp when error occurred"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error",
+          "message",
+          "timestamp"
+        ],
+        "title": "ChatErrorResponse",
+        "description": "Error response for chat endpoint failures.\n\nUsed for 500 and 503 responses.\n\nAttributes:\n    error: Error type identifier.\n    message: Human-readable error description.\n    timestamp: ISO 8601 timestamp when error occurred.\n\nExample:\n    >>> error = ChatErrorResponse(\n    ...     error=\"storage_unavailable\",\n    ...     message=\"Session storage temporarily unavailable\",\n    ...     timestamp=\"2025-12-25T10:30:45.123456Z\"\n    ... )"
+      },
+      "ChatResponse": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id",
+            "description": "Session identifier"
+          },
+          "response": {
+            "type": "string",
+            "title": "Response",
+            "description": "AI's response text"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "description": "Model that generated the response"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ChatUsage",
+            "description": "Token usage and cost information"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "ISO 8601 timestamp of response"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "response",
+          "model",
+          "usage",
+          "timestamp"
+        ],
+        "title": "ChatResponse",
+        "description": "Response body for POST /chat endpoint.\n\nAttributes:\n    session_id: Session identifier (echoed from request).\n    response: AI's response text.\n    model: Model that generated the response.\n    usage: Token usage and cost information.\n    timestamp: ISO 8601 timestamp of response.\n\nExample:\n    >>> response = ChatResponse(\n    ...     session_id=\"user-abc123\",\n    ...     response=\"I'm doing well, thank you!\",\n    ...     model=\"gpt-4o\",\n    ...     usage=ChatUsage(\n    ...         input_tokens=15,\n    ...         output_tokens=8,\n    ...         total_tokens=23,\n    ...         estimated_cost=0.000115\n    ...     ),\n    ...     timestamp=\"2025-12-25T10:30:45.123456Z\"\n    ... )"
+      },
+      "ChatUsage": {
+        "properties": {
+          "input_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Input Tokens",
+            "description": "Number of input tokens consumed"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Output Tokens",
+            "description": "Number of output tokens generated"
+          },
+          "total_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Tokens",
+            "description": "Total tokens (input + output)"
+          },
+          "estimated_cost": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Estimated Cost",
+            "description": "Estimated cost in USD"
+          }
+        },
+        "type": "object",
+        "required": [
+          "input_tokens",
+          "output_tokens",
+          "total_tokens",
+          "estimated_cost"
+        ],
+        "title": "ChatUsage",
+        "description": "Token usage and cost information for a chat request.\n\nAttributes:\n    input_tokens: Number of input tokens consumed.\n    output_tokens: Number of output tokens generated.\n    total_tokens: Total tokens (input + output).\n    estimated_cost: Estimated cost in USD.\n\nExample:\n    >>> usage = ChatUsage(\n    ...     input_tokens=15,\n    ...     output_tokens=8,\n    ...     total_tokens=23,\n    ...     estimated_cost=0.000115\n    ... )"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "description": "Health status indicator (always 'ok' when service is running)",
+            "default": "ok"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "description": "Service name from configuration"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Package version"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "ISO 8601 timestamp when health check was performed"
+          },
+          "connections": {
+            "type": "integer",
+            "title": "Connections",
+            "description": "Number of active WebSocket connections",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "service",
+          "version",
+          "timestamp"
+        ],
+        "title": "HealthResponse",
+        "description": "Health check endpoint response schema.\n\nStandardized response for GET /health endpoint, used by monitoring systems\nand orchestrators (Kubernetes, Docker Swarm, etc.) to verify service availability.\n\nAttributes:\n    status: Health status indicator (always \"ok\" when service is running)\n    service: Service name from ServerConfig.app_name\n    version: Package version from importlib.metadata\n    timestamp: ISO 8601 timestamp when health check was performed\n    connections: Number of active WebSocket connections\n\nExample:\n    >>> response = HealthResponse(\n    ...     status=\"ok\",\n    ...     service=\"Consoul API\",\n    ...     version=\"0.4.2\",\n    ...     timestamp=\"2025-12-25T10:30:45.123456Z\",\n    ...     connections=5,\n    ... )"
+      },
+      "ReadinessErrorResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "not_ready",
+            "title": "Status",
+            "description": "Error status (always 'not_ready' on failure)",
+            "default": "not_ready"
+          },
+          "checks": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Checks",
+            "description": "Dictionary of dependency health checks showing failures"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable error description"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "ISO 8601 timestamp when readiness check was performed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checks",
+          "message",
+          "timestamp"
+        ],
+        "title": "ReadinessErrorResponse",
+        "description": "Readiness check endpoint error response schema.\n\nReturned with HTTP 503 when one or more dependencies are unhealthy. Indicates\nservice should not receive traffic until dependencies recover.\n\nAttributes:\n    status: Error status (always \"not_ready\" on failure)\n    checks: Dictionary of dependency health checks showing which failed\n    message: Human-readable error description\n    timestamp: ISO 8601 timestamp when readiness check was performed\n\nExample:\n    >>> response = ReadinessErrorResponse(\n    ...     status=\"not_ready\",\n    ...     checks={\"redis\": False},\n    ...     message=\"Redis connection failed\",\n    ...     timestamp=\"2025-12-25T10:30:45.123456Z\"\n    ... )"
+      },
+      "ReadinessResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ready",
+            "title": "Status",
+            "description": "Readiness status (always 'ready' on success)",
+            "default": "ready"
+          },
+          "checks": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Checks",
+            "description": "Dictionary of dependency health checks"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "ISO 8601 timestamp when readiness check was performed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checks",
+          "timestamp"
+        ],
+        "title": "ReadinessResponse",
+        "description": "Readiness check endpoint success response schema.\n\nReturned with HTTP 200 when all dependencies are healthy. Used by orchestrators\nto determine if service is ready to receive traffic.\n\nAttributes:\n    status: Readiness status (always \"ready\" on success)\n    checks: Dictionary of dependency health checks (e.g., {\"redis\": true})\n    timestamp: ISO 8601 timestamp when readiness check was performed\n\nExample:\n    >>> response = ReadinessResponse(\n    ...     status=\"ready\",\n    ...     checks={\"redis\": True},\n    ...     timestamp=\"2025-12-25T10:30:45.123456Z\"\n    ... )"
+      },
+      "ChatRequest": {
+        "type": "object",
+        "title": "ChatRequest",
+        "description": "Request body for POST /chat endpoint.",
+        "required": [
+          "session_id",
+          "message"
+        ],
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id",
+            "description": "Unique session identifier. Auto-creates session if not exists.",
+            "minLength": 1,
+            "maxLength": 128,
+            "examples": [
+              "user-abc123",
+              "session-uuid-v4"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "User message to send to the AI (32KB max).",
+            "minLength": 1,
+            "maxLength": 32768,
+            "examples": [
+              "Hello, how are you?"
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model",
+            "description": "Model to use (only applies when creating new session).",
+            "default": null,
+            "examples": [
+              "gpt-4o",
+              "claude-3-5-sonnet-20241022"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

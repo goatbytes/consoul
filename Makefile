@@ -1,4 +1,4 @@
-.PHONY: help install test lint format type-check clean build docs
+.PHONY: help install test lint format type-check clean build docs openapi
 
 help:  ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -72,3 +72,6 @@ pre-commit:  ## Run pre-commit hooks on all files
 
 update:  ## Update dependencies
 	poetry update
+
+openapi:  ## Export OpenAPI spec to docs/api/openapi.json
+	poetry run python scripts/generate_openapi_clients.py
