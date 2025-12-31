@@ -847,17 +847,68 @@ class RedisSessionStore:
             logger.error(f"Failed to check session {session_id} in Redis: {e}")
             return False
 
-    def cleanup(self) -> int:
-        """Redis handles expiration automatically via TTL.
+    def cleanup(self, batch_size: int = 100) -> int:
+        """Remove orphaned sessions without TTL that have expired.
+
+        Scans Redis for session keys without TTL (TTL=-1) and checks
+        if they should have expired based on their created_at timestamp.
+        Sessions with valid Redis TTL are skipped as Redis handles their
+        expiration automatically.
+
+        Args:
+            batch_size: Number of keys to process per SCAN iteration
 
         Returns:
-            Always returns 0 (Redis auto-expires keys)
+            Count of sessions deleted
 
         Note:
-            Redis automatically removes expired keys. This method is a no-op
-            for compatibility with the SessionStore protocol.
+            Uses SCAN (not KEYS) for production safety. Only deletes sessions
+            where TTL=-1 (no expiry set) AND age >= self.ttl.
         """
-        return 0
+        if self.ttl is None:
+            # No TTL configured, can't determine what's expired
+            return 0
+
+        pattern = f"{self.prefix}*"
+        cursor = 0
+        deleted_count = 0
+        now = time.time()
+
+        try:
+            while True:
+                cursor, keys = self.redis.scan(
+                    cursor=cursor, match=pattern, count=batch_size
+                )
+
+                for key in keys:
+                    key_str = key.decode() if isinstance(key, bytes) else key
+
+                    # Check if key has no TTL (orphaned)
+                    key_ttl = self.redis.ttl(key_str)
+                    if key_ttl == -1:  # No expiry set
+                        try:
+                            json_data = self.redis.get(key_str)
+                            if json_data:
+                                data = json.loads(json_data)
+                                created_at = data.get("created_at", 0.0)
+                                if now - created_at >= self.ttl:
+                                    self.redis.delete(key_str)
+                                    deleted_count += 1
+                        except (json.JSONDecodeError, TypeError):
+                            # Corrupted session, delete it
+                            self.redis.delete(key_str)
+                            deleted_count += 1
+
+                if cursor == 0:
+                    break
+
+        except Exception as e:
+            logger.error(f"Session cleanup failed: {e}")
+
+        if deleted_count > 0:
+            logger.info(f"Session GC: cleaned {deleted_count} orphaned sessions")
+
+        return deleted_count
 
     def list_sessions(
         self,

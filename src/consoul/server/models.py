@@ -651,6 +651,8 @@ class SessionConfig(BaseSettings):
         REDIS_URL: Universal fallback for Redis URL
         CONSOUL_REDIS_FALLBACK_ENABLED: Enable fallback to in-memory on Redis failure
         CONSOUL_REDIS_RECONNECT_INTERVAL: Seconds between reconnection attempts
+        CONSOUL_SESSION_GC_INTERVAL: Session GC interval in seconds (default: 3600, 0 to disable)
+        CONSOUL_SESSION_GC_BATCH_SIZE: Keys to process per GC batch (default: 100)
 
     Example:
         # Dedicated session Redis
@@ -662,6 +664,9 @@ class SessionConfig(BaseSettings):
         # Enable graceful degradation
         CONSOUL_REDIS_FALLBACK_ENABLED=true
         CONSOUL_REDIS_RECONNECT_INTERVAL=60
+
+        # Session GC every 5 minutes
+        CONSOUL_SESSION_GC_INTERVAL=300
     """
 
     # NO env_prefix - use explicit full names for deterministic resolution
@@ -696,6 +701,19 @@ class SessionConfig(BaseSettings):
         le=3600,
         description="Seconds between Redis reconnection attempts",
         validation_alias="CONSOUL_REDIS_RECONNECT_INTERVAL",
+    )
+    gc_interval: int = Field(
+        default=3600,
+        ge=0,
+        description="Session GC interval in seconds (0 to disable)",
+        validation_alias="CONSOUL_SESSION_GC_INTERVAL",
+    )
+    gc_batch_size: int = Field(
+        default=100,
+        ge=1,
+        le=10000,
+        description="Number of keys to process per GC batch",
+        validation_alias="CONSOUL_SESSION_GC_BATCH_SIZE",
     )
 
 

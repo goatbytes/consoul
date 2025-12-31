@@ -93,6 +93,8 @@ Security Notes:
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -262,10 +264,62 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         else:
             app.state.langsmith_tracer = None
 
+        # Session garbage collection background task
+        gc_task: asyncio.Task[None] | None = None
+        session_store = getattr(app.state, "session_store", None)
+        if (
+            session_store is not None
+            and config.session.gc_interval > 0
+            and hasattr(session_store, "cleanup")
+        ):
+            # Check if cleanup() accepts batch_size (only RedisSessionStore does)
+            import inspect
+
+            cleanup_sig = inspect.signature(session_store.cleanup)
+            accepts_batch_size = "batch_size" in cleanup_sig.parameters
+
+            async def session_gc_loop() -> None:
+                """Periodic session garbage collection.
+
+                Runs cleanup in a thread pool to avoid blocking the event loop
+                during synchronous Redis SCAN operations.
+                """
+                while True:
+                    await asyncio.sleep(config.session.gc_interval)
+                    try:
+                        # Run synchronous cleanup in thread pool
+                        # to avoid blocking the event loop
+                        if accepts_batch_size:
+                            cleaned = await asyncio.to_thread(
+                                session_store.cleanup,
+                                batch_size=config.session.gc_batch_size,
+                            )
+                        else:
+                            cleaned = await asyncio.to_thread(session_store.cleanup)
+                        if cleaned > 0:
+                            logger.info(
+                                f"Session GC: cleaned {cleaned} orphaned sessions"
+                            )
+                    except Exception as e:
+                        logger.error(f"Session GC failed: {e}")
+
+            gc_task = asyncio.create_task(session_gc_loop())
+            app.state.gc_task = gc_task
+            logger.info(
+                f"Session GC enabled: interval={config.session.gc_interval}s, "
+                f"batch_size={config.session.gc_batch_size}"
+            )
+
         yield
 
+        # Cancel GC task
+        if gc_task is not None:
+            gc_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await gc_task
+            logger.info("Session GC task cancelled")
+
         logger.info("Shutting down gracefully...")
-        # Cleanup is handled by uvicorn's shutdown timeout
 
     # Create FastAPI application
     app = FastAPI(
