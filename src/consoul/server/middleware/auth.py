@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 from fastapi import HTTPException, Security, status
 from fastapi.security import APIKeyHeader, APIKeyQuery
 
+from consoul.server.errors import ErrorCode, create_error_response
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -168,10 +170,10 @@ class APIKeyAuth:
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": "Invalid or missing API key",
-                "message": f"Provide valid API key via '{self.header_name}' header or '{self.query_name}' query parameter",
-            },
+            detail=create_error_response(
+                ErrorCode.INVALID_API_KEY,
+                message=f"Provide valid API key via '{self.header_name}' header or '{self.query_name}' query parameter",
+            ),
             headers={"WWW-Authenticate": f"ApiKey name={self.header_name}"},
         )
 

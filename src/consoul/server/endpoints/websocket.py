@@ -52,6 +52,8 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import WebSocket, WebSocketDisconnect
 
+from consoul.server.errors import ERROR_REGISTRY, ErrorCode
+
 if TYPE_CHECKING:
     from consoul.sdk.models import ToolRequest
 
@@ -415,10 +417,16 @@ async def websocket_chat_handler(
                     if content and len(content) <= 32768:
                         await message_queue.put(data)
                     else:
+                        error_meta = ERROR_REGISTRY[ErrorCode.FIELD_VALIDATION_FAILED]
                         await backpressure.send(
                             {
                                 "type": "error",
-                                "data": {"message": "Invalid message content"},
+                                "data": {
+                                    "code": ErrorCode.FIELD_VALIDATION_FAILED.value,
+                                    "error": error_meta["error"],
+                                    "message": "Invalid message content",
+                                    "recoverable": error_meta["recoverable"],
+                                },
                             }
                         )
 
@@ -428,10 +436,16 @@ async def websocket_chat_handler(
                     approval_provider.handle_approval(tool_id, approved)
 
                 else:
+                    error_meta = ERROR_REGISTRY[ErrorCode.INVALID_REQUEST_BODY]
                     await backpressure.send(
                         {
                             "type": "error",
-                            "data": {"message": f"Unknown message type: {msg_type}"},
+                            "data": {
+                                "code": ErrorCode.INVALID_REQUEST_BODY.value,
+                                "error": error_meta["error"],
+                                "message": f"Unknown message type: {msg_type}",
+                                "recoverable": error_meta["recoverable"],
+                            },
                         }
                     )
 
@@ -525,8 +539,17 @@ async def websocket_chat_handler(
                 except Exception as e:
                     logger.error(f"Processing error: {e}", exc_info=True)
                     try:
+                        error_meta = ERROR_REGISTRY[ErrorCode.INTERNAL_ERROR]
                         await backpressure.send(
-                            {"type": "error", "data": {"message": str(e)}}
+                            {
+                                "type": "error",
+                                "data": {
+                                    "code": ErrorCode.INTERNAL_ERROR.value,
+                                    "error": error_meta["error"],
+                                    "message": str(e),
+                                    "recoverable": error_meta["recoverable"],
+                                },
+                            }
                         )
                     except ConnectionError:
                         break

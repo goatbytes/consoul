@@ -344,21 +344,32 @@ class ChatResponse(BaseModel):
 class ChatErrorResponse(BaseModel):
     """Error response for chat endpoint failures.
 
-    Used for 500 and 503 responses.
+    Used for 4xx and 5xx responses with standardized error codes.
 
     Attributes:
-        error: Error type identifier.
+        code: Error code (E001-E999) for programmatic handling.
+        error: Error type identifier for backward compatibility.
         message: Human-readable error description.
+        recoverable: Whether the client can retry the request.
+        retry_after: Seconds before client should retry (for recoverable errors).
+        details: Additional context about the error.
         timestamp: ISO 8601 timestamp when error occurred.
 
     Example:
         >>> error = ChatErrorResponse(
-        ...     error="storage_unavailable",
+        ...     code="E110",
+        ...     error="session_storage_unavailable",
         ...     message="Session storage temporarily unavailable",
+        ...     recoverable=True,
+        ...     retry_after=30,
         ...     timestamp="2025-12-25T10:30:45.123456Z"
         ... )
     """
 
+    code: str = Field(
+        ...,
+        description="Error code (E001-E999) for programmatic handling",
+    )
     error: str = Field(
         ...,
         description="Error type identifier",
@@ -366,6 +377,18 @@ class ChatErrorResponse(BaseModel):
     message: str = Field(
         ...,
         description="Human-readable error description",
+    )
+    recoverable: bool = Field(
+        ...,
+        description="Whether the client can retry the request",
+    )
+    retry_after: int | None = Field(
+        default=None,
+        description="Seconds before client should retry (for recoverable errors)",
+    )
+    details: dict[str, Any] | None = Field(
+        default=None,
+        description="Additional context about the error",
     )
     timestamp: str = Field(
         ...,
@@ -481,26 +504,38 @@ class SSEErrorEvent(BaseModel):
 
     Sent when an error occurs during streaming.
 
-    Sent as: event: error\\ndata: {"code": "...", "message": "..."}\\n\\n
+    Sent as: event: error\\ndata: {"code": "E900", "error": "...", ...}\\n\\n
 
     Attributes:
-        code: Error code identifier.
+        code: Error code (E001-E999) for programmatic handling.
+        error: Error type identifier for backward compatibility.
         message: Human-readable error message.
+        recoverable: Whether the client can retry the request.
 
     Example:
         >>> event = SSEErrorEvent(
-        ...     code="INTERNAL_ERROR",
-        ...     message="An unexpected error occurred"
+        ...     code="E900",
+        ...     error="internal_error",
+        ...     message="An unexpected error occurred",
+        ...     recoverable=False
         ... )
     """
 
     code: str = Field(
         ...,
-        description="Error code identifier",
+        description="Error code (E001-E999) for programmatic handling",
+    )
+    error: str = Field(
+        ...,
+        description="Error type identifier",
     )
     message: str = Field(
         ...,
         description="Human-readable error message",
+    )
+    recoverable: bool = Field(
+        default=False,
+        description="Whether the client can retry the request",
     )
 
 

@@ -77,15 +77,20 @@ class TestSSEEventFormatting:
     def test_error_event_format(self) -> None:
         """Error event is formatted correctly."""
         error_data = SSEErrorEvent(
-            code="INTERNAL_ERROR", message="Something went wrong"
+            code="E900",
+            error="internal_error",
+            message="Something went wrong",
+            recoverable=False,
         )
         event = sse_format_event("error", error_data.model_dump())
 
         assert event.startswith("event: error\n")
         data_line = event.split("\n")[1]
         data = json.loads(data_line[6:])
-        assert data["code"] == "INTERNAL_ERROR"
+        assert data["code"] == "E900"
+        assert data["error"] == "internal_error"
         assert data["message"] == "Something went wrong"
+        assert data["recoverable"] is False
 
     def test_tool_request_event_format(self) -> None:
         """Tool request event is formatted correctly."""
@@ -458,9 +463,16 @@ class TestSSEModels:
 
     def test_sse_error_event_model(self) -> None:
         """SSEErrorEvent model validates correctly."""
-        event = SSEErrorEvent(code="ERROR", message="Something went wrong")
-        assert event.code == "ERROR"
+        event = SSEErrorEvent(
+            code="E900",
+            error="internal_error",
+            message="Something went wrong",
+            recoverable=False,
+        )
+        assert event.code == "E900"
+        assert event.error == "internal_error"
         assert event.message == "Something went wrong"
+        assert event.recoverable is False
 
     def test_sse_tool_request_event_model(self) -> None:
         """SSEToolRequestEvent model validates correctly."""

@@ -52,6 +52,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from starlette.requests import Request  # noqa: TC002 (used in param type)
 
+from consoul.server.errors import ERROR_REGISTRY, ErrorCode
 from consoul.server.models import (
     ChatUsage,
     SSEDoneEvent,
@@ -369,8 +370,11 @@ async def sse_stream_generator(
 
     except Exception as e:
         logger.error(f"SSE streaming error: {e}", exc_info=True)
+        error_meta = ERROR_REGISTRY[ErrorCode.INTERNAL_ERROR]
         error_event = SSEErrorEvent(
-            code="INTERNAL_ERROR",
+            code=ErrorCode.INTERNAL_ERROR.value,
+            error=error_meta["error"],
             message=str(e),
+            recoverable=error_meta["recoverable"],
         )
         yield sse_format_event("error", error_event.model_dump())

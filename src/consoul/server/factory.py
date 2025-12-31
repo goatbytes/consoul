@@ -104,6 +104,11 @@ from typing import TYPE_CHECKING, Any
 from fastapi import Depends, FastAPI, Request, WebSocket
 from fastapi.responses import JSONResponse
 
+from consoul.server.errors import (
+    ErrorCode,
+    create_error_response,
+    get_error_http_status,
+)
 from consoul.server.models import (
     ChatRequest,  # noqa: TC001 (FastAPI needs at runtime for OpenAPI)
 )
@@ -352,12 +357,14 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                 try:
                     if int(content_length) > max_body_size:
                         return JSONResponse(
-                            status_code=413,
-                            content={
-                                "error": "Request too large",
-                                "message": f"Request body must be less than {max_body_size} bytes",
-                                "limit": max_body_size,
-                            },
+                            status_code=get_error_http_status(
+                                ErrorCode.REQUEST_TOO_LARGE
+                            ),
+                            content=create_error_response(
+                                ErrorCode.REQUEST_TOO_LARGE,
+                                message=f"Request body must be less than {max_body_size} bytes",
+                                details={"limit": max_body_size},
+                            ),
                         )
                 except ValueError:
                     pass  # Invalid Content-Length, let request proceed
@@ -784,22 +791,22 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         except OSError as e:
             logger.error(f"Session storage error for {session_id}: {e}")
             return JSONResponse(
-                status_code=503,
-                content=ChatErrorResponse(
-                    error="storage_unavailable",
-                    message="Session storage temporarily unavailable",
-                    timestamp=timestamp,
-                ).model_dump(),
+                status_code=get_error_http_status(
+                    ErrorCode.SESSION_STORAGE_UNAVAILABLE
+                ),
+                content=create_error_response(
+                    ErrorCode.SESSION_STORAGE_UNAVAILABLE,
+                    retry_after=30,
+                ),
             )
         except Exception as e:
             logger.exception(f"Chat error for session {session_id}: {e}")
             return JSONResponse(
-                status_code=500,
-                content=ChatErrorResponse(
-                    error="internal_error",
+                status_code=get_error_http_status(ErrorCode.INTERNAL_ERROR),
+                content=create_error_response(
+                    ErrorCode.INTERNAL_ERROR,
                     message=str(e),
-                    timestamp=timestamp,
-                ).model_dump(),
+                ),
             )
 
     # Register WebSocket endpoint
