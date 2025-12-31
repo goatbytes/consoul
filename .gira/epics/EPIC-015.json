@@ -1,10 +1,11 @@
 {
-  "created_at": "2025-12-16T13:56:23.513570",
-  "updated_at": "2025-12-16T15:48:25.983740",
+  "created_at": "2025-12-16T13:56:23.513570Z",
+  "updated_at": "2025-12-31T05:03:47.543185Z",
   "id": "EPIC-015",
+  "_version": 1,
   "title": "SDK Decoupling & Domain-Agnostic Design",
   "description": "Transform Consoul from a coding-assistant-focused SDK into a general-purpose LLM integration library suitable for any domain (legal AI, medical chatbots, customer support, etc.).\n\n## Vision\nEnable developers to use Consoul as a headless SDK without TUI/CLI/profile concepts, while maintaining backward compatibility for existing users.\n\n## Problem Statement\nCurrent architecture couples SDK to profiles and coding assistant assumptions:\n- Profiles bundle system prompts, model config, and context settings\n- Context injection assumes coding use case (git info, working directory)\n- SDK constructor requires profile parameter\n- Provider-specific parameters only configurable via static config files\n- No extensibility for domain-specific context injection\n\nThis prevents Consoul from serving projects like:\n- Richard (workers compensation legal AI)\n- Medical chatbots requiring patient context\n- Customer support bots with CRM integration\n- General-purpose AI agents in non-coding domains\n\n## Goals\n1. **Profile-Optional SDK**: Use Consoul without any profile dependency\n2. **Flexible Context**: Control what gets injected (not all-or-nothing booleans)\n3. **Provider Params**: Pass provider-specific options at runtime\n4. **Extensible Context**: Plugin architecture for domain-specific knowledge\n5. **Backward Compatible**: Existing profile/CLI/TUI usage unaffected\n\n## Architecture Principles\n- **SDK First**: Core library has no TUI/CLI dependencies\n- **Explicit Over Implicit**: Users control configuration, no magic defaults\n- **Domain Agnostic**: No assumptions about use case (coding vs legal vs medical)\n- **Layered**: TUI/CLI layer can still use profiles as convenience\n- **Extensible**: Protocol-based extension points for custom behavior\n\n## Success Metrics\n- Consoul SDK can be used for legal AI (Richard project) with clean integration\n- Medical/customer support examples documented and working\n- Zero breaking changes for existing CLI/TUI users\n- Profile system remains optional convenience layer\n- Documentation shows domain-specific patterns\n\n## Phases\n\n### Phase 1: Foundation (Quick Wins)\n- SOUL-285: Profile-optional constructor (5 pts)\n- SOUL-287: Flexible prompt builder (3 pts)\n- SOUL-288: Provider-specific params (3 pts)\n\n### Phase 2: Architecture (Future Work)\n- SOUL-289: Decouple profiles from SDK core (13 pts) - Breaking change\n- SOUL-290: Extensible context injection (8 pts)\n\n## Timeline\n- Phase 1: 1-2 weeks (enables Richard and other projects)\n- Phase 2: 2-3 weeks (major refactor, requires version bump)\n\n## Dependencies\n- No blockers for Phase 1\n- Phase 2 (SOUL-289) requires Phase 1 completion\n\n## Related Work\n- EPIC-002: Core AI & Configuration System (completed)\n- EPIC-011: WebSocket/FastAPI Backend Support (active)",
-  "status": "active",
+  "status": "completed",
   "owner": "jared@goatbytes.io",
   "labels": [],
   "tickets": [
@@ -16,8 +17,8 @@
   ],
   "comments": [
     {
-      "created_at": "2025-12-16T15:48:25.983614",
-      "updated_at": "2025-12-16T15:48:25.983616",
+      "created_at": "2025-12-16T15:48:25.983614Z",
+      "updated_at": "2025-12-16T15:48:25.983616Z",
       "id": "20251216154825-50a03b3e",
       "epic_id": "EPIC-015",
       "author": "jared@goatbytes.io",

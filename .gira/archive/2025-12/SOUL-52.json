@@ -1,11 +1,12 @@
 {
-  "created_at": "2025-11-09T20:16:17.985619",
-  "updated_at": "2025-11-11T04:29:54.579948Z",
+  "created_at": "2025-11-09T20:16:17.985619Z",
+  "updated_at": "2025-12-31T05:00:52.343942Z",
   "id": "SOUL-52",
   "uuid": "19ae81e3-fbe2-40bd-91ef-ec131b975d1c",
+  "_version": 1,
   "title": "Create comprehensive TUI test suite",
   "description": "Implement 4 test suites from TUI_RESEARCH.md: widget unit tests (80% coverage), streaming regression tests, smoke tests, optional visual tests. Mock AI providers, test all keyboard shortcuts.",
-  "status": "backlog",
+  "status": "done",
   "type": "task",
   "priority": "high",
   "labels": [
@@ -25,8 +26,8 @@
   "order": 0,
   "custom_fields": {},
   "_archive_metadata": {
-    "archived_at": "2025-11-12T16:50:31.824092",
-    "archived_from_status": "backlog",
+    "archived_at": "2025-12-31T05:02:15.632313+00:00",
+    "archived_from_status": "done",
     "archived_by": "gira-cli"
   }
 }
