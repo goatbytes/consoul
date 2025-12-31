@@ -476,8 +476,13 @@ async def websocket_chat_handler(
 
                         # Create ConversationService with approval provider for tools
                         # Use async context manager to ensure executor cleanup
+                        # Get circuit breaker from app state (SOUL-342)
+                        circuit_breaker_manager = getattr(
+                            websocket.app.state, "circuit_breaker_manager", None
+                        )
                         async with ConversationService.from_config(
                             approval_provider=approval_provider,
+                            circuit_breaker_manager=circuit_breaker_manager,
                         ) as service:
                             # Restore messages if session exists
                             if state and state.get("messages"):

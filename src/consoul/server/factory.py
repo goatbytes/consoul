@@ -265,6 +265,37 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                 # app.state.metrics remains None - middleware will skip recording
                 logger.warning("Prometheus metrics disabled (server failed to start)")
 
+        # Initialize circuit breaker manager (SOUL-342)
+        if config.circuit_breaker.enabled:
+            from consoul.server.circuit_breaker import (
+                CircuitBreakerManager,
+                CircuitState,
+            )
+
+            def circuit_breaker_metrics_callback(
+                provider: str, state: CircuitState
+            ) -> None:
+                """Update metrics when circuit breaker state changes."""
+                if hasattr(app.state, "metrics") and app.state.metrics:
+                    app.state.metrics.set_circuit_breaker_state(provider, int(state))
+                    if state == CircuitState.OPEN:
+                        app.state.metrics.record_circuit_breaker_trip(provider)
+
+            app.state.circuit_breaker_manager = CircuitBreakerManager(
+                failure_threshold=config.circuit_breaker.failure_threshold,
+                success_threshold=config.circuit_breaker.success_threshold,
+                timeout=config.circuit_breaker.timeout,
+                half_open_max_calls=config.circuit_breaker.half_open_max_calls,
+                metrics_callback=circuit_breaker_metrics_callback,
+            )
+            logger.info(
+                "Circuit breaker enabled (threshold=%d, timeout=%ds)",
+                config.circuit_breaker.failure_threshold,
+                config.circuit_breaker.timeout,
+            )
+        else:
+            app.state.circuit_breaker_manager = None
+
         # Setup OpenTelemetry tracing
         if config.observability.otel_enabled:
             setup_opentelemetry(

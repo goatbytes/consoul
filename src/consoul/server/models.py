@@ -1141,6 +1141,74 @@ class ObservabilityConfig(BaseSettings):
     )
 
 
+class CircuitBreakerConfig(BaseSettings):
+    """Circuit breaker configuration for LLM provider resilience.
+
+    SOUL-342: Implements circuit breaker pattern to protect against cascading
+    failures when LLM providers become unavailable.
+
+    States:
+        CLOSED: Normal operation, failures are counted
+        OPEN: Fast-fail all requests, timer running until half-open
+        HALF_OPEN: Limited test requests allowed to probe recovery
+
+    Attributes:
+        enabled: Enable circuit breaker protection
+        failure_threshold: Consecutive failures before opening circuit
+        success_threshold: Successes in half-open state required to close
+        timeout: Seconds before transitioning from open to half-open
+        half_open_max_calls: Maximum test requests allowed in half-open state
+
+    Environment Variables:
+        CONSOUL_CIRCUIT_BREAKER_ENABLED: Enable circuit breaker
+        CONSOUL_CIRCUIT_BREAKER_FAILURE_THRESHOLD: Failures before opening
+        CONSOUL_CIRCUIT_BREAKER_SUCCESS_THRESHOLD: Successes to close
+        CONSOUL_CIRCUIT_BREAKER_TIMEOUT: Seconds before half-open
+        CONSOUL_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS: Test requests in half-open
+
+    Example:
+        >>> config = CircuitBreakerConfig(
+        ...     enabled=True,
+        ...     failure_threshold=5,
+        ...     timeout=60,
+        ... )
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="CONSOUL_CIRCUIT_BREAKER_",
+        env_nested_delimiter="__",
+    )
+
+    enabled: bool = Field(
+        default=True,
+        description="Enable circuit breaker protection for LLM providers",
+    )
+    failure_threshold: int = Field(
+        default=5,
+        ge=1,
+        le=100,
+        description="Consecutive failures before opening circuit",
+    )
+    success_threshold: int = Field(
+        default=3,
+        ge=1,
+        le=20,
+        description="Successes in half-open state required to close circuit",
+    )
+    timeout: int = Field(
+        default=60,
+        ge=5,
+        le=600,
+        description="Seconds before transitioning from open to half-open state",
+    )
+    half_open_max_calls: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Maximum test requests allowed in half-open state",
+    )
+
+
 class ServerConfig(BaseSettings):
     """Complete server configuration.
 
@@ -1153,6 +1221,7 @@ class ServerConfig(BaseSettings):
         cors: CORS configuration
         session: Session storage configuration
         observability: Observability configuration (metrics, tracing)
+        circuit_breaker: Circuit breaker configuration for LLM provider resilience
         host: Server host
         port: Server port
         reload: Enable auto-reload (development only)
@@ -1169,6 +1238,7 @@ class ServerConfig(BaseSettings):
         - CORSConfig: CONSOUL_CORS_ORIGINS, etc.
         - SessionConfig: CONSOUL_SESSION_REDIS_URL, etc.
         - ObservabilityConfig: CONSOUL_OBSERVABILITY_*, LANGSMITH_API_KEY, etc.
+        - CircuitBreakerConfig: CONSOUL_CIRCUIT_BREAKER_*, etc.
 
     Example:
         >>> config = ServerConfig()
@@ -1204,6 +1274,10 @@ class ServerConfig(BaseSettings):
     observability: ObservabilityConfig = Field(
         default_factory=ObservabilityConfig,
         description="Observability configuration (metrics, tracing)",
+    )
+    circuit_breaker: CircuitBreakerConfig = Field(
+        default_factory=CircuitBreakerConfig,
+        description="Circuit breaker configuration for LLM provider resilience",
     )
     host: str = Field(
         default="0.0.0.0",

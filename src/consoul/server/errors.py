@@ -73,6 +73,8 @@ class ErrorCode(str, Enum):
     LLM_RATE_LIMITED = "E202"
     LLM_CONTEXT_TOO_LONG = "E203"
     LLM_CONTENT_FILTERED = "E204"
+    CIRCUIT_BREAKER_OPEN = "E206"
+    CIRCUIT_BREAKER_HALF_OPEN = "E207"
     MODEL_NOT_AVAILABLE = "E210"
     MODEL_CONFIG_ERROR = "E211"
 
@@ -220,6 +222,18 @@ ERROR_REGISTRY: dict[ErrorCode, dict[str, Any]] = {
         "http_status": 400,
         "recoverable": False,
         "message": "Content was filtered by the LLM provider",
+    },
+    ErrorCode.CIRCUIT_BREAKER_OPEN: {
+        "error": "circuit_breaker_open",
+        "http_status": 503,
+        "recoverable": True,
+        "message": "LLM provider temporarily unavailable (circuit breaker open)",
+    },
+    ErrorCode.CIRCUIT_BREAKER_HALF_OPEN: {
+        "error": "circuit_breaker_half_open",
+        "http_status": 503,
+        "recoverable": True,
+        "message": "LLM provider testing recovery (limited capacity)",
     },
     ErrorCode.MODEL_NOT_AVAILABLE: {
         "error": "model_not_available",

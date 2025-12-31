@@ -56,6 +56,13 @@ Installation:
     - redis>=5.2.0
 """
 
+from consoul.server.circuit_breaker import (
+    CircuitBreaker,
+    CircuitBreakerError,
+    CircuitBreakerManager,
+    CircuitBreakerStats,
+    CircuitState,
+)
 from consoul.server.endpoints.websocket import (
     BackpressureHandler,
     WebSocketApprovalProvider,
@@ -73,6 +80,7 @@ from consoul.server.models import (
     ChatRequest,
     ChatResponse,
     ChatUsage,
+    CircuitBreakerConfig,
     RateLimitConfig,
     SecurityConfig,
     ServerConfig,
@@ -86,6 +94,12 @@ __all__ = [
     "ChatRequest",
     "ChatResponse",
     "ChatUsage",
+    "CircuitBreaker",
+    "CircuitBreakerConfig",
+    "CircuitBreakerError",
+    "CircuitBreakerManager",
+    "CircuitBreakerStats",
+    "CircuitState",
     "RateLimitConfig",
     "RateLimiter",
     "RequestValidator",

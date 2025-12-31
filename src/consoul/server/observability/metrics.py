@@ -88,6 +88,9 @@ class MetricsCollector:
     - consoul_errors_total: Error count by endpoint, error type
     - consoul_redis_degraded: Gauge for Redis degradation status (SOUL-328)
     - consoul_redis_recovered_total: Counter for Redis recovery events (SOUL-328)
+    - consoul_circuit_breaker_state: Circuit breaker state by provider (SOUL-342)
+    - consoul_circuit_breaker_trips_total: Circuit breaker trip count (SOUL-342)
+    - consoul_circuit_breaker_rejections_total: Requests rejected by breaker (SOUL-342)
 
     Gracefully degrades to no-op if prometheus-client not installed.
 
@@ -149,6 +152,23 @@ class MetricsCollector:
         self.redis_recovered = _Counter(
             "consoul_redis_recovered_total",
             "Total number of Redis connection recoveries",
+        )
+
+        # Circuit breaker metrics (SOUL-342)
+        self.circuit_breaker_state = _Gauge(
+            "consoul_circuit_breaker_state",
+            "Circuit breaker state (0=closed, 1=half-open, 2=open)",
+            ["provider"],
+        )
+        self.circuit_breaker_trips_total = _Counter(
+            "consoul_circuit_breaker_trips_total",
+            "Total number of times circuit breaker has tripped",
+            ["provider"],
+        )
+        self.circuit_breaker_rejections_total = _Counter(
+            "consoul_circuit_breaker_rejections_total",
+            "Total requests rejected by open circuit breaker",
+            ["provider"],
         )
 
     @property
@@ -259,6 +279,37 @@ class MetricsCollector:
         if not self._enabled:
             return
         self.redis_recovered.inc()
+
+    def set_circuit_breaker_state(self, provider: str, state: int) -> None:
+        """Set circuit breaker state (SOUL-342).
+
+        Args:
+            provider: LLM provider name (e.g., "openai", "anthropic")
+            state: Circuit state (0=closed, 1=half-open, 2=open)
+        """
+        if not self._enabled:
+            return
+        self.circuit_breaker_state.labels(provider=provider).set(state)
+
+    def record_circuit_breaker_trip(self, provider: str) -> None:
+        """Record circuit breaker trip (SOUL-342).
+
+        Args:
+            provider: LLM provider name (e.g., "openai", "anthropic")
+        """
+        if not self._enabled:
+            return
+        self.circuit_breaker_trips_total.labels(provider=provider).inc()
+
+    def record_circuit_breaker_rejection(self, provider: str) -> None:
+        """Record request rejected by circuit breaker (SOUL-342).
+
+        Args:
+            provider: LLM provider name (e.g., "openai", "anthropic")
+        """
+        if not self._enabled:
+            return
+        self.circuit_breaker_rejections_total.labels(provider=provider).inc()
 
 
 def create_metrics_middleware(

@@ -274,8 +274,13 @@ async def sse_stream_generator(
             state = await asyncio.to_thread(store.load, session_id)
 
             # Create ConversationService with auto-approval
+            # Get circuit breaker from app state (SOUL-342)
+            circuit_breaker_manager = getattr(
+                request.app.state, "circuit_breaker_manager", None
+            )
             async with ConversationService.from_config(
                 approval_provider=approval_provider,
+                circuit_breaker_manager=circuit_breaker_manager,
             ) as service:
                 # Override model for new sessions if specified
                 if model and not state and service.config:

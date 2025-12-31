@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from consoul.ai.tools import ToolRegistry
     from consoul.config import ConsoulConfig
     from consoul.sdk.models import Attachment
+    from consoul.server.circuit_breaker import CircuitBreakerManager
 
 # Type alias for tool approval callbacks
 # Must be async callable or protocol implementation with async on_tool_request method
@@ -97,6 +98,7 @@ class ConversationService:
         audit_logger: Any | None = None,
         executor: ThreadPoolExecutor | None = None,
         max_workers: int = 1,
+        circuit_breaker_manager: CircuitBreakerManager | None = None,
     ) -> None:
         """Initialize conversation service.
 
@@ -118,6 +120,9 @@ class ConversationService:
             max_workers: Number of worker threads if creating executor (default: 1).
                 Keep at 1 to preserve tool execution ordering. Only increase if
                 tools are independent and ordering doesn't matter.
+            circuit_breaker_manager: Optional circuit breaker manager for LLM
+                provider resilience (SOUL-342). When provided, LLM calls are
+                wrapped with circuit breaker protection.
         """
         self.model = model
         self.conversation = conversation
@@ -136,6 +141,9 @@ class ConversationService:
         self._owns_executor = executor is None
         self.executor = executor or ThreadPoolExecutor(max_workers=max_workers)
 
+        # Circuit breaker for LLM provider resilience (SOUL-342)
+        self._circuit_breaker_manager = circuit_breaker_manager
+
     @classmethod
     def from_config(
         cls,
@@ -151,6 +159,7 @@ class ConversationService:
         custom_tools: list[tuple[Any, Any, list[Any]]] | None = None,
         executor: ThreadPoolExecutor | None = None,
         max_workers: int = 1,
+        circuit_breaker_manager: CircuitBreakerManager | None = None,
     ) -> ConversationService:
         """Create ConversationService from configuration.
 
@@ -175,6 +184,8 @@ class ConversationService:
                 If not provided, one will be created and owned by this service.
             max_workers: Number of worker threads if creating executor (default: 1).
                 Keep at 1 to preserve tool execution ordering.
+            circuit_breaker_manager: Optional circuit breaker manager for LLM
+                provider resilience (SOUL-342). Passed from server layer.
 
         Returns:
             Initialized ConversationService ready for use
@@ -426,6 +437,7 @@ class ConversationService:
             audit_logger=audit_logger,
             executor=executor,
             max_workers=max_workers,
+            circuit_breaker_manager=circuit_breaker_manager,
         )
 
     # -------------------------------------------------------------------------
@@ -904,15 +916,44 @@ class ConversationService:
         # Stream tokens from model using async streaming
         collected_chunks: list[Any] = []
 
-        # Use async streaming API (no threads/queues needed)
-        async for chunk in model_to_use.astream(messages):
-            collected_chunks.append(chunk)
+        # Get async generator for streaming - optionally wrapped with circuit breaker
+        # SOUL-342: Circuit breaker protection for LLM provider calls
+        if self._circuit_breaker_manager and self.config:
+            from consoul.server.circuit_breaker import CircuitBreakerError
 
-            # Stream content tokens
-            if chunk.content:
-                token = self._normalize_chunk_content(chunk.content)
-                if token:
-                    yield Token(content=token, cost=None)
+            model_config = self.config.get_current_model_config()
+            provider = model_config.provider or "unknown"
+            breaker = await self._circuit_breaker_manager.get_breaker(provider)
+
+            try:
+                async for chunk in breaker.call_async_generator(
+                    model_to_use.astream, messages
+                ):
+                    collected_chunks.append(chunk)
+
+                    # Stream content tokens
+                    if chunk.content:
+                        token = self._normalize_chunk_content(chunk.content)
+                        if token:
+                            yield Token(content=token, cost=None)
+            except CircuitBreakerError as e:
+                # Re-raise with context for server error handling
+                from consoul.ai.exceptions import StreamingError
+
+                raise StreamingError(
+                    f"LLM provider {e.provider} unavailable (circuit breaker {e.state.name})",
+                    partial_response="",
+                ) from e
+        else:
+            # No circuit breaker - use async streaming API directly
+            async for chunk in model_to_use.astream(messages):
+                collected_chunks.append(chunk)
+
+                # Stream content tokens
+                if chunk.content:
+                    token = self._normalize_chunk_content(chunk.content)
+                    if token:
+                        yield Token(content=token, cost=None)
 
         # Reconstruct final AIMessage with tool_calls and cost
         if collected_chunks:
