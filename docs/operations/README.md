@@ -9,6 +9,7 @@ Production operations guides for deploying and operating Consoul in enterprise e
 | Check service health | [Runbook](./runbook.md#health-monitoring) | `curl http://HOST/health` |
 | Pre-deployment review | [Security Checklist](./security-checklist.md#pre-deployment) | - |
 | Rotate API keys | [API Key Rotation](./api-key-rotation.md) | - |
+| Tune performance | [Performance Tuning](../deployment/performance-tuning.md) | - |
 | Handle an incident | [Incident Response](./incident-response.md) | - |
 | Scale infrastructure | [Scaling Guide](./scaling-guide.md) | - |
 | Compliance audit | [Compliance](./compliance.md) | - |
@@ -35,6 +36,9 @@ SOC2 control mapping, audit logging features, data handling policies, and securi
 
 ### [Multi-Tenancy](../deployment/multi-tenancy.md)
 Session namespace isolation, per-tenant rate limiting, deployment patterns, and security boundaries for multi-tenant deployments.
+
+### [Performance Tuning](../deployment/performance-tuning.md)
+Connection pooling, thread pool sizing, Uvicorn worker configuration, circuit breaker tuning, and production optimization settings.
 
 ## Audience
 

@@ -1,0 +1,190 @@
+# Consoul Production Docker Compose
+#
+# This configuration is optimized for production deployments with:
+# - Multiple Uvicorn workers for concurrency
+# - Redis for distributed sessions and rate limiting
+# - Prometheus metrics collection
+# - Health checks and resource limits
+#
+# Usage:
+#   docker-compose -f docker-compose.production.yml up -d
+#
+# Prerequisites:
+#   - Copy consoul.env.production to .env and configure
+#   - Set LLM provider API keys (OPENAI_API_KEY, ANTHROPIC_API_KEY)
+#   - Configure CONSOUL_API_KEYS for authentication
+
+version: "3.8"
+
+services:
+  # ==========================================================================
+  # Consoul API Server
+  # ==========================================================================
+  consoul-api:
+    image: consoul:latest
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"      # API
+      - "9090:9090"      # Prometheus metrics
+    environment:
+      # Server Configuration
+      - CONSOUL_HOST=0.0.0.0
+      - CONSOUL_PORT=8000
+
+      # Redis Connection (separate databases for isolation)
+      - CONSOUL_SESSION_REDIS_URL=redis://redis:6379/0
+      - CONSOUL_RATE_LIMIT_REDIS_URL=redis://redis:6379/1
+
+      # Connection Pool Tuning
+      - CONSOUL_REDIS_MAX_CONNECTIONS=100
+      - CONSOUL_REDIS_SOCKET_TIMEOUT=5.0
+      - CONSOUL_REDIS_CONNECT_TIMEOUT=2.0
+
+      # Rate Limiting
+      - CONSOUL_RATE_LIMIT_ENABLED=true
+      - CONSOUL_DEFAULT_LIMITS=30/minute;500/hour
+
+      # Circuit Breaker
+      - CONSOUL_CIRCUIT_BREAKER_ENABLED=true
+      - CONSOUL_CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
+      - CONSOUL_CIRCUIT_BREAKER_TIMEOUT=60
+
+      # Session Management
+      - CONSOUL_SESSION_TTL=3600
+      - CONSOUL_SESSION_GC_INTERVAL=3600
+      - CONSOUL_SESSION_FALLBACK_ENABLED=true
+
+      # Prometheus Metrics
+      - CONSOUL_METRICS_ENABLED=true
+      - CONSOUL_METRICS_PORT=9090
+
+    env_file:
+      - .env  # API keys and secrets
+
+    command: >
+      uvicorn consoul.server:create_server
+      --host 0.0.0.0
+      --port 8000
+      --workers 4
+      --loop uvloop
+      --http httptools
+      --limit-concurrency 1000
+      --timeout-keep-alive 30
+      --backlog 2048
+      --access-log
+      --log-level info
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+        reservations:
+          cpus: "2.0"
+          memory: 2G
+
+    restart: unless-stopped
+
+    networks:
+      - consoul-network
+
+  # ==========================================================================
+  # Redis - Session Storage & Rate Limiting
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+    command: >
+      redis-server
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --tcp-keepalive 300
+      --timeout 0
+
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1536M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+    restart: unless-stopped
+
+    networks:
+      - consoul-network
+
+  # ==========================================================================
+  # Prometheus - Metrics Collection
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    ports:
+      - "9091:9090"
+
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+    restart: unless-stopped
+
+    networks:
+      - consoul-network
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  consoul-network:
+    driver: bridge
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
