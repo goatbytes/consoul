@@ -542,20 +542,43 @@ async def websocket_chat_handler(
                     # Backpressure triggered disconnect
                     break
                 except Exception as e:
-                    logger.error(f"Processing error: {e}", exc_info=True)
-                    try:
-                        error_meta = ERROR_REGISTRY[ErrorCode.INTERNAL_ERROR]
-                        await backpressure.send(
-                            {
-                                "type": "error",
-                                "data": {
-                                    "code": ErrorCode.INTERNAL_ERROR.value,
-                                    "error": error_meta["error"],
-                                    "message": str(e),
-                                    "recoverable": error_meta["recoverable"],
-                                },
-                            }
+                    # Check if this is a circuit breaker error (SOUL-342)
+                    from consoul.ai.exceptions import StreamingError
+                    from consoul.server.circuit_breaker import (
+                        CircuitBreakerError,
+                        CircuitState,
+                    )
+
+                    error_code = ErrorCode.INTERNAL_ERROR
+                    retry_after: int | None = None
+
+                    if isinstance(e, StreamingError) and isinstance(
+                        e.__cause__, CircuitBreakerError
+                    ):
+                        cb_error: CircuitBreakerError = e.__cause__
+                        if cb_error.state == CircuitState.OPEN:
+                            error_code = ErrorCode.CIRCUIT_BREAKER_OPEN
+                        else:
+                            error_code = ErrorCode.CIRCUIT_BREAKER_HALF_OPEN
+                        retry_after = cb_error.retry_after
+                        logger.warning(
+                            f"WebSocket circuit breaker {cb_error.state.name} "
+                            f"for {cb_error.provider}: {session_id}"
                         )
+                    else:
+                        logger.error(f"Processing error: {e}", exc_info=True)
+
+                    try:
+                        error_meta = ERROR_REGISTRY[error_code]
+                        error_data: dict[str, Any] = {
+                            "code": error_code.value,
+                            "error": error_meta["error"],
+                            "message": str(e),
+                            "recoverable": error_meta["recoverable"],
+                        }
+                        if retry_after is not None:
+                            error_data["retry_after"] = retry_after
+                        await backpressure.send({"type": "error", "data": error_data})
                     except ConnectionError:
                         break
 

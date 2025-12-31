@@ -694,6 +694,7 @@ class SSEErrorEvent(BaseModel):
         error: Error type identifier for backward compatibility.
         message: Human-readable error message.
         recoverable: Whether the client can retry the request.
+        retry_after: Seconds until client should retry (for recoverable errors).
 
     Example:
         >>> event = SSEErrorEvent(
@@ -719,6 +720,10 @@ class SSEErrorEvent(BaseModel):
     recoverable: bool = Field(
         default=False,
         description="Whether the client can retry the request",
+    )
+    retry_after: int | None = Field(
+        default=None,
+        description="Seconds until client should retry (for recoverable errors)",
     )
 
 

@@ -133,6 +133,7 @@ class CircuitBreaker:
         timeout: int = 60,
         half_open_max_calls: int = 3,
         metrics_callback: Callable[[str, CircuitState], None] | None = None,
+        rejection_callback: Callable[[str], None] | None = None,
     ) -> None:
         """Initialize circuit breaker for a provider.
 
@@ -143,6 +144,7 @@ class CircuitBreaker:
             timeout: Seconds before transitioning from OPEN to HALF_OPEN
             half_open_max_calls: Maximum test requests in HALF_OPEN state
             metrics_callback: Optional callback for state transitions
+            rejection_callback: Optional callback for rejected requests
         """
         self._provider = provider
         self._failure_threshold = failure_threshold
@@ -150,6 +152,7 @@ class CircuitBreaker:
         self._timeout = timeout
         self._half_open_max_calls = half_open_max_calls
         self._metrics_callback = metrics_callback
+        self._rejection_callback = rejection_callback
 
         self._state = CircuitState.CLOSED
         self._stats = CircuitBreakerStats()
@@ -305,6 +308,12 @@ class CircuitBreaker:
         async with self._lock:
             if not self._should_allow_request():
                 self._stats.rejections_total += 1
+                # Notify metrics of rejection
+                if self._rejection_callback:
+                    try:
+                        self._rejection_callback(self._provider)
+                    except Exception as e:
+                        logger.debug("Rejection callback failed: %s", e)
                 retry_after = max(
                     0,
                     int(
@@ -358,6 +367,7 @@ class CircuitBreakerManager:
         timeout: int = 60,
         half_open_max_calls: int = 3,
         metrics_callback: Callable[[str, CircuitState], None] | None = None,
+        rejection_callback: Callable[[str], None] | None = None,
     ) -> None:
         """Initialize circuit breaker manager.
 
@@ -367,12 +377,14 @@ class CircuitBreakerManager:
             timeout: Seconds before half-open (applies to all breakers)
             half_open_max_calls: Test requests in half-open (applies to all breakers)
             metrics_callback: Callback for state transitions (provider, state)
+            rejection_callback: Callback for rejected requests (provider)
         """
         self._failure_threshold = failure_threshold
         self._success_threshold = success_threshold
         self._timeout = timeout
         self._half_open_max_calls = half_open_max_calls
         self._metrics_callback = metrics_callback
+        self._rejection_callback = rejection_callback
         self._breakers: dict[str, CircuitBreaker] = {}
         self._lock = asyncio.Lock()
 
@@ -399,6 +411,7 @@ class CircuitBreakerManager:
                         timeout=self._timeout,
                         half_open_max_calls=self._half_open_max_calls,
                         metrics_callback=self._metrics_callback,
+                        rejection_callback=self._rejection_callback,
                     )
                     logger.debug("Created circuit breaker for provider: %s", provider)
         return self._breakers[provider]

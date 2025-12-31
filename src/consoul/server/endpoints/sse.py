@@ -374,12 +374,35 @@ async def sse_stream_generator(
         raise
 
     except Exception as e:
-        logger.error(f"SSE streaming error: {e}", exc_info=True)
-        error_meta = ERROR_REGISTRY[ErrorCode.INTERNAL_ERROR]
+        # Check if this is a circuit breaker error (SOUL-342)
+        from consoul.ai.exceptions import StreamingError
+        from consoul.server.circuit_breaker import CircuitBreakerError, CircuitState
+
+        error_code = ErrorCode.INTERNAL_ERROR
+        retry_after: int | None = None
+
+        if isinstance(e, StreamingError) and isinstance(
+            e.__cause__, CircuitBreakerError
+        ):
+            cb_error: CircuitBreakerError = e.__cause__
+            if cb_error.state == CircuitState.OPEN:
+                error_code = ErrorCode.CIRCUIT_BREAKER_OPEN
+            else:
+                error_code = ErrorCode.CIRCUIT_BREAKER_HALF_OPEN
+            retry_after = cb_error.retry_after
+            logger.warning(
+                f"SSE circuit breaker {cb_error.state.name} for {cb_error.provider}: "
+                f"{session_id}"
+            )
+        else:
+            logger.error(f"SSE streaming error: {e}", exc_info=True)
+
+        error_meta = ERROR_REGISTRY[error_code]
         error_event = SSEErrorEvent(
-            code=ErrorCode.INTERNAL_ERROR.value,
+            code=error_code.value,
             error=error_meta["error"],
             message=str(e),
             recoverable=error_meta["recoverable"],
+            retry_after=retry_after,
         )
         yield sse_format_event("error", error_event.model_dump())

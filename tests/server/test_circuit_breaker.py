@@ -244,6 +244,36 @@ class TestCircuitBreakerMetrics:
         assert len(callback_calls) == 1
         assert callback_calls[0] == ("google", CircuitState.CLOSED)
 
+    @pytest.mark.asyncio
+    async def test_rejection_callback_called(self) -> None:
+        """Rejection callback called when request is rejected."""
+        rejection_calls: list[str] = []
+
+        def rejection_callback(provider: str) -> None:
+            rejection_calls.append(provider)
+
+        breaker = CircuitBreaker(
+            "anthropic",
+            failure_threshold=1,
+            timeout=60,
+            rejection_callback=rejection_callback,
+        )
+
+        # Trip the breaker
+        breaker.record_failure()
+        assert breaker.state == CircuitState.OPEN
+
+        # Try to make a request - should be rejected
+        async def gen() -> AsyncIterator[str]:
+            yield "should not run"
+
+        with pytest.raises(CircuitBreakerError):
+            async for _ in breaker.call_async_generator(gen):
+                pass
+
+        assert len(rejection_calls) == 1
+        assert rejection_calls[0] == "anthropic"
+
 
 class TestCircuitBreakerManager:
     """Test per-provider circuit breaker management."""

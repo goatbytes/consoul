@@ -281,12 +281,18 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                     if state == CircuitState.OPEN:
                         app.state.metrics.record_circuit_breaker_trip(provider)
 
+            def circuit_breaker_rejection_callback(provider: str) -> None:
+                """Update metrics when circuit breaker rejects a request."""
+                if hasattr(app.state, "metrics") and app.state.metrics:
+                    app.state.metrics.record_circuit_breaker_rejection(provider)
+
             app.state.circuit_breaker_manager = CircuitBreakerManager(
                 failure_threshold=config.circuit_breaker.failure_threshold,
                 success_threshold=config.circuit_breaker.success_threshold,
                 timeout=config.circuit_breaker.timeout,
                 half_open_max_calls=config.circuit_breaker.half_open_max_calls,
                 metrics_callback=circuit_breaker_metrics_callback,
+                rejection_callback=circuit_breaker_rejection_callback,
             )
             logger.info(
                 "Circuit breaker enabled (threshold=%d, timeout=%ds)",
