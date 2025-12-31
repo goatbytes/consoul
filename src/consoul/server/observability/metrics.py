@@ -35,6 +35,7 @@ Installation:
 from __future__ import annotations
 
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -91,6 +92,8 @@ class MetricsCollector:
     - consoul_circuit_breaker_state: Circuit breaker state by provider (SOUL-342)
     - consoul_circuit_breaker_trips_total: Circuit breaker trip count (SOUL-342)
     - consoul_circuit_breaker_rejections_total: Requests rejected by breaker (SOUL-342)
+    - consoul_api_key_requests_total: Request count by API key (redacted) (SOUL-343)
+    - consoul_api_key_last_used_timestamp: Last usage timestamp by API key (SOUL-343)
 
     Gracefully degrades to no-op if prometheus-client not installed.
 
@@ -99,6 +102,7 @@ class MetricsCollector:
         >>> metrics.record_request("/chat", "POST", 200, 0.5, "gpt-4")
         >>> metrics.record_tokens(100, 50, "gpt-4", "session123")
         >>> metrics.record_tool_execution("bash_execute", success=True)
+        >>> metrics.record_api_key_request("sk-premium-abc123xyz789")
     """
 
     def __init__(self) -> None:
@@ -169,6 +173,18 @@ class MetricsCollector:
             "consoul_circuit_breaker_rejections_total",
             "Total requests rejected by open circuit breaker",
             ["provider"],
+        )
+
+        # API key metrics (SOUL-343)
+        self.api_key_requests_total = _Counter(
+            "consoul_api_key_requests_total",
+            "Total requests by API key (redacted identifier)",
+            ["api_key_id"],
+        )
+        self.api_key_last_used_timestamp = _Gauge(
+            "consoul_api_key_last_used_timestamp",
+            "Unix timestamp of last request by API key",
+            ["api_key_id"],
         )
 
     @property
@@ -310,6 +326,51 @@ class MetricsCollector:
         if not self._enabled:
             return
         self.circuit_breaker_rejections_total.labels(provider=provider).inc()
+
+    def record_api_key_request(self, api_key: str) -> None:
+        """Record a request authenticated with a specific API key (SOUL-343).
+
+        Tracks per-key usage for monitoring key rotation and detecting
+        unauthorized access patterns. Keys are redacted in metrics labels
+        to prevent exposure (format: first 6 + last 3 characters).
+
+        Args:
+            api_key: The full API key used for authentication
+
+        Example:
+            >>> metrics = MetricsCollector()
+            >>> metrics.record_api_key_request("sk-premium-abc123xyz789def456")
+            # Records with label api_key_id="sk-pre...456"
+        """
+        if not self._enabled:
+            return
+        key_id = self._redact_key(api_key)
+        self.api_key_requests_total.labels(api_key_id=key_id).inc()
+        self.api_key_last_used_timestamp.labels(api_key_id=key_id).set(time.time())
+
+    @staticmethod
+    def _redact_key(api_key: str) -> str:
+        """Redact API key for safe logging and metrics.
+
+        Preserves enough characters to identify the key while preventing
+        exposure of the full secret. Format: first 6 + "..." + last 3.
+
+        Args:
+            api_key: Full API key string
+
+        Returns:
+            Redacted key in format "sk-pre...xyz" or "abc***" for short keys
+
+        Example:
+            >>> MetricsCollector._redact_key("sk-premium-abc123xyz789")
+            'sk-pre...789'
+            >>> MetricsCollector._redact_key("short")
+            'sho***'
+        """
+        if len(api_key) < 12:
+            # For very short keys, show first 3 chars + ***
+            return api_key[:3] + "***" if len(api_key) >= 3 else "***"
+        return f"{api_key[:6]}...{api_key[-3:]}"
 
 
 def create_metrics_middleware(

@@ -8,6 +8,7 @@ Production operations guides for deploying and operating Consoul in enterprise e
 |------|----------|---------|
 | Check service health | [Runbook](./runbook.md#health-monitoring) | `curl http://HOST/health` |
 | Pre-deployment review | [Security Checklist](./security-checklist.md#pre-deployment) | - |
+| Rotate API keys | [API Key Rotation](./api-key-rotation.md) | - |
 | Handle an incident | [Incident Response](./incident-response.md) | - |
 | Scale infrastructure | [Scaling Guide](./scaling-guide.md) | - |
 | Compliance audit | [Compliance](./compliance.md) | - |
@@ -19,6 +20,9 @@ Daily operations procedures, monitoring setup, Prometheus metrics, alert configu
 
 ### [Security Checklist](./security-checklist.md)
 Pre-deployment, weekly, and monthly security verification procedures. Covers API authentication, rate limiting, CORS, tool filtering, and secrets management.
+
+### [API Key Rotation](./api-key-rotation.md)
+Zero-downtime key rotation procedures, per-key monitoring, emergency revocation, and best practices for key management.
 
 ### [Incident Response](./incident-response.md)
 Severity levels, detection methods, triage procedures, resolution playbooks, and post-mortem template.

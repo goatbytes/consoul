@@ -130,6 +130,7 @@ class APIKeyAuth:
         """Verify API key from header or query parameter.
 
         Dependency for FastAPI endpoints. Checks header first, then query param.
+        Records per-key metrics on successful authentication (SOUL-343).
 
         Args:
             request: FastAPI request object
@@ -155,11 +156,13 @@ class APIKeyAuth:
         # Try header first
         header_key = await self.header_scheme(request)
         if header_key and header_key in self.api_keys:
+            self._record_key_usage(request, header_key)
             return header_key
 
         # Try query param
         query_key = await self.query_scheme(request)
         if query_key and query_key in self.api_keys:
+            self._record_key_usage(request, query_key)
             return query_key
 
         # No valid key found
@@ -176,6 +179,24 @@ class APIKeyAuth:
             ),
             headers={"WWW-Authenticate": f"ApiKey name={self.header_name}"},
         )
+
+    def _record_key_usage(self, request: Request, api_key: str) -> None:
+        """Record per-key usage metrics (SOUL-343).
+
+        Emits Prometheus metrics for tracking API key usage patterns.
+        Gracefully handles missing metrics collector.
+
+        Args:
+            request: FastAPI request object (used to access app.state.metrics)
+            api_key: The authenticated API key
+        """
+        try:
+            metrics = getattr(request.app.state, "metrics", None)
+            if metrics is not None and hasattr(metrics, "record_api_key_request"):
+                metrics.record_api_key_request(api_key)
+        except Exception:
+            # Don't fail authentication if metrics recording fails
+            pass
 
     def create_dependency(self) -> Callable[..., Any]:
         """Create FastAPI dependency for this auth instance.

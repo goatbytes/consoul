@@ -212,16 +212,33 @@ Perform these tasks every month.
 
 ### API Key Rotation
 
+See [API Key Rotation Guide](./api-key-rotation.md) for detailed procedures.
+
 - [ ] **Generate new API keys**
   ```bash
-  NEW_KEY=$(openssl rand -hex 32)
+  NEW_KEY="sk-$(date +%Y%m)-$(openssl rand -hex 24)"
   ```
 
 - [ ] **Add new key to secrets manager** (alongside old keys)
+  ```bash
+  # Overlap period: both old and new keys valid
+  export CONSOUL_API_KEYS="old-key,new-key"
+  ```
 
-- [ ] **Notify clients** of key rotation
+- [ ] **Monitor key usage via metrics**
+  ```promql
+  # Check which keys are still being used
+  sum(increase(consoul_api_key_requests_total[24h])) by (api_key_id)
+  ```
 
-- [ ] **Remove old keys** after migration period (30 days recommended)
+- [ ] **Notify clients** of key rotation (30-day migration window)
+
+- [ ] **Remove old keys** after migration period
+  ```bash
+  export CONSOUL_API_KEYS="new-key"
+  ```
+
+- [ ] **Verify old key rejected** (401 response)
 
 ### Dependency Updates
 
