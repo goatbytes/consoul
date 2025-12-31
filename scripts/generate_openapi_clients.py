@@ -43,10 +43,6 @@ def main() -> int:
         # Simplify operation IDs for cleaner method names
         simplify_operation_ids(spec)
 
-        # Add missing request body for /chat endpoint
-        # (Server uses Depends() which hides body from OpenAPI)
-        add_chat_request_body(spec)
-
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(spec, indent=2) + "\n")
         print(f"✅ OpenAPI spec written to {args.output}")
@@ -60,65 +56,6 @@ def main() -> int:
         return 1
 
     return 0
-
-
-def add_chat_request_body(spec: dict[str, Any]) -> None:
-    """Add ChatRequest body to /chat endpoint.
-
-    The server uses Depends(get_chat_request) which manually parses the JSON body,
-    hiding the schema from OpenAPI. This patches the spec to include the body.
-    """
-    chat_endpoint = spec.get("paths", {}).get("/chat", {}).get("post", {})
-    if not chat_endpoint:
-        return
-
-    # Add ChatRequest schema to components if not present
-    components = spec.setdefault("components", {})
-    schemas = components.setdefault("schemas", {})
-
-    if "ChatRequest" not in schemas:
-        schemas["ChatRequest"] = {
-            "type": "object",
-            "title": "ChatRequest",
-            "description": "Request body for POST /chat endpoint.",
-            "required": ["session_id", "message"],
-            "properties": {
-                "session_id": {
-                    "type": "string",
-                    "title": "Session Id",
-                    "description": "Unique session identifier. Auto-creates session if not exists.",
-                    "minLength": 1,
-                    "maxLength": 128,
-                    "examples": ["user-abc123", "session-uuid-v4"],
-                },
-                "message": {
-                    "type": "string",
-                    "title": "Message",
-                    "description": "User message to send to the AI (32KB max).",
-                    "minLength": 1,
-                    "maxLength": 32768,
-                    "examples": ["Hello, how are you?"],
-                },
-                "model": {
-                    "anyOf": [{"type": "string"}, {"type": "null"}],
-                    "title": "Model",
-                    "description": "Model to use (only applies when creating new session).",
-                    "default": None,
-                    "examples": ["gpt-4o", "claude-3-5-sonnet-20241022"],
-                },
-            },
-        }
-
-    # Add requestBody to the endpoint
-    chat_endpoint["requestBody"] = {
-        "required": True,
-        "content": {
-            "application/json": {"schema": {"$ref": "#/components/schemas/ChatRequest"}}
-        },
-    }
-
-    # Fix operationId to be cleaner (FastAPI uses dependency name)
-    chat_endpoint["operationId"] = "chat"
 
 
 def simplify_operation_ids(spec: dict[str, Any]) -> None:

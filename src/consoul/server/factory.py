@@ -104,6 +104,10 @@ from typing import TYPE_CHECKING, Any
 from fastapi import Depends, FastAPI, Request, WebSocket
 from fastapi.responses import JSONResponse
 
+from consoul.server.models import (
+    ChatRequest,  # noqa: TC001 (FastAPI needs at runtime for OpenAPI)
+)
+
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Callable, Coroutine
 
@@ -667,32 +671,13 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
 
         return verify
 
-    # Chat request body dependency
-    async def get_chat_request(request: Request) -> ChatRequest:
-        """Parse and validate chat request from body."""
-        from fastapi import HTTPException
-        from pydantic import ValidationError
-
-        try:
-            body = await request.json()
-            return ChatRequest(**body)
-        except ValidationError as e:
-            raise HTTPException(
-                status_code=422,
-                detail=e.errors(),
-            ) from e
-        except Exception as e:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid request body: {e}",
-            ) from e
-
     # Register chat endpoint
     @app.post(
         "/chat",
         tags=["chat"],
         response_model=ChatResponse,
         responses={
+            422: {"description": "Validation Error"},
             503: {
                 "model": ChatErrorResponse,
                 "description": "Session storage unavailable",
@@ -703,7 +688,7 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
     @limiter.limit(get_chat_rate_limit)  # type: ignore[misc]
     async def chat(
         request: Request,
-        chat_request: ChatRequest = Depends(get_chat_request),  # noqa: B008
+        chat_request: ChatRequest,
         api_key: str | None = Depends(get_optional_auth()),
     ) -> ChatResponse | JSONResponse:
         """HTTP chat endpoint with session management.

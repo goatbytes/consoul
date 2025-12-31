@@ -654,3 +654,36 @@ class TestOpenAPIDocumentation:
         # Verify 503 is documented
         assert "503" in responses
         assert "500" in responses
+
+    def test_chat_request_in_openapi_schema(self) -> None:
+        """ChatRequest schema is exposed in OpenAPI spec natively."""
+        app = create_server()
+        openapi_schema = app.openapi()
+
+        # Verify ChatRequest schema exists
+        schemas = openapi_schema.get("components", {}).get("schemas", {})
+        assert "ChatRequest" in schemas
+
+        chat_request = schemas["ChatRequest"]
+        assert "session_id" in chat_request["properties"]
+        assert "message" in chat_request["properties"]
+        assert "model" in chat_request["properties"]
+
+        # Verify requestBody references ChatRequest
+        chat_endpoint = openapi_schema["paths"]["/chat"]["post"]
+        assert "requestBody" in chat_endpoint
+        request_body = chat_endpoint["requestBody"]
+        assert request_body["required"] is True
+        schema_ref = request_body["content"]["application/json"]["schema"]["$ref"]
+        assert schema_ref == "#/components/schemas/ChatRequest"
+
+    def test_chat_422_documented(self) -> None:
+        """422 validation error is documented in OpenAPI schema."""
+        app = create_server()
+        openapi_schema = app.openapi()
+
+        chat_path = openapi_schema["paths"].get("/chat", {})
+        post_op = chat_path.get("post", {})
+        responses = post_op.get("responses", {})
+
+        assert "422" in responses
