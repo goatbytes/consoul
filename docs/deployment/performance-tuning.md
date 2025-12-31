@@ -54,10 +54,10 @@ Comprehensive guide for tuning connection pools, thread pools, and server parame
 
 | Component | Symptom | Tuning Target |
 |-----------|---------|---------------|
-| Redis Pool | Connection timeouts, rate limit errors | max_connections, socket_timeout |
-| HTTP Pool | LLM request delays, connection refused | HTTPX_MAX_CONNECTIONS |
-| WebSocket | Slow client disconnections | Backpressure buffer, send timeout |
-| Thread Pool | Blocking during Redis ops | ThreadPoolExecutor size |
+| Redis | Connection timeouts, rate limit errors | Redis server limits, fallback mode |
+| HTTP Pool | LLM request delays, connection refused | Provider SDK settings |
+| WebSocket | Slow client disconnections | Backpressure (code constants) |
+| Thread Pool | Blocking during Redis ops | asyncio defaults |
 | Uvicorn | Request queuing, 503 errors | Workers, limit-concurrency |
 
 ### Prerequisites
@@ -101,34 +101,22 @@ CONSOUL_RATE_LIMIT_KEY_PREFIX=consoul:ratelimit
 
 ### Connection Pool Parameters
 
-The default redis-py pool is effectively unlimited, which can overwhelm Redis under load:
+The default redis-py pool is effectively unlimited, which can overwhelm Redis under load.
+Consoul uses the redis-py library defaults. To customize pool settings, you would need to
+modify the application code or configure Redis server-side limits.
 
-```python
-# Default settings (NOT recommended for production)
-# max_connections: 2^31 (unlimited)
-# socket_timeout: None (blocking forever)
-# socket_connect_timeout: None (blocking forever)
+**redis-py defaults**:
+- `max_connections`: 2^31 (effectively unlimited)
+- `socket_timeout`: None (blocking forever)
+- `socket_connect_timeout`: None (blocking forever)
 
-# Recommended production settings
-import redis
-
-pool = redis.ConnectionPool.from_url(
-    "redis://localhost:6379",
-    max_connections=100,           # Limit concurrent connections
-    socket_timeout=5.0,            # Read/write timeout
-    socket_connect_timeout=2.0,    # Connection establishment timeout
-    retry_on_timeout=True,         # Retry on timeout
-    health_check_interval=30,      # Health check frequency
-)
+**Redis server-side limits** (recommended):
+```bash
+# In redis.conf or via command line
+maxclients 10000
+timeout 300
+tcp-keepalive 300
 ```
-
-### Environment Variables
-
-| Variable | Default | Recommended | Description |
-|----------|---------|-------------|-------------|
-| `CONSOUL_REDIS_MAX_CONNECTIONS` | unlimited | 100 | Max connections per pool |
-| `CONSOUL_REDIS_SOCKET_TIMEOUT` | None | 5.0 | Read/write timeout (seconds) |
-| `CONSOUL_REDIS_CONNECT_TIMEOUT` | None | 2.0 | Connection timeout (seconds) |
 
 ### Resilient Fallback (Graceful Degradation)
 
@@ -136,10 +124,10 @@ Consoul supports automatic fallback to in-memory storage when Redis is unavailab
 
 ```bash
 # Enable fallback to in-memory storage
-CONSOUL_SESSION_FALLBACK_ENABLED=true
+CONSOUL_REDIS_FALLBACK_ENABLED=true
 
-# Reconnection attempt interval (seconds)
-CONSOUL_SESSION_RECONNECT_INTERVAL=60
+# Reconnection attempt interval (seconds, range: 10-3600)
+CONSOUL_REDIS_RECONNECT_INTERVAL=60
 ```
 
 When in fallback mode:
@@ -162,6 +150,8 @@ When in fallback mode:
 ## HTTP Connection Limits (LLM Providers)
 
 LLM provider SDKs (OpenAI, Anthropic) use httpx internally for HTTP connections.
+These are managed by the provider SDKs and LiteLLM, not directly configurable via
+Consoul environment variables.
 
 ### Default Connection Pools
 
@@ -177,47 +167,21 @@ Anthropic SDK:
       └── max_keepalive_connections: 20
 ```
 
-### Environment Variables
+### Provider SDK Configuration
 
-Tune httpx connection pools via environment:
-
-```bash
-# Maximum total connections
-HTTPX_MAX_CONNECTIONS=100
-
-# Maximum keep-alive connections
-HTTPX_MAX_KEEPALIVE_CONNECTIONS=20
-
-# Connection timeout (seconds)
-HTTPX_TIMEOUT=30.0
-```
-
-### Provider-Specific Timeouts
-
-Configure timeouts for LLM API calls:
+Provider timeouts can be configured via their respective environment variables
+(handled by the SDK, not Consoul):
 
 ```bash
-# OpenAI timeout (seconds)
+# OpenAI SDK timeout (seconds) - read by openai-python
 OPENAI_TIMEOUT=120
 
-# Anthropic timeout (seconds)
+# Anthropic SDK timeout (seconds) - read by anthropic-python
 ANTHROPIC_TIMEOUT=120
-
-# Request timeout for streaming responses
-CONSOUL_LLM_STREAM_TIMEOUT=300
 ```
 
-### Connection Reuse
-
-For high-throughput scenarios, increase keep-alive connections:
-
-```bash
-# More keep-alive connections = fewer connection setups
-HTTPX_MAX_KEEPALIVE_CONNECTIONS=50
-
-# Increase total connections for burst traffic
-HTTPX_MAX_CONNECTIONS=200
-```
+> **Note**: These are provider SDK environment variables, not Consoul-specific.
+> Refer to each provider's documentation for available configuration options.
 
 ### Rate Limit Handling
 
@@ -328,8 +292,11 @@ Thread pool is used for blocking operations:
 
 ### Increasing Thread Pool Size
 
-For I/O-heavy workloads, increase the default pool:
+For I/O-heavy workloads, the default asyncio thread pool can be increased at the
+application level. This requires code modification as there is no environment
+variable currently implemented for this.
 
+**Code example** (if customizing Consoul):
 ```python
 # At application startup
 import asyncio
@@ -343,12 +310,9 @@ loop = asyncio.get_event_loop()
 loop.set_default_executor(executor)
 ```
 
-### Environment Variable
-
-```bash
-# Set via environment (application code must read this)
-CONSOUL_THREAD_POOL_SIZE=100
-```
+> **Note**: Thread pool sizing is not currently configurable via environment
+> variables. The default asyncio pool (`min(32, cpu_count + 4)`) is typically
+> sufficient for most deployments.
 
 ### Sizing Guidelines
 
@@ -602,38 +566,36 @@ groups:
 
 ## Quick Reference
 
-### All Environment Variables
+### Consoul Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | **Redis** | | |
 | `CONSOUL_SESSION_REDIS_URL` | None | Session storage Redis URL |
 | `CONSOUL_RATE_LIMIT_REDIS_URL` | None | Rate limiter Redis URL |
-| `CONSOUL_REDIS_MAX_CONNECTIONS` | unlimited | Max pool connections |
-| `CONSOUL_REDIS_SOCKET_TIMEOUT` | None | Socket read/write timeout |
-| `CONSOUL_REDIS_CONNECT_TIMEOUT` | None | Connection timeout |
-| **HTTP** | | |
-| `HTTPX_MAX_CONNECTIONS` | 100 | Max HTTP connections |
-| `HTTPX_MAX_KEEPALIVE_CONNECTIONS` | 20 | Max keep-alive connections |
-| `HTTPX_TIMEOUT` | 30.0 | HTTP request timeout |
+| `REDIS_URL` | None | Universal Redis fallback |
+| `CONSOUL_REDIS_FALLBACK_ENABLED` | false | Enable in-memory fallback |
+| `CONSOUL_REDIS_RECONNECT_INTERVAL` | 60 | Reconnection interval (seconds) |
 | **Circuit Breaker** | | |
 | `CONSOUL_CIRCUIT_BREAKER_ENABLED` | true | Enable circuit breaker |
 | `CONSOUL_CIRCUIT_BREAKER_FAILURE_THRESHOLD` | 5 | Failures before open |
 | `CONSOUL_CIRCUIT_BREAKER_SUCCESS_THRESHOLD` | 3 | Successes to close |
 | `CONSOUL_CIRCUIT_BREAKER_TIMEOUT` | 60 | Seconds before half-open |
+| `CONSOUL_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS` | 3 | Test calls in half-open |
 | **Session** | | |
 | `CONSOUL_SESSION_TTL` | 3600 | Session TTL (seconds) |
+| `CONSOUL_SESSION_KEY_PREFIX` | consoul:session: | Redis key prefix |
 | `CONSOUL_SESSION_GC_INTERVAL` | 3600 | GC interval (seconds) |
 | `CONSOUL_SESSION_GC_BATCH_SIZE` | 100 | Keys per GC cycle |
-| `CONSOUL_SESSION_FALLBACK_ENABLED` | false | Enable in-memory fallback |
 | **Rate Limiting** | | |
 | `CONSOUL_RATE_LIMIT_ENABLED` | true | Enable rate limiting |
 | `CONSOUL_DEFAULT_LIMITS` | 10/minute | Default rate limits |
+| `CONSOUL_RATE_LIMIT_KEY_PREFIX` | consoul:ratelimit | Redis key prefix |
 
 ### Production Checklist
 
-- [ ] Redis connection pool sized for expected load
-- [ ] Socket timeouts configured (prevent hanging connections)
+- [ ] Redis URLs configured for session and rate limiting
+- [ ] Redis fallback enabled (`CONSOUL_REDIS_FALLBACK_ENABLED=true`)
 - [ ] Uvicorn workers set to 2-4× CPU cores
 - [ ] Circuit breaker enabled for LLM providers
 - [ ] Prometheus metrics enabled and scraped

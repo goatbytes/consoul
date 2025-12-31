@@ -37,10 +37,9 @@ services:
       - CONSOUL_SESSION_REDIS_URL=redis://redis:6379/0
       - CONSOUL_RATE_LIMIT_REDIS_URL=redis://redis:6379/1
 
-      # Connection Pool Tuning
-      - CONSOUL_REDIS_MAX_CONNECTIONS=100
-      - CONSOUL_REDIS_SOCKET_TIMEOUT=5.0
-      - CONSOUL_REDIS_CONNECT_TIMEOUT=2.0
+      # Redis Resilience (graceful degradation when Redis unavailable)
+      - CONSOUL_REDIS_FALLBACK_ENABLED=true
+      - CONSOUL_REDIS_RECONNECT_INTERVAL=60
 
       # Rate Limiting
       - CONSOUL_RATE_LIMIT_ENABLED=true
@@ -54,7 +53,6 @@ services:
       # Session Management
       - CONSOUL_SESSION_TTL=3600
       - CONSOUL_SESSION_GC_INTERVAL=3600
-      - CONSOUL_SESSION_FALLBACK_ENABLED=true
 
       # Prometheus Metrics
       - CONSOUL_METRICS_ENABLED=true
