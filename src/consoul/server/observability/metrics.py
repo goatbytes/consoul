@@ -341,6 +341,91 @@ def create_metrics_middleware(
     return metrics_middleware
 
 
+def create_app_state_metrics_middleware() -> Callable[
+    [Request, Callable[[Request], Awaitable[Response]]], Awaitable[Response]
+]:
+    """Create middleware that looks up metrics from app.state at request time.
+
+    Unlike create_metrics_middleware which captures metrics at creation time,
+    this version looks up request.app.state.metrics on each request. This allows
+    the middleware to be added before app startup while metrics are initialized
+    during the lifespan handler.
+
+    Returns:
+        Starlette middleware callable that records metrics.
+
+    Example:
+        >>> from fastapi import FastAPI
+        >>> from starlette.middleware.base import BaseHTTPMiddleware
+        >>> app = FastAPI()
+        >>> app.state.metrics = None  # Will be set in lifespan
+        >>> app.add_middleware(
+        ...     BaseHTTPMiddleware,
+        ...     dispatch=create_app_state_metrics_middleware()
+        ... )
+    """
+    import time
+
+    from starlette.requests import Request as StarletteRequest  # noqa: TC002
+    from starlette.responses import Response as StarletteResponse  # noqa: TC002
+
+    async def metrics_middleware(
+        request: StarletteRequest,
+        call_next: Callable[[StarletteRequest], Awaitable[StarletteResponse]],
+    ) -> StarletteResponse:
+        """Record request metrics (latency, status, endpoint)."""
+        # Look up metrics from app.state at request time
+        metrics: MetricsCollector | None = getattr(request.app.state, "metrics", None)
+
+        if metrics is None or not metrics.enabled:
+            return await call_next(request)
+
+        start_time = time.perf_counter()
+        status = 500  # Default to 500 if exception occurs
+        response: StarletteResponse | None = None
+
+        try:
+            response = await call_next(request)
+            status = response.status_code
+        except Exception:
+            # Record metrics for unhandled exceptions before re-raising
+            latency = time.perf_counter() - start_time
+            endpoint = request.url.path
+            method = request.method
+
+            metrics.record_request(
+                endpoint=endpoint,
+                method=method,
+                status=500,
+                latency=latency,
+                model="unknown",
+            )
+            metrics.record_error(endpoint=endpoint, error_type="unhandled_exception")
+            raise
+        else:
+            # Record metrics for successful responses (including error responses)
+            latency = time.perf_counter() - start_time
+            endpoint = request.url.path
+            method = request.method
+
+            metrics.record_request(
+                endpoint=endpoint,
+                method=method,
+                status=status,
+                latency=latency,
+                model="unknown",  # Model recorded separately in chat endpoint
+            )
+
+            # Record errors for 4xx/5xx responses
+            if status >= 400:
+                error_type = "client_error" if status < 500 else "server_error"
+                metrics.record_error(endpoint=endpoint, error_type=error_type)
+
+        return response
+
+    return metrics_middleware
+
+
 def start_metrics_server(port: int = 9090) -> bool:
     """Start Prometheus metrics HTTP server on separate port.
 

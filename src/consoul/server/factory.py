@@ -223,13 +223,15 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         # Initialize observability (metrics, tracing)
         from consoul.server.observability import (
             MetricsCollector,
-            create_metrics_middleware,
             setup_langsmith,
             setup_opentelemetry,
             start_metrics_server,
         )
 
         # Start Prometheus metrics server on separate port
+        # Note: app.state.metrics was initialized to None before app creation
+        # and metrics middleware was added before lifespan. We just update
+        # app.state.metrics here to enable the middleware.
         if config.observability.prometheus_enabled:
             if start_metrics_server(config.observability.metrics_port):
                 app.state.metrics = MetricsCollector()
@@ -237,19 +239,8 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                     f"Prometheus metrics enabled on port {config.observability.metrics_port}"
                 )
             else:
-                app.state.metrics = None
+                # app.state.metrics remains None - middleware will skip recording
                 logger.warning("Prometheus metrics disabled (server failed to start)")
-        else:
-            app.state.metrics = None
-
-        # Add metrics middleware AFTER app.state.metrics is set
-        # This middleware records request latency, status codes, and errors
-        from starlette.middleware.base import BaseHTTPMiddleware
-
-        app.add_middleware(
-            BaseHTTPMiddleware,
-            dispatch=create_metrics_middleware(app.state.metrics),
-        )
 
         # Setup OpenTelemetry tracing
         if config.observability.otel_enabled:
@@ -370,6 +361,19 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
 
         app.add_middleware(BaseHTTPMiddleware, dispatch=body_size_limit_dispatch)
         logger.info(f"Body size limit: {max_body_size} bytes")
+
+    # Initialize metrics state and add metrics middleware
+    # Middleware is added here (before app starts) but looks up app.state.metrics
+    # at request time. The actual MetricsCollector is set in the lifespan handler.
+    app.state.metrics = None
+    from starlette.middleware.base import BaseHTTPMiddleware as MetricsBaseMiddleware
+
+    from consoul.server.observability import create_app_state_metrics_middleware
+
+    app.add_middleware(
+        MetricsBaseMiddleware,
+        dispatch=create_app_state_metrics_middleware(),
+    )
 
     # Initialize rate limiter and store in app.state
     # Ensure default_limits is a list (pydantic validator guarantees this)

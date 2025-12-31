@@ -30,6 +30,7 @@ Installation:
 
 from consoul.server.observability.metrics import (
     MetricsCollector,
+    create_app_state_metrics_middleware,
     create_metrics_middleware,
     start_metrics_server,
 )
@@ -37,6 +38,7 @@ from consoul.server.observability.tracing import setup_langsmith, setup_opentele
 
 __all__ = [
     "MetricsCollector",
+    "create_app_state_metrics_middleware",
     "create_metrics_middleware",
     "setup_langsmith",
     "setup_opentelemetry",
