@@ -213,6 +213,8 @@ nav:
     - File Editing: user-guide/file-editing.md
     - Image Analysis: user-guide/image-analysis.md
     - Code Search: user-guide/code-search.md
+  - Deployment:
+    - Multi-Tenancy: deployment/multi-tenancy.md
   - Advanced:
     - SearxNG Setup: advanced/searxng-setup.md
   - Development:

@@ -1203,6 +1203,7 @@ See [GitHub examples](https://github.com/goatbytes/consoul/tree/main/examples) f
 - [Tools Documentation](tools.md) - Master built-in tools
 - [API Reference](reference.md) - Complete API docs
 - [Building Agents](agents.md) - Create specialized agents
+- [Multi-Tenancy Guide](../deployment/multi-tenancy.md) - Session isolation and per-tenant rate limiting
 
 ## Support
 

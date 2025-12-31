@@ -29,6 +29,9 @@ Horizontal and vertical scaling procedures, cloud-specific configuration (GCP, A
 ### [Compliance](./compliance.md)
 SOC2 control mapping, audit logging features, data handling policies, and security controls documentation.
 
+### [Multi-Tenancy](../deployment/multi-tenancy.md)
+Session namespace isolation, per-tenant rate limiting, deployment patterns, and security boundaries for multi-tenant deployments.
+
 ## Audience
 
 This documentation is intended for:
