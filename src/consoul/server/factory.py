@@ -547,6 +547,11 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
 
     app.state.ws_connections = WebSocketConnectionManager()
 
+    # Initialize SSE connection manager
+    from consoul.server.endpoints.sse import SSEConnectionManager
+
+    app.state.sse_connections = SSEConnectionManager()
+
     # Register health endpoint (exempt from auth and rate limiting)
     @app.get("/health", tags=["monitoring"], response_model=HealthResponse)  # type: ignore[misc]
     @limiter.exempt
@@ -572,7 +577,10 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
             service=config.app_name,
             version=app_version,
             timestamp=datetime.now(timezone.utc).isoformat(),
-            connections=app.state.ws_connections.active_count,
+            connections=(
+                app.state.ws_connections.active_count
+                + app.state.sse_connections.active_count
+            ),
         )
 
     # Register readiness endpoint (exempt from auth and rate limiting)
@@ -826,12 +834,122 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         """
         await websocket_chat_handler(websocket, session_id, api_key)
 
+    # Register SSE streaming endpoint
+    from starlette.responses import StreamingResponse
+
+    from consoul.server.endpoints.sse import sse_stream_generator
+
+    @app.post(
+        "/chat/stream",
+        tags=["chat"],
+        summary="Stream Chat (SSE)",
+        response_model=None,  # SSE streaming - no Pydantic model validation
+        description="""HTTP chat endpoint with Server-Sent Events streaming.
+
+Provides an alternative to WebSocket for token-by-token streaming when
+WebSocket is not available (load balancers, serverless, mobile apps,
+corporate firewalls).
+
+**SSE Event Format:**
+```
+event: token
+data: {"text": "Hello"}
+
+event: tool_request
+data: {"id": "call_123", "name": "search", "arguments": {...}, "risk_level": "safe"}
+
+event: done
+data: {"session_id": "...", "usage": {...}, "timestamp": "..."}
+
+event: error
+data: {"code": "INTERNAL_ERROR", "message": "..."}
+```
+
+**Note:** Tools are auto-approved in SSE mode since SSE is unidirectional
+(server-to-client only). Use WebSocket for interactive tool approval.
+
+**Example (curl):**
+```bash
+curl -N -H "Content-Type: application/json" \\
+     -d '{"session_id": "test", "message": "Hello"}' \\
+     http://localhost:8000/chat/stream
+```
+""",
+        responses={
+            200: {
+                "content": {"text/event-stream": {}},
+                "description": "SSE stream of token, tool_request, done, and error events",
+            },
+            401: {"description": "Authentication required"},
+            422: {"description": "Validation Error"},
+            429: {"description": "Rate limit exceeded"},
+            503: {
+                "model": ChatErrorResponse,
+                "description": "Session storage unavailable",
+            },
+        },
+    )  # type: ignore[misc]
+    @limiter.limit(get_chat_rate_limit)  # type: ignore[misc]
+    async def chat_stream(
+        request: Request,
+        chat_request: ChatRequest,
+        api_key: str | None = Depends(get_optional_auth()),
+    ) -> StreamingResponse:
+        """HTTP SSE streaming endpoint for AI chat.
+
+        Provides token-by-token streaming via Server-Sent Events (SSE),
+        an alternative to WebSocket for HTTP-only environments.
+
+        Args:
+            request: FastAPI request object
+            chat_request: Chat request with session_id and message
+            api_key: Optional API key (if authentication configured)
+
+        Returns:
+            StreamingResponse with text/event-stream content type
+
+        Raises:
+            HTTPException: 401 if authentication fails (when configured)
+            HTTPException: 429 if rate limit exceeded
+        """
+        # Track connection
+        await app.state.sse_connections.connect()
+
+        async def generate_with_cleanup() -> Any:
+            """Wrap generator with connection cleanup."""
+            try:
+                async for event in sse_stream_generator(
+                    session_id=chat_request.session_id,
+                    message=chat_request.message,
+                    model=chat_request.model,
+                    store=request.app.state.session_store,
+                    lock_manager=request.app.state.session_locks,
+                    request=request,
+                    metrics=request.app.state.metrics,
+                ):
+                    yield event
+            finally:
+                await app.state.sse_connections.disconnect()
+
+        return StreamingResponse(
+            generate_with_cleanup(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",  # Disable nginx buffering
+            },
+        )
+
     logger.info(f"Server factory created: {config.app_name} v{app_version}")
     logger.info("Health endpoint: GET /health (auth: bypass, rate_limit: exempt)")
     logger.info("Readiness endpoint: GET /ready (auth: bypass, rate_limit: exempt)")
     logger.info("Chat endpoint: POST /chat (auth: optional, rate_limit: 30/minute)")
     logger.info(
         "WebSocket endpoint: WS /ws/chat/{session_id} (auth: optional, streaming)"
+    )
+    logger.info(
+        "SSE endpoint: POST /chat/stream (auth: optional, rate_limit: 30/minute)"
     )
 
     return app

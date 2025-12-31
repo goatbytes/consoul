@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import AliasChoices, BaseModel, BeforeValidator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -370,6 +370,137 @@ class ChatErrorResponse(BaseModel):
     timestamp: str = Field(
         ...,
         description="ISO 8601 timestamp when error occurred",
+    )
+
+
+# =============================================================================
+# SSE (Server-Sent Events) Models
+# =============================================================================
+
+
+class SSETokenEvent(BaseModel):
+    """Token streaming event data for SSE endpoint.
+
+    Sent as: event: token\\ndata: {"text": "..."}\\n\\n
+
+    Attributes:
+        text: The token text content.
+
+    Example:
+        >>> event = SSETokenEvent(text="Hello")
+    """
+
+    text: str = Field(
+        ...,
+        description="Token text content",
+    )
+
+
+class SSEToolRequestEvent(BaseModel):
+    """Tool request event data for SSE endpoint.
+
+    Sent when AI requests tool execution. In SSE mode, tools are auto-approved
+    since SSE is unidirectional (server-to-client only).
+
+    Sent as: event: tool_request\\ndata: {"id": "...", ...}\\n\\n
+
+    Attributes:
+        id: Unique tool call identifier.
+        name: Tool name being requested.
+        arguments: Arguments for the tool.
+        risk_level: Risk level ("safe", "caution", "dangerous", "blocked").
+
+    Example:
+        >>> event = SSEToolRequestEvent(
+        ...     id="call_123",
+        ...     name="search",
+        ...     arguments={"query": "weather"},
+        ...     risk_level="safe"
+        ... )
+    """
+
+    id: str = Field(
+        ...,
+        description="Unique tool call identifier",
+    )
+    name: str = Field(
+        ...,
+        description="Tool name being requested",
+    )
+    arguments: dict[str, Any] = Field(
+        ...,
+        description="Arguments for the tool",
+    )
+    risk_level: str = Field(
+        ...,
+        description="Risk level (safe, caution, dangerous, blocked)",
+    )
+
+
+class SSEDoneEvent(BaseModel):
+    """Stream completion event data for SSE endpoint.
+
+    Sent when streaming completes successfully.
+
+    Sent as: event: done\\ndata: {"session_id": "...", ...}\\n\\n
+
+    Attributes:
+        session_id: Session identifier.
+        usage: Token usage and cost information.
+        timestamp: ISO 8601 timestamp of completion.
+
+    Example:
+        >>> event = SSEDoneEvent(
+        ...     session_id="user-abc123",
+        ...     usage=ChatUsage(
+        ...         input_tokens=15,
+        ...         output_tokens=8,
+        ...         total_tokens=23,
+        ...         estimated_cost=0.000115
+        ...     ),
+        ...     timestamp="2025-12-25T10:30:45.123456Z"
+        ... )
+    """
+
+    session_id: str = Field(
+        ...,
+        description="Session identifier",
+    )
+    usage: ChatUsage = Field(
+        ...,
+        description="Token usage and cost information",
+    )
+    timestamp: str = Field(
+        ...,
+        description="ISO 8601 timestamp of completion",
+    )
+
+
+class SSEErrorEvent(BaseModel):
+    """Error event data for SSE endpoint.
+
+    Sent when an error occurs during streaming.
+
+    Sent as: event: error\\ndata: {"code": "...", "message": "..."}\\n\\n
+
+    Attributes:
+        code: Error code identifier.
+        message: Human-readable error message.
+
+    Example:
+        >>> event = SSEErrorEvent(
+        ...     code="INTERNAL_ERROR",
+        ...     message="An unexpected error occurred"
+        ... )
+    """
+
+    code: str = Field(
+        ...,
+        description="Error code identifier",
+    )
+    message: str = Field(
+        ...,
+        description="Human-readable error message",
     )
 
 
