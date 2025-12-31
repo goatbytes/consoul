@@ -1,0 +1,28 @@
+{
+  "created_at": "2025-12-31T05:20:17.991196Z",
+  "updated_at": "2025-12-31T05:20:17.991205Z",
+  "id": "SOUL-339",
+  "uuid": "293a83a3-996f-4f55-993c-a7384a6dc8bb",
+  "_version": 1,
+  "title": "Add batch chat endpoint for multi-turn conversations",
+  "description": "**As a** API consumer building conversation workflows\n**I want** a batch endpoint that processes multiple messages in a single request\n**So that** I can reduce latency, optimize costs, and implement complex conversation patterns\n\n**Context:**\nThe current `/chat` endpoint processes one message per request. For use cases like:\n- Conversation history replay\n- Multi-agent workflows\n- Batch testing/evaluation\n- Cost optimization (fewer round trips)\n\nA batch endpoint would allow sending multiple messages and receiving all responses atomically.\n\n**Technical Notes:**\n- Current endpoint: `src/consoul/server/factory.py` lines 686-806\n- Session management: Same SessionStore as single-message endpoint\n- Rate limiting: Should count each message, not just the request\n- Reference: OpenAI Batch API pattern, Anthropic Messages API batching\n\n**Proposed Endpoint:**\n\n```\nPOST /chat/batch\n```\n\n**Request:**\n```json\n{\n  \"session_id\": \"user-abc123\",\n  \"messages\": [\n    {\"role\": \"user\", \"content\": \"Hello!\"},\n    {\"role\": \"user\", \"content\": \"What is 2+2?\"}\n  ],\n  \"model\": \"gpt-4o\",\n  \"sequential\": true  // Process in order, or parallel\n}\n```\n\n**Response:**\n```json\n{\n  \"session_id\": \"user-abc123\",\n  \"responses\": [\n    {\n      \"index\": 0,\n      \"response\": \"Hello! How can I help?\",\n      \"usage\": {...}\n    },\n    {\n      \"index\": 1,\n      \"response\": \"2+2 equals 4.\",\n      \"usage\": {...}\n    }\n  ],\n  \"total_usage\": {\n    \"input_tokens\": 50,\n    \"output_tokens\": 25,\n    \"total_tokens\": 75,\n    \"estimated_cost\": 0.00015\n  },\n  \"timestamp\": \"...\"\n}\n```\n\n**Processing Modes:**\n- `sequential: true` (default): Messages processed in order, each sees previous context\n- `sequential: false`: Messages processed in parallel (same starting context)\n\n**Acceptance Criteria:**\n\n**Given** a client sends POST to /chat/batch with multiple messages\n**When** sequential=true (default)\n**Then** messages are processed in order, each response added to context before next\n\n**Given** a client sends POST to /chat/batch with sequential=false\n**When** messages are processed\n**Then** all messages use the same initial context (parallel processing)\n\n**Given** one message in the batch fails\n**When** the batch continues (best-effort mode)\n**Then** the response includes error information for the failed message index\n\n**Given** rate limiting is enabled\n**When** counting batch requests\n**Then** each message in the batch counts toward the rate limit\n\n**Given** a batch request completes\n**When** usage is calculated\n**Then** total_usage aggregates all individual message usage stats\n\n**Testing Considerations:**\n- Unit tests: Mock ConversationService, verify batch processing order\n- Integration tests: Real LLM with multi-message batches\n- Edge cases: Empty batch, single message batch, max batch size\n- Rate limit tests: Verify per-message counting\n- Error handling: Partial failures, timeout on long batches\n\n**Implementation Hints:**\n- Create `ChatBatchRequest` and `ChatBatchResponse` models\n- Max batch size configurable (suggest 10-20 messages)\n- For sequential mode, reuse existing session logic iteratively\n- For parallel mode, create separate conversation instances from same base\n- Consider timeout per-message and total batch timeout\n- Add batch-specific Prometheus metrics (batch_size histogram)\n- Consider async processing for large batches with polling endpoint",
+  "status": "todo",
+  "type": "feature",
+  "priority": "high",
+  "labels": [
+    "api",
+    "enhancement",
+    "server"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-021",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {}
+}

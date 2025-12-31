@@ -1,0 +1,29 @@
+{
+  "created_at": "2025-12-31T05:19:03.670033Z",
+  "updated_at": "2025-12-31T05:19:03.670039Z",
+  "id": "SOUL-337",
+  "uuid": "5188387a-f0ac-482a-a7da-71850a7968d1",
+  "_version": 1,
+  "title": "Add SSE streaming endpoint for HTTP-only clients",
+  "description": "**As a** Consoul API consumer using HTTP-only clients\n**I want** a Server-Sent Events (SSE) streaming endpoint as an alternative to WebSocket\n**So that** I can receive streaming AI responses without WebSocket support (browsers behind proxies, mobile apps, load balancers, serverless functions)\n\n**Context:**\nCurrently, streaming is only available via WebSocket at `/ws/chat/{session_id}` (see `src/consoul/server/endpoints/websocket.py`). Many deployment scenarios cannot use WebSockets:\n- Load balancers that don't support WebSocket upgrades\n- Serverless functions (AWS Lambda, Cloud Functions)\n- Mobile apps with unreliable WebSocket connections\n- Corporate firewalls that block WebSocket\n- Simple HTTP clients that lack WebSocket support\n\nSSE (Server-Sent Events) provides unidirectional streaming over standard HTTP, supported by all browsers via EventSource API and easily implemented in any HTTP client.\n\n**Technical Notes:**\n- Reference: `src/consoul/server/endpoints/websocket.py` for streaming patterns\n- Use FastAPI's `StreamingResponse` with `text/event-stream` content type\n- Session management: Reuse same SessionStore as HTTP /chat and WebSocket\n- Authentication: Same X-API-Key header or query param as other endpoints\n- Rate limiting: Same limits as /chat endpoint (30/minute or tiered)\n\n**Proposed Endpoint:**\n```\nGET /chat/stream?session_id={id}&message={msg}\n   or\nPOST /chat/stream  (with JSON body like /chat)\n```\n\nRecommend POST for consistency with /chat and to avoid URL-encoding message content.\n\n**SSE Event Format:**\n```\nevent: token\ndata: {\"text\": \"Hello\"}\n\nevent: tool_request\ndata: {\"id\": \"call_123\", \"name\": \"search\", \"arguments\": {...}}\n\nevent: done\ndata: {\"usage\": {...}, \"timestamp\": \"...\"}\n\nevent: error\ndata: {\"code\": \"E001\", \"message\": \"...\"}\n```\n\n**Acceptance Criteria:**\n\n**Given** a client sends POST to /chat/stream with valid ChatRequest body\n**When** the AI generates a response\n**Then** tokens are streamed as SSE events with `event: token` and `data: {\"text\": \"...\"}`\n\n**Given** streaming is in progress\n**When** the full response is complete\n**Then** a final `event: done` with usage stats is sent and connection closes\n\n**Given** the AI requests tool execution\n**When** approval is required (tools_enabled and approval mode)\n**Then** an `event: tool_request` is sent (note: SSE is unidirectional, tool approval may require separate request)\n\n**Given** an error occurs during streaming\n**When** the error is handled\n**Then** an `event: error` with structured error data is sent\n\n**Given** API key authentication is configured\n**When** request lacks valid API key\n**Then** 401 response is returned before streaming starts\n\n**Testing Considerations:**\n- Unit tests: Mock ConversationService, verify SSE format\n- Integration tests: Actual streaming with test LLM responses\n- Manual testing: Use `curl` or browser EventSource to verify format\n- Test client disconnect handling (no orphaned sessions)\n- Verify session persistence matches /chat and WebSocket endpoints\n\n**Implementation Hints:**\n- Use `starlette.responses.StreamingResponse` with `media_type=\"text/event-stream\"`\n- Set headers: `Cache-Control: no-cache`, `Connection: keep-alive`\n- Format: `event: {type}\\ndata: {json}\\n\\n` (note double newline)\n- Consider heartbeat events (`:keepalive\\n\\n`) for connection health\n- For tool approval in SSE (unidirectional), consider:\n  - Auto-approve for SSE clients\n  - Separate /chat/stream/{id}/approve endpoint\n  - Configurable per-session tool approval mode\n- Reference: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events",
+  "status": "todo",
+  "type": "feature",
+  "priority": "critical",
+  "labels": [
+    "api",
+    "streaming",
+    "server",
+    "enhancement"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-021",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 8,
+  "order": 0,
+  "custom_fields": {}
+}
