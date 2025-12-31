@@ -11,13 +11,21 @@ from consoul.server.middleware.rate_limit import (
     create_api_key_limiter,
     create_tiered_limit_func,
 )
+from consoul.server.middleware.request_context import (
+    clear_current_request,
+    get_current_request,
+    set_current_request,
+)
 from consoul.server.middleware.validation import RequestValidator
 
 __all__ = [
     "APIKeyAuth",
     "RateLimiter",
     "RequestValidator",
+    "clear_current_request",
     "configure_cors",
     "create_api_key_limiter",
     "create_tiered_limit_func",
+    "get_current_request",
+    "set_current_request",
 ]

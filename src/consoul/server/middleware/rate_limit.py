@@ -137,13 +137,16 @@ class RateLimiter:
 
         logger.info("RateLimiter integrated with FastAPI app")
 
-    def limit(self, limit_value: str | Callable[[Request], str]) -> Any:
+    def limit(
+        self, limit_value: str | Callable[[], str] | Callable[[Request], str]
+    ) -> Any:
         """Decorator to apply rate limit to endpoint.
 
         Args:
             limit_value: Rate limit string (e.g., "10/minute", "10 per minute;100 per hour")
-                or a callable that takes a Request and returns a limit string.
-                Using a callable enables dynamic rate limits based on request properties.
+                or a callable that returns a limit string. The callable can either:
+                - Take no arguments (reads request from ContextVar, SOUL-348 pattern)
+                - Take a Request argument (legacy pattern, note: slowapi doesn't pass request)
 
         Returns:
             Decorator function
@@ -154,9 +157,10 @@ class RateLimiter:
             >>> async def chat():
             ...     return {"status": "ok"}
 
-        Example - Dynamic limit:
-            >>> def get_limit(request: Request) -> str:
-            ...     if is_premium(request):
+        Example - Dynamic limit with ContextVar (recommended):
+            >>> def get_limit() -> str:
+            ...     request = get_current_request()
+            ...     if request and is_premium(request):
             ...         return "100/minute"
             ...     return "10/minute"
             >>>

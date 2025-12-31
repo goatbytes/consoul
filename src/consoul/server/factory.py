@@ -387,6 +387,24 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         app.add_middleware(BaseHTTPMiddleware, dispatch=body_size_limit_dispatch)
         logger.info(f"Body size limit: {max_body_size} bytes")
 
+    # Add request context middleware for dynamic rate limiting (SOUL-348)
+    # This stores the current request in a ContextVar so rate limit functions
+    # can access it without requiring a parameter (slowapi limitation)
+    from consoul.server.middleware.request_context import (
+        clear_current_request,
+        set_current_request,
+    )
+
+    async def request_context_dispatch(request: Request, call_next: Any) -> Any:
+        """Set request in ContextVar for rate limiting access."""
+        set_current_request(request)
+        try:
+            return await call_next(request)
+        finally:
+            clear_current_request()
+
+    app.add_middleware(BaseHTTPMiddleware, dispatch=request_context_dispatch)
+
     # Initialize metrics state and add metrics middleware
     # Middleware is added here (before app starts) but looks up app.state.metrics
     # at request time. The actual MetricsCollector is set in the lifespan handler.
@@ -459,13 +477,23 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
     app.state.tiered_limit_func = tiered_limit_func
 
     # Create chat rate limit function (uses tiered limits if configured)
-    def get_chat_rate_limit(request: Request) -> str:
+    # SOUL-348: Changed to no-parameter function that reads request from ContextVar
+    # because slowapi doesn't pass request to callable limit providers
+    def get_chat_rate_limit() -> str:
         """Get rate limit for chat endpoint based on API key tier.
 
         Returns tiered limit if configured, otherwise static "30/minute".
+        Reads request from ContextVar set by request_context middleware.
         """
+        from consoul.server.middleware.request_context import get_current_request
+
         if tiered_limit_func is not None:
-            return tiered_limit_func(request)
+            request = get_current_request()
+            if request is not None:
+                return tiered_limit_func(request)
+            logger.warning(
+                "No request in context for tiered rate limiting, using default"
+            )
         return "30/minute"
 
     app.state.get_chat_rate_limit = get_chat_rate_limit
