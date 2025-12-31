@@ -6,6 +6,7 @@ distributed systems.
 
 from __future__ import annotations
 
+import fnmatch
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -136,18 +137,31 @@ class RateLimiter:
 
         logger.info("RateLimiter integrated with FastAPI app")
 
-    def limit(self, limit_value: str) -> Any:
+    def limit(self, limit_value: str | Callable[[Request], str]) -> Any:
         """Decorator to apply rate limit to endpoint.
 
         Args:
             limit_value: Rate limit string (e.g., "10/minute", "10 per minute;100 per hour")
+                or a callable that takes a Request and returns a limit string.
+                Using a callable enables dynamic rate limits based on request properties.
 
         Returns:
             Decorator function
 
-        Example:
+        Example - Static limit:
             >>> @app.post("/chat")
             >>> @limiter.limit("10/minute")
+            >>> async def chat():
+            ...     return {"status": "ok"}
+
+        Example - Dynamic limit:
+            >>> def get_limit(request: Request) -> str:
+            ...     if is_premium(request):
+            ...         return "100/minute"
+            ...     return "10/minute"
+            >>>
+            >>> @app.post("/chat")
+            >>> @limiter.limit(get_limit)
             >>> async def chat():
             ...     return {"status": "ok"}
         """
@@ -209,3 +223,64 @@ def create_api_key_limiter(
         key_func=get_api_key,
         storage_url=storage_url,
     )
+
+
+def create_tiered_limit_func(
+    tier_limits: dict[str, str],
+    api_key_tiers: dict[str, str],
+    default_limit: str,
+    header_name: str = "X-API-Key",
+) -> Callable[[Request], str]:
+    """Create dynamic limit function based on API key tier.
+
+    Uses glob-style pattern matching (fnmatch) to map API keys to tiers.
+    First matching pattern wins, so order patterns from most specific to least.
+
+    Args:
+        tier_limits: Mapping of tier name to rate limit string
+            (e.g., {"premium": "100/minute", "basic": "30/minute"})
+        api_key_tiers: Mapping of API key patterns to tier names
+            (e.g., {"sk-premium-*": "premium", "sk-basic-*": "basic"})
+        default_limit: Fallback limit when no pattern matches
+        header_name: HTTP header containing the API key
+
+    Returns:
+        Callable that extracts limit string from request
+
+    Example:
+        >>> limit_func = create_tiered_limit_func(
+        ...     tier_limits={"premium": "100/minute", "basic": "30/minute"},
+        ...     api_key_tiers={"sk-premium-*": "premium", "sk-basic-*": "basic"},
+        ...     default_limit="10/minute",
+        ... )
+        >>> @app.post("/chat")
+        >>> @limiter.limit(limit_func)
+        >>> async def chat():
+        ...     pass
+    """
+    # Pre-convert to list to ensure consistent ordering
+    patterns = list(api_key_tiers.items())
+
+    def get_limit(request: Request) -> str:
+        api_key = request.headers.get(header_name, "")
+
+        for pattern, tier in patterns:
+            if fnmatch.fnmatch(api_key, pattern):
+                limit = tier_limits.get(tier)
+                if limit is None:
+                    logger.warning(
+                        f"Tier '{tier}' not found in tier_limits, "
+                        f"using default limit for key pattern '{pattern}'"
+                    )
+                    # Store tier info for debugging
+                    request.state.rate_limit_tier = f"{tier} (missing, default)"
+                    return default_limit
+                # Store resolved tier in request.state for debugging/logging
+                request.state.rate_limit_tier = tier
+                return limit
+
+        # No pattern matched
+        request.state.rate_limit_tier = "default"
+        return default_limit
+
+    return get_limit

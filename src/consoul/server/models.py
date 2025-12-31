@@ -73,6 +73,40 @@ def parse_semicolon_or_single(v: str | list[str] | list[str]) -> list[str]:
     return ["10 per minute"]
 
 
+def parse_json_dict(v: str | dict[str, str] | None) -> dict[str, str] | None:
+    """Parse JSON string into dict or pass through dict.
+
+    Supports:
+    - None passthrough: None → None
+    - Dict passthrough: {"a": "b"} → {"a": "b"}
+    - JSON string: '{"a": "b"}' → {"a": "b"}
+
+    Raises:
+        ValueError: If string is malformed JSON or not a dict
+
+    Note:
+        Used by RateLimitConfig for tier_limits and api_key_tiers fields.
+        Environment variables should be JSON strings:
+        CONSOUL_RATE_LIMIT_TIERS='{"premium": "100/minute", "basic": "30/minute"}'
+    """
+    if v is None:
+        return None
+    if isinstance(v, dict):
+        return {str(k): str(val) for k, val in v.items()}
+    if isinstance(v, str):
+        v = v.strip()
+        if not v:
+            return None
+        try:
+            parsed = json.loads(v)
+            if not isinstance(parsed, dict):
+                raise ValueError(f"Expected JSON object, got {type(parsed).__name__}")
+            return {str(k): str(val) for k, val in parsed.items()}
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Malformed JSON object: {e}") from e
+    return None
+
+
 class HealthResponse(BaseModel):
     """Health check endpoint response schema.
 
@@ -410,6 +444,8 @@ class RateLimitConfig(BaseSettings):
         enabled: Whether rate limiting is enabled
         fallback_enabled: Fall back to in-memory when Redis unavailable
         reconnect_interval: Seconds between Redis reconnection attempts
+        tier_limits: Rate limit tiers mapping tier name to limit string
+        api_key_tiers: API key patterns to tier mapping (supports wildcards)
 
     Environment Variables:
         CONSOUL_ENABLED: Enable/disable rate limiting (default: true)
@@ -421,6 +457,12 @@ class RateLimitConfig(BaseSettings):
         REDIS_URL: Universal fallback for Redis URL
         CONSOUL_REDIS_FALLBACK_ENABLED: Enable fallback to in-memory on Redis failure
         CONSOUL_REDIS_RECONNECT_INTERVAL: Seconds between reconnection attempts
+        CONSOUL_RATE_LIMIT_TIERS: JSON mapping of tier names to limit strings
+            - Example: '{"premium": "100/minute", "basic": "30/minute"}'
+        CONSOUL_API_KEY_TIERS: JSON mapping of API key patterns to tier names
+            - Example: '{"sk-premium-*": "premium", "sk-basic-*": "basic"}'
+            - Supports glob-style wildcards (*, ?)
+            - First matching pattern wins
 
     Example:
         >>> config = RateLimitConfig(
@@ -431,6 +473,9 @@ class RateLimitConfig(BaseSettings):
         >>> # CONSOUL_DEFAULT_LIMITS="10/minute"
         >>> # Or multiple limits:
         >>> # CONSOUL_DEFAULT_LIMITS="10/minute;100/hour;1000/day"
+        >>> # Or with tiered rate limits:
+        >>> # CONSOUL_RATE_LIMIT_TIERS='{"premium": "100/minute", "basic": "30/minute"}'
+        >>> # CONSOUL_API_KEY_TIERS='{"sk-premium-*": "premium", "sk-basic-*": "basic"}'
         >>> config = RateLimitConfig()
     """
 
@@ -479,6 +524,20 @@ class RateLimitConfig(BaseSettings):
         le=3600,
         description="Seconds between Redis reconnection attempts",
         validation_alias="CONSOUL_REDIS_RECONNECT_INTERVAL",
+    )
+    tier_limits: Annotated[dict[str, str] | None, BeforeValidator(parse_json_dict)] = (
+        Field(
+            default=None,
+            description="Rate limit tiers mapping tier name to limit string",
+            validation_alias="CONSOUL_RATE_LIMIT_TIERS",
+        )
+    )
+    api_key_tiers: Annotated[
+        dict[str, str] | None, BeforeValidator(parse_json_dict)
+    ] = Field(
+        default=None,
+        description="API key patterns to tier mapping (supports wildcards)",
+        validation_alias="CONSOUL_API_KEY_TIERS",
     )
 
 

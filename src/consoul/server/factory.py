@@ -324,14 +324,68 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         if isinstance(config.rate_limit.default_limits, list)
         else [config.rate_limit.default_limits]
     )
+
+    # Initialize tiered rate limiting if configured (SOUL-331)
+    # Must be done BEFORE creating limiter to set up per-API-key bucketing
+    tiered_limit_func: Callable[[Request], str] | None = None
+    rate_limit_key_func: Callable[[Request], str] | None = None
+
+    if config.rate_limit.tier_limits and config.rate_limit.api_key_tiers:
+        from slowapi.util import get_remote_address
+
+        from consoul.server.middleware.rate_limit import create_tiered_limit_func
+
+        # Create tiered limit function for dynamic rate limits
+        tiered_limit_func = create_tiered_limit_func(
+            tier_limits=config.rate_limit.tier_limits,
+            api_key_tiers=config.rate_limit.api_key_tiers,
+            default_limit=default_limits[0],
+            header_name=config.security.header_name,
+        )
+
+        # Create per-API-key bucket function so each key has its own rate limit bucket
+        # This ensures premium and basic keys don't share buckets even behind the same NAT
+        header_name = config.security.header_name
+
+        def get_api_key_or_ip(request: Request) -> str:
+            """Extract API key for rate limit bucketing, fallback to IP."""
+            api_key = request.headers.get(header_name)
+            if api_key:
+                return str(api_key)
+            return str(get_remote_address(request))
+
+        rate_limit_key_func = get_api_key_or_ip
+
+        logger.info(
+            f"Tiered rate limiting enabled: {len(config.rate_limit.tier_limits)} tiers, "
+            f"{len(config.rate_limit.api_key_tiers)} patterns (per-API-key buckets)"
+        )
+
+    # Create limiter with appropriate key function
+    # - With tiers: bucket by API key (each key has its own bucket)
+    # - Without tiers: bucket by IP address (default behavior)
     limiter = RateLimiter(
         default_limits=default_limits,
+        key_func=rate_limit_key_func,  # None = default IP-based bucketing
         storage_url=config.rate_limit.storage_url,
         key_prefix=config.rate_limit.key_prefix,
         enabled=config.rate_limit.enabled,
     )
     limiter.init_app(app)
     app.state.limiter = limiter
+    app.state.tiered_limit_func = tiered_limit_func
+
+    # Create chat rate limit function (uses tiered limits if configured)
+    def get_chat_rate_limit(request: Request) -> str:
+        """Get rate limit for chat endpoint based on API key tier.
+
+        Returns tiered limit if configured, otherwise static "30/minute".
+        """
+        if tiered_limit_func is not None:
+            return tiered_limit_func(request)
+        return "30/minute"
+
+    app.state.get_chat_rate_limit = get_chat_rate_limit
 
     logger.info(f"Rate limiter initialized: {config.rate_limit.default_limits}")
 
@@ -588,7 +642,7 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
             500: {"model": ChatErrorResponse, "description": "Internal server error"},
         },
     )  # type: ignore[misc]
-    @limiter.limit("30/minute")  # type: ignore[misc]
+    @limiter.limit(get_chat_rate_limit)  # type: ignore[misc]
     async def chat(
         request: Request,
         chat_request: ChatRequest = Depends(get_chat_request),  # noqa: B008
