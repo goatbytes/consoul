@@ -313,6 +313,11 @@ global_limiter = RateLimiter(
     storage_url="redis://localhost:6379"
 )
 
+# Per-tenant limiter with dynamic limit function
+tenant_limiter = RateLimiter(
+    storage_url="redis://localhost:6379"
+)
+
 # Per-tenant limits within the global cap
 def get_tenant_limit(request):
     api_key = request.headers.get("X-API-Key", "")
