@@ -1,0 +1,45 @@
+name: Terraform
+
+on:
+  pull_request:
+    paths:
+      - 'deployment/cloud/**'
+  push:
+    branches: [main]
+    paths:
+      - 'deployment/cloud/**'
+
+jobs:
+  validate:
+    name: Validate (${{ matrix.provider }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        provider: [gcp, aws, azure]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+        working-directory: deployment/cloud/${{ matrix.provider }}
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: deployment/cloud/${{ matrix.provider }}
+
+  format:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive -diff
+        working-directory: deployment/cloud
