@@ -397,6 +397,189 @@ class ChatErrorResponse(BaseModel):
 
 
 # =============================================================================
+# Batch Chat Models
+# =============================================================================
+
+
+class BatchMessageItem(BaseModel):
+    """Single message item in a batch request.
+
+    Attributes:
+        role: Message role (currently only "user" supported).
+        content: Message content (32KB max).
+
+    Example:
+        >>> item = BatchMessageItem(content="Hello!")
+    """
+
+    role: Literal["user"] = Field(
+        default="user",
+        description="Message role (currently only 'user' supported)",
+    )
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=32768,
+        description="Message content (32KB max per message)",
+        examples=["Hello!", "What is 2+2?"],
+    )
+
+
+class ChatBatchRequest(BaseModel):
+    """Request body for POST /chat/batch endpoint.
+
+    Supports two processing modes:
+    - Sequential (default): Messages processed in order, each sees previous context
+    - Parallel: All messages processed with same initial context
+
+    Attributes:
+        session_id: Unique session identifier. Auto-creates if not exists.
+        messages: List of messages to process (1-10 messages max).
+        model: Optional model override (only applies on session creation).
+        sequential: Processing mode. True=sequential, False=parallel.
+
+    Example:
+        >>> request = ChatBatchRequest(
+        ...     session_id="user-abc123",
+        ...     messages=[
+        ...         BatchMessageItem(content="Hello!"),
+        ...         BatchMessageItem(content="What is 2+2?"),
+        ...     ],
+        ...     sequential=True,
+        ... )
+    """
+
+    session_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=128,
+        description="Unique session identifier. Auto-creates session if not exists.",
+        examples=["user-abc123", "session-uuid-v4"],
+    )
+    messages: list[BatchMessageItem] = Field(
+        ...,
+        min_length=1,
+        max_length=10,
+        description="List of messages to process (1-10 messages max)",
+    )
+    model: str | None = Field(
+        default=None,
+        description="Model to use (only applies when creating new session). "
+        "Ignored for existing sessions.",
+        examples=["gpt-4o", "claude-3-5-sonnet-20241022"],
+    )
+    sequential: bool = Field(
+        default=True,
+        description="If True (default), messages are processed in order and each "
+        "sees the context from previous messages. If False, all messages are "
+        "processed with the same initial context (parallel processing).",
+    )
+
+
+class BatchResponseItem(BaseModel):
+    """Single response item in a batch response.
+
+    For successful messages: response and usage are populated, error is None.
+    For failed messages: error is populated, response and usage are None.
+
+    Attributes:
+        index: Index of the message in the original request (0-based).
+        response: AI response text (None if error occurred).
+        usage: Token usage for this message (None if error occurred).
+        error: Error information if this message failed.
+
+    Example:
+        >>> item = BatchResponseItem(
+        ...     index=0,
+        ...     response="Hello! How can I help?",
+        ...     usage=ChatUsage(
+        ...         input_tokens=10,
+        ...         output_tokens=5,
+        ...         total_tokens=15,
+        ...         estimated_cost=0.0001
+        ...     ),
+        ... )
+    """
+
+    index: int = Field(
+        ...,
+        ge=0,
+        description="Index of the message in the original request (0-based)",
+    )
+    response: str | None = Field(
+        default=None,
+        description="AI response text (None if error occurred)",
+    )
+    usage: ChatUsage | None = Field(
+        default=None,
+        description="Token usage for this message (None if error occurred)",
+    )
+    error: ChatErrorResponse | None = Field(
+        default=None,
+        description="Error information if this message failed",
+    )
+
+
+class ChatBatchResponse(BaseModel):
+    """Response body for POST /chat/batch endpoint.
+
+    Contains individual responses for each message and aggregated usage.
+    Uses best-effort processing: continues even if individual messages fail.
+
+    Attributes:
+        session_id: Session identifier (echoed from request).
+        responses: List of responses for each message.
+        total_usage: Aggregated token usage across all successful messages.
+        model: Model that generated the responses.
+        timestamp: ISO 8601 timestamp of response.
+        processing_mode: "sequential" or "parallel" based on request.
+
+    Example:
+        >>> response = ChatBatchResponse(
+        ...     session_id="user-abc123",
+        ...     responses=[
+        ...         BatchResponseItem(index=0, response="Hello!", usage=...),
+        ...         BatchResponseItem(index=1, response="4", usage=...),
+        ...     ],
+        ...     total_usage=ChatUsage(
+        ...         input_tokens=50,
+        ...         output_tokens=25,
+        ...         total_tokens=75,
+        ...         estimated_cost=0.00015
+        ...     ),
+        ...     model="gpt-4o",
+        ...     timestamp="2025-12-25T10:30:45.123456Z",
+        ...     processing_mode="sequential",
+        ... )
+    """
+
+    session_id: str = Field(
+        ...,
+        description="Session identifier",
+    )
+    responses: list[BatchResponseItem] = Field(
+        ...,
+        description="List of responses for each message",
+    )
+    total_usage: ChatUsage = Field(
+        ...,
+        description="Aggregated token usage across all successful messages",
+    )
+    model: str = Field(
+        ...,
+        description="Model that generated the responses",
+    )
+    timestamp: str = Field(
+        ...,
+        description="ISO 8601 timestamp of response",
+    )
+    processing_mode: Literal["sequential", "parallel"] = Field(
+        ...,
+        description="Processing mode used for this batch",
+    )
+
+
+# =============================================================================
 # SSE (Server-Sent Events) Models
 # =============================================================================
 

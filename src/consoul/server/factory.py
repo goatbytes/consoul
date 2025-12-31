@@ -110,6 +110,10 @@ from consoul.server.errors import (
     get_error_http_status,
 )
 from consoul.server.models import (
+    BatchMessageItem,  # noqa: TC001 (FastAPI needs at runtime for OpenAPI)
+    BatchResponseItem,  # noqa: TC001 (FastAPI needs at runtime for OpenAPI)
+    ChatBatchRequest,  # noqa: TC001 (FastAPI needs at runtime for OpenAPI)
+    ChatBatchResponse,  # noqa: TC001 (FastAPI needs at runtime for OpenAPI)
     ChatRequest,  # noqa: TC001 (FastAPI needs at runtime for OpenAPI)
 )
 
@@ -195,6 +199,10 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         configure_cors,
     )
     from consoul.server.models import (
+        BatchMessageItem,
+        BatchResponseItem,
+        ChatBatchRequest,
+        ChatBatchResponse,
         ChatErrorResponse,
         ChatRequest,
         ChatResponse,
@@ -206,10 +214,16 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
     )
 
     # Ensure Pydantic models are fully resolved for FastAPI
+    # Core models first
+    ChatUsage.model_rebuild()
+    ChatErrorResponse.model_rebuild()
     ChatRequest.model_rebuild()
     ChatResponse.model_rebuild()
-    ChatErrorResponse.model_rebuild()
-    ChatUsage.model_rebuild()
+    # Batch models (rebuild with force=True to resolve forward references)
+    BatchMessageItem.model_rebuild(force=True)
+    ChatBatchRequest.model_rebuild(force=True)
+    BatchResponseItem.model_rebuild(force=True)
+    ChatBatchResponse.model_rebuild(force=True)
 
     # Load configuration (default to environment if None)
     if config is None:
@@ -801,6 +815,278 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
             )
         except Exception as e:
             logger.exception(f"Chat error for session {session_id}: {e}")
+            return JSONResponse(
+                status_code=get_error_http_status(ErrorCode.INTERNAL_ERROR),
+                content=create_error_response(
+                    ErrorCode.INTERNAL_ERROR,
+                    message=str(e),
+                ),
+            )
+
+    # Register batch chat endpoint
+    @app.post(
+        "/chat/batch",
+        tags=["chat"],
+        response_model=ChatBatchResponse,
+        summary="Batch Chat",
+        description="""Process multiple messages in a single request.
+
+**Processing Modes:**
+- `sequential: true` (default): Messages processed in order. Each message sees
+  the context from previous messages in the batch.
+- `sequential: false`: All messages processed with the same initial context
+  (parallel processing for independent queries).
+
+**Limits:**
+- Maximum 10 messages per batch
+- Each message has 32KB max content size
+- Total request body must be under 1MB
+
+**Error Handling:**
+- Best-effort processing: continues even if individual messages fail
+- Failed messages have `response: null` and `error` populated
+- `total_usage` aggregates only successful messages
+
+**Example:**
+```json
+{
+  "session_id": "user-abc123",
+  "messages": [
+    {"content": "Hello!"},
+    {"content": "What is 2+2?"}
+  ],
+  "sequential": true
+}
+```
+""",
+        responses={
+            200: {"model": ChatBatchResponse},
+            400: {
+                "model": ChatErrorResponse,
+                "description": "Batch validation error",
+            },
+            422: {"description": "Validation Error"},
+            429: {"description": "Rate limit exceeded"},
+            503: {
+                "model": ChatErrorResponse,
+                "description": "Session storage unavailable",
+            },
+            500: {"model": ChatErrorResponse, "description": "Internal server error"},
+        },
+    )  # type: ignore[misc]
+    @limiter.limit(get_chat_rate_limit)  # type: ignore[misc]
+    async def chat_batch(
+        request: Request,
+        batch_request: ChatBatchRequest,
+        api_key: str | None = Depends(get_optional_auth()),
+    ) -> ChatBatchResponse | JSONResponse:
+        """Batch chat endpoint for multi-turn conversations.
+
+        Processes multiple messages in a single request with either sequential
+        (context accumulation) or parallel (same initial context) modes.
+
+        Args:
+            request: FastAPI request object
+            batch_request: Batch request with session_id and messages
+            api_key: Optional API key (if authentication configured)
+
+        Returns:
+            ChatBatchResponse on success, JSONResponse with ChatErrorResponse on failure
+
+        Raises:
+            HTTPException: 401 if authentication fails (when configured)
+            HTTPException: 429 if rate limit exceeded
+        """
+        import asyncio
+
+        from consoul.sdk import create_session, restore_session, save_session_state
+        from consoul.server.session_locks import SessionLock
+
+        session_id = batch_request.session_id
+        timestamp = datetime.now(timezone.utc).isoformat()
+        store = request.app.state.session_store
+        lock_manager = request.app.state.session_locks
+        messages = batch_request.messages
+        sequential = batch_request.sequential
+
+        responses: list[BatchResponseItem] = []
+        total_input_tokens = 0
+        total_output_tokens = 0
+        total_estimated_cost = 0.0
+        model_name = "unknown"
+
+        try:
+            # Per-session lock ensures atomic batch operation
+            async with SessionLock(lock_manager, session_id):
+                # Load session state (blocking Redis call → run in thread)
+                state = await asyncio.to_thread(store.load, session_id)
+
+                if state:
+                    console = restore_session(state)
+                    # Warn if model parameter differs from existing session
+                    if (
+                        batch_request.model
+                        and batch_request.model != console.model_name
+                    ):
+                        logger.warning(
+                            f"Ignoring model={batch_request.model!r} for existing "
+                            f"session {session_id} (locked to {console.model_name})"
+                        )
+                else:
+                    console = create_session(
+                        session_id=session_id,
+                        model=batch_request.model,
+                        tools=False,
+                    )
+
+                model_name = console.model_name
+
+                if sequential:
+                    # Sequential mode: process messages in order with context
+                    for idx, msg in enumerate(messages):
+                        try:
+                            response_text = await asyncio.to_thread(
+                                console.chat, msg.content
+                            )
+                            cost = console.last_cost
+
+                            usage = ChatUsage(
+                                input_tokens=cost.get("input_tokens", 0),
+                                output_tokens=cost.get("output_tokens", 0),
+                                total_tokens=cost.get("total_tokens", 0),
+                                estimated_cost=cost.get("estimated_cost", 0.0),
+                            )
+
+                            total_input_tokens += usage.input_tokens
+                            total_output_tokens += usage.output_tokens
+                            total_estimated_cost += usage.estimated_cost
+
+                            responses.append(
+                                BatchResponseItem(
+                                    index=idx,
+                                    response=response_text,
+                                    usage=usage,
+                                )
+                            )
+
+                        except Exception as e:
+                            logger.error(f"Batch message {idx} failed: {e}")
+                            error_response = create_error_response(
+                                ErrorCode.INTERNAL_ERROR,
+                                message=str(e),
+                            )
+                            responses.append(
+                                BatchResponseItem(
+                                    index=idx,
+                                    error=ChatErrorResponse(
+                                        **error_response,
+                                        timestamp=timestamp,
+                                    ),
+                                )
+                            )
+
+                    # Save session state (for sequential mode)
+                    new_state = save_session_state(console)
+                    await asyncio.to_thread(store.save, session_id, new_state)
+
+                else:
+                    # Parallel mode: save initial state, process all with same context
+                    initial_state = save_session_state(console)
+
+                    async def process_message(
+                        idx: int, msg: BatchMessageItem
+                    ) -> BatchResponseItem:
+                        """Process a single message with restored initial context."""
+                        try:
+                            # Each parallel message gets its own console instance
+                            parallel_console = restore_session(initial_state)
+                            response_text = await asyncio.to_thread(
+                                parallel_console.chat, msg.content
+                            )
+                            cost = parallel_console.last_cost
+
+                            usage = ChatUsage(
+                                input_tokens=cost.get("input_tokens", 0),
+                                output_tokens=cost.get("output_tokens", 0),
+                                total_tokens=cost.get("total_tokens", 0),
+                                estimated_cost=cost.get("estimated_cost", 0.0),
+                            )
+
+                            return BatchResponseItem(
+                                index=idx,
+                                response=response_text,
+                                usage=usage,
+                            )
+                        except Exception as e:
+                            logger.error(f"Batch message {idx} failed: {e}")
+                            error_response = create_error_response(
+                                ErrorCode.INTERNAL_ERROR,
+                                message=str(e),
+                            )
+                            return BatchResponseItem(
+                                index=idx,
+                                error=ChatErrorResponse(
+                                    **error_response,
+                                    timestamp=timestamp,
+                                ),
+                            )
+
+                    # Process all messages concurrently
+                    tasks = [
+                        process_message(idx, msg) for idx, msg in enumerate(messages)
+                    ]
+                    responses = list(await asyncio.gather(*tasks))
+
+                    # Sort by index to maintain order
+                    responses = sorted(responses, key=lambda r: r.index)
+
+                    # Aggregate usage from successful responses
+                    for resp in responses:
+                        if resp.usage:
+                            total_input_tokens += resp.usage.input_tokens
+                            total_output_tokens += resp.usage.output_tokens
+                            total_estimated_cost += resp.usage.estimated_cost
+
+                    # For parallel mode, session state is unchanged (intentional)
+                    # Parallel queries are independent and don't accumulate context
+
+            # Record token usage metrics (if metrics enabled)
+            metrics = request.app.state.metrics
+            if metrics is not None:
+                metrics.record_tokens(
+                    input_tokens=total_input_tokens,
+                    output_tokens=total_output_tokens,
+                    model=model_name,
+                    session_id=session_id,
+                )
+
+            return ChatBatchResponse(
+                session_id=session_id,
+                responses=responses,
+                total_usage=ChatUsage(
+                    input_tokens=total_input_tokens,
+                    output_tokens=total_output_tokens,
+                    total_tokens=total_input_tokens + total_output_tokens,
+                    estimated_cost=total_estimated_cost,
+                ),
+                model=model_name,
+                timestamp=timestamp,
+                processing_mode="sequential" if sequential else "parallel",
+            )
+
+        except OSError as e:
+            logger.error(f"Session storage error for batch {session_id}: {e}")
+            return JSONResponse(
+                status_code=get_error_http_status(
+                    ErrorCode.SESSION_STORAGE_UNAVAILABLE
+                ),
+                content=create_error_response(
+                    ErrorCode.SESSION_STORAGE_UNAVAILABLE,
+                    retry_after=30,
+                ),
+            )
+        except Exception as e:
+            logger.exception(f"Batch chat error for session {session_id}: {e}")
             return JSONResponse(
                 status_code=get_error_http_status(ErrorCode.INTERNAL_ERROR),
                 content=create_error_response(
