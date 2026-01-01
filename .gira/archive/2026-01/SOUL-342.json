@@ -1,9 +1,9 @@
 {
   "created_at": "2025-12-31T05:21:48.445199Z",
-  "updated_at": "2026-01-01T01:52:07.858055Z",
+  "updated_at": "2026-01-01T02:34:08.252113Z",
   "id": "SOUL-342",
   "uuid": "cdc55b3d-6790-424e-8142-3069306db05e",
-  "_version": 1,
+  "_version": 2,
   "title": "Add circuit breaker pattern for LLM provider failures",
   "description": "**As a** API operator running Consoul in production\n**I want** circuit breaker protection for LLM provider calls\n**So that** partial outages don't cascade into full system failures and recovery is automatic\n\n**Context:**\nCurrently, when an LLM provider (OpenAI, Anthropic, Google, Ollama) becomes unavailable, every request fails immediately with an error. This pattern has problems:\n- Thundering herd on provider recovery\n- No graceful degradation\n- No protection against partial outages\n- Slow client timeout accumulation\n\nA circuit breaker pattern would:\n- Detect provider failures and \"open\" the circuit\n- Return fast-fail responses while open (no waiting for timeout)\n- Periodically test recovery (half-open state)\n- Resume normal operation when healthy\n\n**Technical Notes:**\n- Similar pattern exists in: `src/consoul/server/resilient_store.py` (Redis fallback)\n- LLM calls happen via: `src/consoul/sdk/services/conversation.py`\n- Providers: OpenAI, Anthropic, Google (Gemini), Ollama\n- Consider per-provider circuit breakers (OpenAI down != Anthropic down)\n\n**Proposed Implementation:**\n\n**Circuit Breaker States:**\n1. **Closed** (normal): Requests pass through, failures counted\n2. **Open** (tripped): Requests fail immediately, timer running\n3. **Half-Open** (testing): Limited test requests allowed\n\n**Configuration (Environment Variables):**\n```\nCONSOUL_CIRCUIT_BREAKER_ENABLED=true\nCONSOUL_CIRCUIT_BREAKER_FAILURE_THRESHOLD=5      # Failures before opening\nCONSOUL_CIRCUIT_BREAKER_SUCCESS_THRESHOLD=3      # Successes in half-open to close\nCONSOUL_CIRCUIT_BREAKER_TIMEOUT=60               # Seconds before half-open\nCONSOUL_CIRCUIT_BREAKER_HALF_OPEN_REQUESTS=3     # Test requests in half-open\n```\n\n**Fallback Options:**\n1. Cached responses (if available)\n2. Alternative provider (model fallback chain)\n3. Graceful error with retry guidance\n4. Queue for later processing\n\n**Prometheus Metrics:**\n```\nconsoul_circuit_breaker_state{provider=\"openai\"}  # 0=closed, 1=half-open, 2=open\nconsoul_circuit_breaker_trips_total{provider=\"openai\"}\nconsoul_circuit_breaker_rejections_total{provider=\"openai\"}\n```\n\n**Acceptance Criteria:**\n\n**Given** circuit breaker is enabled and closed\n**When** failure_threshold consecutive failures occur\n**Then** circuit opens and subsequent requests fail immediately with E200 (LLM provider unavailable)\n\n**Given** circuit is open\n**When** timeout period elapses\n**Then** circuit transitions to half-open state\n\n**Given** circuit is half-open\n**When** success_threshold requests succeed\n**Then** circuit closes and normal operation resumes\n\n**Given** circuit is half-open\n**When** a request fails\n**Then** circuit reopens and timer resets\n\n**Given** circuit is open or half-open\n**When** request is rejected\n**Then** response includes retry_after header with estimated recovery time\n\n**Given** per-provider circuit breakers are configured\n**When** OpenAI is down but Anthropic is up\n**Then** only OpenAI requests are circuit-broken\n\n**Testing Considerations:**\n- Unit tests: State machine transitions\n- Integration tests: Simulated provider failures\n- Chaos testing: Random failure injection\n- Metrics tests: Verify Prometheus counters update correctly\n- Recovery tests: Automatic healing after provider recovery\n\n**Implementation Hints:**\n- Create `src/consoul/server/circuit_breaker.py`\n- Use `CircuitBreakerConfig` Pydantic model for configuration\n- Consider using `pybreaker` library or implement from scratch\n- Wrap LLM calls in circuit breaker context\n- Per-provider state storage (thread-safe dict or Redis for distributed)\n- Log state transitions at WARNING level\n- Integrate with existing metrics in `src/consoul/server/observability/metrics.py`\n- Reference: Martin Fowler's circuit breaker pattern",
   "status": "done",
@@ -15,6 +15,7 @@
     "server",
     "observability"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-021",
   "blocked_by": [],
@@ -25,5 +26,10 @@
   "comment_count": 0,
   "story_points": 8,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-01T02:34:17.476823+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

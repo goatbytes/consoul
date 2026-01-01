@@ -1,9 +1,9 @@
 {
   "created_at": "2025-12-31T05:19:42.090587Z",
-  "updated_at": "2025-12-31T18:48:35.481455Z",
+  "updated_at": "2026-01-01T02:34:08.250691Z",
   "id": "SOUL-338",
   "uuid": "a1a88a3f-1220-4462-9dd5-98cef88ca2bf",
-  "_version": 1,
+  "_version": 2,
   "title": "Define standardized error code catalog (E001-E999)",
   "description": "**As a** API client developer\n**I want** standardized error codes with clear categories and recovery guidance\n**So that** I can implement robust error handling and provide meaningful feedback to users\n\n**Context:**\nThe current error handling uses basic `ChatErrorResponse` with freeform `error` and `message` fields (see `src/consoul/server/models.py` lines 344-373). This lacks:\n- Consistent error categorization\n- Unique error codes for programmatic handling\n- Recovery guidance (retryable vs terminal errors)\n- HTTP status code mapping documentation\n\nExample current response:\n```json\n{\n  \"error\": \"storage_unavailable\",\n  \"message\": \"Session storage temporarily unavailable\",\n  \"timestamp\": \"...\"\n}\n```\n\n**Technical Notes:**\n- Current error model: `src/consoul/server/models.py` ChatErrorResponse\n- Error creation points in `factory.py`:\n  - Lines 787-795: storage_unavailable (503)\n  - Lines 796-805: internal_error (500)\n- WebSocket errors: `src/consoul/server/endpoints/websocket.py` lines 419-435\n\n**Proposed Error Code Structure:**\n\n**E0xx - Client Errors (4xx)**\n- E001: Invalid request body (422)\n- E002: Missing required field (422)\n- E003: Field validation failed (422)\n- E004: Session ID invalid format (400)\n- E005: Message exceeds max length (400)\n- E010: Authentication required (401)\n- E011: Invalid API key (401)\n- E012: API key expired (401)\n- E020: Rate limit exceeded (429)\n- E021: Rate limit tier exhausted (429)\n\n**E1xx - Session Errors (4xx/5xx)**\n- E100: Session not found (404)\n- E101: Session expired (410)\n- E102: Session locked (conflict) (409)\n- E110: Session storage unavailable (503)\n- E111: Session save failed (503)\n\n**E2xx - LLM Provider Errors (5xx)**\n- E200: LLM provider unavailable (503)\n- E201: LLM request timeout (504)\n- E202: LLM rate limited (503)\n- E203: LLM context too long (400)\n- E204: LLM content filtered (400)\n- E210: Model not available (503)\n- E211: Model configuration error (500)\n\n**E3xx - Tool Execution Errors**\n- E300: Tool not found (400)\n- E301: Tool execution denied (403)\n- E302: Tool timeout (504)\n- E303: Tool execution failed (500)\n\n**E9xx - Internal Errors (5xx)**\n- E900: Internal server error (500)\n- E901: Unexpected exception (500)\n- E999: Unknown error (500)\n\n**Enhanced Error Response Model:**\n```python\nclass ErrorResponse(BaseModel):\n    code: str  # e.g., \"E110\"\n    error: str  # e.g., \"session_storage_unavailable\"\n    message: str  # Human-readable description\n    recoverable: bool  # Can client retry?\n    retry_after: int | None = None  # Seconds, if applicable\n    details: dict[str, Any] | None = None  # Additional context\n    timestamp: str\n```\n\n**Acceptance Criteria:**\n\n**Given** any API error occurs\n**When** the error response is returned\n**Then** it includes a unique error code (E001-E999) and recoverable flag\n\n**Given** a recoverable error (E110, E200, E201)\n**When** the response is returned\n**Then** retry_after field indicates suggested wait time\n\n**Given** an error code is returned\n**When** a developer looks up the code\n**Then** documentation exists with cause, recovery steps, and examples\n\n**Given** error codes are defined\n**When** comparing to HTTP status codes\n**Then** each code maps to appropriate HTTP status (4xx for client, 5xx for server)\n\n**Testing Considerations:**\n- Unit tests: Verify each error type produces correct code\n- Integration tests: Trigger real error conditions\n- Documentation: Generate error code reference from code\n- Backward compatibility: Ensure existing clients don't break\n\n**Implementation Hints:**\n- Create `src/consoul/server/errors.py` for error code enum and helpers\n- Update ChatErrorResponse or create new ErrorResponse model\n- Add error code factory function: `create_error(ErrorCode.SESSION_UNAVAILABLE)`\n- Consider logging with error codes for better observability\n- Update all error returns in factory.py and websocket.py\n- Add error code to Prometheus metrics labels",
   "status": "done",
@@ -15,6 +15,7 @@
     "server",
     "documentation"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-021",
   "blocked_by": [],
@@ -25,5 +26,10 @@
   "comment_count": 0,
   "story_points": 5,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-01T02:34:17.429154+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

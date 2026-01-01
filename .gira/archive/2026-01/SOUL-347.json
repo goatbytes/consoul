@@ -1,15 +1,16 @@
 {
   "created_at": "2025-12-31T06:37:36.988932Z",
-  "updated_at": "2025-12-31T06:37:42.492105Z",
+  "updated_at": "2026-01-01T02:34:08.256324Z",
   "id": "SOUL-347",
   "uuid": "4dd75068-acf9-4fe3-8c36-872b583a1170",
-  "_version": 1,
+  "_version": 2,
   "title": "Add minimal webapp example with markdown rendering",
   "description": "",
   "status": "done",
   "type": "feature",
   "priority": "medium",
   "labels": [],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
@@ -18,5 +19,10 @@
   "attachment_count": 0,
   "comment_count": 0,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-01T02:34:17.663678+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

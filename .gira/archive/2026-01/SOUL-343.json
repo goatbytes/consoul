@@ -1,9 +1,9 @@
 {
   "created_at": "2025-12-31T05:22:24.999060Z",
-  "updated_at": "2026-01-01T01:52:08.844341Z",
+  "updated_at": "2026-01-01T02:34:08.257460Z",
   "id": "SOUL-343",
   "uuid": "e3d8584b-45ca-4c3b-8433-378f042ec292",
-  "_version": 1,
+  "_version": 2,
   "title": "Add API key rotation documentation and tooling",
   "description": "**As a** security-conscious API operator\n**I want** documented procedures and tooling for rotating API keys without downtime\n**So that** I can maintain security hygiene and respond to key compromises safely\n\n**Context:**\nThe current API key authentication (`src/consoul/server/middleware/auth.py`) supports multiple keys via `CONSOUL_API_KEYS` environment variable, but there's no documented rotation procedure. Key rotation is essential for:\n- Regular security hygiene (90-day rotation policies)\n- Incident response (compromised key revocation)\n- Employee offboarding\n- Compliance requirements (SOC 2, HIPAA)\n\n**Technical Notes:**\n- API key config: `src/consoul/server/models.py` SecurityConfig (lines 376-433)\n- Auth middleware: `src/consoul/server/middleware/auth.py`\n- Current support: Multiple keys via comma-separated or JSON array\n- Rate limit tiers: api_key_tiers with wildcard patterns\n\n**Documentation Sections:**\n\n**1. Zero-Downtime Rotation Procedure**\n```\n1. Add new key to CONSOUL_API_KEYS (old,new)\n2. Rolling restart of server instances\n3. Distribute new key to clients\n4. Monitor for old key usage (metrics)\n5. Remove old key after grace period\n6. Rolling restart again\n```\n\n**2. Environment Variable Patterns**\n```bash\n# Adding new key\nexport CONSOUL_API_KEYS=\"existing-key-1,new-key-2\"\n\n# JSON format (for complex keys)\nexport CONSOUL_API_KEYS='[\"sk-old-abc123\",\"sk-new-xyz789\"]'\n\n# Tier assignment for new key\nexport CONSOUL_API_KEY_TIERS='{\"sk-new-*\": \"premium\"}'\n```\n\n**3. Monitoring Key Usage**\n- Add metrics for per-key request counts\n- Log key usage (redacted) for audit\n- Alert on old key usage after rotation window\n\n**4. Emergency Revocation**\n- Immediate key removal procedure\n- Client notification templates\n- Incident response checklist\n\n**Proposed CLI Commands (Optional Enhancement):**\n```bash\n# Generate new API key\nconsoul key generate --tier premium\n\n# List active keys (redacted)\nconsoul key list\n# Output:\n# sk-pre***123  tier=premium  created=2024-01-15  last_used=2024-12-30\n# sk-bas***456  tier=basic    created=2024-06-01  last_used=2024-12-29\n\n# Revoke key\nconsoul key revoke sk-pre***123 --reason \"rotation\"\n```\n\n**Acceptance Criteria:**\n\n**Given** documentation exists for key rotation\n**When** an operator needs to rotate keys\n**Then** step-by-step procedure ensures zero client downtime\n\n**Given** multiple keys are configured\n**When** monitoring key usage\n**Then** metrics distinguish requests by key (redacted identifier)\n\n**Given** a key needs emergency revocation\n**When** following the documented procedure\n**Then** key is immediately invalid with minimal service disruption\n\n**Given** CLI tooling exists (optional)\n**When** managing keys\n**Then** operators can generate, list, and revoke keys without editing env vars\n\n**Testing Considerations:**\n- Test rotation procedure in staging environment\n- Verify multi-key authentication works\n- Confirm metrics track per-key usage\n- Test immediate revocation timing\n\n**Implementation Hints:**\n- Create `docs/operations/api-key-rotation.md`\n- Add per-key metrics to `src/consoul/server/observability/metrics.py`\n- Consider adding `consoul key` CLI commands (Click subgroup)\n- Log key usage with first/last 4 chars only (sk-abc...xyz)\n- Template for client notification email\n- Reference AWS/GCP key rotation best practices",
   "status": "done",
@@ -15,6 +15,7 @@
     "server",
     "operations"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-021",
   "blocked_by": [],
@@ -25,5 +26,10 @@
   "comment_count": 0,
   "story_points": 3,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-01T02:34:17.728209+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

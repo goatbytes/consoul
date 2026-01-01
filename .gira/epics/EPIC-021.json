@@ -1,11 +1,11 @@
 {
   "created_at": "2025-12-31T05:17:51.013812Z",
-  "updated_at": "2025-12-31T07:40:38.943490Z",
+  "updated_at": "2026-01-01T02:34:28.415753Z",
   "id": "EPIC-021",
   "_version": 1,
   "title": "Production API Improvements",
   "description": "Enhance the Consoul server API with production-ready features for enterprise deployments.\n\n**Goals:**\n- Improve API discoverability and client compatibility\n- Add robust error handling with standardized codes\n- Implement resilience patterns for LLM provider failures\n- Support diverse client requirements (SSE, batch, webhooks)\n- Document multi-tenancy and performance patterns\n\n**Scope:**\n- P0: OpenAPI schema improvements, SSE streaming endpoint\n- P1: Error code catalog, batch endpoint, circuit breaker, multi-tenancy docs\n- P2: API key rotation, connection pooling docs, load testing, webhooks\n\n**Success Criteria:**\n- OpenAPI spec accurately reflects all endpoints and schemas\n- Clients without WebSocket support can use streaming via SSE\n- Standardized error codes enable consistent client error handling\n- Circuit breaker prevents cascading failures during LLM outages\n- Documentation enables secure, performant production deployments",
-  "status": "active",
+  "status": "completed",
   "owner": "jared@goatbytes.io",
   "labels": [],
   "tickets": [

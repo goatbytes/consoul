@@ -1,9 +1,9 @@
 {
   "created_at": "2025-12-31T05:18:24.737904Z",
-  "updated_at": "2025-12-31T07:31:20.964112Z",
+  "updated_at": "2026-01-01T02:34:08.255368Z",
   "id": "SOUL-336",
   "uuid": "4061e61e-900a-409f-af1d-e4b6eba6021e",
-  "_version": 1,
+  "_version": 2,
   "title": "Refactor chat endpoint to expose ChatRequest in OpenAPI natively",
   "description": "**As a** API client developer\n**I want** the /chat endpoint to expose its request body schema in the OpenAPI specification natively\n**So that** I can generate typed clients without manual schema patching and understand the API contract clearly\n\n**Context:**\nThe current `/chat` endpoint in `src/consoul/server/factory.py` (lines 686-806) uses `Depends(get_chat_request)` to parse the request body. This dependency-based approach hides the `ChatRequest` schema from FastAPI's automatic OpenAPI generation.\n\nCurrently, a workaround exists in `scripts/generate_openapi_clients.py` that manually patches the OpenAPI spec with the `add_chat_request_body()` function (lines 65-121). This is fragile and requires maintenance whenever the schema changes.\n\n**Technical Notes:**\n- Location: `src/consoul/server/factory.py` lines 686-806\n- Current pattern: `chat_request: ChatRequest = Depends(get_chat_request)`\n- The `get_chat_request` dependency (lines 667-684) manually parses JSON and validates via Pydantic\n- `ChatRequest` model is defined in `src/consoul/server/models.py` lines 219-254\n- FastAPI natively supports request body models when declared directly as function parameters\n\n**Proposed Solution:**\nReplace the Depends-based approach with direct parameter declaration:\n```python\n@app.post(\"/chat\", ...)\nasync def chat(\n    request: Request,\n    chat_request: ChatRequest,  # Direct parameter, not Depends()\n    api_key: str | None = Depends(get_optional_auth()),\n) -> ChatResponse | JSONResponse:\n```\n\nThis requires moving validation logic into the Pydantic model or a custom exception handler for `RequestValidationError`.\n\n**Acceptance Criteria:**\n\n**Given** the server is running with default configuration\n**When** I fetch the OpenAPI spec at /openapi.json (or via `app.openapi()`)\n**Then** the POST /chat endpoint should include a requestBody with ChatRequest schema\n\n**Given** a client sends a POST to /chat with valid JSON body\n**When** the body contains session_id and message fields\n**Then** the request should be processed identically to current behavior\n\n**Given** a client sends invalid JSON or missing required fields\n**When** FastAPI validates the request\n**Then** a 422 response with detailed validation errors should be returned\n\n**Given** the OpenAPI spec is generated\n**When** compared to the current patched version\n**Then** the ChatRequest schema should be identical (no behavioral changes)\n\n**Testing Considerations:**\n- Unit tests: Verify `app.openapi()` contains ChatRequest in /chat endpoint\n- Integration tests: Test valid/invalid request handling unchanged\n- Regression: Run `scripts/generate_openapi_clients.py` and compare output\n- Remove patching code from generate_openapi_clients.py after refactor\n\n**Implementation Hints:**\n- Reference FastAPI docs on request body: https://fastapi.tiangolo.com/tutorial/body/\n- Consider using `Body(...)` for additional metadata if needed\n- Keep error response format consistent (422 for validation, 400 for parse errors)\n- Update tests in `tests/server/test_chat_endpoint.py` to verify schema exposure",
   "status": "done",
@@ -15,6 +15,7 @@
     "openapi",
     "server"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "epic_id": "EPIC-021",
   "blocked_by": [],
@@ -25,5 +26,10 @@
   "comment_count": 0,
   "story_points": 3,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-01T02:34:17.616266+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

@@ -1,0 +1,36 @@
+{
+  "created_at": "2025-12-31T19:48:46.084066Z",
+  "updated_at": "2026-01-01T02:34:08.254502Z",
+  "id": "SOUL-349",
+  "uuid": "dc7e9a41-c0df-4131-9c0f-7fbe1dac9383",
+  "_version": 2,
+  "title": "Add batch-specific Prometheus metrics for /chat/batch endpoint",
+  "description": "**As a** Consoul server operator\n**I want** dedicated Prometheus metrics for the /chat/batch endpoint\n**So that** I can monitor batch request patterns, track processing mode efficiency, and analyze batch operation success rates\n\n**Context:**\nThe new `/chat/batch` endpoint (SOUL-339) needs dedicated observability metrics beyond what the existing `MetricsCollector` provides. While token usage is already recorded at `src/consoul/server/factory.py` lines 1053-1060, batch-specific dimensions like processing mode, batch size distribution, and per-message success rates are not tracked.\n\nCurrent state:\n- `src/consoul/server/observability/metrics.py` has `MetricsCollector` with request/token/tool metrics\n- Batch endpoint records aggregate tokens but not batch-specific dimensions\n- No visibility into sequential vs parallel processing mode usage\n- No histogram for batch size distribution\n- No per-message success/failure breakdown\n\n**Production Constraints (new):**\n- **Label cardinality**: Only use low-cardinality labels (`processing_mode`, `status`). Do not add `api_key`, `session_id`, `model`, or per-tenant identifiers.\n- **Pre-processing failures**: Define how validation/auth errors are counted (recommend: increment `consoul_batch_request_total{status=\"failure\"}` and skip message metrics).\n- **Bucket alignment**: Batch latency histogram must mirror existing request latency histogram buckets for consistency.\n- **Batch size buckets**: Keep buckets aligned with configured max batch size (currently 10). If max size changes, update buckets.\n\n**Technical Notes:**\n\n**Proposed Metrics:**\n\n1. **consoul_batch_request_total** (Counter)\n   - Labels: `processing_mode` (sequential|parallel), `status` (success|partial_failure|failure)\n   - Purpose: Track batch request volume by mode and outcome\n   - Example: `consoul_batch_request_total{processing_mode=\"sequential\", status=\"success\"} 42`\n\n2. **consoul_batch_size** (Histogram)\n   - Buckets: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 (max batch size)\n   - Purpose: Track batch size distribution for capacity planning\n   - Example: `consoul_batch_size_bucket{le=\"5\"} 30`\n\n3. **consoul_batch_message_total** (Counter)\n   - Labels: `status` (success|failed), `processing_mode` (sequential|parallel)\n   - Purpose: Track individual message success/failure within batches\n   - Example: `consoul_batch_message_total{status=\"success\", processing_mode=\"parallel\"} 156`\n\n4. **consoul_batch_latency_seconds** (Histogram)\n   - Labels: `processing_mode` (sequential|parallel)\n   - Buckets: Match existing request_latency buckets (0.01 to 60.0)\n   - Purpose: Track batch processing time by mode\n\n**Reference Files:**\n- `src/consoul/server/observability/metrics.py` - Existing MetricsCollector (lines 79-262)\n- `src/consoul/server/factory.py` - Batch endpoint (lines 826-1096)\n- `src/consoul/server/factory.py` - Current token metrics recording (lines 1053-1060)\n\n**Acceptance Criteria:**\n\n**Given** the server is running with Prometheus metrics enabled\n**When** I query the `/metrics` endpoint\n**Then** I see `consoul_batch_request_total`, `consoul_batch_size`, `consoul_batch_message_total`, and `consoul_batch_latency_seconds` metrics\n\n**Given** a successful sequential batch request with 3 messages\n**When** all 3 messages process successfully\n**Then** `consoul_batch_request_total{processing_mode=\"sequential\", status=\"success\"}` increments by 1\n**And** `consoul_batch_message_total{status=\"success\", processing_mode=\"sequential\"}` increments by 3\n**And** `consoul_batch_size` histogram observes value 3\n\n**Given** a parallel batch request where 1 of 3 messages fails\n**When** the batch completes with partial success\n**Then** `consoul_batch_request_total{processing_mode=\"parallel\", status=\"partial_failure\"}` increments by 1\n**And** `consoul_batch_message_total{status=\"success\", processing_mode=\"parallel\"}` increments by 2\n**And** `consoul_batch_message_total{status=\"failed\", processing_mode=\"parallel\"}` increments by 1\n\n**Given** an auth/validation error before processing\n**When** the request is rejected\n**Then** `consoul_batch_request_total{status=\"failure\"}` increments and no message metrics are recorded\n\n**Given** metrics are recorded for a batch request\n**When** I calculate batch success rate\n**Then** I can derive it from `consoul_batch_message_total{status=\"success\"} / sum(consoul_batch_message_total)`\n\n**Testing Considerations:**\n- Unit tests: Verify MetricsCollector methods record correct values with mocked Prometheus\n- Integration tests: Make batch requests and verify metric values via prometheus_client\n- Test both processing modes (sequential and parallel)\n- Test partial failure scenarios\n- Test pre-processing rejection behavior\n- Verify histogram buckets capture expected batch sizes\n- Mock strategy: Use `prometheus_client.REGISTRY` to read metric values in tests\n\n**Implementation Hints:**\n- Add new methods to `MetricsCollector` class:\n  - `record_batch_request(processing_mode: str, status: str) -> None`\n  - `record_batch_size(size: int) -> None`\n  - `record_batch_message(processing_mode: str, success: bool) -> None`\n  - `record_batch_latency(processing_mode: str, latency: float) -> None`\n- Add metric instances in `MetricsCollector.__init__()` following existing patterns\n- Update batch endpoint in `factory.py` to call new methods\n- Determine batch status: \"success\" (all pass), \"partial_failure\" (some pass), \"failure\" (all fail)\n- Record metrics AFTER processing, not inside the try/except blocks\n- Consider adding `processing_mode` to existing token usage metrics for batch requests\n- Reference existing `record_request()` and `record_tokens()` patterns",
+  "status": "done",
+  "type": "feature",
+  "priority": "medium",
+  "labels": [
+    "enhancement",
+    "observability",
+    "prometheus",
+    "server",
+    "metrics"
+  ],
+  "assignee": "jared@goatbytes.io",
+  "reporter": "jared@goatbytes.io",
+  "epic_id": "EPIC-021",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-01T02:34:17.570079+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
+}
