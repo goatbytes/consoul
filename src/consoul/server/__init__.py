@@ -86,6 +86,15 @@ from consoul.server.models import (
     ServerConfig,
 )
 from consoul.server.session_locks import SessionLockManager
+from consoul.server.webhooks import (
+    DeliveryResult,
+    ResilientWebhookStore,
+    WebhookConfig,
+    WebhookDeliveryService,
+    WebhookEventEmitter,
+    WebhookEventType,
+    create_webhook_router,
+)
 
 __all__ = [
     "APIKeyAuth",
@@ -100,14 +109,21 @@ __all__ = [
     "CircuitBreakerManager",
     "CircuitBreakerStats",
     "CircuitState",
+    "DeliveryResult",
     "RateLimitConfig",
     "RateLimiter",
     "RequestValidator",
+    "ResilientWebhookStore",
     "SecurityConfig",
     "ServerConfig",
     "SessionLockManager",
     "WebSocketApprovalProvider",
     "WebSocketConnectionManager",
+    "WebhookConfig",
+    "WebhookDeliveryService",
+    "WebhookEventEmitter",
+    "WebhookEventType",
     "configure_cors",
     "create_server",
+    "create_webhook_router",
 ]

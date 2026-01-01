@@ -8,10 +8,13 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import AliasChoices, BaseModel, BeforeValidator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+if TYPE_CHECKING:
+    from consoul.server.webhooks.config import WebhookConfig
 
 logger = logging.getLogger(__name__)
 
@@ -1283,6 +1286,10 @@ class ServerConfig(BaseSettings):
     circuit_breaker: CircuitBreakerConfig = Field(
         default_factory=CircuitBreakerConfig,
         description="Circuit breaker configuration for LLM provider resilience",
+    )
+    webhook: WebhookConfig | None = Field(
+        default=None,
+        description="Webhook configuration for async event delivery (SOUL-346)",
     )
     host: str = Field(
         default="0.0.0.0",

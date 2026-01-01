@@ -84,6 +84,15 @@ class ErrorCode(str, Enum):
     TOOL_TIMEOUT = "E302"
     TOOL_EXECUTION_FAILED = "E303"
 
+    # E4xx - Webhook Errors
+    WEBHOOK_NOT_FOUND = "E400"
+    WEBHOOK_URL_INVALID = "E401"
+    WEBHOOK_SSRF_BLOCKED = "E402"
+    WEBHOOK_SECRET_INVALID = "E403"
+    WEBHOOK_QUEUE_FULL = "E410"
+    WEBHOOK_DISABLED = "E411"
+    DELIVERY_NOT_FOUND = "E420"
+
     # E9xx - Internal Errors (5xx)
     INTERNAL_ERROR = "E900"
     UNEXPECTED_EXCEPTION = "E901"
@@ -271,6 +280,49 @@ ERROR_REGISTRY: dict[ErrorCode, dict[str, Any]] = {
         "http_status": 500,
         "recoverable": False,
         "message": "Tool execution failed",
+    },
+    # E4xx - Webhook Errors
+    ErrorCode.WEBHOOK_NOT_FOUND: {
+        "error": "webhook_not_found",
+        "http_status": 404,
+        "recoverable": False,
+        "message": "Webhook not found",
+    },
+    ErrorCode.WEBHOOK_URL_INVALID: {
+        "error": "webhook_url_invalid",
+        "http_status": 400,
+        "recoverable": False,
+        "message": "Webhook URL is invalid or not accessible",
+    },
+    ErrorCode.WEBHOOK_SSRF_BLOCKED: {
+        "error": "webhook_ssrf_blocked",
+        "http_status": 400,
+        "recoverable": False,
+        "message": "Webhook URL blocked for security reasons",
+    },
+    ErrorCode.WEBHOOK_SECRET_INVALID: {
+        "error": "webhook_secret_invalid",
+        "http_status": 400,
+        "recoverable": False,
+        "message": "Webhook secret must be at least 16 characters",
+    },
+    ErrorCode.WEBHOOK_QUEUE_FULL: {
+        "error": "webhook_queue_full",
+        "http_status": 503,
+        "recoverable": True,
+        "message": "Webhook delivery queue is full",
+    },
+    ErrorCode.WEBHOOK_DISABLED: {
+        "error": "webhook_disabled",
+        "http_status": 409,
+        "recoverable": False,
+        "message": "Webhook is disabled due to consecutive failures",
+    },
+    ErrorCode.DELIVERY_NOT_FOUND: {
+        "error": "delivery_not_found",
+        "http_status": 404,
+        "recoverable": False,
+        "message": "Delivery record not found",
     },
     # E9xx - Internal Errors
     ErrorCode.INTERNAL_ERROR: {
