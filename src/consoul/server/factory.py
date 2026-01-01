@@ -963,24 +963,36 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
             HTTPException: 429 if rate limit exceeded
         """
         import asyncio
+        import time
+
+        from fastapi import HTTPException
 
         from consoul.sdk import create_session, restore_session, save_session_state
         from consoul.server.session_locks import SessionLock
 
-        session_id = batch_request.session_id
-        timestamp = datetime.now(timezone.utc).isoformat()
-        store = request.app.state.session_store
-        lock_manager = request.app.state.session_locks
-        messages = batch_request.messages
+        # Batch metrics setup - initialize early to track all failures (SOUL-349)
+        start_time = time.perf_counter()
+        batch_metrics = request.app.state.metrics
+        # Default processing_mode; will be updated once we parse the request
         sequential = batch_request.sequential
-
-        responses: list[BatchResponseItem] = []
-        total_input_tokens = 0
-        total_output_tokens = 0
-        total_estimated_cost = 0.0
-        model_name = "unknown"
+        processing_mode = "sequential" if sequential else "parallel"
 
         try:
+            session_id = batch_request.session_id
+            timestamp = datetime.now(timezone.utc).isoformat()
+            store = request.app.state.session_store
+            lock_manager = request.app.state.session_locks
+            messages = batch_request.messages
+
+            # Record batch size immediately
+            if batch_metrics is not None:
+                batch_metrics.record_batch_size(len(messages))
+
+            responses: list[BatchResponseItem] = []
+            total_input_tokens = 0
+            total_output_tokens = 0
+            total_estimated_cost = 0.0
+            model_name = "unknown"
             # Per-session lock ensures atomic batch operation
             async with SessionLock(lock_manager, session_id):
                 # Load session state (blocking Redis call → run in thread)
@@ -1034,6 +1046,12 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                                 )
                             )
 
+                            # Record successful message metric (SOUL-349)
+                            if batch_metrics is not None:
+                                batch_metrics.record_batch_message(
+                                    processing_mode, success=True
+                                )
+
                         except Exception as e:
                             logger.error(f"Batch message {idx} failed: {e}")
                             error_response = create_error_response(
@@ -1049,6 +1067,12 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                                     ),
                                 )
                             )
+
+                            # Record failed message metric (SOUL-349)
+                            if batch_metrics is not None:
+                                batch_metrics.record_batch_message(
+                                    processing_mode, success=False
+                                )
 
                     # Save session state (for sequential mode)
                     new_state = save_session_state(console)
@@ -1105,6 +1129,13 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                     # Sort by index to maintain order
                     responses = sorted(responses, key=lambda r: r.index)
 
+                    # Record per-message metrics for parallel mode (SOUL-349)
+                    if batch_metrics is not None:
+                        for resp in responses:
+                            batch_metrics.record_batch_message(
+                                processing_mode, success=(resp.error is None)
+                            )
+
                     # Aggregate usage from successful responses
                     for resp in responses:
                         if resp.usage:
@@ -1125,6 +1156,24 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                     session_id=session_id,
                 )
 
+            # Record batch-specific metrics (SOUL-349)
+            if batch_metrics is not None:
+                # Determine batch status
+                success_count = sum(1 for r in responses if r.error is None)
+                failure_count = len(responses) - success_count
+
+                if failure_count == 0:
+                    batch_status = "success"
+                elif success_count == 0:
+                    batch_status = "failure"
+                else:
+                    batch_status = "partial_failure"
+
+                # Record batch metrics
+                latency = time.perf_counter() - start_time
+                batch_metrics.record_batch_request(processing_mode, batch_status)
+                batch_metrics.record_batch_latency(processing_mode, latency)
+
             return ChatBatchResponse(
                 session_id=session_id,
                 responses=responses,
@@ -1141,6 +1190,12 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
 
         except OSError as e:
             logger.error(f"Session storage error for batch {session_id}: {e}")
+            # Record batch failure metric for storage errors (SOUL-349)
+            if batch_metrics is not None:
+                batch_metrics.record_batch_request(processing_mode, "failure")
+                batch_metrics.record_batch_latency(
+                    processing_mode, time.perf_counter() - start_time
+                )
             return JSONResponse(
                 status_code=get_error_http_status(
                     ErrorCode.SESSION_STORAGE_UNAVAILABLE
@@ -1150,8 +1205,28 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
                     retry_after=30,
                 ),
             )
+        except HTTPException as e:
+            # Record batch failure metric for HTTP errors (auth, etc.) (SOUL-349)
+            # Note: Validation (422) and rate-limit (429) errors raised by FastAPI
+            # middleware/decorators before entering this function are tracked by
+            # the general consoul_request_total metric, not batch-specific metrics.
+            logger.warning(
+                f"Batch HTTP error for session {batch_request.session_id}: {e.detail}"
+            )
+            if batch_metrics is not None:
+                batch_metrics.record_batch_request(processing_mode, "failure")
+                batch_metrics.record_batch_latency(
+                    processing_mode, time.perf_counter() - start_time
+                )
+            raise  # Re-raise to let FastAPI handle the response
         except Exception as e:
             logger.exception(f"Batch chat error for session {session_id}: {e}")
+            # Record batch failure metric for unexpected errors (SOUL-349)
+            if batch_metrics is not None:
+                batch_metrics.record_batch_request(processing_mode, "failure")
+                batch_metrics.record_batch_latency(
+                    processing_mode, time.perf_counter() - start_time
+                )
             return JSONResponse(
                 status_code=get_error_http_status(ErrorCode.INTERNAL_ERROR),
                 content=create_error_response(

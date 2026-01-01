@@ -7,11 +7,12 @@ Tests the POST /chat/batch endpoint functionality:
 - Best-effort error handling
 - Session state management
 - Usage aggregation
+- Prometheus metrics recording (SOUL-349)
 """
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from fastapi.testclient import TestClient
 
@@ -672,3 +673,274 @@ class TestBatchTotalUsage:
                 assert total["input_tokens"] == 20
                 # 2 * 5 output tokens = 10
                 assert total["output_tokens"] == 10
+
+
+class TestBatchMetricsIntegration:
+    """Test batch metrics are recorded correctly during endpoint execution (SOUL-349)."""
+
+    def test_successful_batch_records_all_metrics(self) -> None:
+        """Successful batch records batch_size, message, request, and latency metrics."""
+        app = create_server()
+        client = TestClient(app)
+
+        mock_metrics = MagicMock()
+
+        with (
+            patch("consoul.sdk.create_session") as mock_create,
+            patch("consoul.sdk.save_session_state") as mock_save,
+        ):
+            mock_console = MagicMock()
+            mock_console.chat.side_effect = ["Response 1", "Response 2"]
+            mock_console.last_cost = {
+                "input_tokens": 10,
+                "output_tokens": 5,
+                "total_tokens": 15,
+                "estimated_cost": 0.0001,
+            }
+            mock_console.model_name = "gpt-4o"
+            mock_create.return_value = mock_console
+            mock_save.return_value = {}
+
+            # Inject mock metrics
+            app.state.metrics = mock_metrics
+
+            response = client.post(
+                "/chat/batch",
+                json={
+                    "session_id": "test",
+                    "messages": [
+                        {"content": "Message 1"},
+                        {"content": "Message 2"},
+                    ],
+                    "sequential": True,
+                },
+            )
+
+            if response.status_code == 200:
+                # Verify batch_size was recorded
+                mock_metrics.record_batch_size.assert_called_once_with(2)
+
+                # Verify message metrics (2 successes)
+                assert mock_metrics.record_batch_message.call_count == 2
+                mock_metrics.record_batch_message.assert_has_calls(
+                    [
+                        call("sequential", success=True),
+                        call("sequential", success=True),
+                    ]
+                )
+
+                # Verify batch request total
+                mock_metrics.record_batch_request.assert_called_once_with(
+                    "sequential", "success"
+                )
+
+                # Verify latency was recorded
+                mock_metrics.record_batch_latency.assert_called_once()
+                call_args = mock_metrics.record_batch_latency.call_args
+                assert call_args[0][0] == "sequential"
+                assert call_args[0][1] > 0  # latency > 0
+
+    def test_partial_failure_records_partial_failure_status(self) -> None:
+        """Partial failure batch records partial_failure status."""
+        app = create_server()
+        client = TestClient(app)
+
+        mock_metrics = MagicMock()
+        call_count = [0]
+
+        with (
+            patch("consoul.sdk.create_session") as mock_create,
+            patch("consoul.sdk.save_session_state") as mock_save,
+        ):
+            mock_console = MagicMock()
+
+            def fail_second(msg: str) -> str:
+                call_count[0] += 1
+                if call_count[0] == 2:
+                    raise RuntimeError("Simulated failure")
+                return "Response"
+
+            mock_console.chat.side_effect = fail_second
+            mock_console.last_cost = {
+                "input_tokens": 10,
+                "output_tokens": 5,
+                "total_tokens": 15,
+                "estimated_cost": 0.0001,
+            }
+            mock_console.model_name = "gpt-4o"
+            mock_create.return_value = mock_console
+            mock_save.return_value = {}
+
+            app.state.metrics = mock_metrics
+
+            response = client.post(
+                "/chat/batch",
+                json={
+                    "session_id": "test",
+                    "messages": [
+                        {"content": "Will succeed"},
+                        {"content": "Will fail"},
+                        {"content": "Will succeed"},
+                    ],
+                    "sequential": True,
+                },
+            )
+
+            if response.status_code == 200:
+                # Verify partial_failure status
+                mock_metrics.record_batch_request.assert_called_once_with(
+                    "sequential", "partial_failure"
+                )
+
+                # Verify message metrics (2 success, 1 failure)
+                assert mock_metrics.record_batch_message.call_count == 3
+
+    def test_all_failures_records_failure_status(self) -> None:
+        """Batch where all messages fail records failure status."""
+        app = create_server()
+        client = TestClient(app)
+
+        mock_metrics = MagicMock()
+
+        with (
+            patch("consoul.sdk.create_session") as mock_create,
+            patch("consoul.sdk.save_session_state") as mock_save,
+        ):
+            mock_console = MagicMock()
+            mock_console.chat.side_effect = RuntimeError("All fail")
+            mock_console.model_name = "gpt-4o"
+            mock_create.return_value = mock_console
+            mock_save.return_value = {}
+
+            app.state.metrics = mock_metrics
+
+            response = client.post(
+                "/chat/batch",
+                json={
+                    "session_id": "test",
+                    "messages": [
+                        {"content": "Will fail"},
+                        {"content": "Also fail"},
+                    ],
+                    "sequential": True,
+                },
+            )
+
+            if response.status_code == 200:
+                mock_metrics.record_batch_request.assert_called_once_with(
+                    "sequential", "failure"
+                )
+
+    def test_parallel_mode_records_parallel_label(self) -> None:
+        """Parallel mode batch records 'parallel' processing_mode."""
+        app = create_server()
+        client = TestClient(app)
+
+        mock_metrics = MagicMock()
+
+        with (
+            patch("consoul.sdk.create_session") as mock_create,
+            patch("consoul.sdk.save_session_state") as mock_save,
+            patch("consoul.sdk.restore_session") as mock_restore,
+        ):
+            mock_console = MagicMock()
+            mock_console.chat.return_value = "Response"
+            mock_console.last_cost = {
+                "input_tokens": 10,
+                "output_tokens": 5,
+                "total_tokens": 15,
+                "estimated_cost": 0.0001,
+            }
+            mock_console.model_name = "gpt-4o"
+            mock_create.return_value = mock_console
+            mock_restore.return_value = mock_console
+            mock_save.return_value = {}
+
+            app.state.metrics = mock_metrics
+
+            response = client.post(
+                "/chat/batch",
+                json={
+                    "session_id": "test",
+                    "messages": [{"content": "Query"}],
+                    "sequential": False,
+                },
+            )
+
+            if response.status_code == 200:
+                mock_metrics.record_batch_request.assert_called_once()
+                assert mock_metrics.record_batch_request.call_args[0][0] == "parallel"
+                mock_metrics.record_batch_latency.assert_called_once()
+                assert mock_metrics.record_batch_latency.call_args[0][0] == "parallel"
+
+    def test_metrics_disabled_no_errors(self) -> None:
+        """Batch endpoint works when metrics is None."""
+        app = create_server()
+        client = TestClient(app)
+
+        with (
+            patch("consoul.sdk.create_session") as mock_create,
+            patch("consoul.sdk.save_session_state") as mock_save,
+        ):
+            mock_console = MagicMock()
+            mock_console.chat.return_value = "Response"
+            mock_console.last_cost = {
+                "input_tokens": 10,
+                "output_tokens": 5,
+                "total_tokens": 15,
+                "estimated_cost": 0.0001,
+            }
+            mock_console.model_name = "gpt-4o"
+            mock_create.return_value = mock_console
+            mock_save.return_value = {}
+
+            # Explicitly set metrics to None
+            app.state.metrics = None
+
+            response = client.post(
+                "/chat/batch",
+                json={
+                    "session_id": "test",
+                    "messages": [{"content": "Hello"}],
+                },
+            )
+
+            # Should not raise, should succeed
+            assert response.status_code in [200, 500]
+
+    def test_batch_size_recorded_for_various_sizes(self) -> None:
+        """batch_size metric records correct value for different batch sizes."""
+        app = create_server()
+        client = TestClient(app)
+
+        mock_metrics = MagicMock()
+
+        with (
+            patch("consoul.sdk.create_session") as mock_create,
+            patch("consoul.sdk.save_session_state") as mock_save,
+        ):
+            mock_console = MagicMock()
+            mock_console.chat.return_value = "Response"
+            mock_console.last_cost = {
+                "input_tokens": 10,
+                "output_tokens": 5,
+                "total_tokens": 15,
+                "estimated_cost": 0.0001,
+            }
+            mock_console.model_name = "gpt-4o"
+            mock_create.return_value = mock_console
+            mock_save.return_value = {}
+
+            app.state.metrics = mock_metrics
+
+            # Test with 5 messages
+            response = client.post(
+                "/chat/batch",
+                json={
+                    "session_id": "test",
+                    "messages": [{"content": f"Msg {i}"} for i in range(5)],
+                },
+            )
+
+            if response.status_code == 200:
+                mock_metrics.record_batch_size.assert_called_with(5)

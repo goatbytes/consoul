@@ -94,6 +94,10 @@ class MetricsCollector:
     - consoul_circuit_breaker_rejections_total: Requests rejected by breaker (SOUL-342)
     - consoul_api_key_requests_total: Request count by API key (redacted) (SOUL-343)
     - consoul_api_key_last_used_timestamp: Last usage timestamp by API key (SOUL-343)
+    - consoul_batch_request_total: Batch request count by mode/status (SOUL-349)
+    - consoul_batch_size: Batch size distribution histogram (SOUL-349)
+    - consoul_batch_message_total: Per-message success/failure count (SOUL-349)
+    - consoul_batch_latency_seconds: Batch latency histogram by mode (SOUL-349)
 
     Gracefully degrades to no-op if prometheus-client not installed.
 
@@ -185,6 +189,29 @@ class MetricsCollector:
             "consoul_api_key_last_used_timestamp",
             "Unix timestamp of last request by API key",
             ["api_key_id"],
+        )
+
+        # Batch endpoint metrics (SOUL-349)
+        self.batch_request_total = _Counter(
+            "consoul_batch_request_total",
+            "Total batch request count by processing mode and status",
+            ["processing_mode", "status"],
+        )
+        self.batch_size = _Histogram(
+            "consoul_batch_size",
+            "Batch size distribution (number of messages per batch)",
+            buckets=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+        )
+        self.batch_message_total = _Counter(
+            "consoul_batch_message_total",
+            "Total message count within batches by status and processing mode",
+            ["status", "processing_mode"],
+        )
+        self.batch_latency = _Histogram(
+            "consoul_batch_latency_seconds",
+            "Batch processing latency in seconds by processing mode",
+            ["processing_mode"],
+            buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0),
         )
 
     @property
@@ -371,6 +398,72 @@ class MetricsCollector:
             # For very short keys, show first 3 chars + ***
             return api_key[:3] + "***" if len(api_key) >= 3 else "***"
         return f"{api_key[:6]}...{api_key[-3:]}"
+
+    def record_batch_request(self, processing_mode: str, status: str) -> None:
+        """Record a batch request metric (SOUL-349).
+
+        Args:
+            processing_mode: Processing mode ("sequential" or "parallel")
+            status: Batch outcome ("success", "partial_failure", or "failure")
+
+        Example:
+            >>> metrics = MetricsCollector()
+            >>> metrics.record_batch_request("sequential", "success")
+        """
+        if not self._enabled:
+            return
+        self.batch_request_total.labels(
+            processing_mode=processing_mode,
+            status=status,
+        ).inc()
+
+    def record_batch_size(self, size: int) -> None:
+        """Record batch size observation (SOUL-349).
+
+        Args:
+            size: Number of messages in the batch (1-10)
+
+        Example:
+            >>> metrics = MetricsCollector()
+            >>> metrics.record_batch_size(5)
+        """
+        if not self._enabled:
+            return
+        self.batch_size.observe(size)
+
+    def record_batch_message(self, processing_mode: str, success: bool) -> None:
+        """Record individual message outcome within a batch (SOUL-349).
+
+        Args:
+            processing_mode: Processing mode ("sequential" or "parallel")
+            success: Whether the message was processed successfully
+
+        Example:
+            >>> metrics = MetricsCollector()
+            >>> metrics.record_batch_message("parallel", success=True)
+        """
+        if not self._enabled:
+            return
+        status = "success" if success else "failed"
+        self.batch_message_total.labels(
+            status=status,
+            processing_mode=processing_mode,
+        ).inc()
+
+    def record_batch_latency(self, processing_mode: str, latency: float) -> None:
+        """Record batch processing latency (SOUL-349).
+
+        Args:
+            processing_mode: Processing mode ("sequential" or "parallel")
+            latency: Total batch processing time in seconds
+
+        Example:
+            >>> metrics = MetricsCollector()
+            >>> metrics.record_batch_latency("sequential", 2.5)
+        """
+        if not self._enabled:
+            return
+        self.batch_latency.labels(processing_mode=processing_mode).observe(latency)
 
 
 def create_metrics_middleware(
