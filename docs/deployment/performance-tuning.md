@@ -590,7 +590,7 @@ groups:
 | **Rate Limiting** | | |
 | `CONSOUL_RATE_LIMIT_ENABLED` | true | Enable rate limiting |
 | `CONSOUL_DEFAULT_LIMITS` | 10/minute | Default rate limits |
-| `CONSOUL_RATE_LIMIT_KEY_PREFIX` | consoul:ratelimit | Redis key prefix |
+| `CONSOUL_KEY_PREFIX` | consoul:ratelimit | Rate limit Redis key prefix |
 
 ### Production Checklist
 
