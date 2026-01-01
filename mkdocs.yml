@@ -215,6 +215,13 @@ nav:
     - Code Search: user-guide/code-search.md
   - Deployment:
     - Multi-Tenancy: deployment/multi-tenancy.md
+    - Performance Tuning: deployment/performance-tuning.md
+  - Operations:
+    - Scaling Guide: operations/scaling-guide.md
+    - Load Testing: operations/load-testing.md
+    - API Key Rotation: operations/api-key-rotation.md
+    - Security Checklist: operations/security-checklist.md
+    - Runbook: operations/runbook.md
   - Advanced:
     - SearxNG Setup: advanced/searxng-setup.md
   - Development:
