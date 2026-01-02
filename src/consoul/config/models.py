@@ -831,6 +831,20 @@ class ReadUrlToolConfig(BaseModel):
         description="Maximum output length in characters (content will be truncated)",
     )
 
+    # Security settings
+    allow_private_networks: bool = Field(
+        default=False,
+        description="Allow fetching from private network IPs (self-hosted only). "
+        "WARNING: Disables SSRF protection for private IPs.",
+    )
+
+    dns_timeout: float = Field(
+        default=5.0,
+        gt=0,
+        le=30.0,
+        description="Timeout for DNS resolution in seconds",
+    )
+
 
 class WikipediaToolConfig(BaseModel):
     """Configuration for wikipedia_search tool execution.
