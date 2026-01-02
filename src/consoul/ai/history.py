@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from langchain_core.messages import (
     AIMessage,
@@ -959,7 +959,7 @@ class ConversationHistory:
         logger.debug(f"Restored {len(message_dicts)} messages to conversation history")
 
     def get_trimmed_messages(
-        self, reserve_tokens: int = 1000, strategy: str = "last"
+        self, reserve_tokens: int = 1000, strategy: Literal["first", "last"] = "last"
     ) -> list[BaseMessage]:
         """Get messages trimmed to fit model's context window.
 
