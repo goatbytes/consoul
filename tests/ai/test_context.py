@@ -37,16 +37,19 @@ class TestModelTokenLimits:
         assert get_model_token_limit("claude-3-haiku") == 200_000
 
     def test_get_known_google_model_limit(self):
-        """Test getting token limit for known Google models."""
-        # Gemini 2.5
-        assert get_model_token_limit("gemini-2.5-pro") == 1_000_000
-        assert (
-            get_model_token_limit("gemini-2.5-flash") == 1_048_576
-        )  # API spec: 1,048,576
-        # Gemini 1.5
-        assert get_model_token_limit("gemini-1.5-pro") == 2_000_000
-        assert get_model_token_limit("gemini-1.5-flash") == 1_000_000
-        # Gemini 1.0
+        """Test getting token limit for known Google models.
+
+        Values come from the model registry (consoul.registry.models.google)
+        which is the authoritative source and checked first in the lookup chain.
+        Note: API spec values use powers of 2 (1M = 2^20, 2M = 2^21).
+        """
+        # Gemini 2.5 - API spec: 1,048,576 tokens (2^20)
+        assert get_model_token_limit("gemini-2.5-pro") == 1_048_576  # API spec: 2^20
+        assert get_model_token_limit("gemini-2.5-flash") == 1_048_576  # API spec: 2^20
+        # Gemini 1.5 - API spec: 2,097,152 tokens (2^21) for pro
+        assert get_model_token_limit("gemini-1.5-pro") == 2_097_152  # API spec: 2^21
+        assert get_model_token_limit("gemini-1.5-flash") == 1_048_576  # API spec: 2^20
+        # Gemini 1.0 (fallback to hardcoded value, not in registry)
         assert get_model_token_limit("gemini-pro") == 32_000
 
     def test_get_unknown_model_returns_default(self):

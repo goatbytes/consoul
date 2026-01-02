@@ -96,11 +96,11 @@ MODEL_TOKEN_LIMITS: dict[str, int] = {
     "claude-3-sonnet": 200_000,
     "claude-3-haiku": 200_000,
     # Google models - Gemini 2.5
-    "gemini-2.5-pro": 1_000_000,  # 1M context (2M rolling out)
-    "gemini-2.5-flash": 1_048_576,  # API spec: 1,048,576 tokens (~1M)
+    "gemini-2.5-pro": 1_048_576,  # API spec: 2^20 (~1M)
+    "gemini-2.5-flash": 1_048_576,  # API spec: 2^20 (~1M)
     # Google models - Gemini 1.5
-    "gemini-1.5-pro": 2_000_000,  # 2M context window
-    "gemini-1.5-flash": 1_000_000,
+    "gemini-1.5-pro": 2_097_152,  # API spec: 2^21 (~2M)
+    "gemini-1.5-flash": 1_048_576,  # API spec: 2^20 (~1M)
     "gemini-pro": 32_000,  # Legacy
     # Ollama / Open-source models
     "llama3": 8_192,
