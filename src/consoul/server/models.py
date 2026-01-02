@@ -1307,3 +1307,11 @@ class ServerConfig(BaseSettings):
         default="Consoul API",
         description="Application name for health checks and metadata",
     )
+
+
+# Rebuild ServerConfig with actual types now that they're available
+# Import at runtime to resolve forward references from TYPE_CHECKING block
+# These MUST be runtime imports for model_rebuild() to work, not TYPE_CHECKING
+from consoul.server.webhooks.config import WebhookConfig  # noqa: E402, TC001
+
+ServerConfig.model_rebuild()
