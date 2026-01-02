@@ -160,6 +160,7 @@ class ConversationService:
         executor: ThreadPoolExecutor | None = None,
         max_workers: int = 1,
         circuit_breaker_manager: CircuitBreakerManager | None = None,
+        session_id: str | None = None,
     ) -> ConversationService:
         """Create ConversationService from configuration.
 
@@ -186,6 +187,8 @@ class ConversationService:
                 Keep at 1 to preserve tool execution ordering.
             circuit_breaker_manager: Optional circuit breaker manager for LLM
                 provider resilience (SOUL-342). Passed from server layer.
+            session_id: Optional session ID to resume an existing conversation.
+                When provided, loads previous messages from the database.
 
         Returns:
             Initialized ConversationService ready for use
@@ -261,6 +264,7 @@ class ConversationService:
             model=model,
             persist=persist,
             db_path=db_path,
+            session_id=session_id,
         )
 
         # Initialize tool registry if tools are enabled
@@ -386,11 +390,14 @@ class ConversationService:
             active_profile = config.profiles[config.active_profile]
             profile_system_prompt = active_profile.system_prompt
 
+        # Always compute base_prompt (needed for dynamic context providers)
         base_prompt = custom_system_prompt or profile_system_prompt
 
+        # Add system prompt to conversation ONLY if NOT resuming a session
+        # When resuming, the system prompt is already loaded from the database
         # For static prompts (no context providers), build once at initialization
         # For dynamic prompts (with providers), build on first message
-        if base_prompt and not context_providers:
+        if base_prompt and not context_providers and not session_id:
             # Apply controlled injections to custom or profile prompt
             from consoul.ai.prompt_builder import build_enhanced_system_prompt
 

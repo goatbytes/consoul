@@ -1723,3 +1723,130 @@ class TestHelperMethodEdgeCases:
         result = service._normalize_chunk_content(12345)
 
         assert result == "12345"
+
+
+# =============================================================================
+# Test: Session Resumption (SOUL-355)
+# =============================================================================
+
+
+class TestSessionResumption:
+    """Tests for session resumption via session_id parameter."""
+
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    def test_from_config_passes_session_id_to_conversation_history(
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
+    ):
+        """Test from_config() passes session_id to ConversationHistory constructor."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history.messages = []
+        mock_history_class.return_value = mock_history
+
+        ConversationService.from_config(
+            config=mock_config,
+            session_id="test-session-123",
+        )
+
+        # Verify ConversationHistory was called with session_id
+        mock_history_class.assert_called_once()
+        call_kwargs = mock_history_class.call_args[1]
+        assert call_kwargs["session_id"] == "test-session-123"
+
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    def test_from_config_without_session_id_passes_none(
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
+    ):
+        """Test from_config() without session_id passes None to ConversationHistory."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history.messages = []
+        mock_history_class.return_value = mock_history
+
+        ConversationService.from_config(config=mock_config)
+
+        # Verify ConversationHistory was called with session_id=None
+        mock_history_class.assert_called_once()
+        call_kwargs = mock_history_class.call_args[1]
+        assert call_kwargs["session_id"] is None
+
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    def test_resumed_session_has_loaded_messages(
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
+    ):
+        """Test resumed session contains pre-loaded messages from database."""
+        from langchain_core.messages import AIMessage, HumanMessage
+
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+
+        # Simulate conversation with pre-loaded messages
+        mock_history = Mock()
+        mock_history.messages = [
+            HumanMessage(content="Hello"),
+            AIMessage(content="Hi there!"),
+            HumanMessage(content="How are you?"),
+        ]
+        mock_history_class.return_value = mock_history
+
+        service = ConversationService.from_config(
+            config=mock_config,
+            session_id="existing-session",
+        )
+
+        # Verify the conversation has the pre-loaded messages
+        assert len(service.conversation.messages) == 3
+        assert service.conversation.messages[0].content == "Hello"
+        assert service.conversation.messages[1].content == "Hi there!"
+        assert service.conversation.messages[2].content == "How are you?"
+
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    def test_resumed_session_does_not_add_duplicate_system_prompt(
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
+    ):
+        """Test resumed session does NOT add a new system prompt (it's already in DB)."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history.messages = []
+        mock_history_class.return_value = mock_history
+
+        ConversationService.from_config(
+            config=mock_config,
+            session_id="existing-session",
+        )
+
+        # Verify add_system_message was NOT called when resuming
+        mock_history.add_system_message.assert_not_called()
+
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
+    @patch("consoul.ai.get_chat_model")
+    @patch("consoul.ai.ConversationHistory")
+    def test_resumed_session_preserves_base_prompt_for_dynamic_context(
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
+    ):
+        """Test resumed session preserves base_prompt for dynamic context providers."""
+        mock_model = Mock()
+        mock_get_chat_model.return_value = mock_model
+        mock_history = Mock()
+        mock_history.messages = []
+        mock_history_class.return_value = mock_history
+
+        service = ConversationService.from_config(
+            config=mock_config,
+            session_id="existing-session",
+        )
+
+        # Verify base_prompt is preserved (from profile's system_prompt)
+        # This is needed for dynamic context providers to work after resumption
+        assert service.base_prompt == "You are a helpful assistant."

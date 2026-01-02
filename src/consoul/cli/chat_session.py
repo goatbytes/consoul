@@ -93,17 +93,16 @@ class ChatSession:
             f"Initializing conversation service: {config.current_provider.value}/{config.current_model}"
         )
         self.conversation_service = ConversationService.from_config(
-            config, approval_provider=self.approval_provider
+            config,
+            approval_provider=self.approval_provider,
+            session_id=resume_session_id,
         )
 
         # Override system prompt if provided
         profile = config.get_active_profile()
         if resume_session_id:
-            # Resume existing conversation
+            # Resume existing conversation - messages loaded via session_id in from_config()
             logger.info(f"Resuming conversation: {resume_session_id}")
-            # TODO: Add resume_session_id support to ConversationService
-            # For now, set session_id on the conversation
-            self.conversation_service.conversation.session_id = resume_session_id
         elif profile.system_prompt or system_prompt_override:
             # Build complete system prompt with environment context
             system_prompt = self._build_system_prompt(profile, config)

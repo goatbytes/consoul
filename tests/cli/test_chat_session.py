@@ -425,3 +425,64 @@ def test_chat_session_streaming_error_no_partial(
 
     # Verify no partial response was saved (empty string)
     mock_history.add_assistant_message.assert_not_called()
+
+
+# =============================================================================
+# Test: Session Resumption (SOUL-355)
+# =============================================================================
+
+
+@patch("consoul.cli.chat_session.ConversationService")
+def test_chat_session_passes_resume_session_id_to_from_config(
+    mock_service_class, mock_config
+):
+    """Test ChatSession passes resume_session_id to ConversationService.from_config()."""
+    mock_service = Mock()
+    mock_service.conversation = Mock()
+    mock_service.conversation.messages = []
+    mock_service_class.from_config.return_value = mock_service
+
+    ChatSession(mock_config, resume_session_id="abc-123")
+
+    # Verify from_config was called with session_id
+    mock_service_class.from_config.assert_called_once()
+    call_kwargs = mock_service_class.from_config.call_args[1]
+    assert call_kwargs["session_id"] == "abc-123"
+
+
+@patch("consoul.cli.chat_session.ConversationService")
+def test_chat_session_resume_does_not_add_system_prompt(
+    mock_service_class, mock_config
+):
+    """Test that system prompt is NOT added when resuming a session."""
+    mock_service = Mock()
+    mock_conversation = Mock()
+    mock_conversation.messages = []
+    mock_service.conversation = mock_conversation
+    mock_service_class.from_config.return_value = mock_service
+
+    ChatSession(mock_config, resume_session_id="existing-session")
+
+    # Verify add_system_message was NOT called (system prompt is in the loaded history)
+    mock_conversation.add_system_message.assert_not_called()
+
+
+@patch("consoul.cli.chat_session.ConversationService")
+def test_chat_session_without_resume_adds_system_prompt(
+    mock_service_class, mock_config
+):
+    """Test that system prompt IS added when NOT resuming a session."""
+    mock_service = Mock()
+    mock_conversation = Mock()
+    mock_conversation.messages = []
+    mock_service.conversation = mock_conversation
+    # Mock tool_registry to return empty list for list_tools()
+    mock_tool_registry = Mock()
+    mock_tool_registry.list_tools.return_value = []
+    mock_service.tool_registry = mock_tool_registry
+    mock_service_class.from_config.return_value = mock_service
+
+    ChatSession(mock_config)
+
+    # Verify add_system_message WAS called (new session gets system prompt)
+    mock_conversation.add_system_message.assert_called_once()
