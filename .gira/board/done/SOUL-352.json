@@ -1,12 +1,12 @@
 {
   "created_at": "2026-01-01T10:43:42.461296Z",
-  "updated_at": "2026-01-01T22:33:47.440885Z",
+  "updated_at": "2026-01-02T05:33:42.910090Z",
   "id": "SOUL-352",
   "uuid": "909eafa1-c1d2-477e-96af-d2e52dd8ea22",
-  "_version": 2,
+  "_version": 3,
   "title": "Enforce timeouts in read_url trafilatura fallback",
   "description": "**As a** Consoul user\n**I want** read_url's trafilatura fallback to respect configured timeouts\n**So that** the tool doesn't hang on slow or stalled responses\n\n**Context:**\n`_read_with_trafilatura` accepts a timeout parameter but does not use it (`src/consoul/ai/tools/implementations/read_url.py:207`). This means fallback requests may block indefinitely.\n\n**Technical Notes:**\n- `src/consoul/ai/tools/implementations/read_url.py:207`\n- `src/consoul/config/models.py:791` (ReadUrlToolConfig.timeout)\n\n**Acceptance Criteria:**\n**Given** a URL that stalls or responds slowly\n**When** read_url uses the trafilatura fallback\n**Then** the request times out according to config and returns a clear error\n\n**Given** a normal URL\n**When** read_url uses the fallback\n**Then** behavior remains unchanged apart from timeout enforcement\n\n**Testing Considerations:**\n- Unit test with a mocked fetch that exceeds timeout\n- Verify timeout path returns ToolExecutionError\n\n**Implementation Hints:**\n- Confirm trafilatura API for timeout support; if not available, fetch HTML with `requests.get(..., timeout=...)` and pass content to `trafilatura.extract`",
-  "status": "todo",
+  "status": "done",
   "type": "bug",
   "priority": "medium",
   "labels": [
@@ -17,10 +17,24 @@
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
-  "comments": [],
+  "comments": [
+    {
+      "created_at": "2026-01-02T05:33:30.798274Z",
+      "updated_at": "2026-01-02T05:33:30.798277Z",
+      "id": "20260101213330-d4418547",
+      "ticket_id": "SOUL-352",
+      "author": "jared@goatbytes.io",
+      "content": "This issue was resolved by SOUL-350 (commit 9dbac3f). The SSRF hardening work replaced trafilatura.fetch_url() with requests.get(..., timeout=timeout) to enable redirect validation, which also fixed the timeout enforcement issue. The timeout parameter is now properly passed to the requests library at line 384 of read_url.py.",
+      "edited": false,
+      "edit_count": 0,
+      "is_ai_generated": false,
+      "attachments": [],
+      "attachment_count": 0
+    }
+  ],
   "attachments": [],
   "attachment_count": 0,
-  "comment_count": 0,
+  "comment_count": 1,
   "story_points": 2,
   "order": 0,
   "custom_fields": {}

@@ -1,12 +1,12 @@
 {
   "created_at": "2026-01-01T10:43:18.372429Z",
-  "updated_at": "2026-01-02T04:43:02.993162Z",
+  "updated_at": "2026-01-02T04:51:54.287089Z",
   "id": "SOUL-350",
   "uuid": "f00ad7a6-f298-43fc-8367-f5c626c0e0de",
   "_version": 2,
   "title": "Harden read_url SSRF validation against resolved private IPs",
   "description": "**As a** Consoul operator\n**I want** read_url to block URLs that resolve to private, loopback, or link-local IPs\n**So that** SSRF cannot reach internal services even when hostnames look public\n\n**Context:**\nCurrent validation in `src/consoul/ai/tools/implementations/read_url.py:67` only checks hostname strings and a subset of private ranges. DNS resolution and IPv6/reserved ranges are not evaluated, so hostnames can resolve to private IPs and bypass the guard.\n\n**Technical Notes:**\n- `src/consoul/ai/tools/implementations/read_url.py:67`\n- `src/consoul/config/models.py:820` (ReadUrlToolConfig)\n- Ensure validation runs before any network call (Jina or trafilatura)\n\n**Acceptance Criteria:**\n**Given** a URL whose hostname resolves to 127.0.0.1, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16, or IPv6 loopback/link-local\n**When** read_url is invoked\n**Then** it rejects the request with a security error before any fetch occurs\n\n**Given** a hostname that resolves to multiple IPs including a private one\n**When** read_url is invoked\n**Then** it rejects the request (no partial allow)\n\n**Given** a public hostname that resolves only to public IPs\n**When** read_url is invoked\n**Then** it proceeds as today\n\n**Testing Considerations:**\n- Unit tests for IP literals (IPv4/IPv6) and DNS-resolved private IPs\n- Tests for mixed public/private A/AAAA records\n- Verify behavior with redirects does not bypass validation\n\n**Implementation Hints:**\n- Resolve hostnames via `socket.getaddrinfo` and validate with `ipaddress` (is_private, is_loopback, is_link_local, is_reserved, is_multicast)\n- Consider an explicit config flag (e.g., `allow_private_networks`) for self-hosted deployments",
-  "status": "in_progress",
+  "status": "done",
   "type": "bug",
   "priority": "high",
   "labels": [
