@@ -1021,10 +1021,12 @@ def ask(
                 # Try to get cost info from last response
                 try:
                     if (
-                        hasattr(session.history, "messages")
-                        and session.history.messages
+                        hasattr(session.conversation_service.conversation, "messages")
+                        and session.conversation_service.conversation.messages
                     ):
-                        last_msg = session.history.messages[-1]
+                        last_msg = session.conversation_service.conversation.messages[
+                            -1
+                        ]
                         if (
                             hasattr(last_msg, "usage_metadata")
                             and last_msg.usage_metadata
