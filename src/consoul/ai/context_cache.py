@@ -85,10 +85,13 @@ class OllamaContextCache:
                 return None
 
             # Check if stale (7 days old)
-            cached_at = datetime.fromisoformat(entry.get("cached_at", ""))
-            age_days = (
-                datetime.now(timezone.utc) - cached_at.replace(tzinfo=timezone.utc)
-            ).days
+            try:
+                cached_at = datetime.fromisoformat(entry.get("cached_at", ""))
+                age_days = (
+                    datetime.now(timezone.utc) - cached_at.replace(tzinfo=timezone.utc)
+                ).days
+            except (ValueError, TypeError):
+                return None  # Invalid timestamp, treat as stale
 
             if age_days > self.DEFAULT_TTL_DAYS:
                 return None  # Stale, needs refresh
