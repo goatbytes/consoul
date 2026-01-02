@@ -96,22 +96,32 @@ def mock_chat_model_with_headers():
     return model
 
 
-@patch("consoul.ai.streaming.Markdown")
+@patch("rich.markdown.Markdown")
 def test_stream_response_renders_code_blocks(
     mock_markdown_class, mock_chat_model_with_markdown
 ):
-    """Test that code blocks are rendered as markdown."""
+    """Test that code blocks are rendered as markdown.
+
+    Note: We patch rich.markdown.Markdown since stream_response imports
+    Markdown lazily with 'from rich.markdown import Markdown' inside the function.
+    """
+    import warnings
+
     mock_md = Mock()
     mock_markdown_class.return_value = mock_md
 
     messages = [{"role": "user", "content": "Show me code"}]
-    response, _ = stream_response(
-        mock_chat_model_with_markdown,
-        messages,
-        console=None,  # Let it create its own console
-        show_spinner=True,
-        render_markdown=True,
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter(
+            "ignore", DeprecationWarning
+        )  # stream_response is deprecated
+        response, _ = stream_response(
+            mock_chat_model_with_markdown,
+            messages,
+            console=None,  # Let it create its own console
+            show_spinner=True,
+            render_markdown=True,
+        )
 
     # Verify response contains markdown
     assert "**bold**" in response
@@ -125,20 +135,24 @@ def test_stream_response_renders_code_blocks(
     assert "```python" in call_args
 
 
-@patch("consoul.ai.streaming.Markdown")
+@patch("rich.markdown.Markdown")
 def test_stream_response_renders_lists(mock_markdown_class, mock_chat_model_with_lists):
     """Test that lists are rendered as markdown."""
+    import warnings
+
     mock_md = Mock()
     mock_markdown_class.return_value = mock_md
 
     messages = [{"role": "user", "content": "Give me a list"}]
-    response, _ = stream_response(
-        mock_chat_model_with_lists,
-        messages,
-        console=None,  # Let it create its own console
-        show_spinner=True,
-        render_markdown=True,
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        response, _ = stream_response(
+            mock_chat_model_with_lists,
+            messages,
+            console=None,  # Let it create its own console
+            show_spinner=True,
+            render_markdown=True,
+        )
 
     # Verify response contains list items
     assert "- Item 1" in response
@@ -151,22 +165,26 @@ def test_stream_response_renders_lists(mock_markdown_class, mock_chat_model_with
     assert "1. First" in call_args
 
 
-@patch("consoul.ai.streaming.Markdown")
+@patch("rich.markdown.Markdown")
 def test_stream_response_renders_headers(
     mock_markdown_class, mock_chat_model_with_headers
 ):
     """Test that headers are rendered as markdown."""
+    import warnings
+
     mock_md = Mock()
     mock_markdown_class.return_value = mock_md
 
     messages = [{"role": "user", "content": "Give me sections"}]
-    response, _ = stream_response(
-        mock_chat_model_with_headers,
-        messages,
-        console=None,  # Let it create its own console
-        show_spinner=True,
-        render_markdown=True,
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        response, _ = stream_response(
+            mock_chat_model_with_headers,
+            messages,
+            console=None,  # Let it create its own console
+            show_spinner=True,
+            render_markdown=True,
+        )
 
     # Verify response contains headers
     assert "# Main Title" in response
@@ -180,19 +198,23 @@ def test_stream_response_renders_headers(
     assert "## Section 1" in call_args
 
 
-@patch("consoul.ai.streaming.Markdown")
+@patch("rich.markdown.Markdown")
 def test_stream_response_plain_text_when_disabled(
     mock_markdown_class, mock_chat_model_with_markdown
 ):
     """Test that markdown rendering can be disabled."""
+    import warnings
+
     messages = [{"role": "user", "content": "Show me code"}]
-    response, _ = stream_response(
-        mock_chat_model_with_markdown,
-        messages,
-        console=None,  # Let it create its own console
-        show_spinner=False,
-        render_markdown=False,  # Disabled
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        response, _ = stream_response(
+            mock_chat_model_with_markdown,
+            messages,
+            console=None,  # Let it create its own console
+            show_spinner=False,
+            render_markdown=False,  # Disabled
+        )
 
     # Response still contains markdown syntax (not rendered)
     assert "**bold**" in response
@@ -202,9 +224,11 @@ def test_stream_response_plain_text_when_disabled(
     mock_markdown_class.assert_not_called()
 
 
-@patch("consoul.ai.streaming.Markdown")
+@patch("rich.markdown.Markdown")
 def test_stream_response_empty_content(mock_markdown_class):
     """Test handling of empty responses."""
+    import warnings
+
     mock_md = Mock()
     mock_markdown_class.return_value = mock_md
 
@@ -218,13 +242,15 @@ def test_stream_response_empty_content(mock_markdown_class):
     model.stream = Mock(side_effect=mock_stream_empty)
 
     messages = [{"role": "user", "content": "Empty response"}]
-    response, _ = stream_response(
-        model,
-        messages,
-        console=None,  # Let it create its own console
-        show_spinner=True,
-        render_markdown=True,
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        response, _ = stream_response(
+            model,
+            messages,
+            console=None,  # Let it create its own console
+            show_spinner=True,
+            render_markdown=True,
+        )
 
     # Empty response
     assert response == ""
@@ -233,22 +259,26 @@ def test_stream_response_empty_content(mock_markdown_class):
     mock_markdown_class.assert_not_called()
 
 
-@patch("consoul.ai.streaming.Markdown")
+@patch("rich.markdown.Markdown")
 def test_stream_response_no_spinner_with_markdown(
     mock_markdown_class, mock_chat_model_with_markdown
 ):
     """Test markdown rendering without spinner."""
+    import warnings
+
     mock_md = Mock()
     mock_markdown_class.return_value = mock_md
 
     messages = [{"role": "user", "content": "Show me code"}]
-    response, _ = stream_response(
-        mock_chat_model_with_markdown,
-        messages,
-        console=None,  # Let it create its own console
-        show_spinner=False,  # No spinner
-        render_markdown=True,
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        response, _ = stream_response(
+            mock_chat_model_with_markdown,
+            messages,
+            console=None,  # Let it create its own console
+            show_spinner=False,  # No spinner
+            render_markdown=True,
+        )
 
     # Verify response contains markdown
     assert "**bold**" in response
