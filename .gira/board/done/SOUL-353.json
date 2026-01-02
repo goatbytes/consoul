@@ -1,12 +1,12 @@
 {
   "created_at": "2026-01-01T10:43:54.051945Z",
-  "updated_at": "2026-01-01T22:33:47.445577Z",
+  "updated_at": "2026-01-02T05:43:31.944788Z",
   "id": "SOUL-353",
   "uuid": "dbdae1a9-0b97-4ab1-8526-0cc6abfe70c9",
   "_version": 2,
   "title": "Guard Ollama context cache against invalid timestamps",
   "description": "**As a** Consoul user\n**I want** the Ollama context cache to treat invalid cached_at values as stale\n**So that** bad cache entries don't crash context size lookups\n\n**Context:**\n`OllamaContextCache.get` calls `datetime.fromisoformat` without guarding invalid values (`src/consoul/ai/context_cache.py:88`). A malformed or empty cached_at can raise and bubble up to callers.\n\n**Technical Notes:**\n- `src/consoul/ai/context_cache.py:88`\n\n**Acceptance Criteria:**\n**Given** a cache entry with invalid or missing cached_at\n**When** get(model_id) is called\n**Then** it returns None (stale) without raising\n\n**Testing Considerations:**\n- Unit test with malformed cached_at values\n- Verify valid entries still return context_size\n\n**Implementation Hints:**\n- Wrap parsing in try/except and treat errors as stale",
-  "status": "todo",
+  "status": "done",
   "type": "bug",
   "priority": "medium",
   "labels": [
