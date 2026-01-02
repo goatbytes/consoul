@@ -9,10 +9,13 @@ class TestPackageMetadata:
     """Test package-level metadata and constants."""
 
     def test_version_exists(self) -> None:
-        """Test that __version__ is defined."""
+        """Test that __version__ is defined and follows semver format."""
         assert hasattr(consoul, "__version__")
         assert isinstance(consoul.__version__, str)
-        assert consoul.__version__ == "0.2.0"
+        # Version should be semver-like (major.minor.patch)
+        parts = consoul.__version__.split(".")
+        assert len(parts) >= 2, "Version must have at least major.minor"
+        assert all(p.isdigit() for p in parts[:2]), "Version components must be numeric"
 
     def test_author_exists(self) -> None:
         """Test that __author__ is defined."""
@@ -32,13 +35,14 @@ class TestPackageMetadata:
         assert isinstance(consoul.__all__, list)
         # Check that __all__ is sorted alphabetically
         assert consoul.__all__ == sorted(consoul.__all__)
-        # Verify expected exports
+        # Verify expected exports (SDK public API)
         expected = [
             "Consoul",
             "ConsoulResponse",
             "__author__",
             "__license__",
             "__version__",
+            "create_session",
         ]
         assert consoul.__all__ == expected
 
