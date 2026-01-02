@@ -2126,7 +2126,7 @@ def _create_describe_command() -> click.Command:
         # Get schema for specific command or entire app
         if command_path:
             # Navigate to specific command
-            current = cli_app
+            current: click.Command | click.Group = cli_app
             full_path = "consoul"
 
             for cmd_name in command_path:

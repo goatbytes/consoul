@@ -93,7 +93,7 @@ class ChatSession:
             f"Initializing conversation service: {config.current_provider.value}/{config.current_model}"
         )
         self.conversation_service = ConversationService.from_config(
-            config,
+            config.core,
             approval_provider=self.approval_provider,
             session_id=resume_session_id,
         )

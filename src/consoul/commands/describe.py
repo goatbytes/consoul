@@ -65,7 +65,7 @@ def get_command_info(cmd: click.Command, parent_path: str = "") -> dict[str, Any
             if param.name == "help":
                 continue
 
-            opt_info = {
+            opt_info: dict[str, Any] = {
                 "name": param.name,
                 "description": param.help or "",
                 "type": param.type.name if param.type else "string",
@@ -138,7 +138,7 @@ def get_app_schema(cli_app: click.Group) -> dict[str, Any]:
     # Add global options
     for param in cli_app.params:
         if isinstance(param, click.Option) and param.name != "help":
-            opt_info = {
+            opt_info: dict[str, Any] = {
                 "name": param.name,
                 "description": param.help or "",
                 "type": param.type.name if param.type else "string",
@@ -166,33 +166,33 @@ def get_app_schema(cli_app: click.Group) -> dict[str, Any]:
     return schema
 
 
-@click.command()  # type: ignore[misc]
-@click.argument("command_path", nargs=-1)  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
+@click.command()
+@click.argument("command_path", nargs=-1)
+@click.option(
     "--format",
     "-f",
     type=click.Choice(["json", "markdown"], case_sensitive=False),
     default="json",
     help="Output format (default: json)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--output",
     "-o",
     type=click.Path(path_type=Path),
     help="Write output to file instead of stdout",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--indent",
     type=int,
     default=2,
     help="JSON indentation spaces (default: 2)",
 )
-@click.option(  # type: ignore[misc]
+@click.option(
     "--compact",
     is_flag=True,
     help="Compact JSON output (no indentation)",
 )
-@click.pass_context  # type: ignore[misc]
+@click.pass_context
 def describe(
     ctx: click.Context,
     command_path: tuple[str, ...],
@@ -233,7 +233,7 @@ def describe(
     # Get schema for specific command or entire app
     if command_path:
         # Navigate to specific command
-        current = cli_app
+        current: click.Command | click.Group = cli_app
         full_path = "consoul"
 
         for cmd_name in command_path:

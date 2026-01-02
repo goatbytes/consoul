@@ -132,6 +132,7 @@ def wikipedia_search(
 
         # Initialize Wikipedia wrapper
         api_wrapper = WikipediaAPIWrapper(
+            wiki_client=None,
             top_k_results=max_results,
             doc_content_chars_max=chars_per_result,
         )

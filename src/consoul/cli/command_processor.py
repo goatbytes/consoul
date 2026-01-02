@@ -327,16 +327,16 @@ def cmd_model(session: ChatSession, args: str) -> None:
         detected_provider = get_provider_from_model(model_name)
 
         if detected_provider:
-            session.config.current_provider = detected_provider
+            session.config.core.current_provider = detected_provider
             logger.info(
                 f"Auto-detected provider: {detected_provider.value} for model: {model_name}"
             )
 
         # Update config
-        session.config.current_model = model_name
+        session.config.core.current_model = model_name
 
         # Reinitialize model
-        model_config = session.config.get_current_model_config()
+        model_config = session.config.get_current_model_config()  # type: ignore[no-untyped-call]
         new_model = get_chat_model(model_config, config=session.config)
 
         # Bind tools if registry exists
@@ -389,7 +389,7 @@ def cmd_tools(session: ChatSession, args: str) -> None:
 
             session.conversation_service.tool_registry = None
             # Re-bind model without tools
-            model_config = session.config.get_current_model_config()
+            model_config = session.config.get_current_model_config()  # type: ignore[no-untyped-call]
             session.conversation_service.model = get_chat_model(
                 model_config, config=session.config
             )
