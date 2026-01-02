@@ -573,6 +573,63 @@ class TestMemorySessionStore:
         count = store.cleanup()
         assert count == 5
 
+    def test_memory_store_ttl_expiration_cleans_lock(self):
+        """Test that lock is removed when session expires via TTL (SOUL-354)."""
+        store = MemorySessionStore(ttl=0.1)  # 100ms TTL
+
+        state = {
+            "session_id": "lock_test",
+            "model": "gpt-4o",
+            "temperature": 0.7,
+            "messages": [],
+            "created_at": time.time(),
+            "updated_at": time.time(),
+        }
+
+        store.save("lock_test", state)
+
+        # Lock should exist after save
+        assert "lock_test" in store._locks
+
+        # Wait for expiration
+        time.sleep(0.15)
+
+        # Load triggers expiration detection and cleanup
+        result = store.load("lock_test")
+        assert result is None
+
+        # Lock should be removed (SOUL-354 fix)
+        assert "lock_test" not in store._locks
+
+    def test_memory_store_locks_dont_leak_on_ttl_expiration(self):
+        """Test that locks don't accumulate for expired sessions (SOUL-354)."""
+        store = MemorySessionStore(ttl=0.1)  # 100ms TTL
+
+        # Create multiple sessions
+        for i in range(10):
+            state = {
+                "session_id": f"session_{i}",
+                "model": "gpt-4o",
+                "temperature": 0.7,
+                "messages": [],
+                "created_at": time.time(),
+                "updated_at": time.time(),
+            }
+            store.save(f"session_{i}", state)
+
+        # All locks should exist
+        assert len(store._locks) == 10
+
+        # Wait for expiration
+        time.sleep(0.15)
+
+        # Load all sessions to trigger expiration cleanup
+        for i in range(10):
+            store.load(f"session_{i}")
+
+        # All locks should be removed
+        assert len(store._locks) == 0
+
     def test_memory_store_delete(self):
         """Test session deletion."""
         store = MemorySessionStore()

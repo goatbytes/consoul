@@ -259,22 +259,30 @@ class MemorySessionStore:
                 self._locks[session_id] = threading.Lock()
             lock = self._locks[session_id]
 
+        expired = False
         with lock:
             # Check expiration
             if self.ttl is not None:
                 created_at = self._timestamps.get(session_id, 0)
                 if time.time() - created_at >= self.ttl:
                     logger.debug(f"Session {session_id} expired")
-                    # Clean up expired session
+                    # Clean up expired session data
                     self._sessions.pop(session_id, None)
                     self._timestamps.pop(session_id, None)
-                    return None
+                    expired = True
 
-            state = self._sessions.get(session_id)
-            if state is not None:
-                logger.debug(f"Loaded session {session_id} from memory")
-                return state.copy()
-            return None
+            if not expired:
+                state = self._sessions.get(session_id)
+                if state is not None:
+                    logger.debug(f"Loaded session {session_id} from memory")
+                    return state.copy()
+
+        # Clean up lock after releasing session lock (preserves lock order: global -> session)
+        if expired:
+            with self._global_lock:
+                self._locks.pop(session_id, None)
+
+        return None
 
     def delete(self, session_id: str) -> None:
         """Remove session state from memory.

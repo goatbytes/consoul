@@ -1,12 +1,12 @@
 {
   "created_at": "2026-01-01T10:44:06.379734Z",
-  "updated_at": "2026-01-01T22:33:47.444398Z",
+  "updated_at": "2026-01-02T05:57:52.324938Z",
   "id": "SOUL-354",
   "uuid": "d2d1d8a5-8326-4b45-8028-29400ac7b38e",
   "_version": 2,
   "title": "Clean up MemorySessionStore locks on TTL expiration",
   "description": "**As a** Consoul SDK user\n**I want** MemorySessionStore to drop per-session locks when a session expires\n**So that** long-lived processes do not leak lock objects\n\n**Context:**\nWhen a session expires during `load`, the session data is removed but the lock remains in `_locks` (`src/consoul/sdk/session_store.py:254`). Over time this can grow unbounded for short-lived sessions.\n\n**Technical Notes:**\n- `src/consoul/sdk/session_store.py:254`\n\n**Acceptance Criteria:**\n**Given** a session that expires due to TTL\n**When** load is called on that session\n**Then** the session data and its lock are both removed\n\n**Testing Considerations:**\n- Unit test that `_locks` shrinks after TTL expiration\n- Ensure cleanup path still works when calling `cleanup()`\n\n**Implementation Hints:**\n- Reuse delete() or ensure lock cleanup occurs within the global lock to avoid races",
-  "status": "todo",
+  "status": "done",
   "type": "bug",
   "priority": "low",
   "labels": [
