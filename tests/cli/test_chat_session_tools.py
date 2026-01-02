@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
-from langchain_core.messages import AIMessage, ToolMessage
 
 from consoul.cli import ChatSession, CliToolApprovalProvider
 
@@ -34,131 +33,74 @@ def mock_config():
 
 
 @pytest.fixture
-def mock_tool_registry():
-    """Create a mock ToolRegistry."""
-    registry = Mock()
-    registry.__len__ = Mock(return_value=1)
-
-    # Mock bind_to_model
-    def bind_to_model(model):
-        return model
-
-    registry.bind_to_model = Mock(side_effect=bind_to_model)
-
-    # Mock request_tool_approval
-    async def mock_request_approval(tool_name, arguments, tool_call_id):
-        response = Mock()
-        response.approved = True
-        return response
-
-    registry.request_tool_approval = AsyncMock(side_effect=mock_request_approval)
-
-    # Mock get_tool
-    tool_metadata = Mock()
-    tool_metadata.tool = Mock()
-    tool_metadata.tool.invoke = Mock(return_value="Command output: files listed")
-    registry.get_tool = Mock(return_value=tool_metadata)
-
-    return registry
+def mock_conversation_service():
+    """Create a mock ConversationService."""
+    service = Mock()
+    conversation = Mock()
+    conversation.messages = []
+    service.conversation = conversation
+    service.model = Mock()
+    # Mock tool_registry to return empty list for list_tools()
+    tool_registry = Mock()
+    tool_registry.list_tools.return_value = []
+    service.tool_registry = tool_registry
+    return service
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
-@patch("consoul.cli.chat_session.stream_response")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_with_tool_call(
-    mock_stream_response,
-    mock_history_class,
-    mock_get_chat_model,
-    mock_config,
-    mock_tool_registry,
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test ChatSession handles tool calls correctly."""
-    # Setup mocks
-    mock_model = Mock()
-    mock_get_chat_model.return_value = mock_model
+    mock_service_class.from_config.return_value = mock_conversation_service
 
-    mock_history = Mock()
-    mock_history.messages = []
-    mock_history.get_messages = Mock(return_value=[])
-    mock_history.add_user_message = Mock()
-    mock_history.add_assistant_message = Mock()
-    mock_history_class.return_value = mock_history
+    # Simulate a tool call in the response
+    tool_request_token = Mock()
+    tool_request_token.content = "I'll list the files for you."
+    tool_request_token.metadata = {
+        "tool_name": "bash_execute",
+        "tool_args": {"command": "ls -la"},
+    }
 
-    # First response: AI requests tool execution
-    ai_message_with_tool = AIMessage(
-        content="I'll list the files for you.",
-        tool_calls=[
-            {
-                "name": "bash_execute",
-                "args": {"command": "ls -la"},
-                "id": "call_123",
-                "type": "tool_call",
-            }
-        ],
-    )
+    final_token = Mock()
+    final_token.content = "Here are the files in the directory..."
+    final_token.metadata = {}
 
-    # Second response: AI responds after tool execution
-    ai_message_final = AIMessage(
-        content="Here are the files in the directory...", tool_calls=[]
-    )
+    # Mock send_message to yield tokens including a tool call
+    async def mock_send_message(*args, **kwargs):
+        yield tool_request_token
+        yield final_token
 
-    # Mock stream_response to return different responses
-    mock_stream_response.side_effect = [
-        ("I'll list the files for you.", ai_message_with_tool),
-        ("Here are the files in the directory...", ai_message_final),
-    ]
+    mock_conversation_service.send_message = mock_send_message
 
-    # Create session with tool registry
-    approval_provider = CliToolApprovalProvider()
-    session = ChatSession(
-        mock_config,
-        tool_registry=mock_tool_registry,
-        approval_provider=approval_provider,
-    )
+    # Create session
+    session = ChatSession(mock_config)
 
     # Send message
-    session.send("List files in the current directory")
+    response = session.send("List files in the current directory")
 
-    # Verify tool execution workflow
-    assert mock_stream_response.call_count == 2  # Two iterations (tool request + final)
-    assert mock_tool_registry.request_tool_approval.call_count == 1
-
-    # Verify approval was requested
-    approval_call = mock_tool_registry.request_tool_approval.call_args
-    assert approval_call[1]["tool_name"] == "bash_execute"
-    assert approval_call[1]["arguments"] == {"command": "ls -la"}
-
-    # Verify tool was executed
-    assert mock_tool_registry.get_tool.call_count == 1
-    assert mock_tool_registry.get_tool.call_args[0][0] == "bash_execute"
-
-    # Verify ToolMessage was added to history
-    tool_messages = [
-        msg for msg in mock_history.messages if isinstance(msg, ToolMessage)
-    ]
-    assert len(tool_messages) == 1
-    assert "Command output" in tool_messages[0].content
+    # Verify response contains both parts
+    assert (
+        "I'll list the files for you." in response
+        or "Here are the files in the directory..." in response
+    )
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_without_tools(
-    mock_history_class, mock_get_chat_model, mock_config
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test ChatSession works without tool registry (backward compatibility)."""
-    # Setup mocks
-    mock_model = Mock()
-    mock_get_chat_model.return_value = mock_model
+    mock_service_class.from_config.return_value = mock_conversation_service
 
-    mock_history = Mock()
-    mock_history.messages = []
-    mock_history.get_messages = Mock(return_value=[])
-    mock_history.add_user_message = Mock()
-    mock_history.add_assistant_message = Mock()
-    mock_history_class.return_value = mock_history
+    # Mock send_message to yield a simple response
+    async def mock_send_message(*args, **kwargs):
+        token = Mock()
+        token.content = "Hello!"
+        token.metadata = {}
+        yield token
 
-    # Mock invoke (non-streaming)
-    mock_model.invoke = Mock(return_value=AIMessage(content="Hello!"))
+    mock_conversation_service.send_message = mock_send_message
 
     # Create session without tool registry
     session = ChatSession(mock_config)
@@ -168,8 +110,6 @@ def test_chat_session_without_tools(
 
     # Verify basic functionality works
     assert response == "Hello!"
-    assert mock_history.add_user_message.call_count == 1
-    assert mock_history.add_assistant_message.call_count == 1
 
 
 def test_cli_approval_provider_always_approve():

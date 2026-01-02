@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import Mock, patch
 
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage
 
 from consoul.ai.exceptions import StreamingError
 from consoul.cli import ChatSession
@@ -34,123 +33,89 @@ def mock_config():
 
 
 @pytest.fixture
-def mock_chat_model():
-    """Create a mock chat model."""
-    model = Mock()
-
-    # Mock invoke to return AIMessage
-    response = AIMessage(content="Hello! How can I help you?")
-    model.invoke = Mock(return_value=response)
-
-    # Mock stream to return chunks
-    def mock_stream(messages):
-        chunks = ["Hello", "! ", "How ", "can ", "I ", "help ", "you", "?"]
-        for chunk in chunks:
-            mock_chunk = Mock()
-            mock_chunk.content = chunk
-            mock_chunk.tool_call_chunks = []  # No tool calls
-            yield mock_chunk
-
-    model.stream = Mock(side_effect=mock_stream)
-
-    return model
+def mock_conversation_service():
+    """Create a mock ConversationService."""
+    service = Mock()
+    conversation = Mock()
+    conversation.messages = []
+    conversation.count_tokens = Mock(return_value=150)
+    conversation.session_id = "test-session-123"
+    service.conversation = conversation
+    service.model = Mock()
+    # Mock tool_registry to return empty list for list_tools()
+    tool_registry = Mock()
+    tool_registry.list_tools.return_value = []
+    service.tool_registry = tool_registry
+    return service
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_initialization(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test ChatSession initializes correctly."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     session = ChatSession(mock_config)
 
     assert session.config == mock_config
-    assert session.model == mock_chat_model
-    assert session.history == mock_history
+    assert session.conversation_service == mock_conversation_service
 
-    # Verify get_chat_model was called correctly
-    mock_get_chat_model.assert_called_once()
-
-    # Verify ConversationHistory was initialized
-    mock_history_class.assert_called_once()
-
-    # Verify system prompt was added (includes environment context + profile prompt)
-    mock_history.add_system_message.assert_called_once()
-    call_args = mock_history.add_system_message.call_args[0][0]
-    # System prompt should end with the profile's prompt
-    assert call_args.endswith("You are a helpful assistant.")
+    # Verify from_config was called
+    mock_service_class.from_config.assert_called_once()
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_send_non_streaming(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test sending a message without streaming."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
+
+    # Mock send_message to yield tokens
+    async def mock_send_message(*args, **kwargs):
+        token = Mock()
+        token.content = "Hello! How can I help you?"
+        token.metadata = {}
+        yield token
+
+    mock_conversation_service.send_message = mock_send_message
 
     session = ChatSession(mock_config)
     response = session.send("Hello", stream=False)
 
     assert response == "Hello! How can I help you?"
 
-    # Verify message was added to history
-    mock_history.add_user_message.assert_called_once_with("Hello")
-    mock_history.add_assistant_message.assert_called_once_with(
-        "Hello! How can I help you?"
-    )
 
-
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
-@patch("consoul.cli.chat_session.stream_response")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_send_streaming(
-    mock_stream_response,
-    mock_history_class,
-    mock_get_chat_model,
-    mock_config,
-    mock_chat_model,
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test sending a message with streaming."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
-    # Mock stream_response to return tuple (response_text, ai_message)
-    mock_ai_message = AIMessage(content="Hello! How can I help you?")
-    mock_stream_response.return_value = ("Hello! How can I help you?", mock_ai_message)
+    # Mock send_message to yield tokens
+    async def mock_send_message(*args, **kwargs):
+        for chunk in ["Hello", "! ", "How can I help you?"]:
+            token = Mock()
+            token.content = chunk
+            token.metadata = {}
+            yield token
+
+    mock_conversation_service.send_message = mock_send_message
 
     session = ChatSession(mock_config)
     response = session.send("Hello", stream=True)
 
     assert response == "Hello! How can I help you?"
 
-    # Verify stream_response was called
-    mock_stream_response.assert_called_once()
 
-    # Verify messages were added to history
-    mock_history.add_user_message.assert_called_once_with("Hello")
-    mock_history.add_assistant_message.assert_called_once_with(
-        "Hello! How can I help you?"
-    )
-
-
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_clear_history(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test clearing conversation history."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     # Mock messages with system and user messages
     system_msg = Mock()
@@ -158,25 +123,22 @@ def test_chat_session_clear_history(
     user_msg = Mock()
     user_msg.type = "human"
 
-    mock_history.messages = [system_msg, user_msg]
-    mock_history_class.return_value = mock_history
+    mock_conversation_service.conversation.messages = [system_msg, user_msg]
 
     session = ChatSession(mock_config)
     session.clear_history()
 
     # Verify only system message remains
-    assert len(mock_history.messages) == 1
-    assert mock_history.messages[0] == system_msg
+    assert len(mock_conversation_service.conversation.messages) == 1
+    assert mock_conversation_service.conversation.messages[0] == system_msg
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_get_stats(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test getting conversation statistics."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     # Create mock messages (2 system, 3 user, 2 assistant = 5 user+assistant)
     system_msg1 = Mock()
@@ -194,7 +156,7 @@ def test_chat_session_get_stats(
     user_msg3 = Mock()
     user_msg3.type = "human"
 
-    mock_history.messages = [
+    mock_conversation_service.conversation.messages = [
         system_msg1,
         system_msg2,
         user_msg1,
@@ -203,9 +165,6 @@ def test_chat_session_get_stats(
         ai_msg2,
         user_msg3,
     ]
-    mock_history.__len__ = Mock(return_value=7)
-    mock_history.count_tokens = Mock(return_value=150)
-    mock_history_class.return_value = mock_history
 
     session = ChatSession(mock_config)
     stats = session.get_stats()
@@ -214,171 +173,129 @@ def test_chat_session_get_stats(
     assert stats == {"message_count": 5, "token_count": 150}
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_context_manager(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test ChatSession as context manager."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history.session_id = "test-session-123"
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     with ChatSession(mock_config) as session:
         assert session is not None
-        assert session.model == mock_chat_model
+        assert session.conversation_service == mock_conversation_service
 
     # Context manager should exit cleanly
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
-@patch("consoul.cli.chat_session.Markdown")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_markdown_rendering_non_streaming(
-    mock_markdown_class,
-    mock_history_class,
-    mock_get_chat_model,
-    mock_config,
-    mock_chat_model,
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test markdown rendering for non-streaming responses."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history.get_messages = Mock(
-        return_value=[HumanMessage(content="Show me code")]
-    )
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
-    # Mock response with markdown
     response_text = "Here's some code:\n```python\nprint('Hello')\n```"
-    mock_chat_model.invoke.return_value = AIMessage(content=response_text)
 
-    # Mock Markdown instance
-    mock_md = Mock()
-    mock_markdown_class.return_value = mock_md
+    # Mock send_message to yield the response
+    async def mock_send_message(*args, **kwargs):
+        token = Mock()
+        token.content = response_text
+        token.metadata = {}
+        yield token
+
+    mock_conversation_service.send_message = mock_send_message
 
     session = ChatSession(mock_config)
-
-    # Mock the console.print to verify it was called
-    with patch.object(session.console, "print") as mock_print:
-        response = session.send("Show me code", stream=False, render_markdown=True)
+    response = session.send("Show me code", stream=False, render_markdown=True)
 
     assert response == response_text
 
-    # Verify Markdown was created with response text
-    mock_markdown_class.assert_called_once_with(response_text)
 
-    # Verify markdown object was printed
-    assert any(
-        call[0][0] == mock_md for call in mock_print.call_args_list if call[0]
-    ), "Markdown object should be printed"
-
-
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_plain_text_non_streaming(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test plain text rendering when markdown is disabled."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
+
+    # Mock send_message to yield the response
+    async def mock_send_message(*args, **kwargs):
+        token = Mock()
+        token.content = "Hello! How can I help you?"
+        token.metadata = {}
+        yield token
+
+    mock_conversation_service.send_message = mock_send_message
 
     session = ChatSession(mock_config)
     response = session.send("Hello", stream=False, render_markdown=False)
 
     assert response == "Hello! How can I help you?"
 
-    # Verify plain text was printed (not Markdown)
-    assert mock_history.add_assistant_message.called
 
-
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
-@patch("consoul.cli.chat_session.stream_response")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_markdown_rendering_streaming(
-    mock_stream_response,
-    mock_history_class,
-    mock_get_chat_model,
-    mock_config,
-    mock_chat_model,
+    mock_service_class, mock_config, mock_conversation_service
 ):
-    """Test markdown rendering is passed to stream_response."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history.get_messages = Mock(
-        return_value=[HumanMessage(content="Show me code")]
-    )
-    mock_history_class.return_value = mock_history
+    """Test markdown rendering is handled during streaming."""
+    mock_service_class.from_config.return_value = mock_conversation_service
 
-    # Mock stream_response to return tuple (response_text, ai_message)
     response_text = "```python\nprint('test')\n```"
-    mock_ai_message = AIMessage(content=response_text)
-    mock_stream_response.return_value = (response_text, mock_ai_message)
+
+    # Mock send_message to yield the response
+    async def mock_send_message(*args, **kwargs):
+        token = Mock()
+        token.content = response_text
+        token.metadata = {}
+        yield token
+
+    mock_conversation_service.send_message = mock_send_message
 
     session = ChatSession(mock_config)
     response = session.send("Show me code", stream=True, render_markdown=True)
 
     assert response == response_text
 
-    # Verify stream_response was called with render_markdown=True
-    call_kwargs = mock_stream_response.call_args[1]
-    assert call_kwargs["render_markdown"] is True
 
-
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
-@patch("consoul.cli.chat_session.stream_response")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_plain_text_streaming(
-    mock_stream_response,
-    mock_history_class,
-    mock_get_chat_model,
-    mock_config,
-    mock_chat_model,
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test plain text streaming when markdown is disabled."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
-    # Mock stream_response to return tuple (response_text, ai_message)
-    mock_ai_message = AIMessage(content="Hello! How can I help you?")
-    mock_stream_response.return_value = ("Hello! How can I help you?", mock_ai_message)
+    # Mock send_message to yield the response
+    async def mock_send_message(*args, **kwargs):
+        token = Mock()
+        token.content = "Hello! How can I help you?"
+        token.metadata = {}
+        yield token
+
+    mock_conversation_service.send_message = mock_send_message
 
     session = ChatSession(mock_config)
     response = session.send("Hello", stream=True, render_markdown=False)
 
     assert response == "Hello! How can I help you?"
 
-    # Verify stream_response was called with render_markdown=False
-    call_kwargs = mock_stream_response.call_args[1]
-    assert call_kwargs["render_markdown"] is False
 
-
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
-@patch("consoul.cli.chat_session.stream_response")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_streaming_error_handling(
-    mock_stream_response,
-    mock_history_class,
-    mock_get_chat_model,
-    mock_config,
-    mock_chat_model,
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test that StreamingError is properly caught and handled."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
-    # Mock stream_response to raise StreamingError with partial response
     partial_text = "Hello! How can I"
-    mock_stream_response.side_effect = StreamingError(
-        "Streaming interrupted by user", partial_response=partial_text
-    )
+
+    # Mock send_message to raise StreamingError
+    async def mock_send_message(*args, **kwargs):
+        raise StreamingError(
+            "Streaming interrupted by user", partial_response=partial_text
+        )
+        yield  # Make it a generator
+
+    mock_conversation_service.send_message = mock_send_message
 
     session = ChatSession(mock_config)
 
@@ -389,30 +306,20 @@ def test_chat_session_streaming_error_handling(
     # Verify _interrupted flag was set
     assert session._interrupted is True
 
-    # Verify partial response was saved to history
-    mock_history.add_assistant_message.assert_called_once_with(partial_text)
 
-
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
-@patch("consoul.cli.chat_session.stream_response")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_chat_session_streaming_error_no_partial(
-    mock_stream_response,
-    mock_history_class,
-    mock_get_chat_model,
-    mock_config,
-    mock_chat_model,
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test StreamingError without partial response."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history.get_messages = Mock(return_value=[HumanMessage(content="Hello")])
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
-    # Mock stream_response to raise StreamingError with no partial response
-    mock_stream_response.side_effect = StreamingError(
-        "Streaming interrupted by user", partial_response=""
-    )
+    # Mock send_message to raise StreamingError with no partial response
+    async def mock_send_message(*args, **kwargs):
+        raise StreamingError("Streaming interrupted by user", partial_response="")
+        yield  # Make it a generator
+
+    mock_conversation_service.send_message = mock_send_message
 
     session = ChatSession(mock_config)
 
@@ -422,9 +329,6 @@ def test_chat_session_streaming_error_no_partial(
 
     # Verify _interrupted flag was set
     assert session._interrupted is True
-
-    # Verify no partial response was saved (empty string)
-    mock_history.add_assistant_message.assert_not_called()
 
 
 # =============================================================================

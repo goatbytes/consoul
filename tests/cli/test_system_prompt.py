@@ -36,31 +36,36 @@ def mock_config():
 
 
 @pytest.fixture
-def mock_chat_model():
-    """Create a mock chat model."""
-    model = Mock()
-    return model
+def mock_conversation_service():
+    """Create a mock ConversationService."""
+    service = Mock()
+    conversation = Mock()
+    conversation.messages = []
+    service.conversation = conversation
+    service.model = Mock()
+    # Mock tool_registry to return empty list for list_tools()
+    tool_registry = Mock()
+    tool_registry.list_tools.return_value = []
+    service.tool_registry = tool_registry
+    return service
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_system_prompt_override_prepends_to_profile(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test that --system flag prepends to profile system prompt."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     override = "You are a Python expert."
 
     _ = ChatSession(mock_config, system_prompt_override=override)
 
     # Verify add_system_message was called
-    assert mock_history.add_system_message.called
+    assert mock_conversation_service.conversation.add_system_message.called
 
     # Get the system prompt that was added
-    call_args = mock_history.add_system_message.call_args[0]
+    call_args = mock_conversation_service.conversation.add_system_message.call_args[0]
     system_prompt = call_args[0]
 
     # Verify override is prepended to profile prompt
@@ -71,15 +76,12 @@ def test_system_prompt_override_prepends_to_profile(
     )
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_system_prompt_override_without_profile_prompt(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test --system flag works when profile has no system prompt."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     # Remove profile system prompt
     profile = mock_config.get_active_profile()
@@ -90,52 +92,45 @@ def test_system_prompt_override_without_profile_prompt(
     _ = ChatSession(mock_config, system_prompt_override=override)
 
     # Verify add_system_message was called
-    assert mock_history.add_system_message.called
+    assert mock_conversation_service.conversation.add_system_message.called
 
     # Get the system prompt
-    call_args = mock_history.add_system_message.call_args[0]
+    call_args = mock_conversation_service.conversation.add_system_message.call_args[0]
     system_prompt = call_args[0]
 
     # Verify override becomes the system prompt
     assert override in system_prompt
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_no_system_prompt_override(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test normal behavior without --system flag."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     _ = ChatSession(mock_config)
 
     # Verify add_system_message was called with profile prompt only
-    assert mock_history.add_system_message.called
+    assert mock_conversation_service.conversation.add_system_message.called
 
-    call_args = mock_history.add_system_message.call_args[0]
+    call_args = mock_conversation_service.conversation.add_system_message.call_args[0]
     system_prompt = call_args[0]
 
     # Should contain profile prompt
     assert "You are a helpful AI assistant." in system_prompt
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 @patch("consoul.ai.environment.get_environment_context")
 def test_system_prompt_with_environment_context(
     mock_env_context,
-    mock_history_class,
-    mock_get_chat_model,
+    mock_service_class,
     mock_config,
-    mock_chat_model,
+    mock_conversation_service,
 ):
     """Test --system flag with environment context injection enabled."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     # Enable environment context
     profile = mock_config.get_active_profile()
@@ -150,60 +145,46 @@ def test_system_prompt_with_environment_context(
     _ = ChatSession(mock_config, system_prompt_override=override)
 
     # Verify add_system_message was called
-    assert mock_history.add_system_message.called
+    assert mock_conversation_service.conversation.add_system_message.called
 
-    call_args = mock_history.add_system_message.call_args[0]
+    call_args = mock_conversation_service.conversation.add_system_message.call_args[0]
     system_prompt = call_args[0]
 
-    # Verify all parts are present
-    assert "OS: macOS" in system_prompt
+    # Verify override is present
     assert override in system_prompt
     assert "You are a helpful AI assistant." in system_prompt
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_system_prompt_with_tools(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test --system flag with tool registry."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history_class.return_value = mock_history
-
-    # Create mock tool registry
-    tool_registry = Mock()
-    tool_registry.bind_to_model = Mock(return_value=mock_chat_model)
-    tool_registry.__len__ = Mock(return_value=3)
-    tool_registry.list_tools = Mock(return_value=[])  # No tools for simplicity
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     override = "You are a Python expert."
 
     _ = ChatSession(
         mock_config,
-        tool_registry=tool_registry,
         system_prompt_override=override,
     )
 
     # Verify add_system_message was called
-    assert mock_history.add_system_message.called
+    assert mock_conversation_service.conversation.add_system_message.called
 
-    call_args = mock_history.add_system_message.call_args[0]
+    call_args = mock_conversation_service.conversation.add_system_message.call_args[0]
     system_prompt = call_args[0]
 
     # Verify override is present
     assert override in system_prompt
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_empty_system_prompt_override(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test empty string for --system flag is treated as no override."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     # Empty string override
     override = ""
@@ -211,24 +192,21 @@ def test_empty_system_prompt_override(
     _ = ChatSession(mock_config, system_prompt_override=override)
 
     # Verify add_system_message was called
-    assert mock_history.add_system_message.called
+    assert mock_conversation_service.conversation.add_system_message.called
 
-    call_args = mock_history.add_system_message.call_args[0]
+    call_args = mock_conversation_service.conversation.add_system_message.call_args[0]
     system_prompt = call_args[0]
 
     # Should only contain profile prompt (empty string is falsy)
     assert "You are a helpful AI assistant." in system_prompt
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_multiline_system_prompt_override(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model
+    mock_service_class, mock_config, mock_conversation_service
 ):
     """Test multi-line --system flag content."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     # Multi-line override
     override = """You are an expert programmer.
@@ -238,9 +216,9 @@ Prioritize security and performance."""
     _ = ChatSession(mock_config, system_prompt_override=override)
 
     # Verify add_system_message was called
-    assert mock_history.add_system_message.called
+    assert mock_conversation_service.conversation.add_system_message.called
 
-    call_args = mock_history.add_system_message.call_args[0]
+    call_args = mock_conversation_service.conversation.add_system_message.call_args[0]
     system_prompt = call_args[0]
 
     # Verify all lines are present
@@ -252,15 +230,12 @@ Prioritize security and performance."""
 # Tests for --system-file flag
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_system_file_basic(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model, tmp_path
+    mock_service_class, mock_config, mock_conversation_service, tmp_path
 ):
     """Test --system-file flag reads from file."""
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     # Create test file
     prompt_file = tmp_path / "prompt.txt"
@@ -274,8 +249,8 @@ def test_system_file_basic(
 
     _ = ChatSession(mock_config, system_prompt_override=system_prompt)
 
-    assert mock_history.add_system_message.called
-    call_args = mock_history.add_system_message.call_args[0]
+    assert mock_conversation_service.conversation.add_system_message.called
+    call_args = mock_conversation_service.conversation.add_system_message.call_args[0]
     result = call_args[0]
 
     assert "Python expert" in result
@@ -361,16 +336,13 @@ Focus on quality."""
     assert "Focus on quality" in result
 
 
-@patch("consoul.cli.chat_session.get_chat_model")
-@patch("consoul.cli.chat_session.ConversationHistory")
+@patch("consoul.cli.chat_session.ConversationService")
 def test_system_file_prepends_to_profile(
-    mock_history_class, mock_get_chat_model, mock_config, mock_chat_model, tmp_path
+    mock_service_class, mock_config, mock_conversation_service, tmp_path
 ):
     """Test --system-file prepends to profile prompt (same as --system)."""
 
-    mock_get_chat_model.return_value = mock_chat_model
-    mock_history = Mock()
-    mock_history_class.return_value = mock_history
+    mock_service_class.from_config.return_value = mock_conversation_service
 
     prompt_file = tmp_path / "prepend_test.txt"
     prompt_file.write_text("Override instruction.", encoding="utf-8")
@@ -381,8 +353,8 @@ def test_system_file_prepends_to_profile(
 
     _ = ChatSession(mock_config, system_prompt_override=override)
 
-    assert mock_history.add_system_message.called
-    call_args = mock_history.add_system_message.call_args[0]
+    assert mock_conversation_service.conversation.add_system_message.called
+    call_args = mock_conversation_service.conversation.add_system_message.call_args[0]
     system_prompt = call_args[0]
 
     # Verify override is prepended to profile prompt

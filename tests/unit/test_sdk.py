@@ -103,7 +103,7 @@ class TestConsoulProperties:
 class TestConsoulToolSpecification:
     """Test tool specification functionality."""
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_tools_disabled_with_false(self, mock_get_model: Mock) -> None:
         """Test that tools=False disables all tools."""
         mock_model = Mock()
@@ -115,7 +115,7 @@ class TestConsoulToolSpecification:
         assert console.registry is None
         assert console.tools_enabled is False
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_tools_disabled_with_none(self, mock_get_model: Mock) -> None:
         """Test that tools=None disables all tools."""
         mock_model = Mock()
@@ -127,8 +127,8 @@ class TestConsoulToolSpecification:
         assert console.registry is None
         assert console.tools_enabled is False
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
     def test_tools_enabled_with_true(
         self, mock_registry_class: Mock, mock_get_model: Mock
     ) -> None:
@@ -147,8 +147,8 @@ class TestConsoulToolSpecification:
         assert console.tools_enabled is True
         assert mock_registry.register.call_count == 13  # All 13 tools in catalog
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
     def test_tools_by_name_list(
         self, mock_registry_class: Mock, mock_get_model: Mock
     ) -> None:
@@ -172,8 +172,8 @@ class TestConsoulToolSpecification:
         assert "bash_execute" in registered_names
         assert "grep_search" in registered_names
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
     def test_tools_by_risk_level_safe(
         self, mock_registry_class: Mock, mock_get_model: Mock
     ) -> None:
@@ -195,8 +195,8 @@ class TestConsoulToolSpecification:
         for call in calls:
             assert call.kwargs["risk_level"] == RiskLevel.SAFE
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
     def test_tools_by_risk_level_caution(
         self, mock_registry_class: Mock, mock_get_model: Mock
     ) -> None:
@@ -220,8 +220,8 @@ class TestConsoulToolSpecification:
         assert RiskLevel.CAUTION in risk_levels
         assert RiskLevel.DANGEROUS not in risk_levels
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
     def test_tools_custom_basetool(
         self, mock_registry_class: Mock, mock_get_model: Mock
     ) -> None:
@@ -250,8 +250,8 @@ class TestConsoulToolSpecification:
         assert call.kwargs["tool"] == my_custom_tool
         assert call.kwargs["risk_level"] == RiskLevel.CAUTION
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
     def test_tools_mixed_custom_and_builtin(
         self, mock_registry_class: Mock, mock_get_model: Mock
     ) -> None:
@@ -281,7 +281,7 @@ class TestConsoulToolSpecification:
         assert "bash_execute" in tool_names
         assert "grep_search" in tool_names
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_tools_invalid_name_raises_error(self, mock_get_model: Mock) -> None:
         """Test that invalid tool name raises ValueError."""
         mock_model = Mock()
@@ -290,7 +290,7 @@ class TestConsoulToolSpecification:
         with pytest.raises(ValueError, match="Unknown tool or category 'invalid_tool'"):
             Consoul(tools=["invalid_tool"], persist=False)
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_tools_invalid_type_raises_error(self, mock_get_model: Mock) -> None:
         """Test that invalid tool type raises ValueError."""
         mock_model = Mock()
@@ -299,7 +299,7 @@ class TestConsoulToolSpecification:
         with pytest.raises(ValueError, match="Invalid tools parameter type"):
             Consoul(tools=123, persist=False)  # type: ignore
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_tools_empty_list(self, mock_get_model: Mock) -> None:
         """Test that empty list disables tools."""
         mock_model = Mock()
@@ -311,8 +311,8 @@ class TestConsoulToolSpecification:
         assert console.registry is None
         assert console.tools_enabled is False
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
     def test_tools_single_string_name(
         self, mock_registry_class: Mock, mock_get_model: Mock
     ) -> None:
@@ -335,8 +335,8 @@ class TestConsoulToolSpecification:
         call = mock_registry.register.call_args
         assert call.kwargs["tool"].name == "bash_execute"
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
     def test_tools_enabled_accessible_in_settings(
         self, mock_registry_class: Mock, mock_get_model: Mock
     ) -> None:
@@ -363,7 +363,7 @@ class TestConsoulToolSpecification:
 class TestConsoulTokenUsage:
     """Test token usage tracking from usage_metadata."""
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_last_cost_with_usage_metadata(self, mock_get_model: Mock) -> None:
         """Test that last_cost extracts usage_metadata when available."""
         from langchain_core.messages import AIMessage
@@ -393,7 +393,7 @@ class TestConsoulTokenUsage:
         assert cost["estimated_cost"] > 0  # Should use accurate pricing
         assert cost["model"] == "claude-3-5-haiku-20241022"
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_last_cost_fallback_without_metadata(self, mock_get_model: Mock) -> None:
         """Test that last_cost falls back when usage_metadata unavailable."""
         from langchain_core.messages import AIMessage
@@ -421,7 +421,7 @@ class TestConsoulTokenUsage:
             cost["estimated_cost"] > 0
         )  # Should use accurate pricing even with approximated tokens
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_last_cost_before_any_requests(self, mock_get_model: Mock) -> None:
         """Test last_cost returns zeros before any chat."""
         mock_model = Mock()
@@ -436,7 +436,7 @@ class TestConsoulTokenUsage:
         assert cost["estimated_cost"] == 0.0
         assert cost["source"] == "none"
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_last_cost_uses_metadata_total_tokens(self, mock_get_model: Mock) -> None:
         """Test that total_tokens from metadata is used directly."""
         from langchain_core.messages import AIMessage
@@ -468,7 +468,7 @@ class TestConsoulTokenUsage:
         assert cost["total_tokens"] == 100
         assert cost["source"] == "usage_metadata"
 
-    @patch("consoul.sdk.get_chat_model")
+    @patch("consoul.sdk.wrapper.get_chat_model")
     def test_last_cost_handles_none_metadata(self, mock_get_model: Mock) -> None:
         """Test that last_cost handles None usage_metadata gracefully."""
         from langchain_core.messages import AIMessage
@@ -495,9 +495,9 @@ class TestConsoulTokenUsage:
 class TestConsoulToolDiscovery:
     """Test tool discovery functionality."""
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
-    @patch("consoul.sdk.discover_tools_from_directory")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
+    @patch("consoul.sdk.wrapper.discover_tools_from_directory")
     def test_discover_tools_disabled_by_default(
         self,
         mock_discover: Mock,
@@ -518,9 +518,9 @@ class TestConsoulToolDiscovery:
         # discover_tools_from_directory should NOT be called
         mock_discover.assert_not_called()
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
-    @patch("consoul.sdk.discover_tools_from_directory")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
+    @patch("consoul.sdk.wrapper.discover_tools_from_directory")
     def test_discover_tools_when_enabled(
         self,
         mock_discover: Mock,
@@ -554,9 +554,9 @@ class TestConsoulToolDiscovery:
         assert str(call_args[0][0]).endswith(".consoul/tools")
         assert call_args[1]["recursive"] is True
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
-    @patch("consoul.sdk.discover_tools_from_directory")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
+    @patch("consoul.sdk.wrapper.discover_tools_from_directory")
     def test_discover_tools_combined_with_builtin(
         self,
         mock_discover: Mock,
@@ -601,9 +601,9 @@ class TestConsoulToolDiscovery:
         assert "custom_tool_1" in registered_names
         assert "custom_tool_2" in registered_names
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.ToolRegistry")
-    @patch("consoul.sdk.discover_tools_from_directory")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.ToolRegistry")
+    @patch("consoul.sdk.wrapper.discover_tools_from_directory")
     def test_discover_tools_with_tools_true(
         self,
         mock_discover: Mock,
@@ -632,8 +632,8 @@ class TestConsoulToolDiscovery:
         # Should have registered 14 tools: 13 built-in + 1 discovered
         assert mock_registry.register.call_count == 14
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.discover_tools_from_directory")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.discover_tools_from_directory")
     def test_discover_tools_only_no_builtin(
         self,
         mock_discover: Mock,
@@ -657,8 +657,8 @@ class TestConsoulToolDiscovery:
         assert console.tools_enabled is True
         mock_discover.assert_called_once()
 
-    @patch("consoul.sdk.get_chat_model")
-    @patch("consoul.sdk.discover_tools_from_directory")
+    @patch("consoul.sdk.wrapper.get_chat_model")
+    @patch("consoul.sdk.wrapper.discover_tools_from_directory")
     def test_discover_tools_empty_directory(
         self,
         mock_discover: Mock,
