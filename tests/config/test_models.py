@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from consoul.config.models import (
     AnthropicModelConfig,
-    ConsoulConfig,
+    ConsoulCoreConfig,
     ContextConfig,
     ConversationConfig,
     HuggingFaceModelConfig,
@@ -17,6 +17,8 @@ from consoul.config.models import (
     ProfileConfig,
     Provider,
 )
+from consoul.tui.config import ConsoulTuiConfig
+from consoul.tui.profiles import ProfileConfig as TuiProfileConfig
 
 
 class TestProvider:
@@ -429,67 +431,14 @@ class TestProfileConfig:
         assert profile.context.max_context_tokens == 8192
 
 
-class TestConsoulConfig:
-    """Tests for ConsoulConfig."""
-
-    def test_valid_config(self):
-        """Test creating a valid Consoul configuration."""
-        config = ConsoulConfig(
-            profiles={
-                "default": ProfileConfig(
-                    name="default",
-                    description="Default profile",
-                    model=OpenAIModelConfig(model="gpt-4o"),
-                )
-            },
-            active_profile="default",
-        )
-        assert "default" in config.profiles
-        assert config.active_profile == "default"
-        assert config.get_active_profile().name == "default"
-
-    def test_active_profile_validation(self):
-        """Test that active profile must exist in profiles."""
-        with pytest.raises(ValidationError) as exc_info:
-            ConsoulConfig(
-                profiles={
-                    "default": ProfileConfig(
-                        name="default",
-                        description="Default",
-                        model=OpenAIModelConfig(model="gpt-4o"),
-                    )
-                },
-                active_profile="nonexistent",
-            )
-        assert "not found in profiles" in str(exc_info.value)
-
-    def test_active_profile_normalization(self):
-        """Test that active profile name is normalized."""
-        config = ConsoulConfig(
-            profiles={
-                "default": ProfileConfig(
-                    name="default",
-                    description="Default",
-                    model=OpenAIModelConfig(model="gpt-4o"),
-                )
-            },
-            active_profile="Default",
-        )
-        assert config.active_profile == "default"
+class TestConsoulCoreConfig:
+    """Tests for ConsoulCoreConfig (SDK config without profiles)."""
 
     def test_api_keys_not_serialized_json(self):
         """Test that API keys are not included in JSON serialization."""
         from pydantic import SecretStr
 
-        config = ConsoulConfig(
-            profiles={
-                "default": ProfileConfig(
-                    name="default",
-                    description="Default",
-                    model=OpenAIModelConfig(model="gpt-4o"),
-                )
-            },
-            active_profile="default",
+        config = ConsoulCoreConfig(
             api_keys={"openai": SecretStr("sk-test-key")},
         )
 
@@ -504,15 +453,7 @@ class TestConsoulConfig:
         """Test that API keys are not included in Python dict serialization."""
         from pydantic import SecretStr
 
-        config = ConsoulConfig(
-            profiles={
-                "default": ProfileConfig(
-                    name="default",
-                    description="Default",
-                    model=OpenAIModelConfig(model="gpt-4o"),
-                )
-            },
-            active_profile="default",
+        config = ConsoulCoreConfig(
             api_keys={"openai": SecretStr("sk-test-key")},
         )
 
@@ -524,15 +465,7 @@ class TestConsoulConfig:
 
     def test_global_settings_extensibility(self):
         """Test that global_settings allows arbitrary data."""
-        config = ConsoulConfig(
-            profiles={
-                "default": ProfileConfig(
-                    name="default",
-                    description="Default",
-                    model=OpenAIModelConfig(model="gpt-4o"),
-                )
-            },
-            active_profile="default",
+        config = ConsoulCoreConfig(
             global_settings={"custom_key": "custom_value", "number": 42},
         )
         assert config.global_settings["custom_key"] == "custom_value"
@@ -541,35 +474,80 @@ class TestConsoulConfig:
     def test_extra_fields_forbidden(self):
         """Test that unknown top-level fields are rejected (extra='forbid')."""
         with pytest.raises(ValidationError) as exc_info:
-            ConsoulConfig(
+            ConsoulCoreConfig(
+                unknown_field="should_fail",
+            )
+        assert "Extra inputs are not permitted" in str(exc_info.value)
+
+
+class TestConsoulTuiConfigWithProfiles:
+    """Tests for ConsoulTuiConfig (TUI config with profiles)."""
+
+    def test_valid_config(self):
+        """Test creating a valid Consoul TUI configuration."""
+        config = ConsoulTuiConfig(
+            profiles={
+                "default": TuiProfileConfig(
+                    name="default",
+                    description="Default profile",
+                    model=OpenAIModelConfig(model="gpt-4o"),
+                )
+            },
+            active_profile="default",
+            core=ConsoulCoreConfig(),
+        )
+        assert "default" in config.profiles
+        assert config.active_profile == "default"
+        assert config.get_active_profile().name == "default"
+
+    def test_active_profile_validation(self):
+        """Test that active profile must exist in profiles."""
+        with pytest.raises(ValidationError) as exc_info:
+            ConsoulTuiConfig(
                 profiles={
-                    "default": ProfileConfig(
+                    "default": TuiProfileConfig(
                         name="default",
                         description="Default",
                         model=OpenAIModelConfig(model="gpt-4o"),
                     )
                 },
-                active_profile="default",
-                unknown_field="should_fail",
+                active_profile="nonexistent",
+                core=ConsoulCoreConfig(),
             )
-        assert "Extra inputs are not permitted" in str(exc_info.value)
+        assert "not found in profiles" in str(exc_info.value)
+
+    def test_active_profile_normalization(self):
+        """Test that active profile name is normalized."""
+        config = ConsoulTuiConfig(
+            profiles={
+                "default": TuiProfileConfig(
+                    name="default",
+                    description="Default",
+                    model=OpenAIModelConfig(model="gpt-4o"),
+                )
+            },
+            active_profile="Default",
+            core=ConsoulCoreConfig(),
+        )
+        assert config.active_profile == "default"
 
     def test_get_active_profile(self):
         """Test getting the active profile."""
-        default_profile = ProfileConfig(
+        default_profile = TuiProfileConfig(
             name="default",
             description="Default",
             model=OpenAIModelConfig(model="gpt-4o"),
         )
-        fast_profile = ProfileConfig(
+        fast_profile = TuiProfileConfig(
             name="fast",
             description="Fast responses",
             model=OpenAIModelConfig(model="gpt-3.5-turbo"),
         )
 
-        config = ConsoulConfig(
+        config = ConsoulTuiConfig(
             profiles={"default": default_profile, "fast": fast_profile},
             active_profile="fast",
+            core=ConsoulCoreConfig(),
         )
 
         active = config.get_active_profile()
@@ -578,14 +556,14 @@ class TestConsoulConfig:
 
     def test_multiple_profiles(self):
         """Test configuration with multiple profiles."""
-        config = ConsoulConfig(
+        config = ConsoulTuiConfig(
             profiles={
-                "default": ProfileConfig(
+                "default": TuiProfileConfig(
                     name="default",
                     description="Default",
                     model=OpenAIModelConfig(model="gpt-4o"),
                 ),
-                "creative": ProfileConfig(
+                "creative": TuiProfileConfig(
                     name="creative",
                     description="Creative writing",
                     model=AnthropicModelConfig(
@@ -593,7 +571,7 @@ class TestConsoulConfig:
                         temperature=1.5,
                     ),
                 ),
-                "code": ProfileConfig(
+                "code": TuiProfileConfig(
                     name="code",
                     description="Code review",
                     model=OpenAIModelConfig(
@@ -603,6 +581,7 @@ class TestConsoulConfig:
                 ),
             },
             active_profile="default",
+            core=ConsoulCoreConfig(),
         )
 
         assert len(config.profiles) == 3

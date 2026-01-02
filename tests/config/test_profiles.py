@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from consoul.config.loader import load_config, load_profile
+from consoul.config.loader import load_profile, load_tui_config
 from consoul.config.models import (
     AnthropicModelConfig,
     Provider,
@@ -91,8 +91,9 @@ class TestListAvailableProfiles:
 
     def test_lists_builtin_profiles_only(self):
         """Test listing when only built-in profiles exist."""
-        config = load_config()
-        profiles = list_available_profiles(config)
+        config = load_tui_config()
+        # list_available_profiles expects dict[str, ProfileConfig]
+        profiles = list_available_profiles(config.profiles)
 
         assert "default" in profiles
         assert "code-review" in profiles
@@ -123,8 +124,9 @@ active_profile: default
         )
 
         monkeypatch.chdir(tmp_path)
-        config = load_config()
-        profiles = list_available_profiles(config)
+        config = load_tui_config()
+        # list_available_profiles expects dict[str, ProfileConfig]
+        profiles = list_available_profiles(config.profiles)
 
         assert "default" in profiles
         assert "custom-profile" in profiles
@@ -153,16 +155,18 @@ active_profile: default
         )
 
         monkeypatch.chdir(tmp_path)
-        config = load_config()
-        profiles = list_available_profiles(config)
+        config = load_tui_config()
+        # list_available_profiles expects dict[str, ProfileConfig]
+        profiles = list_available_profiles(config.profiles)
 
         # "default" should appear only once
         assert profiles.count("default") == 1
 
     def test_sorted_output(self):
         """Test that profiles are returned in sorted order."""
-        config = load_config()
-        profiles = list_available_profiles(config)
+        config = load_tui_config()
+        # list_available_profiles expects dict[str, ProfileConfig]
+        profiles = list_available_profiles(config.profiles)
 
         assert profiles == sorted(profiles)
 
@@ -172,8 +176,9 @@ class TestGetProfileDescription:
 
     def test_builtin_profile_description(self):
         """Test getting description for built-in profile."""
-        config = load_config()
-        description = get_profile_description("default", config)
+        config = load_tui_config()
+        # get_profile_description expects dict[str, ProfileConfig]
+        description = get_profile_description("default", config.profiles)
 
         assert isinstance(description, str)
         assert len(description) > 0
@@ -202,15 +207,17 @@ active_profile: default
         )
 
         monkeypatch.chdir(tmp_path)
-        config = load_config()
-        description = get_profile_description("my-profile", config)
+        config = load_tui_config()
+        # get_profile_description expects dict[str, ProfileConfig]
+        description = get_profile_description("my-profile", config.profiles)
 
         assert description == "My custom description"
 
     def test_nonexistent_profile_description(self):
         """Test getting description for nonexistent profile."""
-        config = load_config()
-        description = get_profile_description("nonexistent", config)
+        config = load_tui_config()
+        # get_profile_description expects dict[str, ProfileConfig]
+        description = get_profile_description("nonexistent", config.profiles)
 
         assert description == "Unknown profile"
 
@@ -220,7 +227,7 @@ class TestLoadProfile:
 
     def test_load_builtin_profile(self):
         """Test loading a built-in profile."""
-        config = load_config()
+        config = load_tui_config()
         profile = load_profile("default", config)
 
         assert isinstance(profile, ProfileConfig)
@@ -229,7 +236,7 @@ class TestLoadProfile:
 
     def test_load_all_builtin_profiles(self):
         """Test that all built-in profiles can be loaded."""
-        config = load_config()
+        config = load_tui_config()
 
         for profile_name in ["default", "code-review", "creative", "fast"]:
             profile = load_profile(profile_name, config)
@@ -256,7 +263,7 @@ active_profile: default
         )
 
         monkeypatch.chdir(tmp_path)
-        config = load_config()
+        config = load_tui_config()
         profile = load_profile("my-profile", config)
 
         assert profile.name == "my-profile"
@@ -286,7 +293,7 @@ active_profile: default
         )
 
         monkeypatch.chdir(tmp_path)
-        config = load_config()
+        config = load_tui_config()
         profile = load_profile("default", config)
 
         # Should get custom profile, not built-in
@@ -296,7 +303,7 @@ active_profile: default
 
     def test_nonexistent_profile_raises_key_error(self):
         """Test that loading nonexistent profile raises KeyError."""
-        config = load_config()
+        config = load_tui_config()
 
         with pytest.raises(KeyError) as exc_info:
             load_profile("nonexistent", config)
@@ -306,18 +313,18 @@ active_profile: default
 
 
 class TestLoadConfigWithProfile:
-    """Tests for load_config with profile_name parameter."""
+    """Tests for load_tui_config with profile_name parameter."""
 
     def test_load_with_default_profile(self):
         """Test loading config with default profile."""
-        config = load_config(profile_name="default")
+        config = load_tui_config(profile_name="default")
 
         assert config.active_profile == "default"
         assert "default" in config.profiles
 
     def test_load_with_different_profile(self):
         """Test loading config with non-default profile."""
-        config = load_config(profile_name="creative")
+        config = load_tui_config(profile_name="creative")
 
         assert config.active_profile == "creative"
         active_profile = config.get_active_profile()
@@ -338,7 +345,7 @@ active_profile: fast
         )
 
         monkeypatch.chdir(tmp_path)
-        config = load_config(profile_name="code-review")
+        config = load_tui_config(profile_name="code-review")
 
         # profile_name should override config file
         assert config.active_profile == "code-review"
@@ -346,7 +353,7 @@ active_profile: fast
     def test_nonexistent_profile_raises_validation_error(self):
         """Test that loading with nonexistent profile raises ValidationError."""
         with pytest.raises(ValidationError) as exc_info:
-            load_config(profile_name="nonexistent")
+            load_tui_config(profile_name="nonexistent")
 
         assert "nonexistent" in str(exc_info.value)
 
@@ -356,7 +363,7 @@ class TestProfileProviderTypes:
 
     def test_default_uses_anthropic_config(self):
         """Test that default profile uses AnthropicModelConfig."""
-        config = load_config()
+        config = load_tui_config()
         profile = config.get_active_profile()
 
         assert isinstance(profile.model, AnthropicModelConfig)
@@ -364,7 +371,7 @@ class TestProfileProviderTypes:
 
     def test_code_review_uses_anthropic_config(self):
         """Test that code-review profile uses AnthropicModelConfig."""
-        config = load_config(profile_name="code-review")
+        config = load_tui_config(profile_name="code-review")
         profile = config.get_active_profile()
 
         assert isinstance(profile.model, AnthropicModelConfig)
@@ -372,7 +379,7 @@ class TestProfileProviderTypes:
 
     def test_creative_uses_anthropic_config(self):
         """Test that creative profile uses AnthropicModelConfig."""
-        config = load_config(profile_name="creative")
+        config = load_tui_config(profile_name="creative")
         profile = config.get_active_profile()
 
         assert isinstance(profile.model, AnthropicModelConfig)
@@ -380,7 +387,7 @@ class TestProfileProviderTypes:
 
     def test_fast_uses_anthropic_config(self):
         """Test that fast profile uses AnthropicModelConfig."""
-        config = load_config(profile_name="fast")
+        config = load_tui_config(profile_name="fast")
         profile = config.get_active_profile()
 
         assert isinstance(profile.model, AnthropicModelConfig)

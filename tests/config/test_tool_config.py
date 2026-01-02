@@ -3,10 +3,8 @@
 import pytest
 
 from consoul.config.models import (
-    ConsoulConfig,
+    ConsoulCoreConfig,
     FileEditToolConfig,
-    OpenAIModelConfig,
-    ProfileConfig,
     ReadToolConfig,
     ToolConfig,
 )
@@ -72,17 +70,9 @@ class TestToolConfig:
             ToolConfig(approval_mode="invalid")
 
     def test_tool_config_in_consoul_config(self):
-        """Test ToolConfig integrates with ConsoulConfig."""
-        # Create a minimal ConsoulConfig with tools
-        config = ConsoulConfig(
-            profiles={
-                "default": ProfileConfig(
-                    name="default",
-                    description="Default profile",
-                    model=OpenAIModelConfig(model="gpt-4o"),
-                )
-            },
-            active_profile="default",
+        """Test ToolConfig integrates with ConsoulCoreConfig."""
+        # Create a minimal ConsoulCoreConfig with tools
+        config = ConsoulCoreConfig(
             tools=ToolConfig(
                 enabled=True,
                 timeout=45,
@@ -95,17 +85,8 @@ class TestToolConfig:
         assert config.tools.allowed_tools == ["bash"]
 
     def test_tool_config_default_in_consoul_config(self):
-        """Test ToolConfig uses defaults in ConsoulConfig."""
-        config = ConsoulConfig(
-            profiles={
-                "default": ProfileConfig(
-                    name="default",
-                    description="Default profile",
-                    model=OpenAIModelConfig(model="gpt-4o"),
-                )
-            },
-            active_profile="default",
-        )
+        """Test ToolConfig uses defaults in ConsoulCoreConfig."""
+        config = ConsoulCoreConfig()
 
         # tools field should use default ToolConfig
         assert config.tools.enabled is True

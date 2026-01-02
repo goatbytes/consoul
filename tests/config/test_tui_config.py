@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from consoul.config.models import ConsoulConfig, OpenAIModelConfig
-from consoul.tui.config import TuiConfig
+from consoul.config.models import ConsoulCoreConfig, OpenAIModelConfig
+from consoul.tui.config import ConsoulTuiConfig, TuiConfig
 from consoul.tui.profiles import ProfileConfig
 
 
@@ -197,45 +197,11 @@ class TestTuiConfigExtraForbid:
 
 
 class TestConsoulConfigIntegration:
-    """Test TuiConfig integration with ConsoulConfig."""
+    """Test TuiConfig integration with ConsoulTuiConfig."""
 
     def test_consoul_config_has_tui_field(self) -> None:
-        """Test that ConsoulConfig includes tui field."""
-        config = ConsoulConfig(
-            profiles={
-                "default": ProfileConfig(
-                    name="default",
-                    description="Default profile",
-                    model=OpenAIModelConfig(model="gpt-4o"),
-                )
-            }
-        )
-        assert hasattr(config, "tui")
-        assert isinstance(config.tui, TuiConfig)
-
-    def test_tui_config_has_defaults(self) -> None:
-        """Test that config.tui contains default TUI settings."""
-        config = ConsoulConfig(
-            profiles={
-                "default": ProfileConfig(
-                    name="default",
-                    description="Default profile",
-                    model=OpenAIModelConfig(model="gpt-4o"),
-                )
-            }
-        )
-        assert config.tui.theme == "consoul-dark"
-        assert config.tui.gc_mode == "streaming-aware"
-        assert config.tui.stream_buffer_size == 200
-
-    def test_tui_config_can_be_customized(self) -> None:
-        """Test that TUI settings can be customized in ConsoulConfig."""
-        custom_tui = TuiConfig(
-            theme="dracula",
-            gc_mode="manual",
-            stream_buffer_size=300,
-        )
-        config = ConsoulConfig(
+        """Test that ConsoulTuiConfig includes tui field."""
+        config = ConsoulTuiConfig(
             profiles={
                 "default": ProfileConfig(
                     name="default",
@@ -243,6 +209,46 @@ class TestConsoulConfigIntegration:
                     model=OpenAIModelConfig(model="gpt-4o"),
                 )
             },
+            active_profile="default",
+            core=ConsoulCoreConfig(),
+        )
+        assert hasattr(config, "tui")
+        assert isinstance(config.tui, TuiConfig)
+
+    def test_tui_config_has_defaults(self) -> None:
+        """Test that config.tui contains default TUI settings."""
+        config = ConsoulTuiConfig(
+            profiles={
+                "default": ProfileConfig(
+                    name="default",
+                    description="Default profile",
+                    model=OpenAIModelConfig(model="gpt-4o"),
+                )
+            },
+            active_profile="default",
+            core=ConsoulCoreConfig(),
+        )
+        assert config.tui.theme == "consoul-dark"
+        assert config.tui.gc_mode == "streaming-aware"
+        assert config.tui.stream_buffer_size == 200
+
+    def test_tui_config_can_be_customized(self) -> None:
+        """Test that TUI settings can be customized in ConsoulTuiConfig."""
+        custom_tui = TuiConfig(
+            theme="dracula",
+            gc_mode="manual",
+            stream_buffer_size=300,
+        )
+        config = ConsoulTuiConfig(
+            profiles={
+                "default": ProfileConfig(
+                    name="default",
+                    description="Default profile",
+                    model=OpenAIModelConfig(model="gpt-4o"),
+                )
+            },
+            active_profile="default",
+            core=ConsoulCoreConfig(),
             tui=custom_tui,
         )
         assert config.tui.theme == "dracula"
@@ -251,7 +257,7 @@ class TestConsoulConfigIntegration:
 
     def test_yaml_roundtrip_preserves_tui_settings(self) -> None:
         """Test that TUI settings survive YAML serialization."""
-        config = ConsoulConfig(
+        config = ConsoulTuiConfig(
             profiles={
                 "default": ProfileConfig(
                     name="default",
@@ -259,6 +265,8 @@ class TestConsoulConfigIntegration:
                     model=OpenAIModelConfig(model="gpt-4o"),
                 )
             },
+            active_profile="default",
+            core=ConsoulCoreConfig(),
             tui=TuiConfig(theme="nord", show_timestamps=False),
         )
 
@@ -271,18 +279,10 @@ class TestConsoulConfigIntegration:
         assert data["tui"]["show_timestamps"] is False
 
     def test_tui_validation_errors_propagate(self) -> None:
-        """Test that TUI validation errors are caught when creating ConsoulConfig."""
+        """Test that TUI validation errors are caught when creating ConsoulTuiConfig."""
+        # TuiConfig validation errors should propagate up
         with pytest.raises(ValidationError) as exc_info:
-            ConsoulConfig(
-                profiles={
-                    "default": ProfileConfig(
-                        name="default",
-                        description="Default profile",
-                        model=OpenAIModelConfig(model="gpt-4o"),
-                    )
-                },
-                tui=TuiConfig(gc_interval_seconds=1.0),  # Below minimum
-            )
+            TuiConfig(gc_interval_seconds=1.0)  # Below minimum
 
         errors = exc_info.value.errors()
         assert any("gc_interval_seconds" in str(err["loc"]) for err in errors)

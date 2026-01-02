@@ -14,11 +14,12 @@ from consoul.config.loader import (
     find_project_config,
     load_config,
     load_env_config,
+    load_tui_config,
     load_yaml_config,
     merge_configs,
     save_config,
 )
-from consoul.config.models import ConsoulConfig
+from consoul.config.models import ConsoulCoreConfig
 
 
 class TestDeepMerge:
@@ -286,7 +287,11 @@ class TestCreateDefaultConfig:
 
 
 class TestLoadConfig:
-    """Tests for load_config function."""
+    """Tests for load_config function.
+
+    Note: load_config() now returns ConsoulCoreConfig (profile-free).
+    For profile-aware tests, use load_tui_config() instead.
+    """
 
     def test_load_with_defaults_only(self):
         """Test loading config with only defaults (no files)."""
@@ -296,9 +301,9 @@ class TestLoadConfig:
             project_config_path=Path("/nonexistent/project.yaml"),
         )
 
-        assert isinstance(config, ConsoulConfig)
-        assert config.active_profile == "default"
-        assert "default" in config.profiles
+        # load_config returns ConsoulCoreConfig (profile-free)
+        assert isinstance(config, ConsoulCoreConfig)
+        # ConsoulCoreConfig doesn't have profiles/active_profile
 
     def test_load_with_global_config(self, tmp_path: Path):
         """Test loading with global config file."""
@@ -306,18 +311,8 @@ class TestLoadConfig:
         global_config.write_text(
             yaml.safe_dump(
                 {
-                    "profiles": {
-                        "default": {
-                            "name": "default",
-                            "description": "Custom global default",
-                            "model": {
-                                "provider": "openai",
-                                "model": "gpt-4o",
-                                "temperature": 0.5,
-                            },
-                        }
-                    },
-                    "active_profile": "default",
+                    "current_provider": "openai",
+                    "current_model": "gpt-4o",
                 }
             )
         )
@@ -327,9 +322,8 @@ class TestLoadConfig:
             project_config_path=Path("/nonexistent/project.yaml"),
         )
 
-        assert config.profiles["default"].model.provider == "openai"
-        assert config.profiles["default"].model.model == "gpt-4o"
-        assert config.profiles["default"].model.temperature == 0.5
+        assert config.current_provider.value == "openai"
+        assert config.current_model == "gpt-4o"
 
     def test_load_with_project_override(self, tmp_path: Path):
         """Test that project config overrides global config."""
@@ -337,18 +331,8 @@ class TestLoadConfig:
         global_config.write_text(
             yaml.safe_dump(
                 {
-                    "profiles": {
-                        "default": {
-                            "name": "default",
-                            "description": "Global default",
-                            "model": {
-                                "provider": "openai",
-                                "model": "gpt-4o",
-                                "temperature": 0.7,
-                            },
-                        }
-                    },
-                    "active_profile": "default",
+                    "current_provider": "openai",
+                    "current_model": "gpt-4o",
                 }
             )
         )
@@ -357,13 +341,7 @@ class TestLoadConfig:
         project_config.write_text(
             yaml.safe_dump(
                 {
-                    "profiles": {
-                        "default": {
-                            "model": {
-                                "temperature": 0.3,  # Override just temperature
-                            }
-                        }
-                    }
+                    "current_model": "gpt-4-turbo",  # Override model
                 }
             )
         )
@@ -373,11 +351,10 @@ class TestLoadConfig:
             project_config_path=project_config,
         )
 
-        # Project config should override temperature
-        assert config.profiles["default"].model.temperature == 0.3
-        # But keep other values from global
-        assert config.profiles["default"].model.provider == "openai"
-        assert config.profiles["default"].model.model == "gpt-4o"
+        # Project config should override model
+        assert config.current_model == "gpt-4-turbo"
+        # But keep provider from global
+        assert config.current_provider.value == "openai"
 
     def test_load_with_cli_overrides(self, tmp_path: Path):
         """Test that CLI overrides take highest precedence."""
@@ -385,31 +362,14 @@ class TestLoadConfig:
         global_config.write_text(
             yaml.safe_dump(
                 {
-                    "profiles": {
-                        "default": {
-                            "name": "default",
-                            "description": "Default",
-                            "model": {
-                                "provider": "openai",
-                                "model": "gpt-4o",
-                                "temperature": 0.7,
-                            },
-                        }
-                    },
-                    "active_profile": "default",
+                    "current_provider": "openai",
+                    "current_model": "gpt-4o",
                 }
             )
         )
 
         cli_overrides = {
-            "profiles": {
-                "default": {
-                    "model": {
-                        "temperature": 1.5,
-                        "max_tokens": 1000,
-                    }
-                }
-            }
+            "current_model": "gpt-4-turbo",
         }
 
         config = load_config(
@@ -419,10 +379,9 @@ class TestLoadConfig:
         )
 
         # CLI overrides should take precedence
-        assert config.profiles["default"].model.temperature == 1.5
-        assert config.profiles["default"].model.max_tokens == 1000
+        assert config.current_model == "gpt-4-turbo"
         # Other values from global
-        assert config.profiles["default"].model.provider == "openai"
+        assert config.current_provider.value == "openai"
 
     def test_load_invalid_config_raises_validation_error(self, tmp_path: Path):
         """Test that invalid config raises Pydantic ValidationError."""
@@ -430,17 +389,8 @@ class TestLoadConfig:
         global_config.write_text(
             yaml.safe_dump(
                 {
-                    "profiles": {
-                        "default": {
-                            "name": "default",
-                            "description": "Default",
-                            "model": {
-                                "provider": "invalid_provider",  # Invalid
-                                "model": "some-model",
-                            },
-                        }
-                    },
-                    "active_profile": "default",
+                    "current_provider": "invalid_provider",  # Invalid
+                    "current_model": "some-model",
                 }
             )
         )
@@ -450,10 +400,13 @@ class TestLoadConfig:
                 global_config_path=global_config,
                 project_config_path=Path("/nonexistent/project.yaml"),
             )
-        assert "provider" in str(exc_info.value).lower()
+        assert "current_provider" in str(exc_info.value).lower()
 
     def test_load_with_multiple_profiles(self, tmp_path: Path):
-        """Test loading config with multiple profiles including custom ones."""
+        """Test loading TUI config with multiple profiles including custom ones.
+
+        Note: This test uses load_tui_config() since load_config() is profile-free.
+        """
         global_config = tmp_path / "global.yaml"
         global_config.write_text(
             yaml.safe_dump(
@@ -485,7 +438,7 @@ class TestLoadConfig:
             )
         )
 
-        config = load_config(
+        config = load_tui_config(
             global_config_path=global_config,
             project_config_path=Path("/nonexistent/project.yaml"),
         )
@@ -535,8 +488,9 @@ class TestSaveConfig:
             loaded = yaml.safe_load(f)
 
         assert isinstance(loaded, dict)
-        assert "profiles" in loaded
-        assert "active_profile" in loaded
+        # ConsoulCoreConfig has current_provider and current_model, not profiles
+        assert "current_provider" in loaded
+        assert "current_model" in loaded
 
     def test_save_config_excludes_api_keys(self, tmp_path: Path):
         """Test that API keys are not saved to file by default."""
@@ -635,7 +589,10 @@ class TestLoadEnvConfig:
 
 
 class TestLoadConfigWithEnvVars:
-    """Tests for load_config with environment variable support."""
+    """Tests for load_tui_config with environment variable support.
+
+    Note: Profile-related tests use load_tui_config() since load_config() is profile-free.
+    """
 
     def test_env_vars_override_config_files(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -666,7 +623,7 @@ class TestLoadConfigWithEnvVars:
         monkeypatch.setenv("CONSOUL_TEMPERATURE", "0.7")
         monkeypatch.chdir(tmp_path)
 
-        config = load_config(
+        config = load_tui_config(
             global_config_path=global_config,
             project_config_path=Path("/nonexistent/project.yaml"),
         )
@@ -678,7 +635,7 @@ class TestLoadConfigWithEnvVars:
         """Test that CONSOUL_PROFILE overrides config files."""
         monkeypatch.setenv("CONSOUL_PROFILE", "creative")
 
-        config = load_config(
+        config = load_tui_config(
             global_config_path=Path("/nonexistent/global.yaml"),
             project_config_path=Path("/nonexistent/project.yaml"),
         )
@@ -689,7 +646,7 @@ class TestLoadConfigWithEnvVars:
         """Test that CLI overrides have highest precedence."""
         monkeypatch.setenv("CONSOUL_PROFILE", "creative")
 
-        config = load_config(
+        config = load_tui_config(
             global_config_path=Path("/nonexistent/global.yaml"),
             project_config_path=Path("/nonexistent/project.yaml"),
             profile_name="code-review",  # CLI override
