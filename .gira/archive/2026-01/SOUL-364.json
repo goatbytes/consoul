@@ -1,9 +1,9 @@
 {
   "created_at": "2026-01-02T17:43:14.871232Z",
-  "updated_at": "2026-01-02T18:41:53.683243Z",
+  "updated_at": "2026-01-02T22:23:46.678991Z",
   "id": "SOUL-364",
   "uuid": "18174d20-4c92-4b05-bfc4-7938857ef092",
-  "_version": 1,
+  "_version": 2,
   "title": "Fix Google model token limit constant mismatch",
   "description": "**Summary:**\nTest expects Gemini 2.5 Pro model to have 1,000,000 token limit, but implementation returns 1,048,576.\n\n**Root Cause Analysis:**\nEither the test expectation or the implementation constant is incorrect. 1,048,576 = 2^20 (1 MiB), while 1,000,000 is the commonly cited round number.\n\n**Error Pattern:**\n```\nassert get_model_token_limit(\"gemini-2.5-pro\") == 1_000_000\nAssertionError: assert 1048576 == 1000000\n```\n\n**Affected Test:**\n- `tests/ai/test_context.py::TestModelTokenLimits::test_get_known_google_model_limit`\n\n**Investigation Tasks:**\n1. Check Google's official documentation for actual token limit\n2. Determine which value is correct: 1,000,000 or 1,048,576\n3. Update either test or implementation\n\n**Technical Notes:**\n- `src/consoul/ai/context.py` - `get_model_token_limit()` function\n- Google's documentation may use 1M as marketing term vs actual limit\n\n**Acceptance Criteria:**\n- [ ] Token limit matches Google's official specification\n- [ ] Test and implementation are consistent\n- [ ] Document source of truth for token limits\n\n**Resolution Options:**\n1. If Google says 1M: Update implementation from 1048576 to 1000000\n2. If Google says 1048576: Update test expectation\n3. If unclear: Use more conservative value (1000000)",
   "status": "done",
@@ -14,6 +14,7 @@
     "ai",
     "constants"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
@@ -23,5 +24,10 @@
   "comment_count": 0,
   "story_points": 1,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-02T22:23:58.249123+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

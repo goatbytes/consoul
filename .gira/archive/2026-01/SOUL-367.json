@@ -1,9 +1,9 @@
 {
   "created_at": "2026-01-02T17:44:31.527950Z",
-  "updated_at": "2026-01-02T18:51:51.865922Z",
+  "updated_at": "2026-01-02T22:23:46.672914Z",
   "id": "SOUL-367",
   "uuid": "9a322026-980f-4569-8274-efc1874af90a",
-  "_version": 1,
+  "_version": 2,
   "title": "Update TUI config tests to use correct config types",
   "description": "**Summary:**\nTUI config tests fail due to incorrect config type usage and config mismatch issues.\n\n**Affected Test Files:**\n- `tests/config/test_tui_config.py` (4 failures)\n- `tests/config/test_tool_config.py` (2 failures)\n\n**Investigation Tasks:**\n1. Check which config type tests should be using\n2. Verify TUI-specific fields are being tested correctly\n3. Update test fixtures to use proper config instances\n\n**Related Issues:**\n- SOUL-361: Config type mismatches in profile loading\n- SOUL-366: ConsoulConfig tests using wrong type\n\n**Acceptance Criteria:**\n- [ ] All 6 TUI/tool config tests pass\n- [ ] Tests use correct config types",
   "status": "done",
@@ -14,6 +14,7 @@
     "tui",
     "regression"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
@@ -23,5 +24,10 @@
   "comment_count": 0,
   "story_points": 2,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-02T22:23:57.895869+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

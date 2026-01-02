@@ -1,9 +1,9 @@
 {
   "created_at": "2026-01-02T17:43:17.779106Z",
-  "updated_at": "2026-01-02T18:44:28.051721Z",
+  "updated_at": "2026-01-02T22:23:46.677329Z",
   "id": "SOUL-365",
   "uuid": "c3bd297a-047e-4df1-a980-9a47f47c0a4b",
-  "_version": 1,
+  "_version": 2,
   "title": "Fix streaming markdown test failures",
   "description": "**Summary:**\nStreaming markdown tests are failing, possibly due to changes in streaming response handling or markdown rendering.\n\n**Affected Test File:**\n- `tests/ai/test_streaming_markdown.py` (6 failures)\n\n**Investigation Tasks:**\n1. Review test expectations vs actual streaming behavior\n2. Check if streaming response format changed\n3. Verify markdown rendering pipeline is intact\n4. Look for async/await issues in streaming tests\n\n**Technical Notes:**\n- Check `src/consoul/ai/streaming.py` for streaming logic\n- Verify Rich console markdown rendering behavior\n\n**Acceptance Criteria:**\n- [ ] All 6 streaming markdown tests pass\n- [ ] Streaming markdown rendering works correctly in TUI\n- [ ] No regressions in non-streaming markdown\n\n**Context:**\nMay be related to other refactoring that changed streaming response handling. Need to investigate actual error messages from these specific tests.",
   "status": "done",
@@ -14,6 +14,7 @@
     "streaming",
     "regression"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
@@ -23,5 +24,10 @@
   "comment_count": 0,
   "story_points": 2,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-02T22:23:58.191855+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

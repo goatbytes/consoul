@@ -1,9 +1,9 @@
 {
   "created_at": "2026-01-02T17:41:10.357208Z",
-  "updated_at": "2026-01-02T19:04:05.501182Z",
+  "updated_at": "2026-01-02T22:23:46.678131Z",
   "id": "SOUL-359",
   "uuid": "0388bdd4-5789-456b-abdd-a1a3da751fff",
-  "_version": 1,
+  "_version": 2,
   "title": "Fix Pydantic model forward reference issues causing test failures",
   "description": "**Summary:**\nMultiple Pydantic models have forward reference issues preventing instantiation. This causes ~175+ test failures across server, TUI, and config tests.\n\n**Root Cause Analysis:**\nRecent changes introduced `WebhookConfig` and `ProfileConfig` which are referenced by `ServerConfig` and `ConsoulTuiConfig` respectively, but the models aren't being properly rebuilt after forward reference resolution.\n\n**Error Pattern:**\n```\npydantic.errors.PydanticUserError: `ServerConfig` is not fully defined; you should define `WebhookConfig`, then call `ServerConfig.model_rebuild()`.\n```\n\n**Affected Test Files (175+ tests):**\n- `tests/server/test_factory.py` (49 failures)\n- `tests/server/test_chat_endpoint.py` (28 failures)\n- `tests/server/test_batch_endpoint.py` (28 failures)\n- `tests/server/test_integration.py` (18 failures)\n- `tests/server/test_sse_endpoint.py` (16 failures)\n- `tests/tui/services/test_profile_manager_sdk_translation.py` (16 failures)\n- `tests/server/test_body_size_limit.py` (9 failures)\n- `tests/server/test_websocket_endpoint.py` (7 failures)\n- Other server-related test files\n\n**Technical Notes:**\n- `src/consoul/server/config.py` - ServerConfig references WebhookConfig\n- `src/consoul/config/models.py` - ConsoulTuiConfig references ProfileConfig\n- Pydantic requires `model_rebuild()` when models have forward references\n\n**Investigation Questions:**\n1. Was `model_rebuild()` previously called and removed?\n2. Are forward references being resolved in the correct module load order?\n3. Should these be defined in a different module to avoid circular imports?\n\n**Acceptance Criteria:**\n- [ ] `ServerConfig()` can be instantiated without errors\n- [ ] `ConsoulTuiConfig()` can be instantiated without errors\n- [ ] All 175+ affected server and TUI tests pass\n- [ ] No regressions in existing functionality\n\n**Related Commits to Investigate:**\n- `d265f3f fix(SOUL-346): resolve webhook system bugs` (may have introduced WebhookConfig)",
   "status": "done",
@@ -14,6 +14,7 @@
     "config",
     "regression"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
@@ -23,5 +24,10 @@
   "comment_count": 0,
   "story_points": 5,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-02T22:23:58.751968+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }

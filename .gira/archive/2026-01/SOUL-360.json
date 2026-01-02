@@ -1,9 +1,9 @@
 {
   "created_at": "2026-01-02T17:42:15.509043Z",
-  "updated_at": "2026-01-02T18:50:39.774001Z",
+  "updated_at": "2026-01-02T22:23:46.676515Z",
   "id": "SOUL-360",
   "uuid": "c7bd2301-9684-4954-aef0-3a36727cdaec",
-  "_version": 1,
+  "_version": 2,
   "title": "Update tests mocking removed/refactored module attributes",
   "description": "**Summary:**\nMultiple tests fail because they attempt to mock functions/classes that have been removed, renamed, or moved to different modules during recent refactoring.\n\n**Root Cause Analysis:**\nTests use `@patch` decorators targeting attributes that no longer exist in the expected modules, causing `AttributeError` before the test even runs.\n\n**Error Pattern:**\n```\nAttributeError: <module 'consoul.sdk'> does not have the attribute 'get_chat_model'\nAttributeError: <module 'consoul.cli.chat_session'> does not have the attribute 'ConversationHistory'\nAttributeError: <module 'consoul.cli.chat_session'> does not have the attribute 'stream_response'\n```\n\n**Affected Test Files (~60+ tests):**\n- `tests/unit/test_sdk.py` (24 failures) - mocks `consoul.sdk.get_chat_model`\n- `tests/cli/test_chat_session.py` (12 failures) - mocks `ConversationHistory`, `stream_response`\n- `tests/cli/test_system_prompt.py` (9 failures)\n- `tests/sdk/services/test_conversation_service.py` (12 failures)\n- `tests/sdk/test_structured_logging.py` (5 failures)\n- Various command tests\n\n**Investigation Tasks:**\n1. Identify where `get_chat_model` was moved/renamed\n2. Identify where `ConversationHistory` was moved/renamed\n3. Identify where `stream_response` was moved/renamed\n4. Determine if tests should mock at new locations or use different mocking strategy\n\n**Technical Notes:**\n- Check recent commits that refactored SDK and CLI modules\n- Consider using `pytest-mock`'s `mocker.patch.object()` for more robust patching\n\n**Acceptance Criteria:**\n- [ ] All mock paths updated to reference correct module locations\n- [ ] 60+ affected tests pass\n- [ ] No new test mocking brittleness introduced\n- [ ] Document mocking best practices if patterns are recurring\n\n**Investigation Strategy:**\n1. `grep -r \"get_chat_model\" src/` to find new location\n2. `grep -r \"ConversationHistory\" src/` to find new location\n3. Update test patches accordingly",
   "status": "done",
@@ -14,6 +14,7 @@
     "refactoring",
     "regression"
   ],
+  "assignee": "jared@goatbytes.io",
   "reporter": "jared@goatbytes.io",
   "blocked_by": [],
   "blocks": [],
@@ -23,5 +24,10 @@
   "comment_count": 0,
   "story_points": 5,
   "order": 0,
-  "custom_fields": {}
+  "custom_fields": {},
+  "_archive_metadata": {
+    "archived_at": "2026-01-02T22:23:58.590467+00:00",
+    "archived_from_status": "done",
+    "archived_by": "gira-cli"
+  }
 }
