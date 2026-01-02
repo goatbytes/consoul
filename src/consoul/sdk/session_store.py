@@ -42,6 +42,7 @@ Security Notes:
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import threading
@@ -429,14 +430,21 @@ class FileSessionStore:
     def _get_session_path(self, session_id: str) -> Path:
         """Get file path for session.
 
+        Uses URL-safe Base64 encoding to create collision-proof filenames
+        while preventing path traversal attacks. Different session IDs are
+        guaranteed to produce different filenames.
+
         Args:
             session_id: Session identifier
 
         Returns:
             Path to session file
         """
-        # Sanitize session_id to prevent path traversal
-        safe_id = "".join(c for c in session_id if c.isalnum() or c in "_-")
+        # Encode session_id as URL-safe Base64 (replaces + with -, / with _)
+        # This is path-traversal safe as it cannot contain / or ..
+        encoded = base64.urlsafe_b64encode(session_id.encode("utf-8")).decode("ascii")
+        # Remove padding '=' characters for cleaner filenames
+        safe_id = encoded.rstrip("=")
         return self.storage_dir / f"{safe_id}.json"
 
     def save(self, session_id: str, state: dict[str, Any]) -> None:

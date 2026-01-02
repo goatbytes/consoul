@@ -663,8 +663,13 @@ class TestFileSessionStore:
 
             store.save("file_test", state)
 
-            # Verify file exists
-            session_file = Path(tmpdir) / "file_test.json"
+            # Verify file exists (filename is Base64-encoded)
+            import base64
+
+            expected_filename = (
+                base64.urlsafe_b64encode(b"file_test").decode().rstrip("=") + ".json"
+            )
+            session_file = Path(tmpdir) / expected_filename
             assert session_file.exists()
 
             # Load
@@ -758,6 +763,36 @@ class TestFileSessionStore:
             # Should return None for corrupt file
             loaded = store.load("corrupt")
             assert loaded is None
+
+    def test_file_store_uses_base64_filenames(self):
+        """Test that session files use URL-safe Base64 encoded filenames (SOUL-351)."""
+        import base64
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = FileSessionStore(tmpdir)
+
+            # Session ID with special characters
+            session_id = "alice:conv1"
+            store.save(session_id, {"messages": []})
+
+            # Filename should be Base64-encoded
+            expected_encoded = (
+                base64.urlsafe_b64encode(session_id.encode("utf-8"))
+                .decode("ascii")
+                .rstrip("=")
+            )
+            expected_path = Path(tmpdir) / f"{expected_encoded}.json"
+
+            assert expected_path.exists(), (
+                f"Expected Base64 filename {expected_path.name} not found"
+            )
+
+            # Old sanitized filename should NOT exist
+            old_sanitized = "aliceconv1.json"
+            old_path = Path(tmpdir) / old_sanitized
+            assert not old_path.exists(), (
+                f"Old sanitized filename {old_sanitized} should not exist"
+            )
 
 
 class TestSessionStateModel:

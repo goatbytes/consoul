@@ -241,6 +241,116 @@ class TestFileSessionStoreListSessions:
         assert len(sessions) == 2
 
 
+class TestFileSessionStoreCollisionPrevention:
+    """Tests for SOUL-351: Collision-proof session ID mapping."""
+
+    @pytest.fixture
+    def temp_dir(self) -> Path:
+        """Create temporary directory for test files."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
+
+    def test_colon_separator_no_collision(self, temp_dir: Path) -> None:
+        """Session IDs with colons don't collide with plain IDs."""
+        store = FileSessionStore(temp_dir)
+
+        # These used to collide: alice:conv1 -> aliceconv1, aliceconv1 -> aliceconv1
+        store.save("alice:conv1", {"data": "with_colon"})
+        store.save("aliceconv1", {"data": "without_colon"})
+
+        # Verify distinct storage
+        assert store.load("alice:conv1")["data"] == "with_colon"
+        assert store.load("aliceconv1")["data"] == "without_colon"
+
+        # Verify two separate files exist
+        json_files = list(temp_dir.glob("*.json"))
+        assert len(json_files) == 2
+
+    def test_multi_colon_no_collision(self, temp_dir: Path) -> None:
+        """Multiple colons don't cause collisions."""
+        store = FileSessionStore(temp_dir)
+
+        store.save("user:tenant:conv", {"data": "multi"})
+        store.save("usertenantconv", {"data": "plain"})
+        store.save("user:tenantconv", {"data": "mixed"})
+
+        assert store.load("user:tenant:conv")["data"] == "multi"
+        assert store.load("usertenantconv")["data"] == "plain"
+        assert store.load("user:tenantconv")["data"] == "mixed"
+
+        json_files = list(temp_dir.glob("*.json"))
+        assert len(json_files) == 3
+
+    def test_special_characters_preserved(self, temp_dir: Path) -> None:
+        """Session IDs with special characters are stored correctly."""
+        store = FileSessionStore(temp_dir)
+
+        special_ids = [
+            "user@example.com:session1",
+            "tenant/user/conv",
+            "id with spaces",
+            "emoji_\U0001f600_id",
+            "../etc/passwd",  # Path traversal attempt
+        ]
+
+        for i, sid in enumerate(special_ids):
+            store.save(sid, {"index": i})
+
+        for i, sid in enumerate(special_ids):
+            loaded = store.load(sid)
+            assert loaded is not None, f"Failed to load: {sid}"
+            assert loaded["index"] == i
+
+    def test_list_sessions_returns_original_ids(self, temp_dir: Path) -> None:
+        """list_sessions returns original session IDs, not encoded filenames."""
+        store = FileSessionStore(temp_dir)
+
+        original_ids = ["alice:conv1", "bob:conv2", "user@tenant:session"]
+        for sid in original_ids:
+            store.save(sid, {"messages": []})
+
+        listed = store.list_sessions()
+
+        assert set(listed) == set(original_ids)
+        # Verify they're the original IDs, not Base64-encoded
+        assert "alice:conv1" in listed
+
+    def test_namespace_filter_with_colons(self, temp_dir: Path) -> None:
+        """Namespace filtering works with colon-separated IDs."""
+        store = FileSessionStore(temp_dir)
+
+        store.save("alice:conv1", {"messages": []})
+        store.save("alice:conv2", {"messages": []})
+        store.save("bob:conv1", {"messages": []})
+
+        alice_sessions = store.list_sessions(namespace="alice:")
+
+        assert len(alice_sessions) == 2
+        assert all(s.startswith("alice:") for s in alice_sessions)
+
+    def test_path_traversal_prevention(self, temp_dir: Path) -> None:
+        """Path traversal attempts are safely handled."""
+        store = FileSessionStore(temp_dir)
+
+        # These should all be stored safely without escaping storage_dir
+        dangerous_ids = [
+            "../../../etc/passwd",
+            "..\\..\\windows\\system32",
+            "/absolute/path",
+            "normal/../../../escape",
+        ]
+
+        for sid in dangerous_ids:
+            store.save(sid, {"data": "safe"})
+            loaded = store.load(sid)
+            assert loaded is not None
+            assert loaded["data"] == "safe"
+
+        # Verify no files created outside storage_dir
+        for path in temp_dir.iterdir():
+            assert path.parent == temp_dir
+
+
 class TestListSessionsEdgeCases:
     """Test edge cases for list_sessions."""
 
