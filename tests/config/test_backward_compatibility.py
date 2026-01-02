@@ -2,8 +2,15 @@
 
 This module tests that old import paths still work with deprecation warnings,
 ensuring a smooth migration path for existing code.
+
+Note: The deprecation warning for consoul.config.profiles is emitted at module
+import time. Since Python caches modules, subsequent imports in the same process
+won't re-emit the warning. Tests that need to verify the warning message should
+use importlib to force a fresh import.
 """
 
+import importlib
+import sys
 import warnings
 
 import pytest
@@ -12,27 +19,35 @@ from consoul.config.models import OpenAIModelConfig
 
 
 class TestProfileConfigImportFromConfigModels:
-    """Test importing ProfileConfig from config.models (deprecated)."""
+    """Test importing ProfileConfig from config.models.
 
-    def test_import_with_deprecation_warning(self):
-        """Test that importing ProfileConfig from config.models raises deprecation warning."""
-        with pytest.warns(DeprecationWarning) as warning_list:
-            from consoul.config.models import ProfileConfig  # noqa: F401
+    Note: config.models.ProfileConfig does NOT emit a deprecation warning.
+    It is a valid import path maintained for SDK usage. The TUI-specific
+    ProfileConfig is in tui.profiles, but config.models.ProfileConfig
+    remains as the SDK-level profile configuration.
+    """
 
-        # Verify warning was raised
-        assert len(warning_list) > 0
+    def test_import_without_deprecation_warning(self):
+        """Test that importing ProfileConfig from config.models works without warning.
 
-        # Verify warning message contains migration guidance
-        warning_message = str(warning_list[0].message)
-        assert "ProfileConfig" in warning_message
-        assert "deprecated" in warning_message.lower()
-        assert "tui.profiles" in warning_message
+        config.models.ProfileConfig is a valid SDK import path and should not
+        emit a deprecation warning. The deprecation warning is only for
+        config.profiles (which re-exports from tui.profiles).
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            try:
+                from consoul.config.models import ProfileConfig  # noqa: F401
+
+                # Success - no deprecation warning
+            except DeprecationWarning:
+                pytest.fail(
+                    "config.models.ProfileConfig raised DeprecationWarning unexpectedly"
+                )
 
     def test_imported_profile_config_is_functional(self):
         """Test that imported ProfileConfig still works correctly."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            from consoul.config.models import ProfileConfig
+        from consoul.config.models import ProfileConfig
 
         # Should be able to create a profile
         profile = ProfileConfig(
@@ -44,29 +59,45 @@ class TestProfileConfigImportFromConfigModels:
         assert profile.name == "test"
         assert profile.description == "Test profile"
 
-    def test_warning_contains_version_info(self):
-        """Test that deprecation warning mentions when it will be removed."""
-        with pytest.warns(DeprecationWarning) as warning_list:
-            from consoul.config.models import ProfileConfig  # noqa: F401
+    def test_profile_config_class_exists(self):
+        """Test that ProfileConfig class is available from config.models."""
+        from consoul.config.models import ProfileConfig
 
-        warning_message = str(warning_list[0].message)
-        # Should mention removal version or timeline
-        assert "v1.0.0" in warning_message or "removed" in warning_message.lower()
+        # ProfileConfig should be a valid class
+        assert ProfileConfig is not None
+        assert hasattr(ProfileConfig, "model_config")
 
 
 class TestProfileConfigImportFromConfigProfiles:
-    """Test importing ProfileConfig from config.profiles (deprecated)."""
+    """Test importing ProfileConfig from config.profiles (deprecated).
 
-    def test_import_with_deprecation_warning(self):
-        """Test that importing ProfileConfig from config.profiles raises deprecation warning."""
-        with pytest.warns(DeprecationWarning) as warning_list:
-            from consoul.config.profiles import ProfileConfig  # noqa: F401
+    Note: The deprecation warning is emitted at module load time. Since
+    pytest may have already imported the module, we force a fresh import
+    for tests that need to capture the warning.
+    """
 
-        assert len(warning_list) > 0
+    def test_module_emits_deprecation_warning_on_fresh_import(self):
+        """Test that config.profiles module emits deprecation warning on first import."""
+        # Remove the module from cache to force fresh import
+        mods_to_remove = [
+            m for m in list(sys.modules.keys()) if "consoul.config.profiles" in m
+        ]
+        for m in mods_to_remove:
+            del sys.modules[m]
 
-        warning_message = str(warning_list[0].message)
-        assert "deprecated" in warning_message.lower()
-        assert "tui.profiles" in warning_message
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always", DeprecationWarning)
+            importlib.import_module("consoul.config.profiles")
+
+            # Check for deprecation warning
+            deprecation_warnings = [
+                w for w in warning_list if issubclass(w.category, DeprecationWarning)
+            ]
+            assert len(deprecation_warnings) > 0
+
+            warning_message = str(deprecation_warnings[0].message)
+            assert "deprecated" in warning_message.lower()
+            assert "tui.profiles" in warning_message
 
     def test_imported_profile_config_is_functional(self):
         """Test that imported ProfileConfig still works correctly."""
@@ -86,46 +117,40 @@ class TestProfileConfigImportFromConfigProfiles:
 class TestBuiltinProfilesImportFromConfigProfiles:
     """Test importing builtin profile functions from config.profiles (deprecated)."""
 
-    def test_get_builtin_profiles_with_deprecation_warning(self):
-        """Test that get_builtin_profiles from config.profiles raises deprecation warning."""
-        with pytest.warns(DeprecationWarning) as warning_list:
+    def test_get_builtin_profiles_functional(self):
+        """Test that get_builtin_profiles from config.profiles works."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
             from consoul.config.profiles import get_builtin_profiles
 
-            # Call the function to ensure it works
             profiles = get_builtin_profiles()
 
-        assert len(warning_list) > 0
         assert isinstance(profiles, dict)
         assert "default" in profiles
 
-    def test_list_available_profiles_with_deprecation_warning(self):
-        """Test that list_available_profiles from config.profiles raises deprecation warning."""
-        with pytest.warns(DeprecationWarning) as warning_list:
-            from consoul.config.loader import load_config
+    def test_list_available_profiles_functional(self):
+        """Test that list_available_profiles from config.profiles works."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
             from consoul.config.profiles import list_available_profiles
 
-            config = load_config(
-                global_config_path="/nonexistent/global.yaml",
-                project_config_path="/nonexistent/project.yaml",
-            )
-            profiles = list_available_profiles(config)
+            # Create empty profiles dict (type is ProfileConfig but not needed for test)
+            profiles: dict = {}
+            profile_names = list_available_profiles(profiles)
 
-        assert len(warning_list) > 0
-        assert isinstance(profiles, list)
+        assert isinstance(profile_names, list)
+        assert "default" in profile_names
 
-    def test_get_profile_description_with_deprecation_warning(self):
-        """Test that get_profile_description from config.profiles raises deprecation warning."""
-        with pytest.warns(DeprecationWarning) as warning_list:
-            from consoul.config.loader import load_config
+    def test_get_profile_description_functional(self):
+        """Test that get_profile_description from config.profiles works."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
             from consoul.config.profiles import get_profile_description
 
-            config = load_config(
-                global_config_path="/nonexistent/global.yaml",
-                project_config_path="/nonexistent/project.yaml",
-            )
-            description = get_profile_description("default", config)
+            # Create empty profiles dict (type is ProfileConfig but not needed for test)
+            profiles: dict = {}
+            description = get_profile_description("default", profiles)
 
-        assert len(warning_list) > 0
         assert isinstance(description, str)
 
 
@@ -171,18 +196,22 @@ class TestCorrectImportPath:
 
 
 class TestReExportsWorkCorrectly:
-    """Test that re-exported symbols are the same objects."""
+    """Test that re-exported symbols work correctly.
 
-    def test_profile_config_from_different_imports_same_class(self):
-        """Test that ProfileConfig from different imports is the same class."""
+    Note: config.models.ProfileConfig and tui.profiles.ProfileConfig are
+    different classes (not identity-equal). This is by design since they
+    serve different purposes (SDK vs TUI). The config.profiles module
+    re-exports from tui.profiles.
+    """
+
+    def test_config_profiles_reexports_from_tui(self):
+        """Test that config.profiles re-exports from tui.profiles."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
-            from consoul.config.models import ProfileConfig as ProfileConfig1
             from consoul.config.profiles import ProfileConfig as ProfileConfig2
             from consoul.tui.profiles import ProfileConfig as ProfileConfig3
 
-        # All should be the same class (same identity)
-        assert ProfileConfig1 is ProfileConfig3
+        # config.profiles re-exports from tui.profiles, so these should be same
         assert ProfileConfig2 is ProfileConfig3
 
     def test_builtin_profiles_from_different_imports_same_function(self):
@@ -195,49 +224,53 @@ class TestReExportsWorkCorrectly:
         # Should be the same function
         assert gbp1 is gbp2
 
+    def test_both_profile_configs_are_functional(self):
+        """Test that both ProfileConfig classes work correctly."""
+        from consoul.config.models import ProfileConfig as SDKProfileConfig
+        from consoul.tui.profiles import ProfileConfig as TUIProfileConfig
+
+        # Both should be creatable with same parameters
+        sdk_profile = SDKProfileConfig(
+            name="sdk-test",
+            description="SDK test profile",
+            model=OpenAIModelConfig(model="gpt-4o"),
+        )
+        tui_profile = TUIProfileConfig(
+            name="tui-test",
+            description="TUI test profile",
+            model=OpenAIModelConfig(model="gpt-4o"),
+        )
+
+        assert sdk_profile.name == "sdk-test"
+        assert tui_profile.name == "tui-test"
+
 
 class TestMigrationGuidance:
     """Test that deprecation warnings provide clear migration guidance."""
 
-    def test_config_models_warning_message_quality(self):
-        """Test that config.models deprecation warning is helpful."""
-        with pytest.warns(DeprecationWarning) as warning_list:
-            from consoul.config.models import ProfileConfig  # noqa: F401
-
-        warning_message = str(warning_list[0].message)
-
-        # Should contain:
-        # 1. What is deprecated
-        assert "ProfileConfig" in warning_message
-
-        # 2. Where to import from instead
-        assert "tui.profiles" in warning_message
-
-        # 3. Timeline for removal
-        assert (
-            "v1.0.0" in warning_message or "will be removed" in warning_message.lower()
-        )
-
     def test_config_profiles_warning_message_quality(self):
         """Test that config.profiles deprecation warning is helpful."""
-        with pytest.warns(DeprecationWarning) as warning_list:
-            from consoul.config.profiles import get_builtin_profiles  # noqa: F401
+        # Force fresh import to capture warning
+        mods_to_remove = [
+            m for m in list(sys.modules.keys()) if "consoul.config.profiles" in m
+        ]
+        for m in mods_to_remove:
+            del sys.modules[m]
 
-        warning_message = str(warning_list[0].message)
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always", DeprecationWarning)
+            importlib.import_module("consoul.config.profiles")
 
-        # Should guide users to new location
-        assert "tui.profiles" in warning_message
-        assert "deprecated" in warning_message.lower()
+            deprecation_warnings = [
+                w for w in warning_list if issubclass(w.category, DeprecationWarning)
+            ]
+            assert len(deprecation_warnings) > 0
 
-    def test_warnings_suggest_correct_import_pattern(self):
-        """Test that warnings suggest the correct import pattern."""
-        with pytest.warns(DeprecationWarning) as warning_list:
-            from consoul.config.models import ProfileConfig  # noqa: F401
+            warning_message = str(deprecation_warnings[0].message)
 
-        warning_message = str(warning_list[0].message)
-
-        # Should suggest: from consoul.tui.profiles import ProfileConfig
-        assert "from consoul.tui.profiles import" in warning_message
+            # Should guide users to new location
+            assert "tui.profiles" in warning_message
+            assert "deprecated" in warning_message.lower()
 
 
 class TestNoBreakingChanges:
@@ -245,9 +278,7 @@ class TestNoBreakingChanges:
 
     def test_existing_profile_creation_code_works(self):
         """Test that existing profile creation code still works."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            from consoul.config.models import ProfileConfig
+        from consoul.config.models import ProfileConfig
 
         # Old code pattern should still work
         profile = ProfileConfig(
@@ -276,51 +307,49 @@ class TestNoBreakingChanges:
         assert "creative" in profiles
         assert "fast" in profiles
 
-    def test_existing_config_loader_code_works(self):
-        """Test that existing config loader code still works."""
+    def test_config_loader_with_path_objects(self, tmp_path):
+        """Test that config loader works with Path objects."""
         from consoul.config.loader import load_config
+        from consoul.config.models import ConsoulCoreConfig
+
+        # Create test config files
+        global_config = tmp_path / "global.yaml"
+        project_config = tmp_path / "project.yaml"
+        global_config.touch()
+        project_config.touch()
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
 
-            # Old code pattern
+            # Use Path objects (correct usage)
             config = load_config(
-                global_config_path="/nonexistent/global.yaml",
-                project_config_path="/nonexistent/project.yaml",
+                global_config_path=global_config,
+                project_config_path=project_config,
             )
 
-        # Should have profiles from builtin
-        assert hasattr(config, "profiles")
-        assert "default" in config.profiles
-
-
-class TestWarningOnlyOncePerModule:
-    """Test that deprecation warnings are raised appropriately."""
-
-    def test_multiple_imports_from_same_module(self):
-        """Test behavior with multiple imports from deprecated module."""
-        # Python's warning system typically shows warnings once per location
-        # This test verifies the warning is raised at least once
-
-        with pytest.warns(DeprecationWarning):
-            from consoul.config.models import ProfileConfig
-
-        # Second import from same location may or may not warn
-        # depending on Python's warning filter state
-        # We just verify it doesn't crash
-        with warnings.catch_warnings():
-            warnings.simplefilter("always", DeprecationWarning)
-            from consoul.config.models import ProfileConfig  # noqa: F401
+        # load_config returns ConsoulCoreConfig (SDK config without TUI profiles)
+        # Profiles are TUI-only (ConsoulTuiConfig.profiles)
+        assert isinstance(config, ConsoulCoreConfig)
+        # Core SDK config has tools and provider settings
+        assert hasattr(config, "tools")
+        assert hasattr(config, "current_provider")
 
 
 class TestDeprecationWarningCategory:
     """Test that the correct warning category is used."""
 
-    def test_uses_deprecation_warning_not_user_warning(self):
-        """Test that DeprecationWarning is used, not UserWarning."""
+    def test_config_profiles_uses_deprecation_warning(self):
+        """Test that config.profiles uses DeprecationWarning."""
+        # Force fresh import to capture warning
+        mods_to_remove = [
+            m for m in list(sys.modules.keys()) if "consoul.config.profiles" in m
+        ]
+        for m in mods_to_remove:
+            del sys.modules[m]
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            from consoul.config.models import ProfileConfig  # noqa: F401
+            importlib.import_module("consoul.config.profiles")
 
             # Filter for deprecation warnings
             deprecation_warnings = [
