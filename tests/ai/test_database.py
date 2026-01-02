@@ -276,16 +276,23 @@ class TestListingConversations:
         assert conversations == []
 
     def test_list_conversations_single(self, tmp_path):
-        """Test listing single conversation."""
+        """Test listing single conversation with messages.
+
+        Note: list_conversations() intentionally filters out empty conversations
+        (those with no messages) to avoid clutter in the UI. Conversations must
+        have at least one message to appear in the listing.
+        """
         db = ConversationDatabase(tmp_path / "test.db")
         session_id = db.create_conversation("gpt-4o")
+        # Add a message so the conversation appears in listing
+        db.save_message(session_id, "user", "Hello!", 5)
 
         conversations = db.list_conversations()
 
         assert len(conversations) == 1
         assert conversations[0]["session_id"] == session_id
         assert conversations[0]["model"] == "gpt-4o"
-        assert conversations[0]["message_count"] == 0
+        assert conversations[0]["message_count"] == 1
 
     def test_list_conversations_with_messages(self, tmp_path):
         """Test that message count is included."""
@@ -300,40 +307,61 @@ class TestListingConversations:
         assert conversations[0]["message_count"] == 2
 
     def test_list_conversations_ordered_by_updated(self, tmp_path):
-        """Test that conversations are ordered by updated_at DESC."""
+        """Test that conversations are ordered by updated_at DESC.
+
+        Note: list_conversations() filters out empty conversations, so both
+        conversations need at least one message to appear in the listing.
+        """
         db = ConversationDatabase(tmp_path / "test.db")
 
         session1 = db.create_conversation("gpt-4o")
-        session2 = db.create_conversation("claude-3-5-sonnet")
+        # Add initial message to session1
+        db.save_message(session1, "user", "Hello from session1!", 5)
 
-        # Update session1 (should move it to top)
-        db.save_message(session1, "user", "Hello!", 5)
+        session2 = db.create_conversation("claude-3-5-sonnet")
+        # Add message to session2 (this makes it more recently updated)
+        db.save_message(session2, "user", "Hello from session2!", 5)
+
+        # Update session1 again (should move it to top)
+        db.save_message(session1, "user", "Another message!", 5)
 
         conversations = db.list_conversations()
 
+        # session1 was updated last, so it should be first
         assert conversations[0]["session_id"] == session1
         assert conversations[1]["session_id"] == session2
 
     def test_list_conversations_limit(self, tmp_path):
-        """Test limiting number of conversations returned."""
+        """Test limiting number of conversations returned.
+
+        Note: list_conversations() filters out empty conversations, so each
+        conversation needs at least one message to appear in the listing.
+        """
         db = ConversationDatabase(tmp_path / "test.db")
 
-        # Create 5 conversations
+        # Create 5 conversations with messages
         for i in range(5):
-            db.create_conversation(f"model-{i}")
+            session_id = db.create_conversation(f"model-{i}")
+            db.save_message(session_id, "user", f"Message {i}", 5)
 
         conversations = db.list_conversations(limit=3)
 
         assert len(conversations) == 3
 
     def test_list_conversations_offset(self, tmp_path):
-        """Test offset pagination."""
+        """Test offset pagination.
+
+        Note: list_conversations() filters out empty conversations, so each
+        conversation needs at least one message to appear in the listing.
+        """
         db = ConversationDatabase(tmp_path / "test.db")
 
-        # Create 5 conversations
+        # Create 5 conversations with messages
         sessions = []
         for i in range(5):
-            sessions.append(db.create_conversation(f"model-{i}"))
+            session_id = db.create_conversation(f"model-{i}")
+            db.save_message(session_id, "user", f"Message {i}", 5)
+            sessions.append(session_id)
 
         # Get first 2
         page1 = db.list_conversations(limit=2, offset=0)
