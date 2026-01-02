@@ -132,11 +132,17 @@ class TestInitialization:
 class TestFromConfig:
     """Test ConversationService.from_config() factory method."""
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.config.load_config")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     def test_from_config_default(
-        self, mock_history_class, mock_get_chat_model, mock_load_config, mock_config
+        self,
+        mock_history_class,
+        mock_get_chat_model,
+        mock_load_config,
+        mock_audit_logger,
+        mock_config,
     ):
         """Test from_config() with default parameters."""
         mock_load_config.return_value = mock_config
@@ -152,10 +158,11 @@ class TestFromConfig:
         assert service.tool_registry is None
         mock_load_config.assert_called_once()
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     def test_from_config_with_config(
-        self, mock_history_class, mock_get_chat_model, mock_config
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
     ):
         """Test from_config() with provided config."""
         mock_model = Mock()
@@ -168,6 +175,7 @@ class TestFromConfig:
         assert service.config == mock_config
         mock_get_chat_model.assert_called_once()
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
@@ -176,6 +184,7 @@ class TestFromConfig:
         mock_build_prompt,
         mock_history_class,
         mock_get_chat_model,
+        mock_audit_logger,
         mock_config,
     ):
         """Test from_config() with custom system prompt."""
@@ -194,10 +203,11 @@ class TestFromConfig:
         mock_build_prompt.assert_called_once()
         assert mock_build_prompt.call_args[1]["base_prompt"] == "My custom prompt"
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     def test_from_config_tool_docs_disabled(
-        self, mock_history_class, mock_get_chat_model, mock_config
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
     ):
         """Test from_config() with tool docs disabled."""
         mock_model = Mock()
@@ -219,10 +229,11 @@ class TestFromConfig:
             mock_build.assert_called_once()
             assert mock_build.call_args[1]["tool_registry"] is None
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     def test_from_config_context_injection_control(
-        self, mock_history_class, mock_get_chat_model, mock_config
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
     ):
         """Test from_config() with context injection parameters."""
         mock_model = Mock()
@@ -1071,10 +1082,11 @@ class TestIntegrationFlows:
 class TestFactoryMethodEdgeCases:
     """Test ConversationService.from_config() edge cases and variations."""
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     def test_from_config_with_tools_enabled(
-        self, mock_history_class, mock_get_chat_model, mock_config
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
     ):
         """Test from_config() with tools enabled."""
         mock_model = Mock()
@@ -1108,10 +1120,11 @@ class TestFactoryMethodEdgeCases:
 
             assert service.tool_registry is not None
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     def test_from_config_with_tools_disabled(
-        self, mock_history_class, mock_get_chat_model, mock_config
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
     ):
         """Test from_config() with tools disabled."""
         mock_model = Mock()
@@ -1126,10 +1139,11 @@ class TestFactoryMethodEdgeCases:
 
         assert service.tool_registry is None
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     def test_from_config_without_system_prompt(
-        self, mock_history_class, mock_get_chat_model, mock_config
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
     ):
         """Test from_config() without system prompt."""
         mock_model = Mock()
@@ -1147,6 +1161,7 @@ class TestFactoryMethodEdgeCases:
         # Should not add system message if base_prompt is None
         mock_history.add_system_message.assert_not_called()
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
@@ -1155,6 +1170,7 @@ class TestFactoryMethodEdgeCases:
         mock_build_prompt,
         mock_history_class,
         mock_get_chat_model,
+        mock_audit_logger,
         mock_config,
     ):
         """Test from_config() includes environment context."""
@@ -1172,6 +1188,7 @@ class TestFactoryMethodEdgeCases:
         mock_build_prompt.assert_called_once()
         assert mock_build_prompt.call_args[1]["include_env_context"] is True
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
@@ -1180,6 +1197,7 @@ class TestFactoryMethodEdgeCases:
         mock_build_prompt,
         mock_history_class,
         mock_get_chat_model,
+        mock_audit_logger,
         mock_config,
     ):
         """Test from_config() includes git context."""
@@ -1197,6 +1215,7 @@ class TestFactoryMethodEdgeCases:
         mock_build_prompt.assert_called_once()
         assert mock_build_prompt.call_args[1]["include_git_context"] is True
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
@@ -1205,6 +1224,7 @@ class TestFactoryMethodEdgeCases:
         mock_build_prompt,
         mock_history_class,
         mock_get_chat_model,
+        mock_audit_logger,
         mock_config,
     ):
         """Test from_config() auto appends tools."""
@@ -1222,10 +1242,11 @@ class TestFactoryMethodEdgeCases:
         mock_build_prompt.assert_called_once()
         assert mock_build_prompt.call_args[1]["auto_append_tools"] is True
 
+    @patch("consoul.ai.tools.audit.StructuredAuditLogger")
     @patch("consoul.ai.get_chat_model")
     @patch("consoul.ai.ConversationHistory")
     def test_from_config_with_persistence_config(
-        self, mock_history_class, mock_get_chat_model, mock_config
+        self, mock_history_class, mock_get_chat_model, mock_audit_logger, mock_config
     ):
         """Test from_config() with persistence configuration."""
         mock_model = Mock()
