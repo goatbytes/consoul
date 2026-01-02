@@ -62,9 +62,9 @@ class TestBodySizeLimit:
 
         assert response.status_code == 413
         data = response.json()
-        assert data["error"] == "Request too large"
-        assert "limit" in data
-        assert data["limit"] == 1024 * 1024  # 1MB default
+        assert data["error"] == "request_too_large"
+        assert "details" in data
+        assert data["details"]["limit"] == 1024 * 1024  # 1MB default
 
     def test_health_endpoints_work(self) -> None:
         """Health endpoints work (no body to validate)."""

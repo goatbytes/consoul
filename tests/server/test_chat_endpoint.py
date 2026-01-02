@@ -392,7 +392,7 @@ class TestChatErrorHandling:
             )
             assert response.status_code == 503
             data = response.json()
-            assert data["error"] == "storage_unavailable"
+            assert data["error"] == "session_storage_unavailable"
 
     def test_internal_error_returns_500(self) -> None:
         """Internal errors return 500."""

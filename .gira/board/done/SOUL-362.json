@@ -1,12 +1,12 @@
 {
   "created_at": "2026-01-02T17:42:20.008797Z",
-  "updated_at": "2026-01-02T17:42:20.008805Z",
+  "updated_at": "2026-01-02T19:04:06.685901Z",
   "id": "SOUL-362",
   "uuid": "b6a64c3a-e133-49d3-87a8-f3b59fa47d81",
   "_version": 1,
   "title": "Investigate missing deprecation warnings in backward compatibility tests",
   "description": "**Summary:**\nBackward compatibility tests expect deprecation warnings that are not being emitted, causing 12 test failures.\n\n**Root Cause Analysis:**\nTests use `pytest.warns(DeprecationWarning)` expecting warnings when importing from legacy locations, but no warnings are emitted.\n\n**Error Pattern:**\n```\nFailed: DID NOT WARN. No warnings of type (<class 'DeprecationWarning'>,) were emitted.\n```\n\n**Affected Test File:**\n- `tests/config/test_backward_compatibility.py` (12 failures)\n\n**Tests Affected:**\n- `test_import_with_deprecation_warning`\n- `test_warning_contains_version_info`\n- `test_get_builtin_profiles_with_deprecation_warning`\n- `test_list_available_profiles_with_deprecation_warning`\n- `test_get_profile_description_with_deprecation_warning`\n- `test_config_models_warning_message_quality`\n- `test_config_profiles_warning_message_quality`\n- `test_warnings_suggest_correct_import_pattern`\n- `test_multiple_imports_from_same_module`\n- `test_uses_deprecation_warning_not_user_warning`\n\n**Investigation Tasks:**\n1. Check if deprecation warning code was removed\n2. Check if warnings.warn() calls exist in legacy import paths\n3. Verify warning filter settings aren't suppressing DeprecationWarning\n4. Determine if tests are still relevant\n\n**Technical Notes:**\n- `src/consoul/config/models.py` - legacy import location for ProfileConfig\n- `src/consoul/config/profiles.py` - legacy import location for profile functions\n- Python 3.12+ changed some warning behaviors\n\n**Acceptance Criteria:**\n- [ ] Deprecation warnings emit when importing from legacy paths, OR\n- [ ] Tests updated to reflect current behavior if warnings intentionally removed\n- [ ] All 12 backward compatibility tests pass\n\n**Decision Required:**\n- Should we maintain backward compatibility warnings, or remove legacy import paths entirely?",
-  "status": "todo",
+  "status": "done",
   "type": "bug",
   "priority": "medium",
   "labels": [

@@ -393,11 +393,12 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
         max_age=config.cors.max_age,
     )
 
+    # Import BaseHTTPMiddleware once (used for multiple middleware types)
+    from starlette.middleware.base import BaseHTTPMiddleware
+
     # Configure body size limit middleware (after CORS, before rate limiter)
     # This protects against DoS attacks via oversized payloads
     if config.validation.enabled:
-        from starlette.middleware.base import BaseHTTPMiddleware
-
         # Capture value to avoid closure issues with mypy
         max_body_size = config.validation.max_body_size
 
@@ -446,12 +447,11 @@ def create_server(config: ServerConfig | None = None) -> FastAPI:
     # Middleware is added here (before app starts) but looks up app.state.metrics
     # at request time. The actual MetricsCollector is set in the lifespan handler.
     app.state.metrics = None
-    from starlette.middleware.base import BaseHTTPMiddleware as MetricsBaseMiddleware
 
     from consoul.server.observability import create_app_state_metrics_middleware
 
     app.add_middleware(
-        MetricsBaseMiddleware,
+        BaseHTTPMiddleware,
         dispatch=create_app_state_metrics_middleware(),
     )
 

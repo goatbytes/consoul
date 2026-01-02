@@ -1,0 +1,27 @@
+{
+  "created_at": "2026-01-02T17:42:17.693823Z",
+  "updated_at": "2026-01-02T18:51:49.567088Z",
+  "id": "SOUL-361",
+  "uuid": "ed58f0a8-1478-4f60-a0a1-18e949112b92",
+  "_version": 1,
+  "title": "Fix config type mismatches in profile loading functions",
+  "description": "**Summary:**\nProfile-related functions receive incorrect config types or call incompatible methods on config objects, causing ~30+ test failures.\n\n**Root Cause Analysis:**\n1. `list_available_profiles()` receives `ConsoulCoreConfig` but calls `.keys()` expecting a dict\n2. `load_profile()` requires `ConsoulTuiConfig` but tests pass `ConsoulCoreConfig`\n3. `load_yaml_config()` receives string paths instead of `Path` objects\n\n**Error Patterns:**\n```\nAttributeError: 'ConsoulCoreConfig' object has no attribute 'keys'\nTypeError: load_profile() requires ConsoulTuiConfig (with profiles field)\nAttributeError: 'str' object has no attribute 'exists'\n```\n\n**Affected Test Files (~30+ tests):**\n- `tests/config/test_profiles.py` (18 failures)\n- `tests/config/test_loader.py` (10 failures)\n- Other config-related tests\n\n**Technical Notes:**\n- `src/consoul/tui/profiles.py:269` - `list_available_profiles()` expects profiles dict\n- `src/consoul/config/loader.py:382` - `load_profile()` type check\n- `src/consoul/config/loader.py:127` - `load_yaml_config()` Path handling\n\n**Investigation Tasks:**\n1. Determine if function signatures changed or tests were never updated\n2. Check if there's a config hierarchy issue (Core vs TUI config)\n3. Verify Path vs string handling throughout loader\n\n**Acceptance Criteria:**\n- [ ] `list_available_profiles()` handles both config types or tests use correct type\n- [ ] `load_profile()` tests use `ConsoulTuiConfig`\n- [ ] `load_yaml_config()` properly handles string paths\n- [ ] 30+ affected tests pass\n\n**Possible Solutions:**\n1. Add type coercion in functions (convert string to Path)\n2. Update tests to pass correct types\n3. Add adapter methods for backward compatibility",
+  "status": "done",
+  "type": "bug",
+  "priority": "high",
+  "labels": [
+    "test",
+    "config",
+    "regression"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

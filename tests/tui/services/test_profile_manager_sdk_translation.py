@@ -3,10 +3,13 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from consoul.config.models import OpenAIModelConfig
+from consoul.config.models import ConsoulCoreConfig, OpenAIModelConfig
 from consoul.tui.config import ConsoulTuiConfig
 from consoul.tui.profiles import ProfileConfig
 from consoul.tui.services.profile_manager import ProfileManager
+
+# Rebuild ConsoulTuiConfig to resolve ProfileConfig forward reference
+ConsoulTuiConfig.model_rebuild()
 
 
 class TestProfileToSdkParams:
@@ -28,6 +31,7 @@ class TestProfileToSdkParams:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         # Convert to SDK params
@@ -52,6 +56,7 @@ class TestProfileToSdkParams:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         params = ProfileManager.profile_to_sdk_params(profile, config)
@@ -72,6 +77,7 @@ class TestProfileToSdkParams:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         params = ProfileManager.profile_to_sdk_params(profile, config)
@@ -98,6 +104,7 @@ class TestProfileToSdkParams:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         params = ProfileManager.profile_to_sdk_params(profile, config)
@@ -125,6 +132,7 @@ class TestProfileToSdkParams:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         params = ProfileManager.profile_to_sdk_params(profile, config)
@@ -157,6 +165,7 @@ class TestProfileToSdkParams:
         config = ConsoulTuiConfig(
             profiles={"complete-profile": profile},
             active_profile="complete-profile",
+            core=ConsoulCoreConfig(),
         )
 
         params = ProfileManager.profile_to_sdk_params(profile, config)
@@ -195,7 +204,7 @@ class TestProfileToSdkParams:
 class TestBuildProfileSystemPrompt:
     """Test build_profile_system_prompt() method."""
 
-    @patch("consoul.tui.services.profile_manager.build_enhanced_system_prompt")
+    @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
     def test_basic_prompt_building(self, mock_build_prompt):
         """Test basic system prompt building."""
         mock_build_prompt.return_value = "Enhanced prompt with context"
@@ -210,6 +219,7 @@ class TestBuildProfileSystemPrompt:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         result = ProfileManager.build_profile_system_prompt(profile, config)
@@ -223,7 +233,7 @@ class TestBuildProfileSystemPrompt:
         assert call_kwargs["include_datetime_info"] is True
         assert result == "Enhanced prompt with context"
 
-    @patch("consoul.tui.services.profile_manager.build_enhanced_system_prompt")
+    @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
     def test_with_system_context_enabled(self, mock_build_prompt):
         """Test prompt building with system context enabled."""
         from consoul.config.models import ContextConfig
@@ -241,6 +251,7 @@ class TestBuildProfileSystemPrompt:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         ProfileManager.build_profile_system_prompt(profile, config)
@@ -250,7 +261,7 @@ class TestBuildProfileSystemPrompt:
         assert call_kwargs["include_shell_info"] is True
         assert call_kwargs["include_directory_info"] is True
 
-    @patch("consoul.tui.services.profile_manager.build_enhanced_system_prompt")
+    @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
     def test_with_git_context_enabled(self, mock_build_prompt):
         """Test prompt building with git context enabled."""
         from consoul.config.models import ContextConfig
@@ -268,6 +279,7 @@ class TestBuildProfileSystemPrompt:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         ProfileManager.build_profile_system_prompt(profile, config)
@@ -275,7 +287,7 @@ class TestBuildProfileSystemPrompt:
         call_kwargs = mock_build_prompt.call_args.kwargs
         assert call_kwargs["include_git_info"] is True
 
-    @patch("consoul.tui.services.profile_manager.build_enhanced_system_prompt")
+    @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
     def test_empty_prompt_handling(self, mock_build_prompt):
         """Test handling of empty/None system prompt."""
         mock_build_prompt.return_value = "Default prompt"
@@ -290,6 +302,7 @@ class TestBuildProfileSystemPrompt:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         result = ProfileManager.build_profile_system_prompt(profile, config)
@@ -298,7 +311,7 @@ class TestBuildProfileSystemPrompt:
         assert call_kwargs["base_prompt"] == ""
         assert result == "Default prompt"
 
-    @patch("consoul.tui.services.profile_manager.build_enhanced_system_prompt")
+    @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
     def test_none_return_handling(self, mock_build_prompt):
         """Test handling when build_enhanced_system_prompt returns None."""
         mock_build_prompt.return_value = None
@@ -313,6 +326,7 @@ class TestBuildProfileSystemPrompt:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         result = ProfileManager.build_profile_system_prompt(profile, config)
@@ -429,7 +443,7 @@ class TestGetModelName:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
-            current_model="fallback-model",
+            core=ConsoulCoreConfig(current_model="fallback-model"),
         )
 
         model_name = ProfileManager.get_model_name(profile, config)
@@ -452,7 +466,7 @@ class TestGetModelName:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
-            current_model="fallback-model",
+            core=ConsoulCoreConfig(current_model="fallback-model"),
         )
 
         model_name = ProfileManager.get_model_name(profile_mock, config)
@@ -480,6 +494,7 @@ class TestGetModelName:
             config = ConsoulTuiConfig(
                 profiles={"test-profile": profile},
                 active_profile="test-profile",
+                core=ConsoulCoreConfig(),
             )
 
             result = ProfileManager.get_model_name(profile, config)
@@ -518,6 +533,7 @@ class TestIntegration:
         config = ConsoulTuiConfig(
             profiles={"integration-profile": profile},
             active_profile="integration-profile",
+            core=ConsoulCoreConfig(),
         )
 
         # Step 1: Extract SDK params
@@ -547,7 +563,7 @@ class TestIntegration:
         assert conv_kwargs["persist"] == sdk_params["persist"]
         assert conv_kwargs["summarize"] == sdk_params["summarize"]
 
-    @patch("consoul.tui.services.profile_manager.build_enhanced_system_prompt")
+    @patch("consoul.ai.prompt_builder.build_enhanced_system_prompt")
     def test_sdk_params_with_enhanced_prompt(self, mock_build_prompt):
         """Test SDK params include enhanced system prompt."""
         mock_build_prompt.return_value = "Enhanced prompt with full context"
@@ -562,6 +578,7 @@ class TestIntegration:
         config = ConsoulTuiConfig(
             profiles={"test-profile": profile},
             active_profile="test-profile",
+            core=ConsoulCoreConfig(),
         )
 
         # Extract SDK params

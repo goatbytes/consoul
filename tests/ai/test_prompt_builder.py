@@ -174,8 +174,12 @@ class TestBuildEnhancedSystemPrompt:
         assert "Prompt" in result
         assert "# Available Tools" in result
 
-    def test_defaults_preserve_cli_tui_behavior(self, mock_tool_registry, mocker):
-        """Test all defaults enabled (CLI/TUI behavior)."""
+    def test_cli_tui_behavior_with_env_context(self, mock_tool_registry, mocker):
+        """Test CLI/TUI behavior with include_env_context=True.
+
+        Since SOUL-287, defaults are SDK-friendly (no env context).
+        CLI/TUI must explicitly enable env context.
+        """
         mocker.patch(
             "consoul.ai.environment.get_environment_context",
             return_value="Working Directory: /test",
@@ -185,6 +189,7 @@ class TestBuildEnhancedSystemPrompt:
         result = build_enhanced_system_prompt(
             prompt,
             tool_registry=mock_tool_registry,
+            include_env_context=True,  # Explicit for CLI/TUI behavior
         )
 
         # Should have env context + tool docs

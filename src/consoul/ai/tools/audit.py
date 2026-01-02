@@ -281,10 +281,15 @@ class StructuredAuditLogger:
         self.redactor = None
         if config.redact_pii:
             try:
-                from consoul.sdk.redaction import PiiRedactor
+                from consoul.sdk.redaction import REDACTION_PATTERNS, PiiRedactor
 
+                # Pass both fields and default patterns to enable both field-based
+                # and pattern-based redaction. Without explicit patterns, PiiRedactor
+                # operates in field-only mode when fields is provided.
                 self.redactor = PiiRedactor(
-                    fields=config.redact_fields, max_length=config.max_arg_length
+                    fields=config.redact_fields,
+                    patterns=REDACTION_PATTERNS,
+                    max_length=config.max_arg_length,
                 )
             except ImportError:
                 # redaction module not available (logging extra not installed)

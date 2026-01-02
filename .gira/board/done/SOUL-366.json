@@ -1,0 +1,27 @@
+{
+  "created_at": "2026-01-02T17:44:29.357083Z",
+  "updated_at": "2026-01-02T18:51:50.712351Z",
+  "id": "SOUL-366",
+  "uuid": "320d2539-7d48-41a2-a8e7-9c0ea169d056",
+  "_version": 1,
+  "title": "Fix ConsoulConfig tests using wrong config type (Core vs TUI)",
+  "description": "**Summary:**\nTests for `ConsoulConfig` fail because the alias maps to `ConsoulCoreConfig` which doesn't have `profiles` and `active_profile` fields (these are TUI-specific).\n\n**Root Cause Analysis:**\nConfig hierarchy was split into Core (SDK) and TUI configs, but:\n1. `ConsoulConfig` alias maps to `ConsoulCoreConfig`\n2. Tests still pass `profiles` and `active_profile` expecting the old unified config\n\n**Error Pattern:**\n```\npydantic_core.ValidationError: 2 validation errors for ConsoulCoreConfig\nprofiles\n  Extra inputs are not permitted\nactive_profile\n  Extra inputs are not permitted\n```\n\n**Affected Test File:**\n- `tests/config/test_models.py` (8 failures in `TestConsoulConfig`)\n\n**Tests Affected:**\n- `test_valid_config`\n- `test_active_profile_validation`\n- `test_active_profile_normalization`\n- `test_api_keys_not_serialized_json`\n- `test_api_keys_not_serialized_python`\n- `test_global_settings_extensibility`\n- `test_get_active_profile`\n- `test_multiple_profiles`\n\n**Investigation Tasks:**\n1. Should `ConsoulConfig` be an alias for `ConsoulTuiConfig` instead?\n2. Should there be separate test classes for Core vs TUI config?\n3. Is the config hierarchy intentional or accidental?\n\n**Technical Notes:**\n- `src/consoul/config/models.py` - ConsoulConfig alias\n- `ConsoulCoreConfig` - SDK configuration (no profiles)\n- `ConsoulTuiConfig` - TUI configuration (has profiles)\n\n**Acceptance Criteria:**\n- [ ] Tests use correct config type (Core or TUI)\n- [ ] `ConsoulConfig` alias correctly documented\n- [ ] All 8 `TestConsoulConfig` tests pass\n\n**Resolution Options:**\n1. Update tests to use `ConsoulTuiConfig` for profile-related tests\n2. Create separate test classes for Core and TUI configs\n3. Rename alias to avoid confusion",
+  "status": "done",
+  "type": "bug",
+  "priority": "high",
+  "labels": [
+    "test",
+    "config",
+    "regression"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 2,
+  "order": 0,
+  "custom_fields": {}
+}

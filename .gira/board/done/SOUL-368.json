@@ -1,12 +1,12 @@
 {
   "created_at": "2026-01-02T17:44:53.059606Z",
-  "updated_at": "2026-01-02T17:44:53.059612Z",
+  "updated_at": "2026-01-02T18:50:40.564991Z",
   "id": "SOUL-368",
   "uuid": "6ee16725-1c8c-4693-b0ba-db3bd4e4c713",
   "_version": 1,
   "title": "Fix SDK conversation service test mocking issues",
   "description": "**Summary:**\nSDK conversation service tests fail due to mocking incorrect module paths after refactoring.\n\n**Affected Test File:**\n- `tests/sdk/services/test_conversation_service.py` (12 failures)\n\n**Root Cause:**\nTests mock attributes at old module locations that no longer exist after SDK refactoring.\n\n**Related Issues:**\n- SOUL-360: Update tests mocking removed/refactored module attributes\n\n**Investigation Tasks:**\n1. Identify current location of conversation service dependencies\n2. Update mock paths to correct locations\n3. Verify test assertions still valid after refactoring\n\n**Acceptance Criteria:**\n- [ ] All 12 conversation service tests pass\n- [ ] Mock paths reference correct module locations",
-  "status": "todo",
+  "status": "done",
   "type": "bug",
   "priority": "medium",
   "labels": [

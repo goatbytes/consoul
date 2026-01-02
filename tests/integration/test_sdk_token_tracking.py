@@ -202,7 +202,7 @@ def test_anthropic_cache_token_extraction() -> None:
 )
 def test_anthropic_cache_ttl_tokens() -> None:
     """Test that TTL-specific cache tokens are extracted when available."""
-    console = Consoul(model="claude-3-5-sonnet-20241022", tools=False, persist=False)
+    console = Consoul(model="claude-sonnet-4-5-20250929", tools=False, persist=False)
 
     # Send a message
     console.chat("Explain quantum computing in one sentence")

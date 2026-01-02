@@ -1,12 +1,12 @@
 {
   "created_at": "2026-01-02T17:44:55.089067Z",
-  "updated_at": "2026-01-02T17:44:55.089074Z",
+  "updated_at": "2026-01-02T18:45:49.946876Z",
   "id": "SOUL-369",
   "uuid": "5d761e70-8fd3-4ddc-9c5b-1c23ede948e5",
   "_version": 1,
   "title": "Fix package metadata and export tests",
   "description": "**Summary:**\nPackage metadata tests fail, likely due to export changes or version handling.\n\n**Affected Test File:**\n- `tests/unit/test_package.py` (2 failures)\n\n**Tests Affected:**\n- `test_version_exists`\n- `test_all_exports`\n\n**Investigation Tasks:**\n1. Verify `__version__` is properly exported\n2. Check if expected exports have been removed or renamed\n3. Update test expectations to match current public API\n\n**Acceptance Criteria:**\n- [ ] Package version is accessible\n- [ ] All expected exports are present\n- [ ] Both package metadata tests pass",
-  "status": "todo",
+  "status": "done",
   "type": "bug",
   "priority": "low",
   "labels": [

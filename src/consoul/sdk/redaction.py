@@ -35,10 +35,12 @@ from typing import Any
 __all__ = ["DEFAULT_REDACT_FIELDS", "REDACTION_PATTERNS", "PiiRedactor"]
 
 # Common PII/secret patterns (regex patterns for automatic detection)
+# NOTE: Order matters! JWT must come before bearer_token to ensure JWT tokens
+# are redacted as [REDACTED-JWT] rather than being consumed by bearer_token.
 REDACTION_PATTERNS: dict[str, str] = {
-    "api_key": r"(sk-|pk-|key-)[a-zA-Z0-9]{20,}",
-    "bearer_token": r"Bearer\s+[a-zA-Z0-9_\-\.]+",
     "jwt": r"eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+",
+    "api_key": r"(sk-|pk-|key-)[a-zA-Z0-9]{8,}",
+    "bearer_token": r"Bearer\s+[a-zA-Z0-9_\-\.]+",
     "ssn": r"\b\d{3}-\d{2}-\d{4}\b",
     "credit_card": r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b",
     "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
@@ -100,10 +102,21 @@ class PiiRedactor:
         Args:
             fields: List of field names to redact (default: DEFAULT_REDACT_FIELDS)
             patterns: Dict of {name: regex_pattern} (default: REDACTION_PATTERNS)
+                      When fields is explicitly provided but patterns is not,
+                      patterns defaults to empty dict (field-only mode).
             max_length: Maximum string length before truncation (0 = no limit)
         """
         self.fields = {f.lower() for f in (fields or DEFAULT_REDACT_FIELDS)}
-        self.patterns = patterns or REDACTION_PATTERNS
+        # When fields is explicitly provided but patterns is not, use field-only mode
+        # (no pattern matching). When neither is provided, use defaults for both.
+        if patterns is not None:
+            self.patterns = patterns
+        elif fields is not None:
+            # Custom fields provided but not patterns: field-only mode
+            self.patterns = {}
+        else:
+            # No custom fields or patterns: use defaults
+            self.patterns = REDACTION_PATTERNS
         self.max_length = max_length
 
         # Pre-compile regex patterns for performance

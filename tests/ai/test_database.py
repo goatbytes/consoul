@@ -900,9 +900,11 @@ class TestRetentionCleanup:
         """Test deletion when no conversations match the age criteria."""
         db = ConversationDatabase(tmp_path / "test.db")
 
-        # Create recent conversations
-        db.create_conversation("gpt-4o")
-        db.create_conversation("claude-3-5-sonnet")
+        # Create recent conversations with messages
+        session1 = db.create_conversation("gpt-4o")
+        session2 = db.create_conversation("claude-3-5-sonnet")
+        db.save_message(session1, "user", "Message 1", 5)
+        db.save_message(session2, "user", "Message 2", 5)
 
         # Try to delete conversations older than 30 days (none exist)
         deleted_count = db.delete_conversations_older_than(30)

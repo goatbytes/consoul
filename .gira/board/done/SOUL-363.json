@@ -1,0 +1,27 @@
+{
+  "created_at": "2026-01-02T17:43:11.508650Z",
+  "updated_at": "2026-01-02T19:04:07.869430Z",
+  "id": "SOUL-363",
+  "uuid": "37ccd932-a1c4-4184-b085-b14b0bbdb604",
+  "_version": 1,
+  "title": "Investigate database list_conversations returning empty results",
+  "description": "**Summary:**\nDatabase tests for listing conversations return empty lists when data is expected, causing 5 test failures.\n\n**Root Cause Analysis:**\nTests create conversations then call `list_conversations()`, but receive empty lists. This suggests either:\n1. Conversations aren't being persisted correctly\n2. Query logic is broken\n3. Test isolation/cleanup issues\n\n**Error Patterns:**\n```\nassert len(conversations) == 1\nassert 0 == 1\n+  where 0 = len([])\n\nIndexError: list index out of range\n```\n\n**Affected Test File:**\n- `tests/ai/test_database.py` (5 failures in `TestListingConversations`)\n\n**Tests Affected:**\n- `test_list_conversations_single`\n- `test_list_conversations_ordered_by_updated`\n- `test_list_conversations_limit`\n- `test_list_conversations_offset`\n- Other listing-related tests\n\n**Investigation Tasks:**\n1. Check if conversation creation in tests is correct\n2. Verify database schema hasn't changed\n3. Check query implementation in `list_conversations()`\n4. Look for recent changes to conversation storage logic\n5. Verify test fixtures and database cleanup between tests\n\n**Technical Notes:**\n- `src/consoul/ai/database.py` - database operations\n- Check if session_id handling changed\n- Verify async/await patterns are correct\n\n**Acceptance Criteria:**\n- [ ] `list_conversations()` returns created conversations\n- [ ] All 5 `TestListingConversations` tests pass\n- [ ] No regressions in conversation persistence\n\n**Related Areas:**\n- Check if related to SOUL-355 (resume_session_id support)\n- Check if related to SOUL-354 (session store lock cleanup)",
+  "status": "done",
+  "type": "bug",
+  "priority": "medium",
+  "labels": [
+    "test",
+    "database",
+    "regression"
+  ],
+  "reporter": "jared@goatbytes.io",
+  "blocked_by": [],
+  "blocks": [],
+  "comments": [],
+  "attachments": [],
+  "attachment_count": 0,
+  "comment_count": 0,
+  "story_points": 3,
+  "order": 0,
+  "custom_fields": {}
+}

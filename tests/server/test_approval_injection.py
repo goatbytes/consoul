@@ -37,7 +37,10 @@ def mock_tool_request():
 class TestApprovalProviderProtocol:
     """Test approval provider protocol implementation."""
 
-    def test_approval_provider_with_on_tool_request_method(self, mock_tool_request):
+    @pytest.mark.asyncio
+    async def test_approval_provider_with_on_tool_request_method(
+        self, mock_tool_request
+    ):
         """Approval provider with on_tool_request method should work."""
 
         class ProtocolProvider:
@@ -56,17 +59,11 @@ class TestApprovalProviderProtocol:
             risk_level="safe",
         )
 
-        import asyncio
-
-        result = asyncio.get_event_loop().run_until_complete(
-            provider.on_tool_request(safe_request)
-        )
+        result = await provider.on_tool_request(safe_request)
         assert result is True
 
         # Test with caution risk level
-        result = asyncio.get_event_loop().run_until_complete(
-            provider.on_tool_request(mock_tool_request)
-        )
+        result = await provider.on_tool_request(mock_tool_request)
         assert result is False
 
     @pytest.mark.asyncio

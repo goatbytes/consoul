@@ -25,8 +25,9 @@ def mock_session():
     session = Mock()
     session.console = Mock()
     session.config = Mock()
-    session.config.current_provider = Mock(value="openai")
-    session.config.current_model = "gpt-4o"
+    session.config.core = Mock()
+    session.config.core.current_provider = Mock(value="openai")
+    session.config.core.current_model = "gpt-4o"
     session.conversation_service = Mock()
     session.conversation_service.conversation = Mock()
     session.conversation_service.conversation.model_name = "gpt-4o"
@@ -222,7 +223,7 @@ class TestCommandModel:
         cmd_model(mock_session, "claude-3-5-sonnet-20241022")
 
         # Should update config
-        assert mock_session.config.current_model == "claude-3-5-sonnet-20241022"
+        assert mock_session.config.core.current_model == "claude-3-5-sonnet-20241022"
         # Should update conversation service model
         assert mock_session.conversation_service.model == mock_new_model
         # Should print success message
